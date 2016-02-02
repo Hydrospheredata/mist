@@ -5,6 +5,10 @@ package com.provectus.lymph
   * @tparam T contained type
   */
 private[lymph] trait Repository[T] {
+  /** Add element into repository
+    *
+    * @param element
+    */
   def add(element: T)
   def remove(element: T)
 

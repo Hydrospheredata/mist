@@ -40,3 +40,5 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
     case _ => MergeStrategy.first
   }
 }
+
+lazy val sub = LocalProject("examples")
