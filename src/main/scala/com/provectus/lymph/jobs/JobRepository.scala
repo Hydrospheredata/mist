@@ -4,28 +4,28 @@ import com.provectus.lymph.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
 
-private[lymph] trait JobRepository extends Repository[LymphJob]
+private[lymph] trait JobRepository extends Repository[Job]
 
 private[lymph] object InMemoryJobRepository extends JobRepository {
 
-  private val _collection = ArrayBuffer.empty[LymphJob]
+  private val _collection = ArrayBuffer.empty[Job]
 
-  override def add(job: LymphJob): Unit = {
+  override def add(job: Job): Unit = {
     _collection += job
   }
 
-  override def get(specification: Specification[LymphJob]): Option[LymphJob] = {
-    val predicate: LymphJob => Boolean = x => specification.specified(x)
+  override def get(specification: Specification[Job]): Option[Job] = {
+    val predicate: Job => Boolean = x => specification.specified(x)
     _collection.find(predicate)
   }
 
 
-  override def filter(specification: Specification[LymphJob]): List[LymphJob] = {
-    val predicate: LymphJob => Boolean = x => specification.specified(x)
+  override def filter(specification: Specification[Job]): List[Job] = {
+    val predicate: Job => Boolean = x => specification.specified(x)
     _collection.filter(predicate).toList
   }
 
-  override def remove(job: LymphJob): Unit = {
+  override def remove(job: Job): Unit = {
     _collection -= job
   }
 }
