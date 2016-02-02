@@ -23,13 +23,12 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
 
   def status = _status
 
-  val objectRef = {
-      val jarFile = new File(configuration.jarPath)
-      val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
-      val cls = classLoader.loadClass(configuration.className)
+    val jarFile = new File(configuration.jarPath)
+    val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
+    val cls = classLoader.loadClass(configuration.className)
 
-      cls.getField("MODULE$").get(null).asInstanceOf[LymphJob]
-  }
+
+    val objectRef = cls.getField("MODULE$").get(null)
 
   contextWrapper.addJar(configuration.jarPath)
 
@@ -39,22 +38,22 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
       val result = objectRef match {
         case objectRef: LymphJob =>
           try {
-            objectRef.getClass.getMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
+            cls.getDeclaredMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
             return objectRef.doStuff(contextWrapper.context, configuration.parameters)
           } catch {
-            case _: NoSuchMethodException => // pass
+            case _: NoSuchMethodException => println("No method for SparkContext") // pass
           }
           try {
-            objectRef.getClass.getMethod("doStuff", classOf[SQLContext], classOf[Map[String, Any]])
+            cls.getDeclaredMethod("doStuff", classOf[SQLContext], classOf[Map[String, Any]])
             return objectRef.doStuff(contextWrapper.sqlContext, configuration.parameters)
           } catch {
-            case _: NoSuchMethodException => // pass
+            case _: NoSuchMethodException => println("No method for SQLContext") // pass
           }
           try {
-            objectRef.getClass.getMethod("doStuff", classOf[HiveContext], classOf[Map[String, Any]])
+            cls.getDeclaredMethod("doStuff", classOf[HiveContext], classOf[Map[String, Any]])
             return objectRef.doStuff(contextWrapper.hiveContext, configuration.parameters)
           } catch {
-            case _: NoSuchMethodException => // pass
+            case _: NoSuchMethodException => println("No method for HiveContext") // pass
           }
           null
         // TODO: Own exceptions
@@ -65,9 +64,10 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
 
       result
     } catch {
-      case e: Exception =>
+      case e: Throwable =>
         println(e)
         _status = JobStatus.Aborted
+        // TODO: return, not throw
         throw e
     }
   }
