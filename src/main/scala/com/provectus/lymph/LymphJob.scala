@@ -6,7 +6,7 @@ import org.apache.spark.sql.hive.HiveContext
 
 
 /** Provides abstract class for user spark jobs */
-trait LymphJob {
+class LymphJob {
 
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
