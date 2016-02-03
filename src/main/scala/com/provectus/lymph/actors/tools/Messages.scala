@@ -4,5 +4,5 @@ private[lymph] object Messages {
 
   case class CreateContext(name: String)
 
-  case class RemoveAllContexts()
+  case class StopAllContexts()
 }

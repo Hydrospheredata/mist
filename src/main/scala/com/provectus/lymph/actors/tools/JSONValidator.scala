@@ -6,9 +6,8 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
+/** JSON validator borrowed from https://gist.github.com/cjwebb/7e444eb36ec92fb904fd */
 private[actors] object JSONValidator {
-
-  // https://gist.github.com/cjwebb/7e444eb36ec92fb904fd
 
   def validate(json: String, jsonSchema: String):Boolean = {
 

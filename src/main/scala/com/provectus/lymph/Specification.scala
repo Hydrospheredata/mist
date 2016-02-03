@@ -1,9 +1,14 @@
 package com.provectus.lymph
 
-/** Base class for specification pattern
+/** Interface for specification pattern
   *
-  * @tparam T contained type
+  * @tparam T type of repository element
   */
 private[lymph] trait Specification[T] {
-  def specified(context: T): Boolean
+  /** Predicate for repository filtering
+    *
+    * @param element repository element for checking
+    * @return is this `element` satisfies implemented condition
+    */
+  def specified(element: T): Boolean
 }
