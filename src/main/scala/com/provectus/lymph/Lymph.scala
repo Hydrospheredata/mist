@@ -3,15 +3,14 @@ package com.provectus.lymph
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.provectus.lymph.actors.tools.Messages.{CreateContext, RemoveAllContexts}
+import com.provectus.lymph.actors.tools.Messages.{CreateContext, StopAllContexts}
 import com.provectus.lymph.actors.{ContextManager, MQTTService, HTTPService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 
 
-/** This object is entry point of Lymph project
-  */
+/** This object is entry point of Lymph project */
 private[lymph] object Lymph extends App with HTTPService {
   override implicit val system = ActorSystem("lymph")
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -37,7 +36,7 @@ private[lymph] object Lymph extends App with HTTPService {
   // We need to stop contexts on exit
   sys addShutdownHook {
     println("Stopping all the contexts")
-    contextManager ! RemoveAllContexts
+    contextManager ! StopAllContexts
   }
 
 }

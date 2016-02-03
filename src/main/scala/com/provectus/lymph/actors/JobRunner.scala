@@ -16,8 +16,10 @@ import scala.util.{Failure, Success}
 
 private[lymph] class JobRunner extends Actor {
 
+  // Thread context for parallel running jobs
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(LymphConfig.Settings.threadNumber))
 
+  // Actor which is creates spark contexts
   lazy val contextManager: ActorRef = context.actorOf(Props[ContextManager], name = "ContextManager")
 
   override def receive: Receive = {
@@ -25,8 +27,10 @@ private[lymph] class JobRunner extends Actor {
       val originalSender = sender
 
       // TODO: add disposable context
+      // Time of spark context creating is definitely less than one day
       implicit val timeout = Timeout(1.day)
 
+      // Request spark context creating
       val contextFuture = contextManager ? CreateContext(configuration.name)
 
       contextFuture.flatMap {
