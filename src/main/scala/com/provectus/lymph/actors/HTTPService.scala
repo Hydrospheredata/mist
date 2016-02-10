@@ -3,10 +3,9 @@ package com.provectus.lymph.actors
 import akka.actor.{Props, ActorRef, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
-import akka.pattern.ask
+import akka.pattern.{ask, AskTimeoutException}
 import com.provectus.lymph.LymphConfig
 
 import spray.json._
@@ -63,22 +62,23 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
 
           println(jobCreatingRequest.parameters)
 
-          // TODO: catch timeout exception
           // Run job asynchronously
           val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
 
-          future.map[ToResponseMarshallable] {
-            // Map is result, so everything is ok
-            case result: Map[String, Any] =>
-              val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
-              Json(DefaultFormats).write(jobResult)
-            // String is always error
-            case error: String =>
-              val jobResult = JobResult(success = false, payload = Map.empty, request = jobCreatingRequest, errors = List(error))
-              Json(DefaultFormats).write(jobResult)
-            // Something we don't know what
-            case _ => BadRequest -> "Something went wrong"
-          }
+          future
+            .recover {
+              // TODO: formalize errors
+              case error: AskTimeoutException => "Job Timeout"
+              case error: Throwable => error.toString
+            }
+            .map[ToResponseMarshallable] {
+              case result: Map[String, Any] =>
+                val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
+                Json(DefaultFormats).write(jobResult)
+              case error: String =>
+                val jobResult = JobResult(success = false, payload = Map.empty, request = jobCreatingRequest, errors = List(error))
+                Json(DefaultFormats).write(jobResult)
+            }
         }
       }
     }

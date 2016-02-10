@@ -60,7 +60,6 @@ private[lymph] class MQTTService extends Actor {
         // map request into JobConfiguration
         val jobCreatingRequest = json.extract[JobConfiguration]
 
-        // TODO: catch timeout exception
         // Run job asynchronously
         val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
 
