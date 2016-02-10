@@ -68,15 +68,17 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
           future
             .recover {
               // TODO: formalize errors
-              case error: AskTimeoutException => "Job Timeout"
-              case error: Throwable => error.toString
+              case error: AskTimeoutException => Right("Job Timeout")
+              case error: Throwable => Right(error.toString)
             }
             .map[ToResponseMarshallable] {
-              case result: Map[String, Any] =>
-                val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
-                Json(DefaultFormats).write(jobResult)
-              case error: String =>
-                val jobResult = JobResult(success = false, payload = Map.empty, request = jobCreatingRequest, errors = List(error))
+              case result: Either[Map[String, Any], String] =>
+                val jobResult: JobResult = result match {
+                  case Left(jobResults: Map[String, Any]) =>
+                    JobResult(success = true, payload = jobResults, request = jobCreatingRequest, errors = List.empty)
+                  case Right(error: String) =>
+                    JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
+                }
                 Json(DefaultFormats).write(jobResult)
             }
         }

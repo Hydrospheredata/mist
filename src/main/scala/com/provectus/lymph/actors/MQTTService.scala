@@ -63,26 +63,23 @@ private[lymph] class MQTTService extends Actor {
         // Run job asynchronously
         val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
 
-        future.andThen {
-          // Future is ok and result is Map, so everything ok, we can send a response
-          case Success(result: Map[String, Any]) =>
-            val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
-            val jsonString = write(jobResult)
-            mqttManager ! Publish(LymphConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
-            println(s"ok, result: ${write(result)}")
-          // Future is ok but result is String, so something went wrong
-          case Success(error: String) =>
-            val jobResult = JobResult(success = false, payload = Map.empty, request = jobCreatingRequest, errors = List(error))
-            val jsonString = write(jobResult)
-            mqttManager ! Publish(LymphConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
-            println(s"error: $error")
-          // Future is not ok, definitely something went wrong
-          case Failure(error: Throwable) =>
-            val jobResult = JobResult(success = false, payload = Map.empty, request = jobCreatingRequest, errors = List(error.toString))
-            val jsonString = write(jobResult)
-            mqttManager ! Publish(LymphConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
-            println(s"error: $error")
-        }
+        future
+          .recover {
+            case error: Throwable => Right(error.toString)
+          }
+          .onSuccess {
+            case result: Either[Map[String, Any], String] =>
+              val jobResult: JobResult = result match {
+                case Left(jobResult: Map[String, Any]) =>
+                  JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
+                case Right(error: String) =>
+                  JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
+              }
+
+              val jsonString = write(jobResult)
+              mqttManager ! Publish(LymphConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
+              println(s"${write(result)}")
+          }
       }
     }
 
