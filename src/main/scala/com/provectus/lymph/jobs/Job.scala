@@ -50,7 +50,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
     *
     * @return results of user job
     */
-  def run(): Map[String, Any] = {
+  def run(): Either[Map[String, Any], String] = {
     _status = JobStatus.Running
     try {
       val result = objectRef match {
@@ -59,7 +59,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
             // if user object overrides method for SparkContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
             // run job with SparkContext and return result
-            return objectRef.doStuff(contextWrapper.context, configuration.parameters)
+            return Left(objectRef.doStuff(contextWrapper.context, configuration.parameters))
           } catch {
             case _: NoSuchMethodException => // pass
           }
@@ -67,7 +67,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
             // if user object overrides method for SQLContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SQLContext], classOf[Map[String, Any]])
             // run job with SQLContext and return result
-            return objectRef.doStuff(contextWrapper.sqlContext, configuration.parameters)
+            return Left(objectRef.doStuff(contextWrapper.sqlContext, configuration.parameters))
           } catch {
             case _: NoSuchMethodException => // pass
           }
@@ -75,11 +75,11 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
             // if user object overrides method for HiveContext, use it
             cls.getDeclaredMethod("doStuff", classOf[HiveContext], classOf[Map[String, Any]])
             // run job with HiveContext and return result
-            return objectRef.doStuff(contextWrapper.hiveContext, configuration.parameters)
+            return Left(objectRef.doStuff(contextWrapper.hiveContext, configuration.parameters))
           } catch {
             case _: NoSuchMethodException => // pass
           }
-          null
+          return Right(s"No method in class ${configuration.className}")
         // TODO: Own exceptions
         case _ => throw new Exception("External module is not LymphJob subclass")
       }
@@ -91,8 +91,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
       case e: Throwable =>
         println(e)
         _status = JobStatus.Aborted
-        // TODO: return, not throw
-        throw e
+        Right(e.toString)
     }
   }
 

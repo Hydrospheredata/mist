@@ -40,14 +40,13 @@ private[lymph] class JobRunner extends Actor {
 
           println(s"${configuration.name}#${job.id} is running")
 
-          val future = Future {
+          val future: Future[Either[Map[String, Any], String]] = Future {
             job.run()
           }(executionContext)
 
-          // TODO: change to Either
           future.andThen {
-            case Success(result: Map[String, Any]) => originalSender ! result
-            case Failure(error: Throwable) => originalSender ! error.toString
+            case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+            case Failure(error: Throwable) => originalSender ! Right(error.toString)
           }(ExecutionContext.global)
       }(ExecutionContext.global)
 
