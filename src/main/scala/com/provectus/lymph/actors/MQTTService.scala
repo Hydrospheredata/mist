@@ -4,7 +4,7 @@ import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
-import com.provectus.lymph.LymphConfig
+import com.provectus.lymph.{Constants, LymphConfig}
 import com.provectus.lymph.actors.tools.{JSONSchemas, JSONValidator}
 
 import org.json4s.NoTypeHints
@@ -23,7 +23,7 @@ import com.provectus.lymph.jobs.{JobResult, JobConfiguration}
 private[lymph] class MQTTService extends Actor {
 
   // Connect to MQTT with host/port from config
-  context.actorOf(Manager.props(new InetSocketAddress(InetAddress.getByName(LymphConfig.MQTT.host), LymphConfig.MQTT.port))) ! Connect("MQTTService")
+  context.actorOf(Manager.props(new InetSocketAddress(InetAddress.getByName(LymphConfig.MQTT.host), LymphConfig.MQTT.port))) ! Connect(Constants.Actors.mqttServiceName)
 
   override def receive: Receive = {
     // Connected to MQTT server
@@ -37,7 +37,7 @@ private[lymph] class MQTTService extends Actor {
   }
 
   // actor which is used for running jobs according to request
-  lazy val jobRequestActor: ActorRef = context.actorOf(Props[JobRunner], name = "AsyncJobRunner")
+  lazy val jobRequestActor: ActorRef = context.actorOf(Props[JobRunner], name = Constants.Actors.asyncJobRunnerName)
 
   def ready(mqttManager: ActorRef): Receive = {
 

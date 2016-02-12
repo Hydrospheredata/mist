@@ -5,7 +5,7 @@ import java.util.concurrent.Executors._
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.provectus.lymph.LymphConfig
+import com.provectus.lymph.{Constants, LymphConfig}
 import com.provectus.lymph.actors.tools.Messages.CreateContext
 import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobConfiguration}
 import com.provectus.lymph.contexts._
@@ -20,7 +20,7 @@ private[lymph] class JobRunner extends Actor {
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(LymphConfig.Settings.threadNumber))
 
   // Actor which is creates spark contexts
-  lazy val contextManager: ActorRef = context.actorOf(Props[ContextManager], name = "ContextManager")
+  lazy val contextManager: ActorRef = context.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
 
   override def receive: Receive = {
     case configuration: JobConfiguration =>

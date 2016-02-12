@@ -3,7 +3,7 @@ package com.provectus.lymph.jobs
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import com.provectus.lymph.LymphJob
+import com.provectus.lymph.{Constants, LymphJob}
 import com.provectus.lymph.contexts.ContextWrapper
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
@@ -79,9 +79,9 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
           } catch {
             case _: NoSuchMethodException => // pass
           }
-          return Right(s"No method in class ${configuration.className}")
+          return Right(Constants.Errors.noDoStuffMethod)
         // TODO: Own exceptions
-        case _ => throw new Exception("External module is not LymphJob subclass")
+        case _ => throw new Exception(Constants.Errors.notJobSubclass)
       }
 
       _status = JobStatus.Stopped
