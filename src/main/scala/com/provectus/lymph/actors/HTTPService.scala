@@ -6,7 +6,7 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import akka.pattern.{ask, AskTimeoutException}
-import com.provectus.lymph.LymphConfig
+import com.provectus.lymph.{Constants, LymphConfig}
 
 import spray.json._
 import org.json4s.DefaultFormats
@@ -50,7 +50,7 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
   implicit val jobCreatingRequestFormat = jsonFormat5(JobConfiguration)
 
   // actor which is used for running jobs according to request
-  lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = "SyncJobRunner")
+  lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)
 
   // /jobs
   def route : Route = path("jobs") {
@@ -67,8 +67,7 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
 
           future
             .recover {
-              // TODO: formalize errors
-              case error: AskTimeoutException => Right("Job Timeout")
+              case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
               case error: Throwable => Right(error.toString)
             }
             .map[ToResponseMarshallable] {

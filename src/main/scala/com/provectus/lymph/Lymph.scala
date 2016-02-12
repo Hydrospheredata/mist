@@ -16,7 +16,7 @@ private[lymph] object Lymph extends App with HTTPService {
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   // Context creator actor
-  val contextManager = system.actorOf(Props[ContextManager], name = "ContextManager")
+  val contextManager = system.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
 
   // Creating contexts which are specified in config as `onstart`
   for (contextName:String <- LymphConfig.Contexts.precreated) {
