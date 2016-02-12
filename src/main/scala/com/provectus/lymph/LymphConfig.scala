@@ -97,5 +97,10 @@ private[lymph] object LymphConfig {
       FiniteDuration(getContextOrDefault(contextName).getDuration("timeout").toNanos, TimeUnit.NANOSECONDS)
     }
 
+    /** If true we'll stop context */
+    def isDisposable(contextName: String): Boolean = {
+      getContextOrDefault(contextName).getBoolean("disposable")
+    }
+
   }
 }
