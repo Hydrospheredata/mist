@@ -6,7 +6,7 @@ import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.provectus.lymph.{Constants, LymphConfig}
-import com.provectus.lymph.actors.tools.Messages.CreateContext
+import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext}
 import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobConfiguration}
 import com.provectus.lymph.contexts._
 
@@ -26,7 +26,6 @@ private[lymph] class JobRunner extends Actor {
     case configuration: JobConfiguration =>
       val originalSender = sender
 
-      // TODO: add disposable context
       // Time of spark context creating is definitely less than one day
       implicit val timeout = Timeout(1.day)
 
@@ -44,13 +43,18 @@ private[lymph] class JobRunner extends Actor {
             job.run()
           }(executionContext)
 
-          future.andThen {
-            case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-            case Failure(error: Throwable) => originalSender ! Right(error.toString)
-          }(ExecutionContext.global)
+          future
+            .andThen {
+              case _ =>
+                if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                  contextManager ! RemoveContext(contextWrapper)
+                }
+            }(ExecutionContext.global)
+            .andThen {
+              case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+              case Failure(error: Throwable) => originalSender ! Right(error.toString)
+            }(ExecutionContext.global)
       }(ExecutionContext.global)
-
-      // TODO: remove job from memory repository
 
     // TODO: throw Exception
     case _ => println("Error! JobRequestActor received a message which is not JobConfiguration instance")

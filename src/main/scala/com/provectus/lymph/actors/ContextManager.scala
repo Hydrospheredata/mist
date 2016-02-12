@@ -1,7 +1,7 @@
 package com.provectus.lymph.actors
 
 import akka.actor.Actor
-import com.provectus.lymph.actors.tools.Messages.{CreateContext, StopAllContexts}
+import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
 import com.provectus.lymph.contexts._
 
 /** Manages context repository */
@@ -29,5 +29,10 @@ private[lymph] class ContextManager extends Actor {
     // surprise: stops all contexts
     case StopAllContexts =>
       InMemoryContextRepository.filter(new DummyContextSpecification()).foreach(_.stop())
+
+    // removes context
+    case message: RemoveContext =>
+      message.context.context.stop()
+      InMemoryContextRepository.remove(message.context)
   }
 }

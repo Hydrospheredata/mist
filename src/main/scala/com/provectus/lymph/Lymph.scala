@@ -15,6 +15,8 @@ private[lymph] object Lymph extends App with HTTPService {
   override implicit val system = ActorSystem("lymph")
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
+  // TODO: Logging
+
   // Context creator actor
   val contextManager = system.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
 
