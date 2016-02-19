@@ -3,7 +3,7 @@ package com.provectus.lymph.actors
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Props, ActorRef, Actor}
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import com.provectus.lymph.LymphConfig
 import com.provectus.lymph.actors.tools.{JSONSchemas, JSONValidator}
 
@@ -49,10 +49,13 @@ private[lymph] class MQTTService extends Actor {
         val json = parse(stringMessage)
         val jobCreatingRequest = json.extract[JobConfiguration]
 
-        // TODO: catch timeout exception
         val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
 
-        future.andThen {
+        future.recover{
+          case e: AskTimeoutException =>
+            println("MQTT TimeoutException")
+            throw new Exception(e)
+        }.andThen {
           case Success(result: Map[String, Any]) =>
             val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
             val jsonString = write(jobResult)
