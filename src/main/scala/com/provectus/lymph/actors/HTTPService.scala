@@ -6,7 +6,7 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
-import akka.pattern.ask
+import akka.pattern.{AskTimeoutException, ask}
 import com.provectus.lymph.LymphConfig
 
 import spray.json._
@@ -56,10 +56,12 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
 
           println(jobCreatingRequest.parameters)
 
-          // TODO: catch timeout exception
           val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
 
-          future.map[ToResponseMarshallable] {
+          future.recover {
+            case e: AskTimeoutException =>
+              throw new Exception(e)
+          }.map[ToResponseMarshallable] {
             case result: Map[String, Any] =>
               val jobResult = JobResult(success = true, payload = result, request = jobCreatingRequest, errors = List.empty)
               Json(DefaultFormats).write(jobResult)
