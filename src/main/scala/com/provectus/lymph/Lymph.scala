@@ -22,6 +22,7 @@ private[lymph] object Lymph extends App with HTTPService {
 
   // Creating contexts which are specified in config as `onstart`
   for (contextName:String <- LymphConfig.Contexts.precreated) {
+    println("Creating contexts which are specified in config")
     contextManager ! CreateContext(contextName)
   }
 
