@@ -80,8 +80,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
             case _: NoSuchMethodException => // pass
           }
           return Right(Constants.Errors.noDoStuffMethod)
-        // TODO: Own exceptions
-        case _ => throw new Exception(Constants.Errors.notJobSubclass)
+        case _ => return Right(Constants.Errors.notJobSubclass)
       }
 
       _status = JobStatus.Stopped
