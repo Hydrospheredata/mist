@@ -55,9 +55,6 @@ private[lymph] class JobRunner extends Actor {
               case Failure(error: Throwable) => originalSender ! Right(error.toString)
             }(ExecutionContext.global)
       }(ExecutionContext.global)
-
-    // TODO: throw Exception
-    case _ => println("Error! JobRequestActor received a message which is not JobConfiguration instance")
   }
 
 }
