@@ -51,10 +51,10 @@ private[lymph] class MQTTService extends Actor {
       println(s"[$topic] $stringMessage")
 
       // we need to check if message is a request
-      val isMessageValid = JSONValidator.validate(stringMessage, JSONSchemas.jobRequest)
-
+      val isMessageValidJar = JSONValidator.validate(stringMessage, JSONSchemas.jobRequest)
+      val isMessageValidPy = JSONValidator.validate(stringMessage, JSONSchemas.jobRequestPy)
       // if it a request
-      if (isMessageValid) {
+      if (isMessageValidJar || isMessageValidPy) {
         implicit val formats = Serialization.formats(NoTypeHints)
         val json = parse(stringMessage)
         // map request into JobConfiguration
@@ -81,6 +81,5 @@ private[lymph] class MQTTService extends Actor {
               println(s"${write(result)}")
           }
       }
-    }
-
+  }
 }
