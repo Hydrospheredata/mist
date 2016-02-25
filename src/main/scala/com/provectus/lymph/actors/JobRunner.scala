@@ -42,6 +42,7 @@ private[lymph] class JobRunner extends Actor {
           val future: Future[Either[Map[String, Any], String]] = Future {
             job.run()
           }(executionContext)
+
           future
             .andThen {
               case _ =>
@@ -54,7 +55,6 @@ private[lymph] class JobRunner extends Actor {
               case Failure(error: Throwable) => originalSender ! Right(error.toString)
             }(ExecutionContext.global)
       }(ExecutionContext.global)
-
   }
 
 }
