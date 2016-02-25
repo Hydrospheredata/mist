@@ -52,12 +52,10 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
   assert {
     List(
       """{"jarPath":"...", "className":"...", "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""",
-      """{"jarPath":"...", "pyPath":null, "python":null, "className":"...", "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""",
-      """{"jarPath":"...", "pyPath":"...", "python":true, "className":"...", "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""")
+      """{ "pyPath":"...", "python":true, "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""")
       .map(_.asJson.convertTo[JobConfiguration]) == List(
       JobConfiguration("...", None, None, "...", "...", Map(), None),
-      JobConfiguration("...", None, None, "...", "...", Map(), None),
-      JobConfiguration("...", None, None, "...", "...", Map(), None))
+      JobConfiguration(None, "...", "...", None, "...", Map(), None))
   }
 */
   // actor which is used for running jobs according to request
