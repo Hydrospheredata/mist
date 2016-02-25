@@ -34,7 +34,6 @@ private[lymph] class JobRunner extends Actor {
 
       contextFuture.flatMap {
         case contextWrapper: ContextWrapper =>
-
           val job = new Job(configuration, contextWrapper)
           InMemoryJobRepository.add(job)
 
@@ -43,7 +42,6 @@ private[lymph] class JobRunner extends Actor {
           val future: Future[Either[Map[String, Any], String]] = Future {
             job.run()
           }(executionContext)
-
           future
             .andThen {
               case _ =>
