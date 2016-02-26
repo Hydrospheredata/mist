@@ -19,6 +19,7 @@ object DataWrapper{
   def get(): Any = data
 }
 
+//TODO singlton attention! multicontext conflict
 object SparkContextWrapper{
   var m_context : JavaSparkContext = _
   var m_conf : SparkConf = _

@@ -17,4 +17,17 @@ private[actors] object JSONSchemas {
       | "required": ["jarPath", "className"]
       |}
     """.stripMargin
+  val jobRequestPy =
+    """{
+      | "title": "Async Job Request",
+      | "type": "object",
+      | "properties": {
+      |   "pyPath": {"type": "string"},
+      |   "python": {"type": "boolean"},
+      |   "parameters": {"type": "object"},
+      |   "external_id": {"type": "string"}
+      | },
+      | "required": ["pyPath", "python"]
+      |}
+    """.stripMargin
 }

@@ -34,6 +34,7 @@ private[lymph] class JobRunner extends Actor {
 
       contextFuture.flatMap {
         case contextWrapper: ContextWrapper =>
+          //from python run JobPy
           val job = new Job(configuration, contextWrapper)
           InMemoryJobRepository.add(job)
 
