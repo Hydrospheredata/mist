@@ -5,7 +5,7 @@ import java.net.{InetAddress, InetSocketAddress}
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import com.provectus.lymph.{Constants, LymphConfig}
-import com.provectus.lymph.actors.tools.{JSONSchemas, JSONValidator}
+import com.provectus.lymph.actors.tools.{JSONSchemas, JSONSchemasPy, JSONValidator}
 
 import org.json4s.NoTypeHints
 import org.json4s.jackson.JsonMethods._
@@ -51,10 +51,10 @@ private[lymph] class MQTTService extends Actor {
       println(s"[$topic] $stringMessage")
 
       // we need to check if message is a request
-      val isMessageValid = JSONValidator.validate(stringMessage, JSONSchemas.jobRequest)
-
+      val isMessageValidJar = JSONValidator.validate(stringMessage, JSONSchemas.jobRequest)
+      val isMessageValidPy = JSONValidator.validate(stringMessage, JSONSchemasPy.jobRequest)
       // if it a request
-      if (isMessageValid) {
+      if (isMessageValidJar || isMessageValidPy) {
         implicit val formats = Serialization.formats(NoTypeHints)
         val json = parse(stringMessage)
         // map request into JobConfiguration
