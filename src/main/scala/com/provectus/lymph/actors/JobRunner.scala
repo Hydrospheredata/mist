@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.provectus.lymph.{Constants, LymphConfig}
 import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext}
-import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobPy, JobConfiguration}
 import com.provectus.lymph.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
@@ -32,30 +32,120 @@ private[lymph] class JobRunner extends Actor {
       // Request spark context creating
       val contextFuture = contextManager ? CreateContext(configuration.name)
 
-      contextFuture.flatMap {
-        case contextWrapper: ContextWrapper =>
-          //from python run JobPy
-          val job = new Job(configuration, contextWrapper)
-          InMemoryJobRepository.add(job)
+      configuration.python.getOrElse(false) match {
+        case true =>
+        {
+          contextFuture.flatMap {
+            case contextWrapper: ContextWrapper => {
+              //TODO from python run JobPy
+              val job = new JobPy(configuration, contextWrapper)
 
-          println(s"${configuration.name}#${job.id} is running")
+              //InMemoryJobRepository.add(job)
 
-          val future: Future[Either[Map[String, Any], String]] = Future {
-            job.run()
-          }(executionContext)
+              println(s"${configuration.name}#${job.id} is running")
 
-          future
-            .andThen {
-              case _ =>
-                if (LymphConfig.Contexts.isDisposable(configuration.name)) {
-                  contextManager ! RemoveContext(contextWrapper)
-                }
-            }(ExecutionContext.global)
-            .andThen {
-              case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-              case Failure(error: Throwable) => originalSender ! Right(error.toString)
-            }(ExecutionContext.global)
-      }(ExecutionContext.global)
+              val future: Future[Either[Map[String, Any], String]] = Future {
+                job.run()
+              }(executionContext)
+              future
+                .andThen {
+                  case _ =>
+                    if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                      contextManager ! RemoveContext(contextWrapper)
+                    }
+                }(ExecutionContext.global)
+                .andThen {
+                  case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+                  case Failure(error: Throwable) => originalSender ! Right(error.toString)
+                }(ExecutionContext.global)
+            }
+          }(ExecutionContext.global)
+        }
+        case _ =>
+        {
+          contextFuture.flatMap {
+            case contextWrapper: ContextWrapper => {
+              //TODO from python run JobPy
+              val job = new Job(configuration, contextWrapper)
+
+              InMemoryJobRepository.add(job)
+
+              println(s"${configuration.name}#${job.id} is running")
+
+              val future: Future[Either[Map[String, Any], String]] = Future {
+                job.run()
+              }(executionContext)
+              future
+                .andThen {
+                  case _ =>
+                    if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                      contextManager ! RemoveContext(contextWrapper)
+                    }
+                }(ExecutionContext.global)
+                .andThen {
+                  case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+                  case Failure(error: Throwable) => originalSender ! Right(error.toString)
+                }(ExecutionContext.global)
+            }
+          }(ExecutionContext.global)
+        }
+      }
+   /*   if (configuration.python.getOrElse(false)) {
+        contextFuture.flatMap {
+          case contextWrapper: ContextWrapper => {
+
+
+            //TODO from python run JobPy
+            val job = new JobPy(configuration, contextWrapper)
+
+            //InMemoryJobRepository.add(job)
+
+            println(s"${configuration.name}#${job.id} is running")
+
+            val future: Future[Either[Map[String, Any], String]] = Future {
+              job.run()
+            }(executionContext)
+            future
+              .andThen {
+                case _ =>
+                  if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                    contextManager ! RemoveContext(contextWrapper)
+                  }
+              }(ExecutionContext.global)
+              .andThen {
+                case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+                case Failure(error: Throwable) => originalSender ! Right(error.toString)
+              }(ExecutionContext.global)
+          }
+        }(ExecutionContext.global)*/
+ /*     }else
+      {
+          contextFuture.flatMap {
+            case contextWrapper: ContextWrapper => {
+              //TODO from python run JobPy
+              val job = new Job(configuration, contextWrapper)
+
+              InMemoryJobRepository.add(job)
+
+              println(s"${configuration.name}#${job.id} is running")
+
+              val future: Future[Either[Map[String, Any], String]] = Future {
+                job.run()
+              }(executionContext)
+              future
+                .andThen {
+                  case _ =>
+                    if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                      contextManager ! RemoveContext(contextWrapper)
+                    }
+                }(ExecutionContext.global)
+                .andThen {
+                  case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+                  case Failure(error: Throwable) => originalSender ! Right(error.toString)
+                }(ExecutionContext.global)
+            }
+          }(ExecutionContext.global)
+      }*/
   }
 
 }

@@ -37,9 +37,9 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   // Class with job in user jar
 
   private val cls = {
-    val jarFile = new File(configuration.jarPath.getOrElse("/vagrant/src/main/scala/com/provectus/lymph/pythonexecuter/"))
+    val jarFile = new File(configuration.jarPath.get)
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className.getOrElse("com.provectus.lymph.pythonexecuter.SimplePython$"))
+    classLoader.loadClass(configuration.className.get)
   }
 
   // Scala `object` reference of user job
@@ -47,11 +47,8 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   private val objectRef = cls.getDeclaredField("MODULE$").get(null)
 
   // We must add user jar into spark context
-  contextWrapper.addJar(configuration.jarPath.getOrElse("/vagrant/src/main/scala/com/provectus/lymph/pythonexecuter//"))
-  if(configuration.python.getOrElse(false))
-  {
-    SimplePython.AddPyPath(configuration.pyPath.getOrElse(""))
-  }
+  contextWrapper.addJar(configuration.jarPath.get)
+
   /** Runs a job
     *
     * @return results of user job
@@ -91,6 +88,41 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
 
       _status = JobStatus.Stopped
 
+      result
+    } catch {
+      case e: Throwable =>
+        println(e)
+        _status = JobStatus.Aborted
+        Right(e.toString)
+    }
+  }
+
+}
+
+private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) {
+
+  final val id = java.util.UUID.randomUUID.toString
+
+  private val configuration = jobConfiguration
+  private var _status = JobStatus.Initialized
+
+  /** Status getter
+    *
+    * @return [[JobStatus]]
+    */
+  def status = _status
+
+  SimplePython.AddPyPath(configuration.pyPath.getOrElse(""))
+
+  /** Runs a job
+    *
+    * @return results of user jobPy
+    */
+  def run(): Either[Map[String, Any], String] = {
+    _status = JobStatus.Running
+    try {
+      val result = Left(SimplePython.doStuff(contextWrapper.context, configuration.parameters))
+      _status = JobStatus.Stopped
       result
     } catch {
       case e: Throwable =>

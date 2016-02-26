@@ -16,6 +16,7 @@ from py4j.protocol import Py4JJavaError
 
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
+from pyspark.sql.types import *
 from pyspark.rdd import RDD
 from pyspark.files import SparkFiles
 from pyspark.storagelevel import StorageLevel
