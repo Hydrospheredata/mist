@@ -3,6 +3,7 @@ package com.provectus.lymph.jobs
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
+import com.provectus.lymph.pythonexecuter.SimplePython
 import com.provectus.lymph.{Constants, LymphJob}
 import com.provectus.lymph.contexts.ContextWrapper
 import org.apache.spark.SparkContext
@@ -34,18 +35,23 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   def status = _status
 
   // Class with job in user jar
+
   private val cls = {
-    val jarFile = new File(configuration.jarPath)
+    val jarFile = new File(configuration.jarPath.getOrElse("/vagrant/src/main/scala/com/provectus/lymph/pythonexecuter/"))
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className)
+    classLoader.loadClass(configuration.className.getOrElse("com.provectus.lymph.pythonexecuter.SimplePython$"))
   }
 
   // Scala `object` reference of user job
-  private val objectRef = cls.getField("MODULE$").get(null)
+  println(cls.getDeclaredFields.toList.toString())
+  private val objectRef = cls.getDeclaredField("MODULE$").get(null)
 
   // We must add user jar into spark context
-  contextWrapper.addJar(configuration.jarPath)
-
+  contextWrapper.addJar(configuration.jarPath.getOrElse("/vagrant/src/main/scala/com/provectus/lymph/pythonexecuter//"))
+  if(configuration.python.getOrElse(false))
+  {
+    SimplePython.AddPyPath(configuration.pyPath.getOrElse(""))
+  }
   /** Runs a job
     *
     * @return results of user job

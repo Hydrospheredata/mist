@@ -47,8 +47,17 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
   implicit val materializer: ActorMaterializer
 
   // JSON to JobConfiguration mapper (5 fields)
-  implicit val jobCreatingRequestFormat = jsonFormat5(JobConfiguration)
-
+  implicit val jobCreatingRequestFormat = jsonFormat(JobConfiguration, "jarPath", "pyPath", "python", "className", "name", "parameters", "external_id")
+/*
+  assert {
+    List(
+      """{"jarPath":"...", "className":"...", "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""",
+      """{ "pyPath":"...", "python":true, "name":"...", "parameters":{"...":["..."]}, "external_id":"..."}""")
+      .map(_.asJson.convertTo[JobConfiguration]) == List(
+      JobConfiguration("...", None, None, "...", "...", Map(), None),
+      JobConfiguration(None, "...", "...", None, "...", Map(), None))
+  }
+*/
   // actor which is used for running jobs according to request
   lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)
 
