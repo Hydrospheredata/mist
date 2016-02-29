@@ -5,8 +5,9 @@ import com.provectus.lymph.{Specification, Repository}
 import scala.collection.mutable.ArrayBuffer
 
 private[lymph] trait JobRepository extends Repository[Job]
+private[lymph] trait JobPyRepository extends Repository[JobPy]
 
-private[lymph] object InMemoryJobRepository extends JobRepository {
+private[lymph] object InMemoryJobRepository extends JobRepository{
 
   private val _collection = ArrayBuffer.empty[Job]
 

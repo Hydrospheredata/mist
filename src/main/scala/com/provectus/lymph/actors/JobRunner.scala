@@ -40,7 +40,7 @@ private[lymph] class JobRunner extends Actor {
 
               val job = new JobPy(configuration, contextWrapper)
 
-              //InMemoryJobRepository.add(job)
+              //InMemoryJobRepository.add(job.toJob())
 
               println(s"${configuration.name}#${job.id} is running")
 

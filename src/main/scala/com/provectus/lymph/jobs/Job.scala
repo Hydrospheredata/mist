@@ -99,7 +99,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
 
 }
 
-private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) {
+private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper){
 
   final val id = java.util.UUID.randomUUID.toString
 
@@ -112,7 +112,6 @@ private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: C
     */
   def status = _status
 
-  //val simplepython = new SimplePython()
   SimplePython.AddPyPath(configuration.pyPath.getOrElse(""))
 
   /** Runs a job
@@ -132,5 +131,4 @@ private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: C
         Right(e.toString)
     }
   }
-
 }

@@ -1,11 +1,6 @@
 #export SPARK_HOME="/home/vagrant/spark-1.5.2-bin-hadoop2.6/"
 #export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
-#import sys
-#sys.path.append('/home/vagrant/spark-1.5.2-bin-hadoop2.6')
-#sys.path.append('/home/vagrant/spark-1.5.2-bin-hadoop2.6/python')
-#sys.path.append('/home/vagrant/spark-1.5.2-bin-hadoop2.6/python/lib/py4j-0.8.2.1-src.zip')
 
-#from py4j.java_gateway import JavaGateway
 import py4j.java_gateway
 import pyspark
 import sys, getopt, traceback, json, re
@@ -112,7 +107,7 @@ def getNumbers():
     java_import(_gateway.jvm, 'java.util.*')
     SimpleDataWrapper = _entry_point.SimpleDataWrapper()
 
-    num = SimpleDataWrapper.get()
+    num = SimpleDataWrapper.get(sys.argv[2])
     l = list()
     count = 0
     size = num.size()
@@ -137,7 +132,7 @@ def sendResult(result):
   try:
     java_import(_gateway.jvm, 'java.util.*')
     SimpleDataWrapper = _entry_point.SimpleDataWrapper()
-    SimpleDataWrapper.set(result)
+    SimpleDataWrapper.set(sys.argv[2], result)
 
   except Py4JJavaError:
     print("except Py4JJavaError")

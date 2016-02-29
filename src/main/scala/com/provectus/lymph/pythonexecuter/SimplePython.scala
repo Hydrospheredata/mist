@@ -3,7 +3,6 @@ package com.provectus.lymph.pythonexecuter
 /**
   * Created by lblokhin on 24.02.16.
   */
-import com.provectus.lymph.LymphJob
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkConf, SparkContext}
@@ -13,13 +12,13 @@ import py4j.GatewayServer
 import sys.process._
 
 import scala.collection.JavaConversions._
-//import scala.collection.mutable.Map
 
 object DataWrapper{
-  var data: Any = _
-  def set(in: Any) = { data = in }
-  def set(in: java.util.ArrayList[Int]) = { data = asScalaBuffer(in).toList }
-  def get(): Any = data
+  var data = scala.collection.mutable.Map[String, Any]()
+  def set(k: String, in: Any) = { data put(k, in) }
+  def set(k: String, in: java.util.ArrayList[Int]) = { data put(k, asScalaBuffer(in).toList) }
+  def get(k: String): Any = data(k)
+  def remove(k: String) = {data - k}
   def setStatementsFinished(out: String, error: Boolean) = error match {
     case true => throw new Exception(out)
     case false => println(out)
@@ -74,7 +73,7 @@ object SimplePython {
 
     val numbers: List[Int] = parameters("digits").asInstanceOf[List[Int]]
 
-    SimpleDataWrapper.set(numbers)
+    SimpleDataWrapper.set(currentSessionId, numbers)
     ScalaSparkContextWrapper.setSparkConf(currentSessionId, context.getConf)
     ScalaSparkContextWrapper.setSparkContext(currentSessionId, context)
     ScalaSparkContextWrapper.setSqlContext(currentSessionId, sqlcontext)
@@ -103,8 +102,9 @@ object SimplePython {
     println(exitCode)
     if( exitCode!=0 )
       throw new Exception("Python error")
-
-    Map("result" -> SimpleDataWrapper.get())
+    val result = SimpleDataWrapper.get(currentSessionId)
+    SimpleDataWrapper.remove(currentSessionId)
+    Map("result" -> result)
   }
 
 }
