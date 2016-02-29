@@ -28,41 +28,87 @@ from pyspark.serializers import MarshalSerializer, PickleSerializer
 from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
 
 ###################################################################
-def getSparkContext():
+client = GatewayClient(port=int(sys.argv[1]))
+gateway = JavaGateway(client, auto_convert = True)
+entry_point = gateway.entry_point
+java_import(gateway.jvm, "org.apache.spark.SparkContext")
+java_import(gateway.jvm, "org.apache.spark.SparkEnv")
+java_import(gateway.jvm, "org.apache.spark.SparkConf")
+java_import(gateway.jvm, "org.apache.spark.api.java.*")
+java_import(gateway.jvm, "org.apache.spark.api.python.*")
+java_import(gateway.jvm, "org.apache.spark.mllib.api.python.*")
+java_import(gateway.jvm, "org.apache.spark.*")
+
+def _getSparkContext():
   try:
-    client = GatewayClient(port=int(25333))
-    gateway = JavaGateway(client, auto_convert = True)
-    entry_point = gateway.entry_point
-
-    java_import(gateway.jvm, "org.apache.spark.SparkContext")
-    java_import(gateway.jvm, "org.apache.spark.SparkEnv")
-    java_import(gateway.jvm, "org.apache.spark.SparkConf")
-    java_import(gateway.jvm, "org.apache.spark.api.java.*")
-    java_import(gateway.jvm, "org.apache.spark.api.python.*")
-    java_import(gateway.jvm, "org.apache.spark.mllib.api.python.*")
-    java_import(gateway.jvm, "org.apache.spark.*")
-     
-
     ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
     sconf = ScalaSparkContextWrapper.getSparkConf()
     conf = SparkConf(_jvm = gateway.jvm, _jconf = sconf)
     jsc = ScalaSparkContextWrapper.getSparkContext()
-    sc = SparkContext(jsc=jsc, gateway=gateway, conf=conf) 
+    sc = SparkContext(jsc=jsc, gateway=gateway, conf=conf)
     return sc
 
   except Py4JJavaError:
     print("except Py4JJavaError")
-    return None  
-  
-  except Exception:
-    print("except")
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
     return None
+
+  except Exception:
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+
+_sc = _getSparkContext()
+
+def getSparkContext():
+  return _sc
+
+def _getSqlContext():
+  try:
+    ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
+    sqlc = SQLContext(_sc, ScalaSparkContextWrapper.getSqlContext())
+    return  sqlc
+
+  except Py4JJavaError:
+    print("except Py4JJavaError")
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+
+  except Exception:
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+_sqlc = _getSqlContext()
+
+def getSqlContext():
+  return _sqlc
+
+def _getHiveContext():
+  try:
+    ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
+    hc = HiveContext(_sc, ScalaSparkContextWrapper.getHiveContext())
+    return  hc
+
+  except Py4JJavaError:
+    print("except Py4JJavaError")
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+
+  except Exception:
+    print(traceback.format_exc())
+    ScalaSparkContextWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+
+_hc = _getHiveContext()
+
+def getHiveContext():
+  return _hc
 
 def getNumbers():
   try:
-    client = GatewayClient(port=int(25333))
-    gateway = JavaGateway(client, auto_convert = True)
-    entry_point = gateway.entry_point
     java_import(gateway.jvm,'java.util.*')
     SimpleDataWrapper = entry_point.SimpleDataWrapper()
 
@@ -78,24 +124,27 @@ def getNumbers():
 
   except Py4JJavaError:
     print("except Py4JJavaError")
-    return None 
-  
+    print(traceback.format_exc())
+    SimpleDataWrapper.setStatementsFinished(traceback.format_exc(), True)
+    return None
+
   except Exception:
-    print("except")
+    print(traceback.format_exc())
+    SimpleDataWrapper.setStatementsFinished(traceback.format_exc(), True)
     return None
 
 def sendResult(result):
   try:
-    client = GatewayClient(port=int(25333))
-    gateway = JavaGateway(client, auto_convert = True)
-    entry_point = gateway.entry_point
     java_import(gateway.jvm,'java.util.*')
     SimpleDataWrapper = entry_point.SimpleDataWrapper()
     SimpleDataWrapper.set(result)
 
   except Py4JJavaError:
     print("except Py4JJavaError")
+    print(traceback.format_exc())
+    SimpleDataWrapper.setStatementsFinished(traceback.format_exc(), True)
 
   except Exception:
-    print("except")
+    print(traceback.format_exc())
+    SimpleDataWrapper.setStatementsFinished(traceback.format_exc(), True)
 
