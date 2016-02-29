@@ -13,6 +13,7 @@ import py4j.GatewayServer
 import sys.process._
 
 import scala.collection.JavaConversions._
+//import scala.collection.mutable.Map
 
 object DataWrapper{
   var data: Any = _
@@ -25,24 +26,27 @@ object DataWrapper{
   }
 }
 
-//TODO singlton attention! multicontext conflict
 object SparkContextWrapper{
-  var m_context : JavaSparkContext = _
-  var m_conf : SparkConf = _
 
-  def getSparkConf(): SparkConf = {m_conf}
-  def setSparkConf(conf: SparkConf) = {m_conf = conf}
+  var m_conf = scala.collection.mutable.Map[String,SparkConf]()
+  def getSparkConf(k: String): SparkConf = {m_conf(k)}
+  def setSparkConf(k: String, conf: SparkConf) = {m_conf put (k, conf)}
+  def removeSparkConf(k: String) = {m_conf - k}
 
-  def getSparkContext(): JavaSparkContext = m_context
-  def setSparkContext(sc: SparkContext) = {m_context = new JavaSparkContext(sc)}
+  var m_context = scala.collection.mutable.Map[String, JavaSparkContext]()
+  def getSparkContext(k: String): JavaSparkContext = m_context(k)
+  def setSparkContext(k: String, sc: SparkContext) = {m_context put (k, new JavaSparkContext(sc))}
+  def removeSparkContext(k: String) = {m_context - k}
 
-  var m_sqlcontext : SQLContext = _
-  def setSqlContext(sqlc: SQLContext) = {m_sqlcontext = sqlc}
-  def getSqlContext(): SQLContext = {m_sqlcontext}
+  var m_sqlcontext = scala.collection.mutable.Map[String, SQLContext]()
+  def getSqlContext(k: String): SQLContext = {m_sqlcontext(k)}
+  def setSqlContext(k: String, sqlc: SQLContext) = {m_sqlcontext put(k, sqlc)}
+  def removeSqlContext(k: String) = {m_sqlcontext -k}
 
-  var m_hivecontext : HiveContext = _
-  def setHiveContext(hc: HiveContext) = {m_hivecontext = hc}
-  def getHiveContext(): HiveContext = {m_hivecontext}
+  var m_hivecontext = scala.collection.mutable.Map[String, HiveContext ]()
+  def getHiveContext(k: String): HiveContext = {m_hivecontext(k)}
+  def setHiveContext(k: String, hc: HiveContext) = {m_hivecontext put(k, hc)}
+  def removeHiveContext(k: String) = {m_hivecontext - k}
 
   def setStatementsFinished(out: String, error: Boolean) = error match {
     case true => throw new Exception(out)
@@ -58,7 +62,6 @@ object SimplePython {
     * @param parameters user parameters
     * @return result of the job
     */
-  //var cmd = "python /vagrant/examples/src/main/python/example.py"
   var cmd = "python "
 
   def AddPyPath(pypath: String) = {cmd = "python " + pypath }
@@ -67,15 +70,15 @@ object SimplePython {
 
   def SimpleDataWrapper = DataWrapper
 
-  def doStuffPy(context: SparkContext, sqlcontext: SQLContext, hivecontext: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuffPy(currentSessionId: String, context: SparkContext, sqlcontext: SQLContext, hivecontext: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
 
     val numbers: List[Int] = parameters("digits").asInstanceOf[List[Int]]
 
     SimpleDataWrapper.set(numbers)
-    ScalaSparkContextWrapper.setSparkConf(context.getConf)
-    ScalaSparkContextWrapper.setSparkContext(context)
-    ScalaSparkContextWrapper.setSqlContext(sqlcontext)
-    ScalaSparkContextWrapper.setHiveContext(hivecontext)
+    ScalaSparkContextWrapper.setSparkConf(currentSessionId, context.getConf)
+    ScalaSparkContextWrapper.setSparkContext(currentSessionId, context)
+    ScalaSparkContextWrapper.setSqlContext(currentSessionId, sqlcontext)
+    ScalaSparkContextWrapper.setHiveContext(currentSessionId, hivecontext)
 
     val gatewayServer: GatewayServer = new GatewayServer(SimplePython)
     gatewayServer.start()
@@ -86,14 +89,15 @@ object SimplePython {
       throw new Exception("GatewayServer to Python exception")
     } else {
       println(s"Started PythonGatewayServer on port $boundPort")
-      cmd = cmd + " " + boundPort
+      cmd = cmd + " " + boundPort + " " + currentSessionId
     }
-
-  // var starttime = context.startTime
-  //  println(s"$starttime")
 
     val exitCode = cmd.!
     gatewayServer.shutdown()
+    ScalaSparkContextWrapper.removeSparkConf(currentSessionId)
+    ScalaSparkContextWrapper.removeSparkContext(currentSessionId)
+    ScalaSparkContextWrapper.removeSqlContext(currentSessionId)
+    ScalaSparkContextWrapper.removeHiveContext(currentSessionId)
     println("Exiting due to broken pipe from Python driver")
 
     println(exitCode)

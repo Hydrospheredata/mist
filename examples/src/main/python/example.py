@@ -16,6 +16,3 @@ print(l)
 l2 = rdd.map(lambda s: 2 * s).collect()
 print(l2)
 getscalaspark.sendResult(l2)
-
-
-

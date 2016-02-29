@@ -28,24 +28,24 @@ from pyspark.serializers import MarshalSerializer, PickleSerializer
 from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
 
 ###################################################################
-client = GatewayClient(port=int(sys.argv[1]))
-gateway = JavaGateway(client, auto_convert = True)
-entry_point = gateway.entry_point
-java_import(gateway.jvm, "org.apache.spark.SparkContext")
-java_import(gateway.jvm, "org.apache.spark.SparkEnv")
-java_import(gateway.jvm, "org.apache.spark.SparkConf")
-java_import(gateway.jvm, "org.apache.spark.api.java.*")
-java_import(gateway.jvm, "org.apache.spark.api.python.*")
-java_import(gateway.jvm, "org.apache.spark.mllib.api.python.*")
-java_import(gateway.jvm, "org.apache.spark.*")
+_client = GatewayClient(port=int(sys.argv[1]))
+_gateway = JavaGateway(_client, auto_convert = True)
+_entry_point = _gateway.entry_point
+java_import(_gateway.jvm, "org.apache.spark.SparkContext")
+java_import(_gateway.jvm, "org.apache.spark.SparkEnv")
+java_import(_gateway.jvm, "org.apache.spark.SparkConf")
+java_import(_gateway.jvm, "org.apache.spark.api.java.*")
+java_import(_gateway.jvm, "org.apache.spark.api.python.*")
+java_import(_gateway.jvm, "org.apache.spark.mllib.api.python.*")
+java_import(_gateway.jvm, "org.apache.spark.*")
 
 def _getSparkContext():
   try:
-    ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
-    sconf = ScalaSparkContextWrapper.getSparkConf()
-    conf = SparkConf(_jvm = gateway.jvm, _jconf = sconf)
-    jsc = ScalaSparkContextWrapper.getSparkContext()
-    sc = SparkContext(jsc=jsc, gateway=gateway, conf=conf)
+    ScalaSparkContextWrapper = _entry_point.ScalaSparkContextWrapper()
+    sconf = ScalaSparkContextWrapper.getSparkConf(sys.argv[2])
+    conf = SparkConf(_jvm = _gateway.jvm, _jconf = sconf)
+    jsc = ScalaSparkContextWrapper.getSparkContext(sys.argv[2])
+    sc = SparkContext(jsc=jsc, gateway=_gateway, conf=conf)
     return sc
 
   except Py4JJavaError:
@@ -66,8 +66,8 @@ def getSparkContext():
 
 def _getSqlContext():
   try:
-    ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
-    sqlc = SQLContext(_sc, ScalaSparkContextWrapper.getSqlContext())
+    ScalaSparkContextWrapper = _entry_point.ScalaSparkContextWrapper()
+    sqlc = SQLContext(_sc, ScalaSparkContextWrapper.getSqlContext(sys.argv[2]))
     return  sqlc
 
   except Py4JJavaError:
@@ -87,8 +87,8 @@ def getSqlContext():
 
 def _getHiveContext():
   try:
-    ScalaSparkContextWrapper = entry_point.ScalaSparkContextWrapper()
-    hc = HiveContext(_sc, ScalaSparkContextWrapper.getHiveContext())
+    ScalaSparkContextWrapper = _entry_point.ScalaSparkContextWrapper()
+    hc = HiveContext(_sc, ScalaSparkContextWrapper.getHiveContext(sys.argv[2]))
     return  hc
 
   except Py4JJavaError:
@@ -109,8 +109,8 @@ def getHiveContext():
 
 def getNumbers():
   try:
-    java_import(gateway.jvm,'java.util.*')
-    SimpleDataWrapper = entry_point.SimpleDataWrapper()
+    java_import(_gateway.jvm, 'java.util.*')
+    SimpleDataWrapper = _entry_point.SimpleDataWrapper()
 
     num = SimpleDataWrapper.get()
     l = list()
@@ -135,8 +135,8 @@ def getNumbers():
 
 def sendResult(result):
   try:
-    java_import(gateway.jvm,'java.util.*')
-    SimpleDataWrapper = entry_point.SimpleDataWrapper()
+    java_import(_gateway.jvm, 'java.util.*')
+    SimpleDataWrapper = _entry_point.SimpleDataWrapper()
     SimpleDataWrapper.set(result)
 
   except Py4JJavaError:

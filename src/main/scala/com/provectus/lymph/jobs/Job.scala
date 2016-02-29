@@ -122,7 +122,7 @@ private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: C
   def run(): Either[Map[String, Any], String] = {
     _status = JobStatus.Running
     try {
-      val result = Left(SimplePython.doStuffPy(contextWrapper.context, contextWrapper.sqlContext, contextWrapper.hiveContext, configuration.parameters))
+      val result = Left(SimplePython.doStuffPy(id, contextWrapper.context, contextWrapper.sqlContext, contextWrapper.hiveContext, configuration.parameters))
       _status = JobStatus.Stopped
       result
     } catch {
