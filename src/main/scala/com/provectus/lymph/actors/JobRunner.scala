@@ -32,10 +32,8 @@ private[lymph] class JobRunner extends Actor {
       // Request spark context creating
       val contextFuture = contextManager ? CreateContext(configuration.name)
 
-    contextFuture.flatMap {
+      contextFuture.flatMap {
         case contextWrapper: ContextWrapper => {
-
-
 
           lazy val job = new Job(configuration, contextWrapper)
           if(configuration.jarPath.nonEmpty) {
@@ -69,6 +67,6 @@ private[lymph] class JobRunner extends Actor {
               case Failure(error: Throwable) => originalSender ! Right(error.toString)
             }(ExecutionContext.global)
         }
-    }(ExecutionContext.global)
+      }(ExecutionContext.global)
   }
 }

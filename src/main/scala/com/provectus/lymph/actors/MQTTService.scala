@@ -81,6 +81,5 @@ private[lymph] class MQTTService extends Actor {
               println(s"${write(result)}")
           }
       }
-    }
-
+  }
 }

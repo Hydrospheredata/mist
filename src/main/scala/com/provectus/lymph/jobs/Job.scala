@@ -42,7 +42,7 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   }
 
   // Scala `object` reference of user job
-  private val objectRef = cls.getDeclaredField("MODULE$").get(null)
+  private val objectRef = cls.getField("MODULE$").get(null)
 
   // We must add user jar into spark context
   contextWrapper.addJar(configuration.jarPath.get)
