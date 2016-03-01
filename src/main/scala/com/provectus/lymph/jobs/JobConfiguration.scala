@@ -8,4 +8,4 @@ package com.provectus.lymph.jobs
   * @param parameters   parameters for user job
   * @param external_id  optional external id used to differ async answers from lymph
   */
-private[lymph] case class JobConfiguration(jarPath: Option[String] = None, pyPath: Option[String] = None, python: Option[Boolean] = None, className: Option[String] = None, name: String, parameters: Map[String, Any] = Map(), external_id: Option[String] = None)
+private[lymph] case class JobConfiguration(jarPath: Option[String] = None, pyPath: Option[String] = None, className: Option[String] = None, name: String, parameters: Map[String, Any] = Map(), external_id: Option[String] = None)

@@ -76,6 +76,8 @@ object SimplePython {
     SimpleDataWrapper.set(currentSessionId, numbers)
     ScalaSparkContextWrapper.setSparkConf(currentSessionId, context.getConf)
     ScalaSparkContextWrapper.setSparkContext(currentSessionId, context)
+
+    //TODO lazy start SqlContext and HiveContext in depend of use at python
     ScalaSparkContextWrapper.setSqlContext(currentSessionId, sqlcontext)
     ScalaSparkContextWrapper.setHiveContext(currentSessionId, hivecontext)
 

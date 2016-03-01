@@ -3,10 +3,11 @@ sys.path.append('/vagrant/src/main/python')
 import getscalaspark
 
 sc = getscalaspark.getSparkContext()
-#sqlc = getscalaspark.getSqlContext()
-#print(sqlc)
-#hc = getscalaspark.getHiveContext()
-#print(hc)
+print(sc)
+sqlc = getscalaspark.getSqlContext()
+print(sqlc)
+hc = getscalaspark.getHiveContext()
+print(hc)
 
 print(sc.startTime)
 l = getscalaspark.getNumbers()

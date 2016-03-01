@@ -23,11 +23,10 @@ private[actors] object JSONSchemas {
       | "type": "object",
       | "properties": {
       |   "pyPath": {"type": "string"},
-      |   "python": {"type": "boolean"},
       |   "parameters": {"type": "object"},
       |   "external_id": {"type": "string"}
       | },
-      | "required": ["pyPath", "python"]
+      | "required": ["pyPath"]
       |}
     """.stripMargin
 }
