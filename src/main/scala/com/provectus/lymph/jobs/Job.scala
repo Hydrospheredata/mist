@@ -35,7 +35,6 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   def status = _status
 
   // Class with job in user jar
-
   private val cls = {
     val jarFile = new File(configuration.jarPath.get)
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
@@ -43,7 +42,6 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
   }
 
   // Scala `object` reference of user job
-  println(cls.getDeclaredFields.toList.toString())
   private val objectRef = cls.getDeclaredField("MODULE$").get(null)
 
   // We must add user jar into spark context
