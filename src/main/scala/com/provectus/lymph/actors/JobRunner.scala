@@ -35,11 +35,18 @@ private[lymph] class JobRunner extends Actor {
     contextFuture.flatMap {
         case contextWrapper: ContextWrapper => {
 
+
+
           lazy val job = new Job(configuration, contextWrapper)
-          if(configuration.jarPath.nonEmpty)
+          if(configuration.jarPath.nonEmpty) {
+            println(s"${configuration.name}#${job.id} is running")
             InMemoryJobRepository.add(job)
+          }
 
           lazy val jobpy = new JobPy(configuration, contextWrapper)
+          if(configuration.pyPath.nonEmpty) {
+            println(s"${configuration.name}#${jobpy.id} is running")
+          }
           //TODO InMemoryJobRepository.add(jobpy)
 
           val future: Future[Either[Map[String, Any], String]] = Future {
