@@ -13,16 +13,19 @@ import sys.process._
 
 import scala.collection.JavaConversions._
 
+object ErrorWrapper{
+  var m_error = scala.collection.mutable.Map[String, String]()
+  def set(k: String, in: String) = { m_error put(k, in) }
+  def get(k: String): String = m_error(k)
+  def remove(k: String) = {m_error - k}
+}
+
 object DataWrapper{
-  var data = scala.collection.mutable.Map[String, Any]()
-  def set(k: String, in: Any) = { data put(k, in) }
-  def set(k: String, in: java.util.ArrayList[Int]) = { data put(k, asScalaBuffer(in).toList) }
-  def get(k: String): Any = data(k)
-  def remove(k: String) = {data - k}
-  def setStatementsFinished(out: String, error: Boolean) = error match {
-    case true => throw new Exception(out)
-    case false => println(out)
-  }
+  var m_data = scala.collection.mutable.Map[String, Any]()
+  def set(k: String, in: Any) = { m_data put(k, in) }
+  def set(k: String, in: java.util.ArrayList[Int]) = { m_data put(k, asScalaBuffer(in).toList) }
+  def get(k: String): Any = m_data(k)
+  def remove(k: String) = {m_data - k}
 }
 
 object SparkContextWrapper{
@@ -42,15 +45,10 @@ object SparkContextWrapper{
   def setSqlContext(k: String, sqlc: SQLContext) = {m_sqlcontext put(k, sqlc)}
   def removeSqlContext(k: String) = {m_sqlcontext -k}
 
-  var m_hivecontext = scala.collection.mutable.Map[String, HiveContext ]()
+  var m_hivecontext = scala.collection.mutable.Map[String, HiveContext]()
   def getHiveContext(k: String): HiveContext = {m_hivecontext(k)}
   def setHiveContext(k: String, hc: HiveContext) = {m_hivecontext put(k, hc)}
   def removeHiveContext(k: String) = {m_hivecontext - k}
-
-  def setStatementsFinished(out: String, error: Boolean) = error match {
-    case true => throw new Exception(out)
-    case false => println(out)
-  }
 }
 
 object SimplePython {
@@ -61,52 +59,65 @@ object SimplePython {
     * @param parameters user parameters
     * @return result of the job
     */
-  var cmd = "python "
+  var cmd = scala.collection.mutable.Map[String, String]()
 
-  def AddPyPath(pypath: String) = {cmd = "python " + pypath }
+  def addPyPath(jobId: String, pyPath: String) = {cmd put(jobId, "python " + pyPath)}
 
-  def ScalaSparkContextWrapper = SparkContextWrapper
+  def sparkContextWrapper = SparkContextWrapper
 
-  def SimpleDataWrapper = DataWrapper
+  def dataWrapper = DataWrapper
 
-  def doStuffPy(currentSessionId: String, context: SparkContext, sqlcontext: SQLContext, hivecontext: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
+  def errorWrapper = ErrorWrapper
+
+  def doStuffPy(jobId: String, context: SparkContext, sqlcontext: SQLContext, hivecontext: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
 
     val numbers: List[Int] = parameters("digits").asInstanceOf[List[Int]]
+    dataWrapper.set(jobId, numbers)
 
-    SimpleDataWrapper.set(currentSessionId, numbers)
-    ScalaSparkContextWrapper.setSparkConf(currentSessionId, context.getConf)
-    ScalaSparkContextWrapper.setSparkContext(currentSessionId, context)
+    sparkContextWrapper.setSparkConf(jobId, context.getConf)
+    sparkContextWrapper.setSparkContext(jobId, context)
 
     //TODO lazy start SqlContext and HiveContext in depend of use at python
-    ScalaSparkContextWrapper.setSqlContext(currentSessionId, sqlcontext)
-    ScalaSparkContextWrapper.setHiveContext(currentSessionId, hivecontext)
+    sparkContextWrapper.setSqlContext(jobId, sqlcontext)
+    sparkContextWrapper.setHiveContext(jobId, hivecontext)
 
     val gatewayServer: GatewayServer = new GatewayServer(SimplePython)
-    gatewayServer.start()
-    val boundPort: Int = gatewayServer.getListeningPort
+    try {
+      gatewayServer.start()
+      val boundPort: Int = gatewayServer.getListeningPort
 
-    if (boundPort == -1) {
-      println("GatewayServer failed to bind; exiting")
-      throw new Exception("GatewayServer to Python exception")
-    } else {
-      println(s"Started PythonGatewayServer on port $boundPort")
-      cmd = cmd + " " + boundPort + " " + currentSessionId
+      if (boundPort == -1) {
+        throw new Exception("GatewayServer to Python exception")
+      } else {
+        println(s" Started PythonGatewayServer on port $boundPort")
+        cmd put (jobId, cmd(jobId) + " " + boundPort + " " + jobId)
+      }
+
+      val exitCode = cmd(jobId).!
+      if( exitCode!=0 ) {
+        lazy val errmsg = errorWrapper.get(jobId)
+        errorWrapper.remove(jobId)
+        throw new Exception("Error in python code: " + errmsg)
+      }
     }
+    catch {
+      case e: Throwable => {
+        dataWrapper.remove(jobId)
+        throw new Exception(e)
+      }
+    }
+    finally {
+      gatewayServer.shutdown()
+      println("Exiting due to broken pipe from Python driver")
+      cmd - jobId
+      sparkContextWrapper.removeSparkConf(jobId)
+      sparkContextWrapper.removeSparkContext(jobId)
+      sparkContextWrapper.removeSqlContext(jobId)
+      sparkContextWrapper.removeHiveContext(jobId)
+    }
+    val result = dataWrapper.get(jobId)
+    dataWrapper.remove(jobId)
 
-    val exitCode = cmd.!
-    gatewayServer.shutdown()
-    ScalaSparkContextWrapper.removeSparkConf(currentSessionId)
-    ScalaSparkContextWrapper.removeSparkContext(currentSessionId)
-    ScalaSparkContextWrapper.removeSqlContext(currentSessionId)
-    ScalaSparkContextWrapper.removeHiveContext(currentSessionId)
-    println("Exiting due to broken pipe from Python driver")
-
-    println(exitCode)
-    if( exitCode!=0 )
-      throw new Exception("Python error")
-    val result = SimpleDataWrapper.get(currentSessionId)
-    SimpleDataWrapper.remove(currentSessionId)
     Map("result" -> result)
   }
-
 }

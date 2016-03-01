@@ -112,8 +112,6 @@ private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: C
     */
   def status = _status
 
-  SimplePython.AddPyPath(configuration.pyPath.getOrElse(""))
-
   /** Runs a job
     *
     * @return results of user jobPy
@@ -121,6 +119,7 @@ private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: C
   def run(): Either[Map[String, Any], String] = {
     _status = JobStatus.Running
     try {
+      SimplePython.addPyPath(id, configuration.pyPath.get)
       val result = Left(SimplePython.doStuffPy(id, contextWrapper.context, contextWrapper.sqlContext, contextWrapper.hiveContext, configuration.parameters))
       _status = JobStatus.Stopped
       result
