@@ -1,6 +1,3 @@
-#export SPARK_HOME="/home/vagrant/spark-1.5.2-bin-hadoop2.6/"
-#export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
-
 import py4j.java_gateway
 import pyspark
 import sys, getopt, traceback, json, re
