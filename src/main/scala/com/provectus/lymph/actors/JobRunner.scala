@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.provectus.lymph.{Constants, LymphConfig}
 import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext}
-import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobPy, JobConfiguration}
 import com.provectus.lymph.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
@@ -33,16 +33,28 @@ private[lymph] class JobRunner extends Actor {
       val contextFuture = contextManager ? CreateContext(configuration.name)
 
       contextFuture.flatMap {
-        case contextWrapper: ContextWrapper =>
-          val job = new Job(configuration, contextWrapper)
-          InMemoryJobRepository.add(job)
+        case contextWrapper: ContextWrapper => {
 
-          println(s"${configuration.name}#${job.id} is running")
+          lazy val job = new Job(configuration, contextWrapper)
+          if(configuration.jarPath.nonEmpty) {
+            println(s"${configuration.name}#${job.id} is running")
+            InMemoryJobRepository.add(job)
+          }
+
+          lazy val jobpy = new JobPy(configuration, contextWrapper)
+          if(configuration.pyPath.nonEmpty) {
+            println(s"${configuration.name}#${jobpy.id} is running")
+          }
+          //TODO InMemoryJobRepository.add(jobpy)
 
           val future: Future[Either[Map[String, Any], String]] = Future {
-            job.run()
+            if(configuration.jarPath.nonEmpty)
+              job.run()
+            else if(configuration.pyPath.nonEmpty)
+              jobpy.run()
+            else
+              throw new Exception("Error patch file, jar or python")
           }(executionContext)
-
           future
             .andThen {
               case _ =>
@@ -54,7 +66,7 @@ private[lymph] class JobRunner extends Actor {
               case Success(result: Either[Map[String, Any], String]) => originalSender ! result
               case Failure(error: Throwable) => originalSender ! Right(error.toString)
             }(ExecutionContext.global)
+        }
       }(ExecutionContext.global)
   }
-
 }

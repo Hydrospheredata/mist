@@ -3,6 +3,7 @@ package com.provectus.lymph.jobs
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
+import com.provectus.lymph.pythonexecuter.SimplePython
 import com.provectus.lymph.{Constants, LymphJob}
 import com.provectus.lymph.contexts.ContextWrapper
 import org.apache.spark.SparkContext
@@ -35,16 +36,16 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
 
   // Class with job in user jar
   private val cls = {
-    val jarFile = new File(configuration.jarPath)
+    val jarFile = new File(configuration.jarPath.get)
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className)
+    classLoader.loadClass(configuration.className.get)
   }
 
   // Scala `object` reference of user job
   private val objectRef = cls.getField("MODULE$").get(null)
 
   // We must add user jar into spark context
-  contextWrapper.addJar(configuration.jarPath)
+  contextWrapper.addJar(configuration.jarPath.get)
 
   /** Runs a job
     *
@@ -94,4 +95,37 @@ private[lymph] class Job(jobConfiguration: JobConfiguration, contextWrapper: Con
     }
   }
 
+}
+
+private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper){
+
+  final val id = java.util.UUID.randomUUID.toString
+
+  private val configuration = jobConfiguration
+  private var _status = JobStatus.Initialized
+
+  /** Status getter
+    *
+    * @return [[JobStatus]]
+    */
+  def status = _status
+
+  /** Runs a job
+    *
+    * @return results of user jobPy
+    */
+  def run(): Either[Map[String, Any], String] = {
+    _status = JobStatus.Running
+    try {
+      SimplePython.addPyPath(id, configuration.pyPath.get)
+      val result = Left(SimplePython.doStuffPy(id, contextWrapper.context, contextWrapper.sqlContext, contextWrapper.hiveContext, configuration.parameters))
+      _status = JobStatus.Stopped
+      result
+    } catch {
+      case e: Throwable =>
+        println(e)
+        _status = JobStatus.Aborted
+        Right(e.toString)
+    }
+  }
 }
