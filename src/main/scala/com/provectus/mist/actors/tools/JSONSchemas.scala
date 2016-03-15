@@ -1,4 +1,4 @@
-package com.provectus.lymph.actors.tools
+package com.provectus.mist.actors.tools
 
 /** JSON schemas to validate incoming messages */
 private[actors] object JSONSchemas {

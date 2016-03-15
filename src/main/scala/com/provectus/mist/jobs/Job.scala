@@ -1,10 +1,10 @@
-package com.provectus.lymph.jobs
+package com.provectus.mist.jobs
 
-//import com.provectus.lymph.{Constants, LymphJob}
-import com.provectus.lymph.contexts.ContextWrapper
+//import com.provectus.mist.{Constants, mistJob}
+import com.provectus.mist.contexts.ContextWrapper
 
 /** Job state statuses */
-private[lymph] object JobStatus extends Enumeration {
+private[mist] object JobStatus extends Enumeration {
   type JobStatus = Value
   val Initialized, Running, Stopped, Aborted = Value
 }

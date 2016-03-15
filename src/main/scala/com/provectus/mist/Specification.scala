@@ -1,10 +1,10 @@
-package com.provectus.lymph
+package com.provectus.mist
 
 /** Interface for specification pattern
   *
   * @tparam T type of repository element
   */
-private[lymph] trait Specification[T] {
+private[mist] trait Specification[T] {
   /** Predicate for repository filtering
     *
     * @param element repository element for checking

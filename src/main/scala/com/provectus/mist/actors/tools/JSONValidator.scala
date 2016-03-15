@@ -1,4 +1,4 @@
-package com.provectus.lymph.actors.tools
+package com.provectus.mist.actors.tools
 
 import com.fasterxml.jackson.databind.{JsonNode, JsonMappingException}
 import com.github.fge.jsonschema.main.JsonSchemaFactory

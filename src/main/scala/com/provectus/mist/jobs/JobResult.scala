@@ -1,4 +1,4 @@
-package com.provectus.lymph.jobs
+package com.provectus.mist.jobs
 
 /** Used for packing results for response
   *
@@ -7,4 +7,4 @@ package com.provectus.lymph.jobs
   * @param errors possible error list
   * @param request user request
   */
-private[lymph] case class JobResult(success: Boolean, payload: Map[String, Any], errors: List[String], request: JobConfiguration)
+private[mist] case class JobResult(success: Boolean, payload: Map[String, Any], errors: List[String], request: JobConfiguration)

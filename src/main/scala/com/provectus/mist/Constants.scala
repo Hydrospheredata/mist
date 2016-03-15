@@ -1,4 +1,4 @@
-package com.provectus.lymph
+package com.provectus.mist
 
 object Constants {
 
@@ -6,7 +6,7 @@ object Constants {
 
     final val jobTimeOutError = "Job timeout error"
     final val noDoStuffMethod = "No overridden doStuff method"
-    final val notJobSubclass = "External module is not LymphJob subclass"
+    final val notJobSubclass = "External module is not MistJob subclass"
 
   }
 

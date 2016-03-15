@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 assemblySettings
 
-name := "lymph_examples"
+name := "mist_examples"
 
 version := "0.0.1"
 

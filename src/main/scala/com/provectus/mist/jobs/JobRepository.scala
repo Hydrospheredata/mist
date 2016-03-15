@@ -1,12 +1,12 @@
-package com.provectus.lymph.jobs
+package com.provectus.mist.jobs
 
-import com.provectus.lymph.{Specification, Repository}
+import com.provectus.mist.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
 
-private[lymph] trait JobRepository extends Repository[Job]
+private[mist] trait JobRepository extends Repository[Job]
 
-private[lymph] object InMemoryJobRepository extends JobRepository {
+private[mist] object InMemoryJobRepository extends JobRepository {
 
   private val _collection = ArrayBuffer.empty[Job]
 
@@ -29,7 +29,7 @@ private[lymph] object InMemoryJobRepository extends JobRepository {
   }
 }
 
-private[lymph] object SQLiteJobRepository extends JobRepository {
+private[mist] object SQLiteJobRepository extends JobRepository {
 
 
 
