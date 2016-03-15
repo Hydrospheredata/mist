@@ -1,4 +1,4 @@
-package com.provectus.lymph.actors
+package com.provectus.mist.actors
 
 import akka.actor.{Props, ActorRef, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -6,20 +6,20 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import akka.pattern.{ask, AskTimeoutException}
-import com.provectus.lymph.{Constants, LymphConfig}
+import com.provectus.mist.{Constants, MistConfig}
 
 import spray.json._
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
-import com.provectus.lymph.jobs.{JobResult, JobConfiguration}
+import com.provectus.mist.jobs.{JobResult, JobConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.language.reflectiveCalls
 
 /** HTTP interface */
-private[lymph] trait HTTPService extends Directives with SprayJsonSupport with DefaultJsonProtocol {
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with DefaultJsonProtocol {
 
   /** We must implement json parse/serializer for [[Any]] type */
   implicit object AnyJsonFormat extends JsonFormat[Any] {
@@ -63,7 +63,7 @@ private[lymph] trait HTTPService extends Directives with SprayJsonSupport with D
           println(jobCreatingRequest.parameters)
 
           // Run job asynchronously
-          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
+          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
 
           future
             .recover {

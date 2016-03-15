@@ -1,4 +1,4 @@
-package com.provectus.lymph
+package com.provectus.mist
 
 import java.util.concurrent.TimeUnit
 
@@ -8,13 +8,13 @@ import collection.JavaConversions._
 import scala.concurrent.duration.FiniteDuration
 
 /** Configuration wrapper */
-private[lymph] object LymphConfig {
+private[mist] object MistConfig {
 
   private val config = ConfigFactory.load()
 
   /** Common application settings */
   object Settings {
-    private val settings = config.getConfig("lymph.settings")
+    private val settings = config.getConfig("mist.settings")
 
     /** Max number of threads for JVM where jobs are running */
     lazy val threadNumber: Int = settings.getInt("threadNumber")
@@ -22,7 +22,7 @@ private[lymph] object LymphConfig {
 
   /** HTTP specific settings */
   object HTTP {
-    private val http = config.getConfig("lymph.http")
+    private val http = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
     val isOn: Boolean = http.getBoolean("on")
@@ -35,7 +35,7 @@ private[lymph] object LymphConfig {
 
   /** Settings for each spark context */
   object Spark {
-    private val spark = config.getConfig("lymph.spark")
+    private val spark = config.getConfig("mist.spark")
 
     /** Spark master server url
       *
@@ -50,7 +50,7 @@ private[lymph] object LymphConfig {
 
   /** MQTT specific settings */
   object MQTT {
-    private val mqtt = config.getConfig("lymph.mqtt")
+    private val mqtt = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */
     val isOn: Boolean = mqtt.getBoolean("on")
@@ -68,9 +68,9 @@ private[lymph] object LymphConfig {
 
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
-    private val contexts = config.getConfig("lymph.contexts")
-    private val contextDefaults = config.getConfig("lymph.contextDefaults")
-    private val contextSettings = config.getConfig("lymph.contextSettings")
+    private val contexts = config.getConfig("mist.contexts")
+    private val contextDefaults = config.getConfig("mist.contextDefaults")
+    private val contextSettings = config.getConfig("mist.contextSettings")
 
     /** Flag of context creating on start or on demand */
     lazy val precreated: List[String] = contextSettings.getStringList("onstart").toList

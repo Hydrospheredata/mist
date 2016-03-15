@@ -1,12 +1,12 @@
-package com.provectus.lymph.contexts
+package com.provectus.mist.contexts
 
-import com.provectus.lymph.{Specification, Repository}
+import com.provectus.mist.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
 
-private[lymph] trait ContextRepository extends Repository[ContextWrapper]
+private[mist] trait ContextRepository extends Repository[ContextWrapper]
 
-private[lymph] object InMemoryContextRepository extends ContextRepository {
+private[mist] object InMemoryContextRepository extends ContextRepository {
 
   val collection = ArrayBuffer.empty[ContextWrapper]
 

@@ -1,11 +1,11 @@
-package com.provectus.lymph.actors
+package com.provectus.mist.actors
 
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
-import com.provectus.lymph.{Constants, LymphConfig}
-import com.provectus.lymph.actors.tools.{JSONSchemas, JSONValidator}
+import com.provectus.mist.{Constants, MistConfig}
+import com.provectus.mist.actors.tools.{JSONSchemas, JSONValidator}
 
 import org.json4s.NoTypeHints
 import org.json4s.jackson.JsonMethods._
@@ -17,20 +17,20 @@ import net.sigusr.mqtt.api._
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.provectus.lymph.jobs.{JobResult, JobConfiguration}
+import com.provectus.mist.jobs.{JobResult, JobConfiguration}
 
 /** MQTT interface */
-private[lymph] class MQTTService extends Actor {
+private[mist] class MQTTService extends Actor {
 
   // Connect to MQTT with host/port from config
-  context.actorOf(Manager.props(new InetSocketAddress(InetAddress.getByName(LymphConfig.MQTT.host), LymphConfig.MQTT.port))) ! Connect(Constants.Actors.mqttServiceName)
+  context.actorOf(Manager.props(new InetSocketAddress(InetAddress.getByName(MistConfig.MQTT.host), MistConfig.MQTT.port))) ! Connect(Constants.Actors.mqttServiceName)
 
   override def receive: Receive = {
     // Connected to MQTT server
     case Connected =>
       println("Connected to mqtt")
       // Subscribing to MQTT topic
-      sender() ! Subscribe(Vector((LymphConfig.MQTT.subscribeTopic, AtMostOnce)), 1)
+      sender() ! Subscribe(Vector((MistConfig.MQTT.subscribeTopic, AtMostOnce)), 1)
       // We are ready to receive message from MQ server
       context become ready(sender())
     case ConnectionFailure(reason) => println(s"Connection to mqtt failed [$reason]")
@@ -61,7 +61,7 @@ private[lymph] class MQTTService extends Actor {
         val jobCreatingRequest = json.extract[JobConfiguration]
 
         // Run job asynchronously
-        val future = jobRequestActor.ask(jobCreatingRequest)(timeout = LymphConfig.Contexts.timeout(jobCreatingRequest.name))
+        val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
 
         future
           .recover {
@@ -77,7 +77,7 @@ private[lymph] class MQTTService extends Actor {
               }
 
               val jsonString = write(jobResult)
-              mqttManager ! Publish(LymphConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
+              mqttManager ! Publish(MistConfig.MQTT.publishTopic, jsonString.getBytes("UTF-8").to[Vector])
               println(s"${write(result)}")
           }
       }

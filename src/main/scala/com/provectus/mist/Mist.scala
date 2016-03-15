@@ -1,18 +1,18 @@
-package com.provectus.lymph
+package com.provectus.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.provectus.lymph.actors.tools.Messages.{CreateContext, StopAllContexts}
-import com.provectus.lymph.actors.{ContextManager, MQTTService, HTTPService}
+import com.provectus.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
+import com.provectus.mist.actors.{ContextManager, MQTTService, HTTPService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 
 
-/** This object is entry point of Lymph project */
-private[lymph] object Lymph extends App with HTTPService {
-  override implicit val system = ActorSystem("lymph")
+/** This object is entry point of Mist project */
+private[mist] object Mist extends App with HTTPService {
+  override implicit val system = ActorSystem("mist")
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   // TODO: Logging
@@ -21,18 +21,18 @@ private[lymph] object Lymph extends App with HTTPService {
   val contextManager = system.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
 
   // Creating contexts which are specified in config as `onstart`
-  for (contextName:String <- LymphConfig.Contexts.precreated) {
+  for (contextName:String <- MistConfig.Contexts.precreated) {
     println("Creating contexts which are specified in config")
     contextManager ! CreateContext(contextName)
   }
 
   // Start HTTP server if it is on in config
-  if (LymphConfig.HTTP.isOn) {
-    Http().bindAndHandle(route, LymphConfig.HTTP.host, LymphConfig.HTTP.port)
+  if (MistConfig.HTTP.isOn) {
+    Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
   }
 
   // Start MQTT subscriber if it is on in config
-  if (LymphConfig.MQTT.isOn) {
+  if (MistConfig.MQTT.isOn) {
     system.actorOf(Props[MQTTService])
   }
 

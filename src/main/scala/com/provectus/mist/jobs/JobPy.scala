@@ -1,6 +1,6 @@
-package com.provectus.lymph.jobs
+package com.provectus.mist.jobs
 
-import com.provectus.lymph.contexts.ContextWrapper
+import com.provectus.mist.contexts.ContextWrapper
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
@@ -56,10 +56,10 @@ object SparkContextWrapper{
 
 /** Class-container for user jobs in python
   *
-  * @param jobConfiguration [[com.provectus.lymph.jobs.JobConfiguration]] instance
+  * @param jobConfiguration [[com.provectus.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
-private[lymph] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
+private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
 
   private val configuration = jobConfiguration
 

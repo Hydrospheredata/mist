@@ -1,20 +1,20 @@
-package com.provectus.lymph.jobs
+package com.provectus.mist.jobs
 
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import com.provectus.lymph.{Constants, LymphJob}
-import com.provectus.lymph.contexts.ContextWrapper
+import com.provectus.mist.{Constants, MistJob}
+import com.provectus.mist.contexts.ContextWrapper
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 
 /** Class-container for user jobs
   *
-  * @param jobConfiguration [[com.provectus.lymph.jobs.JobConfiguration]] instance
+  * @param jobConfiguration [[com.provectus.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
-private[lymph] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
+private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
 
   private val configuration = jobConfiguration
 
@@ -39,7 +39,7 @@ private[lymph] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: 
     _status = JobStatus.Running
     try {
       val result = objectRef match {
-        case objectRef: LymphJob =>
+        case objectRef: MistJob =>
           try {
             // if user object overrides method for SparkContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
