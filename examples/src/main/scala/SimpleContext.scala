@@ -1,7 +1,7 @@
-import com.provectus.lymph.LymphJob
+import com.provectus.mist.MistJob
 import org.apache.spark.SparkContext
 
-object SimpleContext extends LymphJob {
+object SimpleContext extends MistJob {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *

@@ -1,23 +1,23 @@
-package com.provectus.lymph.actors
+package com.provectus.mist.actors
 
 import java.util.concurrent.Executors._
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.provectus.lymph.{Constants, LymphConfig}
-import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext}
-import com.provectus.lymph.jobs.{InMemoryJobRepository, Job, JobConfiguration}
-import com.provectus.lymph.contexts._
+import com.provectus.mist.{Constants, MistConfig}
+import com.provectus.mist.actors.tools.Messages.{RemoveContext, CreateContext}
+import com.provectus.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import com.provectus.mist.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-private[lymph] class JobRunner extends Actor {
+private[mist] class JobRunner extends Actor {
 
   // Thread context for parallel running jobs
-  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(LymphConfig.Settings.threadNumber))
+  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
   // Actor which is creates spark contexts
   lazy val contextManager: ActorRef = context.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
@@ -44,7 +44,7 @@ private[lymph] class JobRunner extends Actor {
           future
             .andThen {
               case _ =>
-                if (LymphConfig.Contexts.isDisposable(configuration.name)) {
+                if (MistConfig.Contexts.isDisposable(configuration.name)) {
                   contextManager ! RemoveContext(contextWrapper)
                 }
             }(ExecutionContext.global)

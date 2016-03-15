@@ -1,4 +1,4 @@
-package com.provectus.lymph.contexts
+package com.provectus.mist.contexts
 
 import java.io.File
 
@@ -8,7 +8,7 @@ import org.apache.spark.sql.hive.HiveContext
 
 import scala.collection.mutable.ArrayBuffer
 
-private[lymph] trait ContextWrapper {
+private[mist] trait ContextWrapper {
 
   private val jars: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
@@ -31,6 +31,6 @@ private[lymph] trait ContextWrapper {
   }
 }
 
-private[lymph] case class OrdinaryContextWrapper(context: SparkContext) extends ContextWrapper
+private[mist] case class OrdinaryContextWrapper(context: SparkContext) extends ContextWrapper
 
-private[lymph] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper
+private[mist] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper
