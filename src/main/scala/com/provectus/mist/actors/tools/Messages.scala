@@ -1,8 +1,8 @@
-package com.provectus.lymph.actors.tools
+package com.provectus.mist.actors.tools
 
-import com.provectus.lymph.contexts.ContextWrapper
+import com.provectus.mist.contexts.ContextWrapper
 
-private[lymph] object Messages {
+private[mist] object Messages {
 
   case class CreateContext(name: String)
 

@@ -1,10 +1,10 @@
-package com.provectus.lymph.contexts
+package com.provectus.mist.contexts
 
-import com.provectus.lymph.LymphConfig
+import com.provectus.mist.MistConfig
 import org.apache.spark.{SparkContext, SparkConf}
 
 /** Builds spark contexts with necessary settings */
-private[lymph] object ContextBuilder {
+private[mist] object ContextBuilder {
 
   /** Build contexts with namespace
     *
@@ -14,7 +14,7 @@ private[lymph] object ContextBuilder {
   def namedSparkContext(name: String): ContextWrapper = {
 
     val sparkConf = new SparkConf()
-      .setMaster(LymphConfig.Spark.master)
+      .setMaster(MistConfig.Spark.master)
       .setAppName(name)
       .set("spark.driver.allowMultipleContexts", "true")
 

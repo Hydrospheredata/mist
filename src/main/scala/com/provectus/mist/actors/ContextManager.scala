@@ -1,11 +1,11 @@
-package com.provectus.lymph.actors
+package com.provectus.mist.actors
 
 import akka.actor.Actor
-import com.provectus.lymph.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
-import com.provectus.lymph.contexts._
+import com.provectus.mist.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
+import com.provectus.mist.contexts._
 
 /** Manages context repository */
-private[lymph] class ContextManager extends Actor {
+private[mist] class ContextManager extends Actor {
   override def receive: Receive = {
     // Returns context if it exists in requested namespace or created a new one if not
     case message: CreateContext =>
@@ -22,7 +22,7 @@ private[lymph] class ContextManager extends Actor {
       }
 
       // if sender is asking, send it result
-      if (sender.path.toString != "akka://lymph/deadLetters") {
+      if (sender.path.toString != "akka://mist/deadLetters") {
         sender ! existedContext
       }
 
