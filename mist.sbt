@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
   "net.sigusr" %% "scala-mqtt-client" % "0.6.0",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
-  "org.scalactic" %% "scalactic" % "2.2.6",
+  "org.scalactic" %% "scalactic" % "2.2.6" % "test",
   "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 )
 

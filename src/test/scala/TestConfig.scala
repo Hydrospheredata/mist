@@ -7,13 +7,17 @@ object TestConfig{
 
   val mqtt_test_sub_name = testconfig.getString("mist.test.mqtt.sub.name")
   val mqtt_test_pub_name = testconfig.getString("mist.test.mqtt.pub.name")
-  val mqtt_request_jar = testconfig.getString("mist.test.mqtt.request.jar")
-  val mqtt_try_response = testconfig.getString("mist.test.mqtt.response")
 
   val http_url = testconfig.getString("mist.test.http.url")
-  val http_request_jar = testconfig.getString("mist.test.http.request.jar")
-  val http_request_pyspark = testconfig.getString("mist.test.http.request.pyspark")
-  val http_request_sparksql = testconfig.getString("mist.test.http.request.sparksql")
-  val http_request_pysparksql = testconfig.getString("mist.test.http.request.pysparksql")
 
+  val request_test_timeout = testconfig.getString("mist.test.request.testtimeout")
+  val request_jar = testconfig.getString("mist.test.request.jar")
+  val request_testerror = testconfig.getString("mist.test.request.testerror")
+  val request_pyspark = testconfig.getString("mist.test.request.pyspark")
+  val request_sparksql = testconfig.getString("mist.test.request.sparksql")
+  val request_sparkhive = testconfig.getString("mist.test.request.sparkhive")
+  val request_pysparksql = testconfig.getString("mist.test.request.pysparksql")
+  val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
+  val request_jar_other_context = testconfig.getString("mist.test.request.jarother")
+  val request_bad = testconfig.getString("mist.test.request.badrequest")
 }

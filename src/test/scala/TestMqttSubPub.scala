@@ -8,6 +8,8 @@ import net.sigusr.mqtt.api._
 
 object MqttSuccessObj{
   var success: Boolean = false
+  var ready_pub: Boolean = false
+  var ready_sub: Boolean = false
 }
 
 class MQTTTestSub extends Actor {
@@ -27,22 +29,22 @@ class MQTTTestSub extends Actor {
 
   def ready(mqttManager: ActorRef): Receive = {
 
-    case Subscribed(vQoS, MessageId(1)) =>
+    case Subscribed(vQoS, MessageId(1)) => {
       println("Test sub successfully subscribed")
+      MqttSuccessObj.ready_sub = true
+    }
 
     case Message(topic, payload) =>
 
       val stringMessage = new String(payload.to[Array], "UTF-8")
       println(s"[$topic] $stringMessage")
-      stringMessage match {
-        case TestConfig.mqtt_try_response => {
-          MqttSuccessObj.success = true
-        }
-        case _ => MqttSuccessObj.success = false
+      stringMessage.split(':').drop(1).head.split(',').headOption.getOrElse("false") match {
+        case "true" =>  MqttSuccessObj.success = true
+        case "false" => MqttSuccessObj.success = false
+        case _ =>
       }
   }
 }
-
 
 class MQTTTestPub extends Actor {
 
@@ -53,6 +55,7 @@ class MQTTTestPub extends Actor {
 
     case Connected =>
       println("Publisher connected to mqtt")
+      MqttSuccessObj.ready_pub = true
       context become ready(sender())
 
     case ConnectionFailure(reason) => println(s"Pub connection to mqtt failed [$reason]")
@@ -60,8 +63,6 @@ class MQTTTestPub extends Actor {
 
   def ready(mqttManager: ActorRef): Receive = {
 
-    case msg: String =>
-      println(msg)
-      mqttClient ! Publish(MistConfig.MQTT.publishTopic, msg.getBytes("UTF-8").to[Vector])
+    case msg: String => mqttClient ! Publish(MistConfig.MQTT.publishTopic, msg.getBytes("UTF-8").to[Vector])
   }
 }
