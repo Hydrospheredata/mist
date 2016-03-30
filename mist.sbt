@@ -50,5 +50,3 @@ ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 89
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
 parallelExecution in Test := false
-
-//ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := """com.provectus.mist.Constants;com.provectus.mist.MistJob;com.provectus.mist.jobs.SQLiteJobRepository"""

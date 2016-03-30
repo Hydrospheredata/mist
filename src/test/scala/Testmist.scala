@@ -735,6 +735,5 @@ class TestMist extends FunSuite with HTTPService with Eventually {
      AnyJsonFormat.read(unknown)
    }
   }
-
 }
 
