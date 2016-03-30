@@ -5,6 +5,8 @@ import com.typesafe.config.ConfigFactory
 object TestConfig{
   private val testconfig = ConfigFactory.load()
 
+  val other_context_name = testconfig.getString("mist.test.othercontextname")
+
   val mqtt_test_sub_name = testconfig.getString("mist.test.mqtt.sub.name")
   val mqtt_test_pub_name = testconfig.getString("mist.test.mqtt.pub.name")
 
@@ -18,6 +20,13 @@ object TestConfig{
   val request_sparkhive = testconfig.getString("mist.test.request.sparkhive")
   val request_pysparksql = testconfig.getString("mist.test.request.pysparksql")
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
+
   val request_jar_other_context = testconfig.getString("mist.test.request.jarother")
+
+  val request_pyerror = testconfig.getString("mist.test.request.pyerror")
+  val request_nodostuff = testconfig.getString("mist.test.request.nodostuff")
+  val request_badpatch = testconfig.getString("mist.test.request.badpatch")
+  val request_badextension = testconfig.getString("mist.test.request.badextension")
   val request_bad = testconfig.getString("mist.test.request.badrequest")
+  val request_badjson = testconfig.getString("mist.test.request.badjson")
 }
