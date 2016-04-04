@@ -27,8 +27,10 @@ private[mist] class ContextManager extends Actor {
       }
 
     // surprise: stops all contexts
-    case StopAllContexts =>
+    case StopAllContexts => {
       InMemoryContextRepository.filter(new DummyContextSpecification()).foreach(_.stop())
+      InMemoryContextRepository.filter(new DummyContextSpecification()).foreach(InMemoryContextRepository.remove(_))
+    }
 
     // removes context
     case message: RemoveContext =>
