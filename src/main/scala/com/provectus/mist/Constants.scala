@@ -7,6 +7,7 @@ object Constants {
     final val jobTimeOutError = "Job timeout error"
     final val noDoStuffMethod = "No overridden doStuff method"
     final val notJobSubclass = "External module is not MistJob subclass"
+    final val extensionError = "You must specify the path to .jar or .py file"
 
   }
 

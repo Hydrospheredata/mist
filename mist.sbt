@@ -25,7 +25,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
   "net.sigusr" %% "scala-mqtt-client" % "0.6.0",
-  "com.github.fge" % "json-schema-validator" % "2.2.6"
+  "com.github.fge" % "json-schema-validator" % "2.2.6",
+  "org.scalactic" %% "scalactic" % "2.2.6",
+  "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
@@ -42,3 +44,9 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
+
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 89
+
+ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+
+parallelExecution in Test := false
