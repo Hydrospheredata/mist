@@ -1,6 +1,7 @@
 package com.provectus.mist.jobs
 
 //import com.provectus.mist.{Constants, mistJob}
+import com.provectus.mist.Constants
 import com.provectus.mist.contexts.ContextWrapper
 
 /** Job state statuses */
@@ -33,7 +34,7 @@ object Job{
     path.split('.').drop(1).lastOption.getOrElse("") match {
       case "jar" => return new JobJar(jobConfiguration, contextWrapper)
       case "py" => return new JobPy(jobConfiguration, contextWrapper)
-      case _ => throw new Exception("Error, you must specify the path to .jar or .py file")
+      case _ => throw new Exception(Constants.Errors.extensionError)
     }
   }
 }
