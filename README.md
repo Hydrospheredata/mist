@@ -9,6 +9,7 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 - [Features](#features)
 - [Version Information](#version-information)
 - [Getting Started with Mist](#getting-started-with-mist)
+- [Development mode](#development-mode)
 - [Spark Job at Mist](#spark-job-at-mist)
 - [Code Examples](#code-examples)
 - [API Reference](#api-reference)
@@ -34,17 +35,10 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 
 ## Getting Started with Mist
 
-You can use the Vagrant, and run preconfigured virtual machine
+Alternatives:
 
-```
-git clone https://github.com/provectus/mist
-vagrant up
-ssh vagrant
-cd /vagrant
-./sbt/sbt run
-```
-
-For create a forwarded port mapping which allows access to a specific port within the machine from a port on the host machine and other network setup, use Vagrantfile.
+* Build and run Mist in local [Development mode](#development-mode) within [SBT](http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html)
+* Deploy Mist to a mesos within [hydrosphere](http://hydrosphere.io/) [springhead](https://github.com/provectus/springhead)
 
 Mist settings are in the file [reference.conf](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources)
 
@@ -69,7 +63,8 @@ for example:
         Map("result" -> rdd.map(x => x * 2).collect())
       }
     }
-
+    
+    
 ######Mist Python Spark Job 
 
 You must be import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implemented method doStuff 
@@ -105,6 +100,19 @@ for example:
         return result
     job = MyJob(mist.Job())
 
+## Development mode
+
+You can use the Vagrant, and run preconfigured virtual machine
+
+```
+git clone https://github.com/provectus/mist
+vagrant up
+ssh vagrant
+cd /vagrant
+./sbt/sbt run
+```
+
+For create a forwarded port mapping which allows access to a specific port within the machine from a port on the host machine and other network setup, use Vagrantfile.
 
 ## Code Examples
 
@@ -126,34 +134,29 @@ Job Requesting options
 
 from jar:
 
-    """{
-      | "title": "Async Job Request",
-      | "type": "object",
-      | "properties": {
-      |   "jarPath": {"type": "string"},
-      |   "className": {"type": "string"},
-      |   "parameters": {"type": "object"},
-      |   "external_id": {"type": "string"}
-      | },
-      | "required": ["jarPath", "className"]
-      |}
-    """.stripMargin
+```
+  {
+    "jarPath": {"type": "string"},
+    "className": {"type": "string"},
+    "parameters": {"type": "object"},
+    "external_id": {"type": "string"},
+    "name": {"type": "string"}
+   }
+  
+```
     
 from python:
 
-    """{
-      | "title": "Async Job Request",
-      | "type": "object",
-      | "properties": {
-      |   "pyPath": {"type": "string"},
-      |   "parameters": {"type": "object"},
-      |   "external_id": {"type": "string"}
-      | },
-      | "required": ["pyPath"]
-      |}
-    """.stripMargin
+```
+  {
+    "pyPath": {"type": "string"},
+    "parameters": {"type": "object"},
+    "external_id": {"type": "string"},
+    "name": {"type": "string"}
+   }
+```
 
-e.g. from MQTT
+e.g. from MQTT [(Mosquitto)](http://mosquitto.org/)
 
     mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
 
@@ -163,6 +166,15 @@ e.g. from HTTP
 
 
 In return you`ll get response of your Job
+
+```
+{
+    "success": {"type": "boolean"},
+    "payload":{"result": {"type": "object"}},
+    "errors": {"type": "string"},
+    "request": {"type": "string"}
+}
+```
 
 e.g.
 
