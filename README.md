@@ -6,6 +6,7 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 ![Mist scheme](http://hydrosphere.io/wp-content/uploads/2016/03/scheme.png)
 
 **Table of Contents**
+- [Features](#features)
 - [Version Information](#version-information)
 - [Getting Started with Mist](#getting-started-with-mist)
 - [Spark Job at Mist](#spark-job-at-mist)
@@ -15,6 +16,13 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 - [Contact](#contact)
 - [License](#license)
 - [TODO](#todo)
+
+## Features
+
+- Easily accessible via the Spark (HTTP, MQTT)
+- Support for Spark SQL, Hive
+- Possible to execute Scala & Python Spark Jobs
+- Synchronous, asynchronous, and reactive
 
 ## Version Information
 
@@ -68,9 +76,13 @@ You must be import [mist](https://github.com/Hydrospheredata/mist/tree/master/sr
 
 to refer to Spark Contexts in an method doStuff using aliases
 
-> job.sc = SparkContext 
-> job.sqlc = SQL Context 
-> job.hc = Hive Context
+```
+
+ job.sc = SparkContext 
+ job.sqlc = SQL Context 
+ job.hc = Hive Context
+ 
+```
 
 for example:
 
@@ -190,4 +202,5 @@ Please report bugs/problems to:
 
 ## TODO
 
-
+- Job info is persisted in DB 
+- Support Streaming Contexts/jobs
