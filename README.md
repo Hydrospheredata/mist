@@ -3,13 +3,16 @@
 
 Mist – a thin service on top of Spark which makes it possible to execute Scala & Python Spark Jobs from application layers and get synchronous, asynchronous, and reactive results as well as provide an API to external clients.
 
-![Mist scheme](http://hydrosphere.io/wp-content/uploads/2016/03/scheme.png)
+It implements a concept of Spark as a Service and creates a unified API layer for building entrprise solutions and services on a top of Big Data lake.
+
+![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/03/scheme.png)
 
 **Table of Contents**
 - [Features](#features)
 - [Version Information](#version-information)
 - [Getting Started with Mist](#getting-started-with-mist)
 - [Development mode](#development-mode)
+- [Cluster mode](#cluster-mode)
 - [Spark Job at Mist](#spark-job-at-mist)
 - [Code Examples](#code-examples)
 - [API Reference](#api-reference)
@@ -20,10 +23,10 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 
 ## Features
 
-- Easily accessible via the Spark (HTTP, MQTT)
+- HTTP and Messaging (MQTT & AMPQ) API
+- Scala & Python Spark Jobs execution
 - Support for Spark SQL, Hive
-- Possible to execute Scala & Python Spark Jobs
-- Synchronous, asynchronous, and reactive
+- High Availability and Fault Tolerance
 
 ## Version Information
 
@@ -35,10 +38,7 @@ Mist – a thin service on top of Spark which makes it possible to execute Scala
 
 ## Getting Started with Mist
 
-Alternatives:
-
-* Build and run Mist in local [Development mode](#development-mode) within [SBT](http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html)
-* Deploy Mist to a mesos within [hydrosphere](http://hydrosphere.io/) [springhead](https://github.com/provectus/springhead)
+Build and run Mist in local [Development mode](#development-mode) with [SBT](http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html)
 
 Mist settings are in the file [reference.conf](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources)
 
@@ -46,15 +46,13 @@ Mist settings are in the file [reference.conf](https://github.com/Hydrospheredat
 
 ######Mist Scala Spark Job 
 
-Abstract method *doStuff* must be overridden  
-
-This method supports three type of Spark Context
+In order to prepare your job to be run on Mist you should extend it from MistJob and implement abstract method *doStuff* :
 
     def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
     def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = ???
     def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
 
-for example:
+Example:
 
     object SimpleContext extends MistJob {
       override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
@@ -67,9 +65,9 @@ for example:
     
 ######Mist Python Spark Job 
 
-You must be import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implemented method doStuff 
+Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implemented method *doStuff* 
 
-to refer to Spark Contexts in an method doStuff using aliases
+There are following Spark Contexts aliases to be used for sonvenience:
 
 ```
 
@@ -105,26 +103,30 @@ for example:
 You can use the Vagrant, and run preconfigured virtual machine
 
 ```
-git clone https://github.com/provectus/mist
+git clone https://github.com/Hydrospheredata/mist
 vagrant up
 ssh vagrant
 cd /vagrant
 ./sbt/sbt run
 ```
 
-For create a forwarded port mapping which allows access to a specific port within the machine from a port on the host machine and other network setup, use Vagrantfile.
+Use Vagrantfile to configure port forwarding and other network setup and make Mist available externally.
+
+## Cluster mode
+
+Mist could be deployed in [Cluster mode](#cluster-mode) on Marathon with [hydrosphere](http://hydrosphere.io/) [springhead](https://github.com/provectus/springhead) for fault tolerance.
 
 ## Code Examples
-
-For start Spark Jobs you need deploy and start Mist app, override definition doStuff and send HTTP or MQTT request
 
 * [Scala examples](https://github.com/Hydrospheredata/mist/tree/master/examples/src/main/scala)
 
 * [Python examples](https://github.com/Hydrospheredata/mist/tree/master/examples/src/main/python)
 
-## API Reference
+## Configuration
 
-Before send you request make settings you reference.conf (YouMistHost, YouMqttPort, YouHttpPort) and start Mist app
+<TBD> - need to descibe all the settings
+
+## API Reference
 
 To work with Mist, you can send messages on HTTP or MQTT 
 
@@ -165,7 +167,7 @@ e.g. from HTTP
     curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
 
 
-In return you`ll get response of your Job
+Response scheme:
 
 ```
 {
@@ -214,5 +216,5 @@ Please report bugs/problems to:
 
 ## TODO
 
-- Job info is persisted in DB 
 - Support Streaming Contexts/jobs
+- Persist Job state for self healing
