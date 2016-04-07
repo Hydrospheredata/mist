@@ -1,0 +1,27 @@
+language: scala
+scala:
+   - 2.11.7
+python:
+  - "2.7"
+  
+before_install:
+  - sudo apt-add-repository ppa:mosquitto-dev/mosquitto-ppa -y
+  - sudo apt-get update -qq
+  
+install:
+  - sudo apt-get install -qq mosquitto mosquitto-clients
+  - wget -c -N --no-verbose http://d3kbcqa49mib13.cloudfront.net/spark-1.5.2-bin-hadoop2.6.tgz
+  - tar xzf spark-1.5.2-bin-hadoop2.6.tgz -C $HOME
+
+before_script:
+  - mosquitto -p 1883 1>/dev/null 2>/dev/null &
+
+script:
+  - jdk_switcher use oraclejdk8
+  - sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/start-master.sh
+  - sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/start-slave.sh localhost:7077
+  - export SPARK_HOME=$HOME/spark-1.5.2-bin-hadoop2.6/
+  - export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
+  - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+  - "sbt ++$TRAVIS_SCALA_VERSION $TEST"
+  - "sbt test"
