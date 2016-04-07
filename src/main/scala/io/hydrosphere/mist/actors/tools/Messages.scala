@@ -1,6 +1,6 @@
-package com.provectus.mist.actors.tools
+package io.hydrosphere.mist.actors.tools
 
-import com.provectus.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.contexts.ContextWrapper
 
 private[mist] object Messages {
 

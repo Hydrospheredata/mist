@@ -1,8 +1,8 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
-//import com.provectus.mist.{Constants, mistJob}
-import com.provectus.mist.Constants
-import com.provectus.mist.contexts.ContextWrapper
+//import io.hydrosphere.mist.{Constants, mistJob}
+import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.contexts.ContextWrapper
 
 /** Job state statuses */
 private[mist] object JobStatus extends Enumeration {

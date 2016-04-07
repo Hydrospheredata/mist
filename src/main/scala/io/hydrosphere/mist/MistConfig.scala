@@ -1,4 +1,4 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 import java.util.concurrent.TimeUnit
 

@@ -1,6 +1,6 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
-import com.provectus.mist.{Specification, Repository}
+import io.hydrosphere.mist.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
 

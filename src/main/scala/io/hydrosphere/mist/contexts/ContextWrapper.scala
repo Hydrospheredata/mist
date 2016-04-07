@@ -1,4 +1,4 @@
-package com.provectus.mist.contexts
+package io.hydrosphere.mist.contexts
 
 import java.io.File
 

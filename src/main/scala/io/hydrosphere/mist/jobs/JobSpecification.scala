@@ -1,6 +1,6 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
-import com.provectus.mist.Specification
+import io.hydrosphere.mist.Specification
 
 private[mist] trait JobSpecification extends Specification[Job]
 

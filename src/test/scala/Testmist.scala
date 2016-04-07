@@ -1,6 +1,6 @@
-package com.provectus.mist.test
+package io.hydrosphere.mist.test
 
-import com.provectus.mist.jobs.{ErrorWrapper, JobByIdSpecification, InMemoryJobRepository}
+import io.hydrosphere.mist.jobs.{ErrorWrapper, JobByIdSpecification, InMemoryJobRepository}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
@@ -13,10 +13,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 
-import com.provectus.mist._
-import com.provectus.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
-import com.provectus.mist.actors.{HTTPService}
-import com.provectus.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
+import io.hydrosphere.mist._
+import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
+import io.hydrosphere.mist.actors.{HTTPService}
+import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
 
 import spray.json._
 

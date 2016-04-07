@@ -1,6 +1,6 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
-import com.provectus.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
@@ -56,7 +56,7 @@ object SparkContextWrapper{
 
 /** Class-container for user jobs in python
   *
-  * @param jobConfiguration [[com.provectus.mist.jobs.JobConfiguration]] instance
+  * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
 private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {

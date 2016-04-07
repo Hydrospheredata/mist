@@ -1,4 +1,4 @@
-package com.provectus.mist.actors.tools
+package io.hydrosphere.mist.actors.tools
 
 import com.fasterxml.jackson.databind.{JsonNode, JsonMappingException}
 import com.github.fge.jsonschema.main.JsonSchemaFactory

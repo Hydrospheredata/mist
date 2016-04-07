@@ -1,4 +1,4 @@
-package com.provectus.mist.test
+package io.hydrosphere.mist.test
 
 import com.typesafe.config.ConfigFactory
 

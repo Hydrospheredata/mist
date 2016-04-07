@@ -1,4 +1,4 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 /** Interface for specification pattern
   *

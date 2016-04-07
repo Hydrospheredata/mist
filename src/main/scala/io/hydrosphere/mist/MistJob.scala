@@ -1,4 +1,4 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
