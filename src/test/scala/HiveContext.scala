@@ -1,4 +1,4 @@
-import com.provectus.mist.MistJob
+import io.hydrosphere.mist.MistJob
 import org.apache.spark.sql.hive.HiveContext
 
 

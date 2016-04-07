@@ -1,4 +1,4 @@
-package com.provectus.mist.actors
+package io.hydrosphere.mist.actors
 
 import akka.actor.{Props, ActorRef, ActorSystem}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -6,13 +6,13 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import akka.pattern.{ask, AskTimeoutException}
-import com.provectus.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.{Constants, MistConfig}
 
 import spray.json._
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
-import com.provectus.mist.jobs.{JobResult, JobConfiguration}
+import io.hydrosphere.mist.jobs.{JobResult, JobConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

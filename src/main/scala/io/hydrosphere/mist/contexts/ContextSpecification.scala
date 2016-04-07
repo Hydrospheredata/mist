@@ -1,6 +1,6 @@
-package com.provectus.mist.contexts
+package io.hydrosphere.mist.contexts
 
-import com.provectus.mist.Specification
+import io.hydrosphere.mist.Specification
 
 private[mist] trait ContextSpecification extends Specification[ContextWrapper]
 

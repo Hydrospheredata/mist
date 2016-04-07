@@ -1,11 +1,11 @@
-package com.provectus.mist.actors
+package io.hydrosphere.mist.actors
 
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
-import com.provectus.mist.{Constants, MistConfig}
-import com.provectus.mist.actors.tools.{JSONSchemas, JSONValidator}
+import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.actors.tools.{JSONSchemas, JSONValidator}
 
 import org.json4s.NoTypeHints
 import org.json4s.jackson.JsonMethods._
@@ -17,7 +17,7 @@ import net.sigusr.mqtt.api._
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import com.provectus.mist.jobs.{JobResult, JobConfiguration}
+import io.hydrosphere.mist.jobs.{JobResult, JobConfiguration}
 
 /** MQTT interface */
 private[mist] class MQTTService extends Actor {

@@ -1,6 +1,6 @@
-package com.provectus.mist.contexts
+package io.hydrosphere.mist.contexts
 
-import com.provectus.mist.MistConfig
+import io.hydrosphere.mist.MistConfig
 import org.apache.spark.{SparkContext, SparkConf}
 
 /** Builds spark contexts with necessary settings */
