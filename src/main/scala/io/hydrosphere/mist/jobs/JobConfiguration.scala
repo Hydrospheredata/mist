@@ -1,4 +1,4 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
 /** Configuration for jobs
   *

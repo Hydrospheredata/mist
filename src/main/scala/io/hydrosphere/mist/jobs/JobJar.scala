@@ -1,17 +1,17 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import com.provectus.mist.{Constants, MistJob}
-import com.provectus.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.{Constants, MistJob}
+import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 
 /** Class-container for user jobs
   *
-  * @param jobConfiguration [[com.provectus.mist.jobs.JobConfiguration]] instance
+  * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
 private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {

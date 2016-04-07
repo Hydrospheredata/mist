@@ -1,4 +1,4 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 /** Interface for repository pattern
   *
@@ -19,14 +19,14 @@ private[mist] trait Repository[T] {
 
   /** Returns ''first'' element in repository satisfied predicate
     *
-    * @param specification instance of [[com.provectus.mist.Specification]] with implemented predicate for filtering
+    * @param specification instance of [[io.hydrosphere.mist.Specification]] with implemented predicate for filtering
     * @return [[scala.Some]] if element is found and [[scala.None]] of not
     */
   def get(specification: Specification[T]): Option[T]
 
   /** Returns ''all'' elements in repository satisfied predicate
     *
-    * @param specification instance of [[com.provectus.mist.Specification]] with implemented predicate for filtering
+    * @param specification instance of [[io.hydrosphere.mist.Specification]] with implemented predicate for filtering
     * @return filtered [[scala.List]] of elements
     */
   def filter(specification: Specification[T]): List[T]

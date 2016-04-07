@@ -1,14 +1,14 @@
-package com.provectus.mist.actors
+package io.hydrosphere.mist.actors
 
 import java.util.concurrent.Executors._
 
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.provectus.mist.{Constants, MistConfig}
-import com.provectus.mist.actors.tools.Messages.{RemoveContext, CreateContext}
-import com.provectus.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
-import com.provectus.mist.contexts._
+import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext}
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import io.hydrosphere.mist.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
 import scala.concurrent.duration._

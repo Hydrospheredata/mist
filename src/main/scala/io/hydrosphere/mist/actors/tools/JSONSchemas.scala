@@ -1,4 +1,4 @@
-package com.provectus.mist.actors.tools
+package io.hydrosphere.mist.actors.tools
 
 /** JSON schemas to validate incoming messages */
 private[actors] object JSONSchemas {

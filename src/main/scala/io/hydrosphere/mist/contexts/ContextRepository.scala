@@ -1,6 +1,6 @@
-package com.provectus.mist.contexts
+package io.hydrosphere.mist.contexts
 
-import com.provectus.mist.{Specification, Repository}
+import io.hydrosphere.mist.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
 
