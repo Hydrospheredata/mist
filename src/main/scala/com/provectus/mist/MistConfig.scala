@@ -68,12 +68,12 @@ private[mist] object MistConfig {
 
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
-    private val contexts = config.getConfig("mist.contexts")
+    private val contexts = if (config.hasPath("mist.contexts")) config.getConfig("mist.contexts") else null
     private val contextDefaults = config.getConfig("mist.contextDefaults")
-    private val contextSettings = config.getConfig("mist.contextSettings")
+    private val contextSettings = if (config.hasPath("mist.contextSettings")) config.getConfig("mist.contextSettings") else null
 
     /** Flag of context creating on start or on demand */
-    lazy val precreated: List[String] = contextSettings.getStringList("onstart").toList
+    lazy val precreated: List[String] = if (contextSettings != null) contextSettings.getStringList("onstart").toList else List()
 
     /** Return config for specified context or default settings
       *
@@ -82,12 +82,14 @@ private[mist] object MistConfig {
       */
     private def getContextOrDefault(contextName: String): Config = {
       var contextConfig:Config = null
-      try {
-        contextConfig = contexts.getConfig(contextName).withFallback(contextDefaults)
-      }
-      catch {
-        case _:ConfigException.Missing =>
-          contextConfig = contextDefaults
+      if (contexts != null) {
+        try {
+          contextConfig = contexts.getConfig(contextName).withFallback(contextDefaults)
+        }
+        catch {
+          case _:ConfigException.Missing =>
+            contextConfig = contextDefaults
+        }
       }
       contextConfig
     }
