@@ -13,10 +13,14 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 
+resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
+
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("1.5.2")
+
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % "1.5.2",
-  "org.apache.spark" %% "spark-sql" % "1.5.2",
-  "org.apache.spark" %% "spark-hive" % "1.5.2",
+  "org.apache.spark" %% "spark-core" % sparkVersion,
+  "org.apache.spark" %% "spark-sql" % sparkVersion,
+  "org.apache.spark" %% "spark-hive" % sparkVersion,
   "org.json4s" %% "json4s-native" % "3.2.11",
   "org.json4s" %% "json4s-jackson" % "3.2.11",
   "com.typesafe" % "config" % "1.3.0",
@@ -50,3 +54,5 @@ ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 89
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
 parallelExecution in Test := false
+
+test in assembly := {}
