@@ -1,9 +1,9 @@
-package com.provectus.mist.test
+package io.hydrosphere.mist.test
 
 import java.net.{InetAddress, InetSocketAddress}
 
 import akka.actor.{ActorRef, Actor}
-import com.provectus.mist.MistConfig
+import io.hydrosphere.mist.MistConfig
 import net.sigusr.mqtt.api._
 
 object MqttSuccessObj{

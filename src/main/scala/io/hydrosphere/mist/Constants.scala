@@ -1,4 +1,4 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 object Constants {
 

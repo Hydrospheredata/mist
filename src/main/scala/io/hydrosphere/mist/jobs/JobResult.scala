@@ -1,4 +1,4 @@
-package com.provectus.mist.jobs
+package io.hydrosphere.mist.jobs
 
 /** Used for packing results for response
   *

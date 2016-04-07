@@ -1,8 +1,8 @@
-package com.provectus.mist.actors
+package io.hydrosphere.mist.actors
 
 import akka.actor.Actor
-import com.provectus.mist.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
-import com.provectus.mist.contexts._
+import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
+import io.hydrosphere.mist.contexts._
 
 /** Manages context repository */
 private[mist] class ContextManager extends Actor {

@@ -1,10 +1,10 @@
-package com.provectus.mist
+package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.provectus.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
-import com.provectus.mist.actors.{ContextManager, MQTTService, HTTPService}
+import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
+import io.hydrosphere.mist.actors.{ContextManager, MQTTService, HTTPService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
