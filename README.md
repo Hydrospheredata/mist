@@ -214,6 +214,8 @@ Please report bugs/problems to:
 
 ## License
 
+Apache 2.0 License
+
 ## TODO
 
 - Support Streaming Contexts/jobs
