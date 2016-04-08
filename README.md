@@ -193,25 +193,28 @@ The Mist’s goal is to make possible to run Apache Spark jobs as a service. We 
 for scala jobs:
 
 ```javascript
-  {
+{
     "jarPath": "/path/to/mist/job.jar",
     "className": "ExtendedMistJobObjectName",
-    "parameters": { /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ },
+    "parameters": { 
+        /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ 
+    },
     "external_id": "", // optional field with any string inside
     "name": "foo" // mist context namespace
-   }
-  
+}
 ```
     
 for python jobs:
 
 ```javascript
-  {
+{
     "pyPath": "/path/to/mist/job.jar",
-    "parameters": { /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ },
+    "parameters": { 
+        /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ 
+    },
     "external_id": "", // optional field with any string inside
     "name": "foo" // mist context namespace
-   }
+}
 ```
 
 e.g. from MQTT [(MQTT server and client)](http://mosquitto.org/) are necessary
@@ -287,3 +290,6 @@ Apache 2.0 License
 
 - Support Streaming Contexts/jobs
 - Persist Job state for self healing
+- Super parallel mode
+- Apache Kafka support
+- AMQP support
