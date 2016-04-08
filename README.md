@@ -184,12 +184,9 @@ Mist could be deployed in [Cluster mode](#cluster-mode) on Marathon with [hydros
 
 ## API Reference
 
-To work with Mist, you can send messages on HTTP or MQTT 
+The Mist’s goal is to make possible to run Apache Spark jobs as a service. We know  Apache Spark can be very fast (< 5s for job), but also tasks can be quite long running. So mist has two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is easy: you make a POST request and then get results in response. MQTT requests is almost the same: you send a message with request into a specified topic ([configuration](#configuration): mist.mqtt.subscribeTopic) and some time later mist will send a message with results ([configuration](#configuration): mist.mqtt.publishTopic). To differ future responses you can add external_id field into request message. This external_id will be returned in message with results.
 
-The structure of the request must meet the following JSON
-
-Job Requesting options
-
+######Requests
 for scala jobs:
 
 ```javascript
@@ -227,7 +224,7 @@ curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003
 ```
 
 
-Response scheme:
+######Response
 
 ```javascript
 {
