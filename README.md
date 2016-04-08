@@ -23,45 +23,106 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 ## Features
 
-- HTTP and Messaging (MQTT & AMPQ) API
+- HTTP and Messaging (MQTT) API
 - Scala & Python Spark Jobs execution
 - Support for Spark SQL, Hive
 - High Availability and Fault Tolerance
 
 ## Version Information
 
-| Mist Version   | Scala Version  | Python Version | Spark Version  |
-|----------------|----------------|----------------|----------------|
-| 0.0.1          | 2.11.7         | 2.7.6          | 1.5.2          |
-| master         | 2.11.7         | 2.7.6          | 1.5.2          |
+| Mist Version   | Scala Version  | Python Version | Spark Version    |
+|----------------|----------------|----------------|------------------|
+| 0.0.1          | 2.11.7         | 2.7.6          | >=1.5.2          |
+| master         | 2.11.7         | 2.7.6          | >=1.5.2          |
 
 
 ## Getting Started with Mist
 
-Build and run Mist in local [Development mode](#development-mode) with [SBT](http://www.scala-sbt.org/release/docs/Getting-Started/Setup.html)
+######Dependencies
+- jdk >= 7
+- scala >= 2.11
+- spark >= 1.5.2 (earlier versions were not tested)
+- MQTT Server *(optionally)*
 
-Mist settings are in the file [reference.conf](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources)
+######Running
+* Build the project
+
+        git clone https://github.com/hydrospheredata/mist.git
+        cd mist
+        ./sbt/sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
+    
+* Create [configuration file](#configuration)
+* Run
+
+        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.11/mist-assembly-0.0.1.jar
+
+##Configuration
+
+Configuration files are in [HOCON format](https://github.com/typesafehub/config/blob/master/HOCON.md)
+```hocon
+# spark master url can be either of three: local, yarn, mesos (local by default)
+mist.spark.master = "local[*]"
+
+# number of threads: one thread for one job
+mist.settings.threadNumber = 16
+
+# http interface (off by default)
+mist.http.on = false
+mist.http.host = "0.0.0.0"
+mist.http.port = 2003
+
+# MQTT interface (off by default)
+mist.mqtt.on = false
+mist.mqtt.host = "192.168.10.33"
+mist.mqtt.port = 1883
+# mist listens this topic for incoming requests
+mist.mqtt.subscribeTopic = "foo"
+# mist answers in this topic with the results
+mist.mqtt.publishTopic = "foo"
+
+# default settings for all contexts
+# timeout for each job in context
+mist.contextDefaults.timeout = 100 days
+# mist can kill context after job finished (off by default)
+mist.contextDefaults.disposable = false
+
+# settings can be overridden for each context
+mist.contexts.foo.timeout = 100 days
+
+mist.contexts.bar.timeout = 1000 second
+mist.contexts.bar.disposable = true
+
+# mist can create context on start, so we don't waste time on first request
+mist.contextSettings.onstart = ["foo"]
+```
 
 ## Spark Job at Mist
 
 ######Mist Scala Spark Job 
 
-In order to prepare your job to be run on Mist you should extend it from MistJob and implement abstract method *doStuff* :
+In order to prepare your job to be run on Mist you should extend scala `object` from MistJob and implement abstract method *doStuff* :
 
-    def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
-    def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = ???
-    def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
+```scala
+def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
+def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = ???
+def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
+```
 
 Example:
 
-    object SimpleContext extends MistJob {
-      override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
+```scala
+object SimpleContext extends MistJob {
+    override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
         val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
         val rdd = context.parallelize(numbers)
         Map("result" -> rdd.map(x => x * 2).collect())
-      }
     }
-    
+}
+```
+
+######Building mist jobs
+
+//FIXME
     
 ######Mist Python Spark Job 
 
@@ -69,40 +130,39 @@ Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/pytho
 
 There are following Spark Contexts aliases to be used for sonvenience:
 
-```
-
- job.sc = SparkContext 
- job.sqlc = SQL Context 
- job.hc = Hive Context
- 
+```python
+job.sc = SparkContext 
+job.sqlc = SQL Context 
+job.hc = Hive Context
 ```
 
 for example:
-
-    import mist
-    class MyJob:
-        def __init__(self, job):
-            job.sendResult(self.doStuff(job))
-        def doStuff(self, job):
-            val = job.parameters.values()
-            list = val.head()
-            size = list.size()
-            pylist = []
-            count = 0
-            while count < size:
-                pylist.append(list.head())
-                count = count + 1
-                list = list.tail()
-            rdd = job.sc.parallelize(pylist)
-            result = rdd.map(lambda s: 2 * s).collect()
-        return result
-    job = MyJob(mist.Job())
+```python
+import mist
+class MyJob:
+    def __init__(self, job):
+        job.sendResult(self.doStuff(job))
+    def doStuff(self, job):
+        val = job.parameters.values()
+        list = val.head()
+        size = list.size()
+        pylist = []
+        count = 0
+        while count < size:
+            pylist.append(list.head())
+            count = count + 1
+            list = list.tail()
+        rdd = job.sc.parallelize(pylist)
+        result = rdd.map(lambda s: 2 * s).collect()
+    return result
+job = MyJob(mist.Job())
+```
 
 ## Development mode
 
 You can use the Vagrant, and run preconfigured virtual machine
 
-```
+```sh
 git clone https://github.com/Hydrospheredata/mist
 vagrant up
 ssh vagrant
@@ -122,10 +182,6 @@ Mist could be deployed in [Cluster mode](#cluster-mode) on Marathon with [hydros
 
 * [Python examples](https://github.com/Hydrospheredata/mist/tree/master/examples/src/main/python)
 
-## Configuration
-
-<TBD> - need to descibe all the settings
-
 ## API Reference
 
 To work with Mist, you can send messages on HTTP or MQTT 
@@ -134,68 +190,79 @@ The structure of the request must meet the following JSON
 
 Job Requesting options
 
-from jar:
+for scala jobs:
 
-```
+```javascript
   {
-    "jarPath": {"type": "string"},
-    "className": {"type": "string"},
-    "parameters": {"type": "object"},
-    "external_id": {"type": "string"},
-    "name": {"type": "string"}
+    "jarPath": "/path/to/mist/job.jar",
+    "className": "ExtendedMistJobObjectName",
+    "parameters": { /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ },
+    "external_id": "", // optional field with any string inside
+    "name": "foo" // mist context namespace
    }
   
 ```
     
-from python:
+for python jobs:
 
-```
+```javascript
   {
-    "pyPath": {"type": "string"},
-    "parameters": {"type": "object"},
-    "external_id": {"type": "string"},
-    "name": {"type": "string"}
+    "pyPath": "/path/to/mist/job.jar",
+    "parameters": { /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ },
+    "external_id": "", // optional field with any string inside
+    "name": "foo" // mist context namespace
    }
 ```
 
-e.g. from MQTT [(Mosquitto)](http://mosquitto.org/)
+e.g. from MQTT [(MQTT server and client)](http://mosquitto.org/) are necessary
 
-    mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
+```sh
+mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
+```
 
 e.g. from HTTP
 
-    curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+```sh
+curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+```
 
 
 Response scheme:
 
-```
+```javascript
 {
-    "success": {"type": "boolean"},
-    "payload":{"result": {"type": "object"}},
-    "errors": {"type": "string"},
-    "request": {"type": "string"}
+    "success": true,
+    "payload":{ /* returned from doStuff value */ },
+    "errors": [ /* array of string with errors */ ],
+    "request": { /* clone of request */ }
 }
 ```
 
 e.g.
-
-    {"success":true,"payload":{"result":[2,4,6,8,10,12,14,16,18,0]},"errors":[],"request":{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar","className":"SimpleContext$","name":"foo","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]},"external_id":"12345678"}}
-
+```javascript
+{
+    "success": true,
+    "payload": {
+        "result": [2, 4, 6, 8, 10, 12, 14, 16, 18, 0]
+    },
+    "errors": [],
+    "request": {
+        "jarPath": "/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar",
+        "className": "SimpleContext$",
+        "name": "foo",
+        "parameters": {
+            "digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+        },
+        "external_id":"12345678"
+    }
+}
+```
 
 ## Tests
 
+```sh
+./sbt/sbt test
 ```
-git clone https://github.com/provectus/mist
-```
-
-`vagrant up`
-
-`ssh vagrant`
-
-`cd /vagrant`
-
-`./sbt/sbt test`
 
 Test settings are in the file [reference.conf](https://github.com/Hydrospheredata/mist/tree/master/src/test/resources)
 
