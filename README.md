@@ -58,6 +58,9 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 ##Configuration
 
+One the mist’s features is automatic creation of Apache Spark contexts. All created contexts have their own name and every job is run in a namespace. By default when you request job running at the first time, mist creates namespace and new Spark context. The second request will use created namespace so context will be alive all time while mist is running. This behavior can be changed in configuration file: `mist.contextSetting.onstart` allows you to specify namespaces which are must be run on start of mist; `disposable` setting kills context right after using. You can set up options both for all contexts (`mist.contextDefault`) and for every context individually (`mist.context.<namespace>`).
+
+
 Configuration files are in [HOCON format](https://github.com/typesafehub/config/blob/master/HOCON.md)
 ```hocon
 # spark master url can be either of three: local, yarn, mesos (local by default)
@@ -184,7 +187,7 @@ Mist could be deployed in [Cluster mode](#cluster-mode) on Marathon with [hydros
 
 ## API Reference
 
-The Mist’s goal is to make possible to run Apache Spark jobs as a service. We know  Apache Spark can be very fast (< 5s for job), but also tasks can be quite long running. So mist has two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is easy: you make a POST request and then get results in response. MQTT requests is almost the same: you send a message with request into a specified topic ([configuration](#configuration): mist.mqtt.subscribeTopic) and some time later mist will send a message with results ([configuration](#configuration): mist.mqtt.publishTopic). To differ future responses you can add external_id field into request message. This external_id will be returned in message with results.
+The Mist’s goal is to make possible to run Apache Spark jobs as a service. We know  Apache Spark can be very fast (< 5s for job), but also tasks can be quite long running. So mist has two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is easy: you make a POST request and then get results in response. MQTT requests is almost the same: you send a message with request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribeTopic`) and some time later mist will send a message with results ([configuration](#configuration): `mist.mqtt.publishTopic`). To differ future responses you can add `external_id` field into request message. This `external_id` will be returned in message with results.
 
 ######Requests
 for scala jobs:
