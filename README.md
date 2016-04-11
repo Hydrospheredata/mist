@@ -89,8 +89,19 @@ mist.contextDefaults.timeout = 100 days
 # mist can kill context after job finished (off by default)
 mist.contextDefaults.disposable = false
 
+# settings for SparkConf
+mist.contextDefaults.sparkConf = {
+    spark.default.parallelism = 128
+    spark.driver.memory = "10g"
+    spark.scheduler.mode = "FAIR"
+}
+
 # settings can be overridden for each context
 mist.contexts.foo.timeout = 100 days
+
+mist.contexts.foo.sparkConf = {
+    spark.scheduler.mode = "FIFO"
+}
 
 mist.contexts.bar.timeout = 1000 second
 mist.contexts.bar.disposable = true
@@ -125,8 +136,25 @@ object SimpleContext extends MistJob {
 
 ######Building mist jobs
 
-//FIXME
+Add mist as dependency in your `build.sbt`:
+
+```scala
+libraryDependencies += "io.hydrosphere" % "mist" % "0.0.1"
+```
+
+Maven dependency:
+
+```xml
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist</artifactId>
+    <version>0.0.1</version>
+</dependency>
+```
     
+Link for direct download if you don't use a dependency manager:
+* http://central.maven.org/maven2/io/hydrosphere/mist/
+
 ######Mist Python Spark Job 
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implemented method *doStuff* 
