@@ -18,6 +18,12 @@ private[mist] object ContextBuilder {
       .setAppName(name)
       .set("spark.driver.allowMultipleContexts", "true")
 
+    val sparkConfSettings = MistConfig.Contexts.sparkConf(name)
+
+    for (keyValue: List[String] <- sparkConfSettings) {
+      sparkConf.set(keyValue.head, keyValue(1))
+    }
+
     NamedContextWrapper(new SparkContext(sparkConf), name)
   }
 }

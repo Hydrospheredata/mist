@@ -2,9 +2,9 @@ package io.hydrosphere.mist
 
 import java.util.concurrent.TimeUnit
 
-import com.typesafe.config.{ConfigException, ConfigFactory, Config}
+import com.typesafe.config.{ConfigValue, ConfigException, ConfigFactory, Config}
 
-import collection.JavaConversions._
+import scala.collection.JavaConversions._
 import scala.concurrent.duration.FiniteDuration
 
 /** Configuration wrapper */
@@ -82,14 +82,12 @@ private[mist] object MistConfig {
       */
     private def getContextOrDefault(contextName: String): Config = {
       var contextConfig:Config = null
-      if (contexts != null) {
-        try {
-          contextConfig = contexts.getConfig(contextName).withFallback(contextDefaults)
-        }
-        catch {
-          case _:ConfigException.Missing =>
-            contextConfig = contextDefaults
-        }
+      try {
+        contextConfig = contexts.getConfig(contextName).withFallback(contextDefaults)
+      }
+      catch {
+        case _: ConfigException.Missing  | _: NullPointerException =>
+          contextConfig = contextDefaults
       }
       contextConfig
     }
@@ -102,6 +100,13 @@ private[mist] object MistConfig {
     /** If true we'll stop context */
     def isDisposable(contextName: String): Boolean = {
       getContextOrDefault(contextName).getBoolean("disposable")
+    }
+
+    /** Settings for SparkConf */
+    def sparkConf(contextName: String): Set[List[String]] = {
+      getContextOrDefault(contextName).getConfig("sparkConf").entrySet.map {
+        case (m: java.util.Map.Entry[String, ConfigValue]) => List(m.getKey, m.getValue.unwrapped().toString)
+      }.toSet
     }
 
   }
