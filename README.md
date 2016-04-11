@@ -89,8 +89,19 @@ mist.contextDefaults.timeout = 100 days
 # mist can kill context after job finished (off by default)
 mist.contextDefaults.disposable = false
 
+# settings for SparkConf
+mist.contextDefaults.sparkConf = {
+    spark.default.parallelism = 128
+    spark.driver.memory = "10g"
+    spark.scheduler.mode = "FAIR"
+}
+
 # settings can be overridden for each context
 mist.contexts.foo.timeout = 100 days
+
+mist.contexts.foo.sparkConf = {
+    spark.scheduler.mode = "FIFO"
+}
 
 mist.contexts.bar.timeout = 1000 second
 mist.contexts.bar.disposable = true
