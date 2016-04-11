@@ -136,8 +136,25 @@ object SimpleContext extends MistJob {
 
 ######Building mist jobs
 
-//FIXME
+Add mist as dependency in your `build.sbt`:
+
+```scala
+libraryDependencies += "io.hydrosphere" % "mist" % "0.0.1"
+```
+
+Maven dependency:
+
+```xml
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist</artifactId>
+    <version>0.0.1</version>
+</dependency>
+```
     
+Link for direct download if you don't use a dependency manager:
+* http://central.maven.org/maven2/io/hydrosphere/mist/
+
 ######Mist Python Spark Job 
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implemented method *doStuff* 
