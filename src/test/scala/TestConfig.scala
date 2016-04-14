@@ -29,4 +29,7 @@ object TestConfig{
   val request_badextension = testconfig.getString("mist.test.request.badextension")
   val request_bad = testconfig.getString("mist.test.request.badrequest")
   val request_badjson = testconfig.getString("mist.test.request.badjson")
+
+  val request_jar_disposable_context = testconfig.getString("mist.test.request.disposable")
+  val disposable_context_name = testconfig.getString("mist.test.disposable_context_name")
 }
