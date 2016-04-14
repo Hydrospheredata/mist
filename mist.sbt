@@ -6,7 +6,18 @@ name := "mist"
 
 version := "0.0.1"
 
-scalaVersion := "2.11.7"
+val versionRegex = "(\\d+)\\.(\\d+).*".r
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
+
+scalaVersion := {
+  sparkVersion match {
+    case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => "2.10.6"
+    case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
+    case _ => "0.0.0"
+  }
+}
+
+crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -15,8 +26,6 @@ resolvers ++= Seq(
 
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("1.5.2")
-
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-sql" % sparkVersion,
@@ -24,14 +33,15 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-native" % "3.2.11",
   "org.json4s" %% "json4s-jackson" % "3.2.11",
   "com.typesafe" % "config" % "1.3.0",
-  "com.typesafe.akka" %% "akka-actor" % "2.4.1",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.15",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
-  "net.sigusr" %% "scala-mqtt-client" % "0.6.0",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
-  "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test"
+  "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",
+  "org.scodec" %% "scodec-core" % "1.9.0",
+  "org.scalaz" %% "scalaz-core" % "7.1.1"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
