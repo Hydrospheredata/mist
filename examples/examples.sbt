@@ -6,12 +6,21 @@ name := "mist_examples"
 
 version := "0.0.1"
 
-scalaVersion := "2.11.7"
+val versionRegex = "(\\d+)\\.(\\d+).*".r
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("1.5.2")
+
+scalaVersion := {
+  sparkVersion match {
+    case versionRegex(major, minor) if major.toInt == 1 && List(3, 4, 5, 6).contains(minor.toInt) => "2.10.6"
+    case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
+    case _ => "0.0.0"
+  }
+}
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % "1.5.2",
-  "org.apache.spark" %% "spark-sql" % "1.5.2",
-  "org.apache.spark" %% "spark-hive" % "1.5.2"
+  "org.apache.spark" %% "spark-core" % sparkVersion,
+  "org.apache.spark" %% "spark-sql" % sparkVersion,
+  "org.apache.spark" %% "spark-hive" % sparkVersion
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
