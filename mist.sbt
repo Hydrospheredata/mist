@@ -13,7 +13,7 @@ scalaVersion := {
   sparkVersion match {
     case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => "2.10.6"
     case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
-    case _ => "0.0.0"
+    case _ => "2.10.6"
   }
 }
 
