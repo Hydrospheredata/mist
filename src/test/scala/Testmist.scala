@@ -610,6 +610,24 @@ class Testmist extends FunSuite with HTTPService with Eventually {
       assert(http_response_success)
     }
   }
+  test("MQTT Spark Context jar in Disposable context ") {
+    MqttSuccessObj.success = false
+    publisher ! TestConfig.request_jar_disposable_context
+    eventually(timeout(8 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("Test Disposable context after use") {
+    var disposable_context_live = false
+    eventually(timeout(3 seconds), interval(1 second)) {
+      InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.disposable_context_name)) match {
+        case Some(contextWrapper) => println(contextWrapper)
+        case None => disposable_context_live = true
+      }
+      assert(disposable_context_live)
+    }
+  }
 
   test("Remove other Context"){
     var remove_context_success = false
@@ -656,12 +674,15 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     clientHTTP.shutdownAllConnectionPools().onComplete{ _ =>
       testsystem.shutdown()
     }
+
     system.stop(jobRequestActor)
 //    system.stop(subscriber)
 //    system.stop(publisher)
     system.shutdown()
+
     Mist.system.stop(Mist.contextManager)
     Mist.system.shutdown()
+
   }
 
   test("MistJob"){
@@ -735,5 +756,19 @@ class Testmist extends FunSuite with HTTPService with Eventually {
      AnyJsonFormat.read(unknown)
    }
   }
+
+  test("Constants Errors and Actors"){
+      if( Constants.Errors.jobTimeOutError == "Job timeout error"
+       && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
+       && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
+       && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
+       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
+       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
+       && Constants.Actors.contextManagerName == "ContextManager"
+       && Constants.Actors.mqttServiceName == "MQTTService")
+        assert(true)
+      else assert(false)
+  }
+
 }
 
