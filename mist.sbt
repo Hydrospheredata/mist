@@ -21,7 +21,8 @@ crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
-  Resolver.sonatypeRepo("snapshots")
+  Resolver.sonatypeRepo("snapshots"),
+  "MQTT Repository" at "https://repo.eclipse.org/content/repositories/paho-releases/"
 )
 
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
@@ -39,9 +40,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
-  "org.scalatest" % "scalatest_2.11" % "2.2.6" % "test",
-  "org.scodec" %% "scodec-core" % "1.9.0",
-  "org.scalaz" %% "scalaz-core" % "7.1.1"
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "org.eclipse.paho" % "mqtt-client" % "0.4.0"
+//  "org.scodec" %% "scodec-core" % "1.9.0",
+//  "org.scalaz" %% "scalaz-core" % "7.1.1"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>

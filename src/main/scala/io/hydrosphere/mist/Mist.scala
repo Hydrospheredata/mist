@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.actors.{ContextManager, MQTTService, HTTPService}
+import io.hydrosphere.mist.actors.{MQTTService, ContextManager, HTTPService}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -33,7 +33,8 @@ private[mist] object Mist extends App with HTTPService {
 
   // Start MQTT subscriber if it is on in config
   if (MistConfig.MQTT.isOn) {
-    system.actorOf(Props[MQTTService])
+//    system.actorOf(Props[MQTTService])
+    MQTTService.subscribe(system)
   }
 
   // We need to stop contexts on exit
