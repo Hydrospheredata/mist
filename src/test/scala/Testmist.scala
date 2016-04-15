@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.test
 
+import io.hydrosphere.mist.test.MQTTTest
+
 import io.hydrosphere.mist.jobs.{ErrorWrapper, JobByIdSpecification, InMemoryJobRepository}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
@@ -80,7 +82,6 @@ class Testmist extends FunSuite with HTTPService with Eventually {
 
   test("Start Mist"){
     Mist.main(Array(""))
-    assert(true)
   }
 
   test("Spark context launched") {
@@ -423,108 +424,96 @@ class Testmist extends FunSuite with HTTPService with Eventually {
   }
 
 
-//  val subscriber = system.actorOf(Props[MQTTTestSub])
-//  val publisher = system.actorOf(Props[MQTTTestPub])
-//
-//  test("MQTT subsctriber") {
-//    eventually(timeout(5 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.ready_sub)
-//    }
-//  }
-//
-//  test("MQTT publisher") {
-//    eventually(timeout(5 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.ready_pub)
-//    }
-//  }
-//
-//  test("MQTT Spark Context jar") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_jar
-//    eventually(timeout(8 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT Spark SQL") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_sparksql
-//    eventually(timeout(8 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT Pyspark Context") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_pyspark
-//    eventually(timeout(8 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT Python SQL") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_pysparksql
-//    eventually(timeout(8 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT Spark HIVE") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_sparkhive
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT Python Spark HIVE") {
-//    MqttSuccessObj.success = false
-//    publisher ! TestConfig.request_pysparkhive
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT error in Python") {
-//    MqttSuccessObj.success = true
-//    publisher ! TestConfig.request_pyerror
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(!MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT bad path") {
-//    MqttSuccessObj.success = true
-//    publisher ! TestConfig.request_badpatch
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(!MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT noDoStuff in jar") {
-//    MqttSuccessObj.success = true
-//    publisher ! TestConfig.request_nodostuff
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(!MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT bad JSON") {
-//    MqttSuccessObj.success = true
-//    publisher ! TestConfig.request_badjson
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(MqttSuccessObj.success)
-//    }
-//  }
-//
-//  test("MQTT bad extension in path") {
-//    MqttSuccessObj.success = true
-//    publisher ! TestConfig.request_badextension
-//    eventually(timeout(60 seconds), interval(1 second)) {
-//      assert(!MqttSuccessObj.success)
-//    }
-//  }
+    MQTTTest.subscribe(system)
+
+    test("MQTT Spark Context jar") {
+      MqttSuccessObj.success = false
+      MQTTTest.publish(TestConfig.request_jar)
+
+      eventually(timeout(8 seconds), interval(1 second)) {
+        assert(MqttSuccessObj.success)
+      }
+    }
+
+  test("MQTT Spark SQL") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_sparksql)
+    eventually(timeout(8 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT Pyspark Context") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_pyspark)
+    eventually(timeout(8 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT Python SQL") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_pysparksql)
+    eventually(timeout(8 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT Spark HIVE") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_sparkhive)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT Python Spark HIVE") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_pysparkhive)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT error in Python") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_pyerror)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(!MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT bad path") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_badpatch)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(!MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT noDoStuff in jar") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_nodostuff)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(!MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT bad JSON") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_badjson)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
+  test("MQTT bad extension in path") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_badextension)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(!MqttSuccessObj.success)
+    }
+  }
 
   test("HTTP Timeout Exception") {
     var http_response_success = false
@@ -610,11 +599,31 @@ class Testmist extends FunSuite with HTTPService with Eventually {
       assert(http_response_success)
     }
   }
-  test("MQTT Spark Context jar in Disposable context ") {
-    MqttSuccessObj.success = false
-    publisher ! TestConfig.request_jar_disposable_context
-    eventually(timeout(8 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
+
+  test("HTTP Spark Context jar in Disposable context") {
+    var http_response_success = false
+    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_disposable_context)))
+    future_response onComplete {
+      case Success(msg) => msg match {
+        case HttpResponse(OK, _, _, _) => {
+          println(msg)
+          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+          if (json == "true")
+            http_response_success = true
+        }
+        case _ => {
+          println(msg)
+          http_response_success = false
+        }
+      }
+      case Failure(e) => {
+        println(e)
+        http_response_success = false
+      }
+    }
+    Await.result(future_response, 10.seconds)
+    eventually(timeout(10 seconds), interval(1 second)) {
+      assert(http_response_success)
     }
   }
 
@@ -676,8 +685,6 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     }
 
     system.stop(jobRequestActor)
-//    system.stop(subscriber)
-//    system.stop(publisher)
     system.shutdown()
 
     Mist.system.stop(Mist.contextManager)
@@ -701,27 +708,21 @@ class Testmist extends FunSuite with HTTPService with Eventually {
         Map("result" -> numbers)
       }
     }
-    if(TestDoStuff != null)
-      assert(true)
-    else
-      assert(false)
+    assert(TestDoStuff != null)
   }
 
   test("AnyJsonFormat read") {
-    if(
+    assert(
       5 == AnyJsonFormat.read(JsNumber(5)) &&
       "TestString" == AnyJsonFormat.read(JsString("TestString")) &&
       Map.empty[String, JsValue] == AnyJsonFormat.read(JsObject(Map.empty[String, JsValue])) &&
       true == AnyJsonFormat.read(JsTrue) &&
       false == AnyJsonFormat.read(JsFalse)
     )
-      assert(true)
-    else
-      assert(false)
   }
 
   test("AnyJsonFormat write") {
-    if(
+    assert(
         JsNumber(5) == AnyJsonFormat.write(5) &&
         JsString("TestString") == AnyJsonFormat.write("TestString") &&
         JsArray(JsNumber(1), JsNumber(1), JsNumber(2)) == AnyJsonFormat.write(Seq(1, 1, 2)) &&
@@ -729,17 +730,11 @@ class Testmist extends FunSuite with HTTPService with Eventually {
         JsTrue == AnyJsonFormat.write(true) &&
         JsFalse == AnyJsonFormat.write(false)
     )
-      assert(true)
-    else
-      assert(false)
   }
 
   test("ErrorWrapper"){
     ErrorWrapper.set("TestUUID", "TestError")
-    if("TestError" == ErrorWrapper.get("TestUUID"))
-      assert(true)
-    else
-      assert(false)
+    assert("TestError" == ErrorWrapper.get("TestUUID"))
     ErrorWrapper.remove("TestUUID")
   }
 
@@ -758,7 +753,7 @@ class Testmist extends FunSuite with HTTPService with Eventually {
   }
 
   test("Constants Errors and Actors"){
-      if( Constants.Errors.jobTimeOutError == "Job timeout error"
+    assert( Constants.Errors.jobTimeOutError == "Job timeout error"
        && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
        && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
        && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
@@ -766,8 +761,6 @@ class Testmist extends FunSuite with HTTPService with Eventually {
        && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
        && Constants.Actors.contextManagerName == "ContextManager"
        && Constants.Actors.mqttServiceName == "MQTTService")
-        assert(true)
-      else assert(false)
   }
 
 }
