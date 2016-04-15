@@ -1,7 +1,6 @@
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg)](https://travis-ci.org/Hydrospheredata)
 [![Coverage Status](https://coveralls.io/repos/github/Hydrospheredata/mist/badge.svg?branch=master)](https://coveralls.io/github/Hydrospheredata/mist?branch=master)
 [![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.11/)
-[![Code Climate](https://codeclimate.com/github/Hydrospheredata/mist/badges/gpa.svg)](https://codeclimate.com/github/Hydrospheredata/mist)
 [![Dependency Status](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000)
 # Mist
 
