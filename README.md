@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg)](https://travis-ci.org/Hydrospheredata)
 [![Coverage Status](https://coveralls.io/repos/github/Hydrospheredata/mist/badge.svg?branch=master)](https://coveralls.io/github/Hydrospheredata/mist?branch=master)
-[![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.11/)
+[![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/)
 [![Dependency Status](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000)
 # Mist
 
@@ -14,6 +14,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 - [Features](#features)
 - [Version Information](#version-information)
 - [Getting Started with Mist](#getting-started-with-mist)
+- [Configuration](#configuration)
 - [Development mode](#development-mode)
 - [Cluster mode](#cluster-mode)
 - [Spark Job at Mist](#spark-job-at-mist)
@@ -35,15 +36,15 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 | Mist Version   | Scala Version  | Python Version | Spark Version    |
 |----------------|----------------|----------------|------------------|
-| 0.1.0          | 2.10.6(2.11.8) | 2.7.6          | >=1.5.2(>=2)     |
-| master         | 2.10.6(2.11.8) | 2.7.6          | >=1.5.2(>=2)     |
+| 0.1.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
 
 ## Getting Started with Mist
 
 ######Dependencies
-- jdk >= 7
-- scala >= 2.11
+- jdk = 8
+- scala = 2.10.6
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server *(optionally)*
 
@@ -57,7 +58,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 * Create [configuration file](#configuration)
 * Run
 
-        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.11/mist-assembly-0.0.1.jar
+        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.10/mist-assembly-0.1.0.jar
 
 ##Configuration
 
@@ -142,7 +143,7 @@ object SimpleContext extends MistJob {
 Add mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.0.1"
+libraryDependencies += "io.hydrosphere" % "mist" % "0.1.0"
 ```
 
 Maven dependency:
@@ -151,7 +152,7 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
 </dependency>
 ```
     
@@ -251,13 +252,13 @@ for python jobs:
 e.g. from MQTT [(MQTT server and client)](http://mosquitto.org/) are necessary
 
 ```sh
-mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
+mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
 ```
 
 e.g. from HTTP
 
 ```sh
-curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
 ```
 
 
@@ -281,7 +282,7 @@ e.g.
     },
     "errors": [],
     "request": {
-        "jarPath": "/vagrant/examples/target/scala-2.11/mist_examples_2.11-0.0.1.jar",
+        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.0.jar",
         "className": "SimpleContext$",
         "name": "foo",
         "parameters": {
