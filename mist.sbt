@@ -33,9 +33,9 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-sql" % sparkVersion,
   "org.apache.spark" %% "spark-hive" % sparkVersion,
-  "org.json4s" %% "json4s-native" % "3.2.11",
-  "org.json4s" %% "json4s-jackson" % "3.2.11",
-  "com.typesafe" % "config" % "1.3.0",
+  "org.json4s" %% "json4s-native" % "3.2.10",
+  "org.json4s" %% "json4s-jackson" % "3.2.10",
+  "com.typesafe" % "config" % "1.2.0",
   "com.typesafe.akka" %% "akka-actor" % "2.3.15",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
@@ -44,9 +44,9 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "org.eclipse.paho" % "mqtt-client" % "0.4.0"
-//  "org.scodec" %% "scodec-core" % "1.9.0",
-//  "org.scalaz" %% "scalaz-core" % "7.1.1"
 )
+
+dependencyOverrides += "com.typesafe" % "config" % "1.3.0" 
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   {
@@ -57,6 +57,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
     case PathList("org", "jboss", xs @ _*) => MergeStrategy.first
     case "about.html"  => MergeStrategy.rename
     case "reference.conf" => MergeStrategy.concat
+    case PathList("org", "datanucleus", xs @ _*) => MergeStrategy.discard
     case _ => MergeStrategy.first
   }
 }
