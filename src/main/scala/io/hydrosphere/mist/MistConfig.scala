@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import com.typesafe.config.{ConfigValue, ConfigException, ConfigFactory, Config}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, Duration}
 
 /** Configuration wrapper */
 private[mist] object MistConfig {
@@ -94,7 +94,7 @@ private[mist] object MistConfig {
 
     /** Waiting for job completion timeout */
     def timeout(contextName: String): FiniteDuration = {
-      FiniteDuration(getContextOrDefault(contextName).getDuration("timeout").toNanos, TimeUnit.NANOSECONDS)
+      FiniteDuration(Duration(getContextOrDefault(contextName).getString("timeout")).toNanos, TimeUnit.NANOSECONDS)
     }
 
     /** If true we'll stop context */

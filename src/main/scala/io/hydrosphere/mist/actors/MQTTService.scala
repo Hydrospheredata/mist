@@ -5,10 +5,9 @@ import akka.pattern.ask
 import io.hydrosphere.mist.{Constants, MistConfig}
 import io.hydrosphere.mist.actors.tools.{JSONSchemas, JSONValidator}
 
-import org.json4s.NoTypeHints
-import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization._
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
+import spray.json._
 
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,7 +18,31 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 
 //TODO: must be an akka actor
-private[mist] object MQTTService {
+private[mist] object MQTTService extends DefaultJsonProtocol {
+
+  // TODO: remove copy/paste from HTTP actor
+  implicit object AnyJsonFormat extends JsonFormat[Any] {
+    def write(x: Any) = x match {
+      case number: Int => JsNumber(number)
+      case string: String => JsString(string)
+      case sequence: Seq[_] => seqFormat[Any].write(sequence)
+      case map: Map[String, _] => mapFormat[String, Any] write map
+      case boolean: Boolean if boolean => JsTrue
+      case boolean: Boolean if !boolean => JsFalse
+      case unknown => serializationError("Do not understand object of type " + unknown.getClass.getName)
+    }
+    def read(value: JsValue) = value match {
+      case JsNumber(number) => number.toBigInt()
+      case JsString(string) => string
+      case array: JsArray => listFormat[Any].read(value)
+      case jsObject: JsObject => mapFormat[String, Any].read(value)
+      case JsTrue => true
+      case JsFalse => false
+      case unknown => deserializationError("Do not understand how to deserialize " + unknown)
+    }
+  }
+
+  implicit val jobCreatingRequestFormat = jsonFormat6(JobConfiguration)
 
   def publish(message: String) = {
     var client: MqttClient = null
@@ -65,15 +88,15 @@ private[mist] object MQTTService {
 
         val stringMessage = message.toString
 
-        // we need to check if message is a request
-        val isMessageValidJar = JSONValidator.validate(stringMessage, JSONSchemas.jobRequest)
-        val isMessageValidPy = JSONValidator.validate(stringMessage, JSONSchemas.jobRequestPy)
-        // if it a request
-        if (isMessageValidJar || isMessageValidPy) {
-          implicit val formats = Serialization.formats(NoTypeHints)
-          val json = parse(stringMessage)
+          val json = stringMessage.parseJson
           // map request into JobConfiguration
-          val jobCreatingRequest = json.extract[JobConfiguration]
+          val jobCreatingRequest = {
+            try {
+              json.convertTo[JobConfiguration]
+            } catch {
+              case _: DeserializationException => return // pass invalid json
+            }
+          }
 
           // Run job asynchronously
           val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
@@ -91,10 +114,9 @@ private[mist] object MQTTService {
                     JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
                 }
 
-                val jsonString = write(jobResult)
+                val jsonString = Json(DefaultFormats).write(jobResult)
                 MQTTService.publish(jsonString)
             }
-        }
       }
 
       override def connectionLost(cause: Throwable): Unit = {
