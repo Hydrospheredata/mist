@@ -240,7 +240,7 @@ for python jobs:
 
 ```javascript
 {
-    "pyPath": "/path/to/mist/job.jar",
+    "pyPath": "/path/to/mist/job.py",
     "parameters": { 
         /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ 
     },
