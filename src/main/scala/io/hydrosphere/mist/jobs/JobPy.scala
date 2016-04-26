@@ -61,7 +61,7 @@ object SparkContextWrapper{
   */
 private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
 
-  private val configuration = jobConfiguration
+  override val configuration = jobConfiguration
 
   def sparkContextWrapper = SparkContextWrapper
 

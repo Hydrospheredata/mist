@@ -16,7 +16,7 @@ import org.apache.spark.sql.hive.HiveContext
   */
 private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
 
-  private val configuration = jobConfiguration
+  override val configuration = jobConfiguration
 
   // Class with job in user jar
   private val cls = {
