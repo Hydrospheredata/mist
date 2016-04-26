@@ -200,7 +200,7 @@ You can use Vagrant and work in preconfigured virtual machine
 ```sh
 git clone https://github.com/Hydrospheredata/mist
 vagrant up
-ssh vagrant
+vagrant ssh
 cd /vagrant
 ./sbt/sbt run
 ```
