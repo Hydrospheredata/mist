@@ -6,7 +6,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.0.5"
+version := "0.1.1"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -43,9 +43,8 @@ libraryDependencies ++= Seq(
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
-  "org.eclipse.paho" % "mqtt-client" % "0.4.0"
-//  "org.scodec" %% "scodec-core" % "1.9.0",
-//  "org.scalaz" %% "scalaz-core" % "7.1.1"
+  "org.eclipse.paho" % "mqtt-client" % "0.4.0",
+  "org.mapdb" % "mapdb" % "3.0.0-M6"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
@@ -63,10 +62,56 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 
 lazy val sub = LocalProject("examples")
 
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 89
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
 parallelExecution in Test := false
 
 test in assembly := {}
+
+//Maven
+publishMavenStyle := true
+
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots/")
+  else
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2/")
+}
+
+publishArtifact in Test := false
+
+pomIncludeRepository := { _ => false }
+
+pomExtra := (
+  <url>https://github.com/Hydrospheredata/mist</url>
+    <licenses>
+      <license>
+        <name>Apache 2.0 License</name>
+        <url>https://github.com/Hydrospheredata/mist/LICENSE</url>
+        <distribution>repo</distribution>
+      </license>
+    </licenses>
+    <scm>
+      <url>https://github.com/Hydrospheredata/mist.git</url>
+      <connection>https://github.com/Hydrospheredata/mist.git</connection>
+    </scm>
+    <developers>
+      <developer>
+        <id>mkf-simpson</id>
+        <name>Konstantin Makarychev</name>
+        <url>https://github.com/mkf-simpson</url>
+        <organization>Hydrosphere</organization>
+        <organizationUrl>http://hydrosphere.io/</organizationUrl>
+      </developer>
+      <developer>
+        <id>leonid133</id>
+        <name>Leonid Blokhin</name>
+        <url>https://github.com/leonid133</url>
+        <organization>Hydrosphere</organization>
+        <organizationUrl>http://hydrosphere.io/</organizationUrl>
+      </developer>
+    </developers>
+  )

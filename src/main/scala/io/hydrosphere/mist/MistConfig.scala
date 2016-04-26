@@ -63,6 +63,16 @@ private[mist] object MistConfig {
     lazy val subscribeTopic: String = mqtt.getString("subscribeTopic")
     /** MQTT topic used for ''writing'' */
     lazy val publishTopic: String = mqtt.getString("publishTopic")
+
+
+    private val recovery = config.getConfig("mist.mqtt.recovery")
+
+    /** MQTT job recovery after mist Failure*/
+    lazy val recoveryOn: Boolean = recovery.getBoolean("on")
+    //** MQTT job recovery multi start limit */
+    lazy val recoveryMultilimit: Int = recovery.getInt("multilimit")
+    /** MQTT job recovery MapDb file name*/
+    lazy val recoveryDbFileName: String = recovery.getString("dbfilename")
   }
 
 
