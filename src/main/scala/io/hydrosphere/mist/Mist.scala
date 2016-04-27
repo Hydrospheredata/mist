@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.actors.{MQTTService, ContextManager, HTTPService}
+import io.hydrosphere.mist.actors._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -16,7 +16,6 @@ private[mist] object Mist extends App with HTTPService {
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   // TODO: Logging
-
   // Context creator actor
   val contextManager = system.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
 
@@ -35,6 +34,12 @@ private[mist] object Mist extends App with HTTPService {
   if (MistConfig.MQTT.isOn) {
 //    system.actorOf(Props[MQTTService])
     MQTTService.subscribe(system)
+  }
+
+  // Start MQTT Job Recovery
+  if(MistConfig.MQTT.isOn && MistConfig.MQTT.recoveryOn) {
+    InMapDbJobConfigurationRepository.printStatus
+    InMapDbJobConfigurationRepository.runRecovery
   }
 
   // We need to stop contexts on exit
