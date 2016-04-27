@@ -189,7 +189,7 @@ class MyJob:
             list = list.tail()
         rdd = job.sc.parallelize(pylist)
         result = rdd.map(lambda s: 2 * s).collect()
-    return result
+        return result
 job = MyJob(mist.Job())
 ```
 
