@@ -25,6 +25,8 @@ trait Job{
     */
   def status = _status
 
+  val configuration : JobConfiguration
+
   def run(): Either[Map[String, Any], String]
 }
 

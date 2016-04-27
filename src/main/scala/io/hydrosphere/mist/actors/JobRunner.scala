@@ -5,7 +5,7 @@ import java.util.concurrent.Executors._
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.{Mist, Constants, MistConfig}
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext}
 import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
 import io.hydrosphere.mist.contexts._
@@ -37,16 +37,23 @@ private[mist] class JobRunner extends Actor {
           lazy val job = Job(configuration, contextWrapper)
 
           val future: Future[Either[Map[String, Any], String]] = Future {
-            println(s"${configuration.name}#${job.id} is running")
             InMemoryJobRepository.add(job)
+            println(s"${configuration.name}#${job.id} is running")
+            if(MistConfig.MQTT.recoveryOn && self.path.name == Constants.Actors.asyncJobRunnerName) {
+              InMapDbJobConfigurationRepository.addJobConfigurationByJob(job)
+            }
             job.run()
           }(executionContext)
           future
             .andThen {
-              case _ =>
+              case _ => {
                 if (MistConfig.Contexts.isDisposable(configuration.name)) {
                   contextManager ! RemoveContext(contextWrapper)
                 }
+                if (MistConfig.MQTT.recoveryOn && self.path.name == Constants.Actors.asyncJobRunnerName){
+                  InMapDbJobConfigurationRepository.jobComplit(job)
+                }
+            }
             }(ExecutionContext.global)
             .andThen {
               case Success(result: Either[Map[String, Any], String]) => originalSender ! result
