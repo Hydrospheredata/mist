@@ -60,7 +60,7 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     assert(no_context_success)
   }
 
-  test("Recovery 16 jobs"){
+  test("Recovery 3 jobs"){
     // Db
     val db = DBMaker
       .fileDB(MistConfig.MQTT.recoveryDbFileName + "b")
@@ -83,7 +83,7 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     val w_job = SerializationUtils.serialize(jobCreatingRequest)
     var i = 0
     map.clear()
-    for (i <- 1 to 16) {
+    for (i <- 1 to 3) {
       map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
     }
 
@@ -104,7 +104,7 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
       InMemoryJobRepository.filter(new Specification[Job] {
         override def specified(element: Job): Boolean = true
       }).map( x => {jobidSet = jobidSet + x.id})
-      assert(jobidSet.size == 16)
+      assert(jobidSet.size == 3)
     }
   }
 
@@ -123,7 +123,6 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
       assert(context_success)
     }
   }
-
   test("HTTP bad request") {
     var http_response_success = false
     val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad)))
@@ -594,99 +593,6 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
       assert(http_response_success)
-    }
-  }
-
-  test("HTTP Multi Spark Context") {
-    var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_other_context)))
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
-          println(msg)
-          http_response_success = false
-        }
-      }
-      case Failure(e) => {
-        println(e)
-        http_response_success = false
-      }
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP Spark Context jar in Disposable context") {
-    var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_disposable_context)))
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
-          println(msg)
-          http_response_success = false
-        }
-      }
-      case Failure(e) => {
-        println(e)
-        http_response_success = false
-      }
-    }
-    Await.result(future_response, 20.seconds)
-    eventually(timeout(20 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("Test Disposable context after use") {
-    var disposable_context_live = false
-    eventually(timeout(3 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.disposable_context_name)) match {
-        case Some(contextWrapper) => println(contextWrapper)
-        case None => disposable_context_live = true
-      }
-      assert(disposable_context_live)
-    }
-  }
-
-  test("Remove other Context"){
-    var remove_context_success = false
-    var other_context_live = false
-    InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-      case Some(contextWrapper) => {
-        println(contextWrapper)
-        other_context_live = true
-      }
-      case None =>
-    }
-
-    InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-      case Some(contextWrapper) => {
-        Mist.contextManager ! RemoveContext(contextWrapper)
-        InMemoryContextRepository.remove(contextWrapper)
-      }
-      case None =>
-    }
-
-    eventually(timeout(3 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-        case Some(contextWrapper) => println(contextWrapper)
-        case None => remove_context_success = true
-      }
-      assert(remove_context_success && other_context_live)
     }
   }
 
