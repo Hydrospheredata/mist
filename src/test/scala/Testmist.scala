@@ -19,8 +19,6 @@ import io.hydrosphere.mist.actors.{HTTPService}
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
 import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job}
 
-import spray.json._
-
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 import scala.concurrent.{Await}
