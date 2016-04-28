@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.actors._
+import io.hydrosphere.mist.jobs.InMapDbJobConfigurationRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
