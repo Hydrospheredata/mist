@@ -3,7 +3,6 @@ package io.hydrosphere.mist.actors
 import akka.actor.{ActorSystem, Props, ActorRef, Actor}
 import akka.pattern.ask
 import io.hydrosphere.mist.{Constants, MistConfig}
-import io.hydrosphere.mist.actors.tools.{JSONSchemas, JSONValidator}
 
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
