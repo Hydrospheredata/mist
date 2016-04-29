@@ -1,9 +1,6 @@
 package io.hydrosphere.mist.test
 
 import io.hydrosphere.mist.jobs.{ErrorWrapper}
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.hive.HiveContext
 
 import org.scalatest._
 import org.scalatest.concurrent._
@@ -620,25 +617,6 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     Mist.system.stop(Mist.contextManager)
     Mist.system.shutdown()
 
-  }
-
-  test("MistJob"){
-    object TestDoStuff extends MistJob {
-      override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-      override def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-
-      override def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-    }
-    assert(TestDoStuff != null)
   }
 
   test("AnyJsonFormat read") {
