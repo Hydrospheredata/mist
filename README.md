@@ -189,7 +189,7 @@ class MyJob:
             list = list.tail()
         rdd = job.sc.parallelize(pylist)
         result = rdd.map(lambda s: 2 * s).collect()
-    return result
+        return result
 job = MyJob(mist.Job())
 ```
 
@@ -200,7 +200,7 @@ You can use Vagrant and work in preconfigured virtual machine
 ```sh
 git clone https://github.com/Hydrospheredata/mist
 vagrant up
-ssh vagrant
+vagrant ssh
 cd /vagrant
 ./sbt/sbt run
 ```
@@ -240,7 +240,7 @@ for python jobs:
 
 ```javascript
 {
-    "pyPath": "/path/to/mist/job.jar",
+    "pyPath": "/path/to/mist/job.py",
     "parameters": { 
         /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ 
     },
