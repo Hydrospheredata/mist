@@ -5,9 +5,9 @@ import java.util.concurrent.Executors._
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.{Mist, Constants, MistConfig}
+import io.hydrosphere.mist.{Constants, MistConfig}
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext}
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import io.hydrosphere.mist.jobs.{InMapDbJobConfigurationRepository, InMemoryJobRepository, Job, JobConfiguration}
 import io.hydrosphere.mist.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
