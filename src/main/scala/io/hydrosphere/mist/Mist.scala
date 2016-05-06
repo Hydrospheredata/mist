@@ -37,11 +37,17 @@ private[mist] object Mist extends App with HTTPService {
     MQTTService.subscribe(system)
   }
 
-  // Start MQTT Job Recovery
-  lazy val recoveryActor: ActorRef = system.actorOf(Props(new JobRecovery(InMapDbJobConfigurationRepository, RecoveryJobRepository)), name = "recoveryActor")
+  // Start Job Recovery
+  val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+    case "MapDb" => InMapDbJobConfigurationRepository
+  }
+
+  lazy val recoveryActor: ActorRef = system.actorOf(Props(new JobRecovery(configurationRepository, RecoveryJobRepository)), name = "recoveryActor")
 
   if(MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
+
     recoveryActor ! StartRecovery
+
   }
 
   // We need to stop contexts on exit

@@ -1,14 +1,10 @@
 package io.hydrosphere.mist.jobs
 
-import akka.actor.{ActorRef, Props, ActorSystem}
-import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.actors.{TryRecoveyNext, JobComplited, JobRecovery, JobStarted}
+import io.hydrosphere.mist.actors.{JobCompleted, JobStarted}
 import io.hydrosphere.mist._
 import io.hydrosphere.mist.Constants.Actors.{asyncJobRunnerName}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{Serializer, DBMaker}
-
-import io.hydrosphere.mist.jobs.JobStatus
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -97,6 +93,7 @@ private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRep
         _collection += SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[JobConfiguration]
       }
       println(s"${_collection.size} loaded from MapDb")
+      map.clear
       _collection
     }
     catch {
@@ -112,7 +109,9 @@ private[mist] object RecoveryJobRepository extends JobRepository {
 
   private val _collection = ArrayBuffer.empty[Job]
 
-  private val configurationRepository = InMapDbJobConfigurationRepository
+  val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+    case "MapDb" => InMapDbJobConfigurationRepository
+  }
 
   override def add(job: Job): Unit = {
     _collection += job
@@ -133,7 +132,7 @@ private[mist] object RecoveryJobRepository extends JobRepository {
     _collection -= job
     if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName)
       configurationRepository.remove(job)
-    Mist.recoveryActor ! JobComplited
+    Mist.recoveryActor ! JobCompleted
   }
 
 }
