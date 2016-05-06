@@ -16,8 +16,7 @@ case object TryRecoveyNext{
 case object JobStarted{
   var jobStartedCount = 0
 }
-case object JobComplited
-
+case object JobCompleted
 
 private [mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor {
 
@@ -49,7 +48,7 @@ private [mist] class JobRecovery(configurationRepository :ConfigurationRepositor
       }
     }
 
-    case JobComplited => {
+    case JobCompleted => {
       JobStarted.jobStartedCount -= 1
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
         this.self ! TryRecoveyNext
