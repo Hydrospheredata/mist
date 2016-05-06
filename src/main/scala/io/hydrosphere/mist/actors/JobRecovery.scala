@@ -6,44 +6,54 @@ import io.hydrosphere.mist.{MistConfig}
 import io.hydrosphere.mist.jobs._
 import org.json4s.jackson.Serialization
 
-case object TryRecoveyNext
+import scala.collection.mutable.ArrayBuffer
+
+case object StartRecovery
+
+case object TryRecoveyNext{
+ var _collection = ArrayBuffer.empty[JobConfiguration]
+}
 case object JobStarted{
   var jobStartedCount = 0
 }
 case object JobComplited
 
-private [mist] class JobRecovery extends Actor {
 
- private implicit val formats = org.json4s.DefaultFormats
+private [mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor {
+
+  private implicit val formats = org.json4s.DefaultFormats
 
   override def receive: Receive = {
 
-     case TryRecoveyNext =>{
-       if(!InMapDbJobConfigurationRepository.getKeys.isEmpty)
-         if (JobStarted.jobStartedCount < MistConfig.MQTT.recoveryMultilimit) {
-           val job_id = InMapDbJobConfigurationRepository.getLastId
-           if(job_id != "None")
-           if (InMemoryJobRepository.get(new JobByIdSpecification(job_id)).isEmpty) {
-             println(s"Recover job ${job_id}")
-             val json = Serialization.write(InMapDbJobConfigurationRepository.getJobConfiguration(job_id))
-             MQTTService.publish(json)
-             InMapDbJobConfigurationRepository.removeJobById(job_id)
-             JobStarted.jobStartedCount +=1
-           }
-         }
-     }
+    case StartRecovery =>{
+      TryRecoveyNext._collection = configurationRepository.getAll
+      this.self ! TryRecoveyNext
+    }
 
-     case JobStarted =>{
-       if (JobStarted.jobStartedCount < MistConfig.MQTT.recoveryMultilimit) {
-         this.self ! TryRecoveyNext
-       }
-     }
+    case TryRecoveyNext =>{
 
-     case JobComplited => {
-       JobStarted.jobStartedCount -= 1
-       if (JobStarted.jobStartedCount < MistConfig.MQTT.recoveryMultilimit) {
-         this.self ! TryRecoveyNext
-       }
-     }
-   }
+        if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+          if(TryRecoveyNext._collection.size > 0 ) {
+            val job_configuration = TryRecoveyNext._collection.last
+            val json = Serialization.write(job_configuration)
+            MQTTService.publish(json)
+            TryRecoveyNext._collection -= TryRecoveyNext._collection.last
+          }
+        }
+    }
+
+    case JobStarted =>{
+      JobStarted.jobStartedCount += 1
+      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+        this.self ! TryRecoveyNext
+      }
+    }
+
+    case JobComplited => {
+      JobStarted.jobStartedCount -= 1
+      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+        this.self ! TryRecoveyNext
+      }
+    }
+  }
 }

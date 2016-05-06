@@ -1,10 +1,14 @@
 package io.hydrosphere.mist.jobs
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorRef, Props, ActorSystem}
+import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.actors.{TryRecoveyNext, JobComplited, JobRecovery, JobStarted}
-import io.hydrosphere.mist.{MistConfig, Specification, Repository}
+import io.hydrosphere.mist._
+import io.hydrosphere.mist.Constants.Actors.{asyncJobRunnerName}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{Serializer, DBMaker}
+
+import io.hydrosphere.mist.jobs.JobStatus
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -33,14 +37,27 @@ private[mist] object InMemoryJobRepository extends JobRepository {
   }
 }
 
-private [mist] object InMapDbJobConfigurationRepository {
+private[mist] object SQLiteJobRepository extends JobRepository {
 
-  // Job Recovery Actor
-  private lazy val recoveryActor =  ActorSystem("mist").actorOf(Props[JobRecovery], name = "recoveryActor")
+  override def add(job: Job): Unit = ???
 
+  override def get(specification: Specification[Job]): Option[Job] = ???
+
+  override def filter(specification: Specification[Job]): List[Job] = ???
+
+  override def remove(job: Job): Unit = ???
+}
+
+private[mist] trait ConfigurationRepository {
+  def add(job: Job): Unit = ???
+  def remove(job: Job): Unit = ???
+  def getAll: ArrayBuffer[JobConfiguration] = ???
+}
+
+private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository {
   // Db
   private lazy val db  =  DBMaker
-    .fileDB(MistConfig.MQTT.recoveryDbFileName)
+    .fileDB(MistConfig.Recovery.recoveryDbFileName)
     .fileLockDisable
     .closeOnJvmShutdown
     .make
@@ -53,85 +70,70 @@ private [mist] object InMapDbJobConfigurationRepository {
   // Json formats
   private implicit val formats = org.json4s.DefaultFormats
 
-  def getKeys: Array[AnyRef] ={
-    try {
-      map.getKeys.toArray()
-    } catch {
-      case e: Exception => {
-        println(e)
-        Array.empty
-      }
-    }
-  }
-
-  def addJobConfigurationByJob(job: Job) {
+  override def add(job: Job): Unit = {
     try {
       val w_job = SerializationUtils.serialize(job.configuration)
       map.put(job.id, w_job)
-      println(s"${job.id} saved in db")
-      recoveryActor ! JobStarted
+      println(s"${job.id} saved in MapDb")
     } catch {
       case e: Exception => println(e)
     }
   }
 
-  def getJobConfiguration(job_id: String):JobConfiguration = {
-    SerializationUtils.deserialize(map.get(job_id)).asInstanceOf[JobConfiguration]
-  }
-
-  def getLastId: String = {
-    try{
-      if(map.size() > 0)
-      {
-        getKeys.last.toString
-      }
-      else{
-        return "None"
-      }
-    } catch {
-      case e: Exception => {
-        println(e)
-        "None"
-      }
-    }
-  }
-
-  def printStatus =
-  {
-    try {
-      println(s"Opened recove DB: ${db} ")
-      println(s"Jobs for recovery: ${map.size()}")
-    } catch{
-      case e: Exception => println(e)
-    }
-  }
-
-  def jobComplit(job: Job) = {
+  override def remove(job: Job) = {
     try {
       map.remove(job.id)
-      println(s"${job.id} removed from db")
-      recoveryActor ! JobComplited
+      println(s"${job.id} removed from MapDb")
     } catch{
       case e: Exception => println(e)
     }
   }
 
-  def removeJobById(job_id: String) = {
-    try {
-      map.remove(job_id)
-      println(s"${job_id} removed from db")
-    } catch {
-      case e: Exception => println(e)
+  override def getAll: ArrayBuffer[JobConfiguration] = {
+    try{
+      val keys = map.getKeys.toArray()
+      var _collection = ArrayBuffer.empty[JobConfiguration]
+      for(key <- keys){
+        _collection += SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[JobConfiguration]
+      }
+      println(s"${_collection.size} loaded from MapDb")
+      _collection
+    }
+    catch {
+      case e: Exception => {
+        println(e)
+        ArrayBuffer.empty[JobConfiguration]
+      }
     }
   }
+}
 
-  def runRecovery = {
-    if(MistConfig.MQTT.recoveryOn)
-      try {
-        if(map.size() > 0)
-          recoveryActor ! TryRecoveyNext
-      } catch {
-        case e: Exception => None
-      }
+private[mist] object RecoveryJobRepository extends JobRepository {
+
+  private val _collection = ArrayBuffer.empty[Job]
+
+  private val configurationRepository = InMapDbJobConfigurationRepository
+
+  override def add(job: Job): Unit = {
+    _collection += job
+    if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName)
+      configurationRepository.add(job)
+    Mist.recoveryActor ! JobStarted
   }
+
+  override def get(specification: Specification[Job]): Option[Job] = {
+    val predicate: Job => Boolean = x => specification.specified(x)
+    _collection.find(predicate)
+  }
+  override def filter(specification: Specification[Job]): List[Job] = {
+    val predicate: Job => Boolean = x => specification.specified(x)
+    _collection.filter(predicate).toList
+  }
+  override def remove(job: Job): Unit = {
+    _collection -= job
+    if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName)
+      configurationRepository.remove(job)
+    Mist.recoveryActor ! JobComplited
+  }
+
 }

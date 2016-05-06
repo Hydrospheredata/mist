@@ -14,7 +14,7 @@ import io.hydrosphere.mist._
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
 import io.hydrosphere.mist.actors.{HTTPService}
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job}
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, Job}
 
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
@@ -60,7 +60,7 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
   test("Recovery 3 jobs"){
     // Db
     val db = DBMaker
-      .fileDB(MistConfig.MQTT.recoveryDbFileName + "b")
+      .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
       .make
 
     // Map
@@ -87,8 +87,8 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     map.close()
     db.close()
 
-    val src = new File(MistConfig.MQTT.recoveryDbFileName + "b")
-    val dest = new File(MistConfig.MQTT.recoveryDbFileName)
+    val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+    val dest = new File(MistConfig.Recovery.recoveryDbFileName)
     new FileOutputStream(dest) getChannel() transferFrom(
       new FileInputStream(src) getChannel, 0, Long.MaxValue)
 
@@ -97,8 +97,15 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
 
     var jobidSet = Set.empty[String]
 
+    lazy val jobRepository = {
+      MistConfig.Recovery.recoveryOn match {
+        case false => InMemoryJobRepository
+        case true => RecoveryJobRepository
+      }
+    }
+
     eventually(timeout(90 seconds), interval(500 milliseconds)) {
-      InMemoryJobRepository.filter(new Specification[Job] {
+      jobRepository.filter(new Specification[Job] {
         override def specified(element: Job): Boolean = true
       }).map( x => {jobidSet = jobidSet + x.id})
       assert(jobidSet.size == 3)
