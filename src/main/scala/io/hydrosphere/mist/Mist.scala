@@ -1,11 +1,11 @@
 package io.hydrosphere.mist
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.actors._
-import io.hydrosphere.mist.jobs.InMapDbJobConfigurationRepository
+import io.hydrosphere.mist.jobs._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -38,9 +38,10 @@ private[mist] object Mist extends App with HTTPService {
   }
 
   // Start MQTT Job Recovery
-  if(MistConfig.MQTT.isOn && MistConfig.MQTT.recoveryOn) {
-    InMapDbJobConfigurationRepository.printStatus
-    InMapDbJobConfigurationRepository.runRecovery
+  lazy val recoveryActor: ActorRef = system.actorOf(Props(new JobRecovery(InMapDbJobConfigurationRepository, RecoveryJobRepository)), name = "recoveryActor")
+
+  if(MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
+    recoveryActor ! StartRecovery
   }
 
   // We need to stop contexts on exit

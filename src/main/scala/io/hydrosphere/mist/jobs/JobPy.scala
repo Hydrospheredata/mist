@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.MistConfig
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
@@ -37,9 +38,16 @@ object SparkContextWrapper{
   def setSparkContext(k: String, sc: SparkContext) = {m_context put (k, new JavaSparkContext(sc))}
   def removeSparkContext(k: String) = {m_context - k}
 
+  lazy val jobRepository = {
+    MistConfig.Recovery.recoveryOn match {
+      case false => InMemoryJobRepository
+      case true => RecoveryJobRepository
+    }
+  }
+
   var m_sqlcontext = scala.collection.mutable.Map[String, SQLContext]()
   def getSqlContext(k: String): SQLContext = {
-    InMemoryJobRepository.get(new JobByIdSpecification(k)).get.initSqlContext
+    jobRepository.get(new JobByIdSpecification(k)).get.initSqlContext
     m_sqlcontext(k)
   }
   def setSqlContext(k: String, sqlc: SQLContext) = {m_sqlcontext put(k, sqlc)}
@@ -47,7 +55,7 @@ object SparkContextWrapper{
 
   var m_hivecontext = scala.collection.mutable.Map[String, HiveContext]()
   def getHiveContext(k: String): HiveContext = {
-    InMemoryJobRepository.get(new JobByIdSpecification(k)).get.initHiveContext
+    jobRepository.get(new JobByIdSpecification(k)).get.initHiveContext
     m_hivecontext(k)
   }
   def setHiveContext(k: String, hc: HiveContext) = {m_hivecontext put(k, hc)}
@@ -59,7 +67,9 @@ object SparkContextWrapper{
   * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
-private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
+private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job {
+
+  override val jobRunnerName = JobRunnerName
 
   override val configuration = jobConfiguration
 

@@ -64,8 +64,10 @@ private[mist] object MistConfig {
     /** MQTT topic used for ''writing'' */
     lazy val publishTopic: String = mqtt.getString("publishTopic")
 
+  }
 
-    private val recovery = config.getConfig("mist.mqtt.recovery")
+  object Recovery {
+    private val recovery = config.getConfig("mist.recovery")
 
     /** MQTT job recovery after mist Failure*/
     lazy val recoveryOn: Boolean = recovery.getBoolean("on")
