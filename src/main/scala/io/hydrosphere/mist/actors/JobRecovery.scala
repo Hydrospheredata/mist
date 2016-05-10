@@ -26,6 +26,7 @@ private [mist] class JobRecovery(configurationRepository :ConfigurationRepositor
 
     case StartRecovery =>{
       TryRecoveyNext._collection = configurationRepository.getAll
+      configurationRepository.clear
       this.self ! TryRecoveyNext
     }
 
