@@ -39,11 +39,11 @@ private[mist] object Mist extends App with HTTPService {
 
   // Job Recovery
   var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
-  lazy val jobRepository = {
+  val jobRepository = {
     MistConfig.Recovery.recoveryOn match {
       case true => {
-          configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-            case "MapDb" => InMapDbJobConfigurationRepository
+        configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+          case "MapDb" => InMapDbJobConfigurationRepository
         }
         RecoveryJobRepository
       }

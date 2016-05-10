@@ -59,9 +59,8 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
 
   test("Recovery 3 jobs from MapDb"){
 
-     Mist.main(Array(""))
-
       if( !MistConfig.Recovery.recoveryOn ) {
+        Mist.main(Array(""))
         cancel("Can't run the Recovery test because recovery off in config file")
       }
       else {
@@ -99,9 +98,14 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
         new FileOutputStream(dest) getChannel() transferFrom(
           new FileInputStream(src) getChannel, 0, Long.MaxValue)
 
+        Mist.main(Array(""))
+
         var jobidSet = Set.empty[String]
 
-        val jobRepository = RecoveryJobRepository
+        val jobRepository = MistConfig.Recovery.recoveryOn match {
+          case true => RecoveryJobRepository
+          case _ => InMemoryJobRepository
+        }
 
         eventually(timeout(90 seconds), interval(500 milliseconds)) {
           jobRepository.filter(new Specification[Job] {

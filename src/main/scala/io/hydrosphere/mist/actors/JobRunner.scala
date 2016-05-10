@@ -54,7 +54,10 @@ private[mist] class JobRunner extends Actor {
                 if (MistConfig.Contexts.isDisposable(configuration.name)) {
                   contextManager ! RemoveContext(contextWrapper)
                 }
-                jobRepository.remove(job)
+                jobRepository.equals(RecoveryJobRepository) match
+                {
+                  case true => RecoveryJobRepository.removeFromRecovery(job)
+                }
             }
             }(ExecutionContext.global)
             .andThen {

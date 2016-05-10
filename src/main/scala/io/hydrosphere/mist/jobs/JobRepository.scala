@@ -135,7 +135,7 @@ private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRep
 
 private[mist] object RecoveryJobRepository extends JobRepository {
 
-  private lazy val _collection = ArrayBuffer.empty[Job]
+  private val _collection = ArrayBuffer.empty[Job]
 
   lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
     case "MapDb" => InMapDbJobConfigurationRepository
@@ -162,6 +162,9 @@ private[mist] object RecoveryJobRepository extends JobRepository {
 
   override def remove(job: Job): Unit = {
     _collection -= job
+  }
+
+  def removeFromRecovery(job: Job): Unit = {
     if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
       configurationRepository.remove(job)
       Mist.recoveryActor ! JobCompleted
