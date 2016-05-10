@@ -57,76 +57,63 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     assert(no_context_success)
   }
 
-  test("Recovery 3 jobs"){
-    // Db
-    val db = DBMaker
-      .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
-      .make
+  test("Recovery 3 jobs from MapDb"){
 
-    // Map
-    val map = db
-      .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
-      .createOrOpen
+     Mist.main(Array(""))
 
-    val stringMessage = TestConfig.request_jar
-    val json = stringMessage.parseJson
-    val jobCreatingRequest = {
-      try {
-        json.convertTo[JobConfiguration]
-      } catch {
-        case _: DeserializationException => None
+      if( !MistConfig.Recovery.recoveryOn ) {
+        cancel("Can't run the Recovery test because recovery off in config file")
       }
-    }
-    val w_job = SerializationUtils.serialize(jobCreatingRequest)
-    var i = 0
-    map.clear()
-    for (i <- 1 to 3) {
-      map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
-    }
+      else {
+        // Db
+        val db = DBMaker
+          .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+          .make
 
-    map.close()
-    db.close()
+        // Map
+        val map = db
+          .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+          .createOrOpen
 
-    val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
-    val dest = new File(MistConfig.Recovery.recoveryDbFileName)
-    new FileOutputStream(dest) getChannel() transferFrom(
-      new FileInputStream(src) getChannel, 0, Long.MaxValue)
-
-
-    Mist.main(Array(""))
-
-    var jobidSet = Set.empty[String]
-
-    lazy val jobRepository = {
-      MistConfig.Recovery.recoveryOn match {
-        case false => InMemoryJobRepository
-        case true => RecoveryJobRepository
-      }
-    }
-
-    eventually(timeout(90 seconds), interval(500 milliseconds)) {
-      jobRepository.filter(new Specification[Job] {
-        override def specified(element: Job): Boolean = true
-      }).map( x => {jobidSet = jobidSet + x.id})
-      assert(jobidSet.size == 3)
-    }
-  }
-
-  test("Spark context launched") {
-
-    var context_success = false
-    eventually(timeout(8 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
-        case Some(contextWrapper) => {
-          println(contextWrapper)
-          println(contextWrapper.sqlContext.toString)
-          context_success = true
+        val stringMessage = TestConfig.request_jar
+        val json = stringMessage.parseJson
+        val jobCreatingRequest = {
+          try {
+            json.convertTo[JobConfiguration]
+          } catch {
+            case _: DeserializationException => None
+          }
         }
-        case None => context_success = false
-      }
-      assert(context_success)
+        val w_job = SerializationUtils.serialize(jobCreatingRequest)
+        var i = 0
+        map.clear()
+        for (i <- 1 to 3) {
+          map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
+        }
+
+        map.close()
+        db.close()
+
+        val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+        val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+        new FileOutputStream(dest) getChannel() transferFrom(
+          new FileInputStream(src) getChannel, 0, Long.MaxValue)
+
+        var jobidSet = Set.empty[String]
+
+        val jobRepository = RecoveryJobRepository
+
+        eventually(timeout(90 seconds), interval(500 milliseconds)) {
+          jobRepository.filter(new Specification[Job] {
+            override def specified(element: Job): Boolean = true
+          }).map(x => {
+            jobidSet = jobidSet + x.id
+          })
+          assert(jobidSet.size == 3)
+        }
     }
   }
+
   test("HTTP bad request") {
     var http_response_success = false
     val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad)))
@@ -568,6 +555,21 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
       assert(http_response_success)
+    }
+  }
+
+  test("Spark context launched") {
+
+    var context_success = false
+    eventually(timeout(190 seconds), interval(1 second)) {
+      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
+        case Some(contextWrapper) => {
+
+          context_success = true
+        }
+        case None => context_success = false
+      }
+      assert(context_success)
     }
   }
 

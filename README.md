@@ -89,9 +89,10 @@ mist.mqtt.subscribeTopic = "foo"
 mist.mqtt.publishTopic = "foo"
 
 # recovery job (off by default)
-mist.mqtt.recovery.on = true
-mist.mqtt.recovery.multilimit = 3
-mist.mqtt.recovery.dbfilename = "file.db"
+mist.recovery.on = false
+# mist.recovery.multilimit = 10
+# mist.recovery.typedb = "MapDb"
+# mist.recovery.dbfilename = "file.db"
 
 # default settings for all contexts
 # timeout for each job in context

@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import io.hydrosphere.mist.{Constants, MistConfig}
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobRepository, RecoveryJobRepository, JobConfiguration, Job}
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, JobConfiguration, Job}
 import io.hydrosphere.mist.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
@@ -39,14 +39,12 @@ private[mist] class JobRunner extends Actor {
 
           lazy val jobRepository = {
             MistConfig.Recovery.recoveryOn match {
-              case false => InMemoryJobRepository
               case true => RecoveryJobRepository
+              case _ => InMemoryJobRepository
             }
           }
           val future: Future[Either[Map[String, Any], String]] = Future {
-
             jobRepository.add(job)
-
             println(s"${configuration.name}#${job.id} is running")
             job.run()
           }(executionContext)
