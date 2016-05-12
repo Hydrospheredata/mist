@@ -6,7 +6,7 @@
 
 Mist—is a thin service on top of Spark which makes it possible to execute Scala & Python Spark Jobs from application layers and get synchronous, asynchronous, and reactive results as well as provide an API to external clients.
 
-It implements a concept of Spark as a Service and creates a unified API layer for building entrprise solutions and services on a top of a Big Data lake.
+It implements Spark as a Service and creates a unified API layer for building entrprise solutions and services on a top of a Big Data lake.
 
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/03/scheme.png)
 
@@ -28,8 +28,8 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 ## Features
 
 - HTTP and Messaging (MQTT) API
-- Scala & Python Spark Jobs execution
-- Support for Spark SQL, Hive
+- Scala & Python Spark job execution
+- Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
 
 ## Version Information
@@ -46,7 +46,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 - jdk = 8
 - scala = 2.10.6
 - spark >= 1.5.2 (earlier versions were not tested)
-- MQTT Server *(optionally)*
+- MQTT Server *(optional)*
 
 ######Running
 * Build the project
@@ -62,7 +62,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 ##Configuration
 
-Mist creates and orchestrates Apache Spark contexts automatically. All created contexts have their own name and every job is run in a namespace. By default when you request job running at the first time, mist creates namespace and new Spark context. The second request will use created namespace so context will be alive while mist is running. This behavior can be changed in configuration file: `mist.contextSetting.onstart` allows you to specify namespaces which must be run on start; `disposable` setting kills context right after using it. You can set up options either for all contexts (`mist.contextDefault`) or for every context individually (`mist.context.<namespace>`).
+Mist creates and orchestrates Apache Spark contexts automatically. All created contexts have their own name. Every job is run in a namespace. By default when you request to run a job the first time, mist creates a namespace and new Spark context. The second request will use the created namespace so the context will be alive while mist is running. This behavior can be changed in the configuration file: `mist.contextSetting.onstart` allows you to specify namespaces which must be run on start; `disposable` setting kills context right after using it. You can set up options either for all contexts (`mist.contextDefault`) or for individual contexts (`mist.context.<namespace>`).
 
 
 Configuration files are in [HOCON format](https://github.com/typesafehub/config/blob/master/HOCON.md)
@@ -118,7 +118,7 @@ mist.contextSettings.onstart = ["foo"]
 
 ######Mist Scala Spark Job 
 
-In order to prepare your job to be run on Mist you should extend scala `object` from MistJob and implement abstract method *doStuff* :
+In order to prepare your job to run on Mist you should extend scala `object` from MistJob and implement abstract method *doStuff* :
 
 ```scala
 def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
@@ -195,7 +195,7 @@ job = MyJob(mist.Job())
 
 ## Development mode
 
-You can use Vagrant and work in preconfigured virtual machine
+You can use Vagrant and work in a preconfigured virtual machine
 
 ```sh
 git clone https://github.com/Hydrospheredata/mist
@@ -219,7 +219,7 @@ Mist could be deployed in [Cluster mode](#cluster-mode) on Marathon with [hydros
 
 ## API Reference
 
-The Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in response. MQTT requests is almost the same: you send a message with request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribeTopic`) and then mist sends a message back with results ([configuration](#configuration): `mist.mqtt.publishTopic`). To dispatch multiple future responses you can add `external_id` field into request message. This `external_id` will be returned in message with results.
+Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in a response. MQTT requests work almost the same: you send a message with a request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribeTopic`) and then mist sends a message back with the results ([configuration](#configuration): `mist.mqtt.publishTopic`). To dispatch multiple future responses you can add `external_id` field into request message. This `external_id` will be returned in message with results.
 
 ######Requests
 for scala jobs:
