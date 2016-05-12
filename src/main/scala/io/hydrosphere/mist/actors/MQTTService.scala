@@ -21,6 +21,19 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 //TODO: must be an akka actor
 private[mist] object MQTTService {
 
+  def randomStringFromCharList(length: Int, chars: Seq[Char]): String = {
+    val sb = new StringBuilder
+    for (i <- 1 to length) {
+      val randomNum = scala.util.Random.nextInt(chars.length)
+      sb.append(chars(randomNum))
+    }
+    sb.toString
+  }
+  def randomAlphaNumericString(length: Int): String = {
+    val chars = ('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9')
+    randomStringFromCharList(length, chars)
+  }
+
   def publish(message: String) = {
     var client: MqttClient = null
 
@@ -28,7 +41,8 @@ private[mist] object MQTTService {
 
     try {
       // mqtt client with specific url and client id
-      client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+
+      client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", randomAlphaNumericString(16), persistence)
 
       client.connect
 
@@ -53,7 +67,7 @@ private[mist] object MQTTService {
 
     val persistence = new MemoryPersistence
 
-    val client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+    val client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", randomAlphaNumericString(16), persistence)
 
     client.connect
 
