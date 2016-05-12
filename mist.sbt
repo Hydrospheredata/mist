@@ -6,7 +6,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.1.1"
+version := "0.1.2"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -21,7 +21,11 @@ scalaVersion := {
 
 crossScalaVersions := Seq("2.10.6", "2.11.8")
 
-resolvers ++= Seq( "Spring Release Repository" at "http://repo.spring.io/plugins-release/")
+resolvers ++= Seq(
+  Resolver.sonatypeRepo("releases"),
+  Resolver.sonatypeRepo("snapshots"),
+  "Spring Release Repository" at "http://repo.spring.io/plugins-release"
+)
 
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
