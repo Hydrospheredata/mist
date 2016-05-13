@@ -36,7 +36,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 | Mist Version   | Scala Version  | Python Version | Spark Version    |
 |----------------|----------------|----------------|------------------|
-| 0.1.2          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.1.3         | 2.10.6         | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
 
@@ -58,7 +58,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 * Create [configuration file](#configuration)
 * Run
 
-        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.10/mist-assembly-0.1.2.jar
+        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.10/mist-assembly-0.1.3.jar
 
 ##Configuration
 
@@ -143,7 +143,7 @@ object SimpleContext extends MistJob {
 Add mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.1.2"
+libraryDependencies += "io.hydrosphere" % "mist" % "0.1.3"
 ```
 
 Maven dependency:
@@ -152,7 +152,7 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist</artifactId>
-    <version>0.1.2</version>
+    <version>0.1.3</version>
 </dependency>
 ```
     
@@ -252,13 +252,13 @@ for python jobs:
 e.g. from MQTT [(MQTT server and client)](http://mosquitto.org/) are necessary
 
 ```sh
-mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.2.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
+mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.3.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
 ```
 
 e.g. from HTTP
 
 ```sh
-curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.2.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.3.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
 ```
 
 
@@ -282,7 +282,7 @@ e.g.
     },
     "errors": [],
     "request": {
-        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.2.jar",
+        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.1.3.jar",
         "className": "SimpleContext$",
         "name": "foo",
         "parameters": {
