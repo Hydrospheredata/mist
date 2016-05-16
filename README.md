@@ -36,7 +36,7 @@ It implements a concept of Spark as a Service and creates a unified API layer fo
 
 | Mist Version   | Scala Version  | Python Version | Spark Version    |
 |----------------|----------------|----------------|------------------|
-| 0.1.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
