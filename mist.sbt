@@ -6,7 +6,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.1.3"
+version := "0.1.4"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -29,9 +29,9 @@ resolvers ++= Seq(
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-hive" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion, // % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion, // % "provided",
+  "org.apache.spark" %% "spark-hive" % sparkVersion, // % "provided",
   "org.json4s" %% "json4s-native" % "3.2.11",
   "org.json4s" %% "json4s-jackson" % "3.2.11",
   "com.typesafe" % "config" % "1.3.0",
@@ -42,7 +42,7 @@ libraryDependencies ++= Seq(
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
-  "org.eclipse.paho" % "mqtt-client" % "0.4.0" from "https://repo.eclipse.org/content/repositories/paho-releases/org/eclipse/paho/mqtt-client/0.4.0/mqtt-client-0.4.0.jar"
+  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 //  "org.scodec" %% "scodec-core" % "1.9.0",
 //  "org.scalaz" %% "scalaz-core" % "7.1.1"
 )
