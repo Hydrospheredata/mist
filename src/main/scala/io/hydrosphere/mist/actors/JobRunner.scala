@@ -5,9 +5,9 @@ import java.util.concurrent.Executors._
 import akka.actor.{Props, ActorRef, Actor}
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.{Mist, Constants, MistConfig}
+import io.hydrosphere.mist.{Constants, MistConfig}
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext}
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, JobConfiguration}
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, JobConfiguration, Job}
 import io.hydrosphere.mist.contexts._
 
 import scala.concurrent.{Future, ExecutionContext}
@@ -34,14 +34,18 @@ private[mist] class JobRunner extends Actor {
 
       contextFuture.flatMap {
         case contextWrapper: ContextWrapper =>
-          lazy val job = Job(configuration, contextWrapper)
 
-          val future: Future[Either[Map[String, Any], String]] = Future {
-            InMemoryJobRepository.add(job)
-            println(s"${configuration.name}#${job.id} is running")
-            if(MistConfig.MQTT.recoveryOn && self.path.name == Constants.Actors.asyncJobRunnerName) {
-              InMapDbJobConfigurationRepository.addJobConfigurationByJob(job)
+          lazy val job = Job(configuration, contextWrapper, self.path.name)
+
+          lazy val jobRepository = {
+            MistConfig.Recovery.recoveryOn match {
+              case true => RecoveryJobRepository
+              case _ => InMemoryJobRepository
             }
+          }
+          val future: Future[Either[Map[String, Any], String]] = Future {
+            jobRepository.add(job)
+            println(s"${configuration.name}#${job.id} is running")
             job.run()
           }(executionContext)
           future
@@ -50,8 +54,9 @@ private[mist] class JobRunner extends Actor {
                 if (MistConfig.Contexts.isDisposable(configuration.name)) {
                   contextManager ! RemoveContext(contextWrapper)
                 }
-                if (MistConfig.MQTT.recoveryOn && self.path.name == Constants.Actors.asyncJobRunnerName){
-                  InMapDbJobConfigurationRepository.jobComplit(job)
+                jobRepository.equals(RecoveryJobRepository) match
+                {
+                  case true => RecoveryJobRepository.removeFromRecovery(job)
                 }
             }
             }(ExecutionContext.global)

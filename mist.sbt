@@ -6,7 +6,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.1.1"
+version := "0.2.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -23,10 +23,8 @@ crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
-  Resolver.sonatypeRepo("snapshots"),
-  "MQTT Repository" at "https://repo.eclipse.org/content/repositories/paho-releases/"
+  Resolver.sonatypeRepo("snapshots")
 )
-
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
 libraryDependencies ++= Seq(
@@ -35,7 +33,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-hive" % sparkVersion,
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
-  "com.typesafe" % "config" % "1.2.0",
+  "com.typesafe" % "config" % "1.3.0",
   "com.typesafe.akka" %% "akka-actor" % "2.3.15",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
@@ -43,12 +41,11 @@ libraryDependencies ++= Seq(
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
-  "org.eclipse.paho" % "mqtt-client" % "0.4.0",
-  "org.mapdb" % "mapdb" % "3.0.0-M6"
-
+  "org.mapdb" % "mapdb" % "3.0.0-M6",
+  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 )
 
-dependencyOverrides += "com.typesafe" % "config" % "1.3.0" 
+dependencyOverrides += "com.typesafe" % "config" % "1.3.0"
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   {
@@ -65,7 +62,6 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
-
 ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
