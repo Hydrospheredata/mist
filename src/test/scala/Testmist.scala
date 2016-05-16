@@ -1,11 +1,6 @@
 package io.hydrosphere.mist.test
 
-import io.hydrosphere.mist.test.MQTTTest
-
-import io.hydrosphere.mist.jobs.{ErrorWrapper, JobByIdSpecification, InMemoryJobRepository}
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.hive.HiveContext
+import io.hydrosphere.mist.jobs.{ErrorWrapper}
 
 import org.scalatest._
 import org.scalatest.concurrent._
@@ -19,8 +14,7 @@ import io.hydrosphere.mist._
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
 import io.hydrosphere.mist.actors.{HTTPService}
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
-
-import spray.json._
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, Job}
 
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
@@ -30,7 +24,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import HttpMethods._
 import StatusCodes._
 
-class Testmist extends FunSuite with HTTPService with Eventually {
+import org.mapdb.{Serializer, DBMaker}
+import io.hydrosphere.mist.jobs.{JobConfiguration}
+
+import spray.json._
+import org.apache.commons.lang.SerializationUtils
+
+import java.io.{File,FileInputStream,FileOutputStream}
+
+
+class Testmist extends FunSuite with HTTPService with Eventually  {
 
   override implicit val system = ActorSystem("test-mist")
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -54,48 +57,64 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     assert(no_context_success)
   }
 
-  test("HTTP Server is not running") {
-    intercept[akka.stream.StreamTcpException] {
-      var http_response_failure = false
-      val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad)))
+  test("Recovery 3 jobs from MapDb"){
 
-      future_response onComplete {
+      if( !MistConfig.Recovery.recoveryOn ) {
+        Mist.main(Array(""))
+        cancel("Can't run the Recovery test because recovery off in config file")
+      }
+      else {
+        // Db
+        val db = DBMaker
+          .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+          .make
 
-        case Success(msg) => msg match {
-          case _ => {
-            println(msg)
-            http_response_failure = false
+        // Map
+        val map = db
+          .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+          .createOrOpen
+
+        val stringMessage = TestConfig.request_jar
+        val json = stringMessage.parseJson
+        val jobCreatingRequest = {
+          try {
+            json.convertTo[JobConfiguration]
+          } catch {
+            case _: DeserializationException => None
           }
         }
-        case Failure(e) => {
-          println(e)
-          http_response_failure = true
+        val w_job = SerializationUtils.serialize(jobCreatingRequest)
+        var i = 0
+        map.clear()
+        for (i <- 1 to 3) {
+          map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
         }
-      }
 
-      Await.result(future_response, 5.seconds)
-      eventually(timeout(5 seconds), interval(1 second)) {
-        assert(http_response_failure)
-      }
-    }
-  }
+        map.close()
+        db.close()
 
-  test("Start Mist"){
-    Mist.main(Array(""))
-  }
+        val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+        val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+        new FileOutputStream(dest) getChannel() transferFrom(
+          new FileInputStream(src) getChannel, 0, Long.MaxValue)
 
-  test("Spark context launched") {
-    var context_success = false
-    eventually(timeout(8 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
-        case Some(contextWrapper) => {
-          println(contextWrapper)
-          println(contextWrapper.sqlContext.toString)
-          context_success = true
+        Mist.main(Array(""))
+
+        var jobidSet = Set.empty[String]
+
+        val jobRepository = MistConfig.Recovery.recoveryOn match {
+          case true => RecoveryJobRepository
+          case _ => InMemoryJobRepository
         }
-        case None => context_success = false
-      }
-      assert(context_success)
+
+        eventually(timeout(90 seconds), interval(500 milliseconds)) {
+          jobRepository.filter(new Specification[Job] {
+            override def specified(element: Job): Boolean = true
+          }).map(x => {
+            jobidSet = jobidSet + x.id
+          })
+          assert(jobidSet.size == 3)
+        }
     }
   }
 
@@ -423,17 +442,16 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     }
   }
 
+  MQTTTest.subscribe(system)
 
-    MQTTTest.subscribe(system)
+  test("MQTT Spark Context jar") {
+    MqttSuccessObj.success = false
+    MQTTTest.publish(TestConfig.request_jar)
 
-    test("MQTT Spark Context jar") {
-      MqttSuccessObj.success = false
-      MQTTTest.publish(TestConfig.request_jar)
-
-      eventually(timeout(8 seconds), interval(1 second)) {
-        assert(MqttSuccessObj.success)
-      }
+    eventually(timeout(8 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
     }
+  }
 
   test("MQTT Spark SQL") {
     MqttSuccessObj.success = false
@@ -544,6 +562,21 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     }
   }
 
+  test("Spark context launched") {
+
+    var context_success = false
+    eventually(timeout(190 seconds), interval(1 second)) {
+      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
+        case Some(contextWrapper) => {
+
+          context_success = true
+        }
+        case None => context_success = false
+      }
+      assert(context_success)
+    }
+  }
+
   test("HTTP Exception in jar code") {
     var http_response_success = false
     val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror)))
@@ -573,99 +606,6 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     }
   }
 
-  test("HTTP Multi Spark Context") {
-    var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_other_context)))
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
-          println(msg)
-          http_response_success = false
-        }
-      }
-      case Failure(e) => {
-        println(e)
-        http_response_success = false
-      }
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP Spark Context jar in Disposable context") {
-    var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_disposable_context)))
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
-          println(msg)
-          http_response_success = false
-        }
-      }
-      case Failure(e) => {
-        println(e)
-        http_response_success = false
-      }
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("Test Disposable context after use") {
-    var disposable_context_live = false
-    eventually(timeout(3 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.disposable_context_name)) match {
-        case Some(contextWrapper) => println(contextWrapper)
-        case None => disposable_context_live = true
-      }
-      assert(disposable_context_live)
-    }
-  }
-
-  test("Remove other Context"){
-    var remove_context_success = false
-    var other_context_live = false
-    InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-      case Some(contextWrapper) => {
-        println(contextWrapper)
-        other_context_live = true
-      }
-      case None =>
-    }
-
-    InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-      case Some(contextWrapper) => {
-        Mist.contextManager ! RemoveContext(contextWrapper)
-        InMemoryContextRepository.remove(contextWrapper)
-      }
-      case None =>
-    }
-
-    eventually(timeout(3 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(TestConfig.other_context_name)) match {
-        case Some(contextWrapper) => println(contextWrapper)
-        case None => remove_context_success = true
-      }
-      assert(remove_context_success && other_context_live)
-    }
-  }
-
   test("Stop All Contexts"){
 
     Mist.contextManager ! StopAllContexts
@@ -690,25 +630,6 @@ class Testmist extends FunSuite with HTTPService with Eventually {
     Mist.system.stop(Mist.contextManager)
     Mist.system.shutdown()
 
-  }
-
-  test("MistJob"){
-    object TestDoStuff extends MistJob {
-      override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-      override def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-
-      override def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        Map("result" -> numbers)
-      }
-    }
-    assert(TestDoStuff != null)
   }
 
   test("AnyJsonFormat read") {

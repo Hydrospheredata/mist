@@ -14,7 +14,9 @@ import org.apache.spark.sql.hive.HiveContext
   * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
   * @param contextWrapper   contexts for concrete job running
   */
-private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper) extends Job {
+private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job {
+
+  override val jobRunnerName = JobRunnerName
 
   override val configuration = jobConfiguration
 
