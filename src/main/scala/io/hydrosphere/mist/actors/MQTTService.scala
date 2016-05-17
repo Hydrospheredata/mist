@@ -101,7 +101,17 @@ private[mist] object MQTTService extends DefaultJsonProtocol {
 
         val stringMessage = message.toString
 
-          val json = stringMessage.parseJson
+          val json = {
+            try {
+              stringMessage.parseJson
+            }
+            catch {
+              case _: spray.json.JsonParser.ParsingException => {
+                return
+              } // pass invalid json
+            }
+          }
+        
           // map request into JobConfiguration
           val jobCreatingRequest = {
             try {

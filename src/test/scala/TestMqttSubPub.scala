@@ -26,7 +26,7 @@ object MQTTTest{
       val msgTopic = client.getTopic(MistConfig.MQTT.publishTopic)
       val mqMessage = new MqttMessage(message.getBytes("utf-8"))
       msgTopic.publish(mqMessage)
-      println(s"Publishing Data, Topic : ${msgTopic.getName}, Message : $mqMessage")
+      println(s"Publishing Data Test, Topic : ${msgTopic.getName}, Message : $mqMessage")
     }
   }
 
@@ -37,7 +37,7 @@ object MQTTTest{
     mqttClient.subscribe(MistConfig.MQTT.subscribeTopic)
     val callback = new MqttCallback {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
-        println("Receiving Data, Topic : %s, Message : %s".format(topic, message))
+        println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))
         var stringMessage = message.toString
         stringMessage.split(':').drop(1).head.split(',').headOption.getOrElse("false") match {
           case "true" => MqttSuccessObj.success = true
