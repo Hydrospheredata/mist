@@ -444,6 +444,14 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
 
   MQTTTest.subscribe(system)
 
+  test("MQTT bad JSON") {
+    MqttSuccessObj.success = true
+    MQTTTest.publish(TestConfig.request_badjson)
+    eventually(timeout(60 seconds), interval(1 second)) {
+      assert(MqttSuccessObj.success)
+    }
+  }
+
   test("MQTT Spark Context jar") {
     MqttSuccessObj.success = false
     MQTTTest.publish(TestConfig.request_jar)
@@ -514,14 +522,6 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
     MQTTTest.publish(TestConfig.request_nodostuff)
     eventually(timeout(60 seconds), interval(1 second)) {
       assert(!MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT bad JSON") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_badjson)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
     }
   }
 
