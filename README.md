@@ -58,8 +58,18 @@ It implements Spark as a Service and creates a unified API layer for building en
     
 * Create [configuration file](#configuration)
 * Run
+	        
+        spark-submit    --class io.hydrosphere.mist.Mist 
+                        --driver-java-options "-Dconfig.file=/path/to/application.conf" target/scala-2.10/mist-assembly-0.2.0.jar
 
-        java -Dconfig.file=/path/to/application.conf -jar target/scala-2.10/mist-assembly-0.2.0.jar
+Or if you use mesos will be need specify master and executor (but not necessarily)
+
+        spark-submit    --master mesos://vagrant-ubuntu-trusty-64:5050 
+                        -c spark.executor.uri=hdfs://vagrant-ubuntu-trusty-64/user/spark-1.5.2-bin-hadoop2.6.tgz 
+                        --class io.hydrosphere.mist.Mist 
+                        --driver-java-options "-Dconfig.file=/path/to/application.conf" target/scala-2.10/mist-assembly-0.2.0.jar
+
+
 
 ##Configuration
 
