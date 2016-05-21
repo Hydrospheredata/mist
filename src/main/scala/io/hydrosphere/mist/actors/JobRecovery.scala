@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.actors
 
-import akka.actor.Actor
 
+import akka.actor.{Actor, ActorRef, Props}
+import io.hydrosphere.mist.actors.MqttPubSub.Publish
 import io.hydrosphere.mist.{MistConfig}
 import io.hydrosphere.mist.jobs._
 import org.json4s.jackson.Serialization
@@ -18,7 +19,7 @@ case object JobStarted{
 }
 case object JobCompleted
 
-private [mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor {
+private [mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor with MqttPubSubActor {
 
   private implicit val formats = org.json4s.DefaultFormats
 
@@ -36,7 +37,8 @@ private [mist] class JobRecovery(configurationRepository :ConfigurationRepositor
           if(TryRecoveyNext._collection.size > 0 ) {
             val job_configuration = TryRecoveyNext._collection.last
             val json = Serialization.write(job_configuration)
-            MQTTService.publish(json)
+            println(s"send ${json}")
+            pubsub ! new Publish(json.getBytes("utf-8"))
             TryRecoveyNext._collection -= TryRecoveyNext._collection.last
           }
         }

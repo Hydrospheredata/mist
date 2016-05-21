@@ -18,9 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.language.reflectiveCalls
 
-/** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with DefaultJsonProtocol {
-
+private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */
   implicit object AnyJsonFormat extends JsonFormat[Any] {
     def write(x: Any) = x match {
@@ -43,11 +41,14 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with De
     }
   }
 
-  implicit val system: ActorSystem
-  implicit val materializer: ActorMaterializer
-
   // JSON to JobConfiguration mapper (6 fields)
   implicit val jobCreatingRequestFormat = jsonFormat6(JobConfiguration)
+}
+/** HTTP interface */
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport {
+
+  implicit val system: ActorSystem
+  implicit val materializer: ActorMaterializer
 
   // actor which is used for running jobs according to request
   lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)

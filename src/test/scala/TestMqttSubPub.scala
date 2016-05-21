@@ -2,10 +2,8 @@ package io.hydrosphere.mist.test
 
 import java.net.{InetAddress, InetSocketAddress}
 
-import akka.actor.{ActorSystem, Props, ActorRef, Actor}
-
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import io.hydrosphere.mist.MistConfig
-//import net.sigusr.mqtt.api._
 
 import org.eclipse.paho.client.mqttv3._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
