@@ -1,47 +1,80 @@
 package io.hydrosphere.mist.test
 
-import io.hydrosphere.mist.jobs.{ErrorWrapper}
-
+import io.hydrosphere.mist.jobs.ErrorWrapper
 import org.scalatest._
 import org.scalatest.concurrent._
-
 import akka.actor._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
-
+import akka.actor.{ActorRef, ActorSystem, Props}
 import io.hydrosphere.mist._
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
-import io.hydrosphere.mist.actors.{HTTPService}
-import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification, InMemoryContextRepository}
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, Job}
+import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
+import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, RecoveryJobRepository}
 
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
-import scala.concurrent.{Await}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import HttpMethods._
 import StatusCodes._
-
-import org.mapdb.{Serializer, DBMaker}
-import io.hydrosphere.mist.jobs.{JobConfiguration}
-
+import org.mapdb.{DBMaker, Serializer}
+import io.hydrosphere.mist.jobs.JobConfiguration
 import spray.json._
 import org.apache.commons.lang.SerializationUtils
+import java.io.{File, FileInputStream, FileOutputStream}
 
-import java.io.{File,FileInputStream,FileOutputStream}
+import io.hydrosphere.mist.actors.JsonFormatSupport
 
 
-class Testmist extends FunSuite with HTTPService with Eventually  {
 
-  override implicit val system = ActorSystem("test-mist")
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()
+/*@Ignore*/ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll{
+
+  implicit val system = ActorSystem("test-mist")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   val testsystem = ActorSystem("test-mist")
   val clientHTTP = Http(testsystem)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
+  override def beforeAll() = {
+  //prepare recovery file
+    if( MistConfig.Recovery.recoveryOn ) {
+      val db = DBMaker
+        .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+        .make
+
+      // Map
+      val map = db
+        .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+        .createOrOpen
+
+      val stringMessage = TestConfig.request_jar
+      val json = stringMessage.parseJson
+      val jobCreatingRequest = {
+        try {
+          json.convertTo[JobConfiguration]
+        } catch {
+          case _: DeserializationException => None
+        }
+      }
+      val w_job = SerializationUtils.serialize(jobCreatingRequest)
+      var i = 0
+      map.clear()
+      for (i <- 1 to 3) {
+        map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
+      }
+
+      map.close()
+      db.close()
+
+      val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+      val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+      new FileOutputStream(dest) getChannel() transferFrom(
+        new FileInputStream(src) getChannel, 0, Long.MaxValue)
+    }
+  }
 
   test("Spark Context is not running") {
     var no_context_success = false
@@ -64,48 +97,12 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
         cancel("Can't run the Recovery test because recovery off in config file")
       }
       else {
-        // Db
-        val db = DBMaker
-          .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
-          .make
-
-        // Map
-        val map = db
-          .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
-          .createOrOpen
-
-        val stringMessage = TestConfig.request_jar
-        val json = stringMessage.parseJson
-        val jobCreatingRequest = {
-          try {
-            json.convertTo[JobConfiguration]
-          } catch {
-            case _: DeserializationException => None
-          }
-        }
-        val w_job = SerializationUtils.serialize(jobCreatingRequest)
-        var i = 0
-        map.clear()
-        for (i <- 1 to 3) {
-          map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
-        }
-
-        map.close()
-        db.close()
-
-        val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
-        val dest = new File(MistConfig.Recovery.recoveryDbFileName)
-        new FileOutputStream(dest) getChannel() transferFrom(
-          new FileInputStream(src) getChannel, 0, Long.MaxValue)
 
         Mist.main(Array(""))
 
         var jobidSet = Set.empty[String]
 
-        val jobRepository = MistConfig.Recovery.recoveryOn match {
-          case true => RecoveryJobRepository
-          case _ => InMemoryJobRepository
-        }
+        val jobRepository =  RecoveryJobRepository
 
         eventually(timeout(90 seconds), interval(500 milliseconds)) {
           jobRepository.filter(new Specification[Job] {
@@ -115,6 +112,7 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
           })
           assert(jobidSet.size == 3)
         }
+
     }
   }
 
@@ -624,9 +622,6 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
       testsystem.shutdown()
     }
 
-    system.stop(jobRequestActor)
-    system.shutdown()
-
     Mist.system.stop(Mist.contextManager)
     Mist.system.shutdown()
 
@@ -685,4 +680,3 @@ class Testmist extends FunSuite with HTTPService with Eventually  {
   }
 
 }
-

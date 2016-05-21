@@ -1,5 +1,7 @@
 package io.hydrosphere.mist
 
+import java.net.URLEncoder
+
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
@@ -9,7 +11,6 @@ import io.hydrosphere.mist.jobs._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
-
 
 /** This object is entry point of Mist project */
 private[mist] object Mist extends App with HTTPService {
@@ -33,8 +34,8 @@ private[mist] object Mist extends App with HTTPService {
 
   // Start MQTT subscriber if it is on in config
   if (MistConfig.MQTT.isOn) {
-//    system.actorOf(Props[MQTTService])
-    MQTTService.subscribe(system)
+    val mqttActor = system.actorOf(Props(classOf[MQTTServiceActor]))
+    mqttActor ! MqttSubscribe
   }
 
   // Job Recovery
@@ -51,9 +52,8 @@ private[mist] object Mist extends App with HTTPService {
     }
   }
 
-  lazy val recoveryActor: ActorRef = system.actorOf(Props(new JobRecovery(configurationRepository, jobRepository)), name = "recoveryActor")
-
-  if(MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
+  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository, jobRepository))
+  if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
     recoveryActor ! StartRecovery
   }
 
@@ -62,5 +62,4 @@ private[mist] object Mist extends App with HTTPService {
     println("Stopping all the contexts")
     contextManager ! StopAllContexts
   }
-
 }

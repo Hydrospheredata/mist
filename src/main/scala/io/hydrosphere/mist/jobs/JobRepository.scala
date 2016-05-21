@@ -2,9 +2,8 @@ package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.actors.{JobCompleted, JobStarted}
 import io.hydrosphere.mist._
-import io.hydrosphere.mist.Constants.Actors.{asyncJobRunnerName}
 import org.apache.commons.lang.SerializationUtils
-import org.mapdb.{Serializer, DBMaker}
+import org.mapdb.{DBMaker, Serializer}
 
 import scala.collection.mutable.ArrayBuffer
 
