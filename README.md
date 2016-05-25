@@ -32,6 +32,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - Scala & Python Spark job execution
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
+- Self Healing after driver program failure
 
 ## Version Information
 
