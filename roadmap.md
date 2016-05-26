@@ -8,3 +8,4 @@
 - [ ] Support streaming contexts/jobs
 - [ ] Apache Kafka support
 - [ ] AMQP support
+- [ ] Web Interface
