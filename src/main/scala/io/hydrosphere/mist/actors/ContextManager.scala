@@ -1,40 +1,49 @@
 package io.hydrosphere.mist.actors
 
 import akka.actor.Actor
+import akka.cluster.ClusterEvent.{MemberUp, MemberEvent, UnreachableMember, InitialStateAsEvents}
+import akka.cluster._
 import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, CreateContext, StopAllContexts}
-import io.hydrosphere.mist.contexts._
+import sys.process._
+
 
 /** Manages context repository */
 private[mist] class ContextManager extends Actor {
+
+  private val cluster = Cluster(context.system)
+  private val clusterState = cluster.state
+
+  private val myAddress = cluster.selfAddress
+
+  override def preStart() {
+    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+  }
+
+  override def postStop() {
+    cluster.unsubscribe(self)
+  }
+
   override def receive: Receive = {
-    // Returns context if it exists in requested namespace or created a new one if not
-    case message: CreateContext =>
-      val existedContext: ContextWrapper = InMemoryContextRepository.get(new NamedContextSpecification(message.name)) match {
-        // return existed context
-        case Some(contextWrapper) => contextWrapper
-        // create new context
-        case None =>
-          println(s"creating context ${message.name}")
-          val contextWrapper = ContextBuilder.namedSparkContext(message.name)
-
-          InMemoryContextRepository.add(contextWrapper)
-          contextWrapper
+    case CreateContext(name) =>
+      // TODO: do not start already started member for `name`
+      val thread = new Thread {
+        override def run(): Unit = {
+          sys.env("MIST_HOME") + "/mist.sh worker --namespace " + name !
+        }
       }
-
-      // if sender is asking, send it result
-      if (sender.path.toString != "akka://mist/deadLetters") {
-        sender ! existedContext
-      }
+      thread.start()
 
     // surprise: stops all contexts
-    case StopAllContexts => {
-      InMemoryContextRepository.filter(new DummyContextSpecification()).foreach(_.stop())
-      InMemoryContextRepository.filter(new DummyContextSpecification()).foreach(InMemoryContextRepository.remove(_))
-    }
+    case StopAllContexts =>
+      // TODO: remove cluster members, shut down JVMs
 
     // removes context
-    case message: RemoveContext =>
-      message.context.context.stop()
-      InMemoryContextRepository.remove(message.context)
+    case RemoveContext(contextWrapper) =>
+    // TODO: remove cluster member by name, shut down JVM
+
+    case MemberUp(member) =>
+      //TODO: associate member with context name
+      println(s"[Listener] node is up: $member, ${member.getRoles}, ${member.uniqueAddress}")
+
   }
 }

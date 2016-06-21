@@ -84,7 +84,7 @@ Configuration files are in [HOCON format](https://github.com/typesafehub/config/
 mist.spark.master = "local[*]"
 
 # number of threads: one thread for one job
-mist.settings.threadNumber = 16
+mist.settings.thread-number = 16
 
 # http interface (off by default)
 mist.http.on = false
@@ -96,9 +96,9 @@ mist.mqtt.on = false
 mist.mqtt.host = "192.168.10.33"
 mist.mqtt.port = 1883
 # mist listens this topic for incoming requests
-mist.mqtt.subscribeTopic = "foo"
+mist.mqtt.subscribe-topic = "foo"
 # mist answers in this topic with the results
-mist.mqtt.publishTopic = "foo"
+mist.mqtt.publish-topic = "foo"
 
 # recovery job (off by default)
 mist.recovery.on = false
@@ -108,12 +108,12 @@ mist.recovery.on = false
 
 # default settings for all contexts
 # timeout for each job in context
-mist.contextDefaults.timeout = 100 days
+mist.context-defaults.timeout = 100 days
 # mist can kill context after job finished (off by default)
-mist.contextDefaults.disposable = false
+mist.context-defaults.disposable = false
 
 # settings for SparkConf
-mist.contextDefaults.sparkConf = {
+mist.context-defaults.spark-conf = {
     spark.default.parallelism = 128
     spark.driver.memory = "10g"
     spark.scheduler.mode = "FAIR"
@@ -122,7 +122,7 @@ mist.contextDefaults.sparkConf = {
 # settings can be overridden for each context
 mist.contexts.foo.timeout = 100 days
 
-mist.contexts.foo.sparkConf = {
+mist.contexts.foo.spark-conf = {
     spark.scheduler.mode = "FIFO"
 }
 
@@ -130,7 +130,7 @@ mist.contexts.bar.timeout = 1000 second
 mist.contexts.bar.disposable = true
 
 # mist can create context on start, so we don't waste time on first request
-mist.contextSettings.onstart = ["foo"]
+mist.context-settings.onstart = ["foo"]
 ```
 
 ## Spark Job at Mist
@@ -240,7 +240,7 @@ Mist could be deployed in [cluster mode](#cluster-mode) on Marathon with [Hydros
 
 ## API Reference
 
-Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in a response. MQTT requests work almost the same: you send a message with a request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribeTopic`) and then Mist sends a message back with the results ([configuration](#configuration): `mist.mqtt.publishTopic`). To dispatch multiple future responses you can add the `external_id` field into request message. `external_id` will be returned in a message with the results.
+Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in a response. MQTT requests work almost the same: you send a message with a request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribe-topic`) and then Mist sends a message back with the results ([configuration](#configuration): `mist.mqtt.publish-topic`). To dispatch multiple future responses you can add the `external_id` field into request message. `external_id` will be returned in a message with the results.
 
 ######Requests
 for Scala jobs:
@@ -339,7 +339,7 @@ Create this configuration file mist.conf and save it someplace.  In this example
 ```hocon
 mist.spark.master = "local[*]"
 
-mist.settings.threadNumber = 16
+mist.settings.thread-number = 16
 
 mist.http.on = true
 mist.http.host = "127.0.0.1"
@@ -351,7 +351,7 @@ mist.recovery.on = false
 
 mist.contexts.foo.timeout = 100 days
 
-mist.contexts.foo.sparkConf = {
+mist.contexts.foo.spark-conf = {
   spark.default.parallelism = 4
   spark.driver.memory = "128m"
   spark.executor.memory = "64m"

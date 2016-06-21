@@ -28,5 +28,3 @@ private[mist] object InMemoryContextRepository extends ContextRepository {
     collection.filter(predicate).toList
   }
 }
-
-// TODO: persist repository

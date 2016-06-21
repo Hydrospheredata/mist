@@ -1,4 +1,5 @@
 import AssemblyKeys._
+import sbt.Keys._
 
 assemblySettings
 
@@ -19,6 +20,7 @@ scalaVersion := {
   }
 }
 
+
 crossScalaVersions := Seq("2.10.6", "2.11.8")
 
 resolvers ++= Seq(
@@ -27,6 +29,8 @@ resolvers ++= Seq(
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
+libraryDependencies <++= scalaVersion(akkaDependencies)
+
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-sql" % sparkVersion,
@@ -34,7 +38,6 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.15",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
@@ -46,6 +49,22 @@ libraryDependencies ++= Seq(
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.0"
+
+def akkaDependencies(scalaVersion: String) = {
+  val Old = """2\.10\..""".r
+
+  scalaVersion match {
+    case Old() => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15"
+    )
+    case _ => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.4.7",
+      "com.typesafe.akka" %% "akka-cluster" % "2.4.7"
+    )
+  }
+
+}
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   {

@@ -13,9 +13,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Mist extends App with HTTPService {
-  override implicit val system = ActorSystem("mist")
+private[mist] object Master extends App with HTTPService {
+  override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
+
+  println(MistConfig.Akka.Worker.port)
+  println(MistConfig.Akka.Main.port)
 
   // TODO: Logging
   // Context creator actor
