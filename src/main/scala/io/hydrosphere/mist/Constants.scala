@@ -18,6 +18,7 @@ object Constants {
     final lazy val contextManagerName = "ContextManager"
     final lazy val mqttServiceName = "MQTTService"
 
+    final lazy val contextNode = "ContextNode"
   }
 
 }

@@ -145,7 +145,7 @@ private[mist] object RecoveryJobRepository extends JobRepository {
     _collection += job
     if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
       configurationRepository.add(job)
-      Mist.recoveryActor ! JobStarted
+      Master.recoveryActor ! JobStarted
     }
   }
 
@@ -166,7 +166,7 @@ private[mist] object RecoveryJobRepository extends JobRepository {
   def removeFromRecovery(job: Job): Unit = {
     if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
       configurationRepository.remove(job)
-      Mist.recoveryActor ! JobCompleted
+      Master.recoveryActor ! JobCompleted
     }
   }
 }

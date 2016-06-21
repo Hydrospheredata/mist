@@ -12,12 +12,32 @@ private[mist] object MistConfig {
 
   private val config = ConfigFactory.load()
 
+  val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
+
+  object Akka {
+
+    trait AkkaSettings {
+      def settings = config.getConfig("mist").withOnlyPath("akka")
+
+      lazy val serverList = settings.getStringList("akka.cluster.seed-nodes").toList
+      lazy val port = settings.getInt("akka.remote.netty.tcp.port")
+    }
+
+    object Worker extends AkkaSettings {
+      override def settings = super.settings.withFallback(config.getConfig("mist.worker"))
+    }
+
+    object Main extends AkkaSettings {
+      override def settings = super.settings.withFallback(config.getConfig("mist.main"))
+    }
+  }
+
   /** Common application settings */
   object Settings {
     private val settings = config.getConfig("mist.settings")
 
     /** Max number of threads for JVM where jobs are running */
-    lazy val threadNumber: Int = settings.getInt("threadNumber")
+    lazy val threadNumber: Int = settings.getInt("thread-number")
   }
 
   /** HTTP specific settings */
@@ -60,9 +80,9 @@ private[mist] object MistConfig {
     /** MQTT port */
     lazy val port: Int = mqtt.getInt("port")
     /** MQTT topic used for ''reading'' */
-    lazy val subscribeTopic: String = mqtt.getString("subscribeTopic")
+    lazy val subscribeTopic: String = mqtt.getString("subscribe-topic")
     /** MQTT topic used for ''writing'' */
-    lazy val publishTopic: String = mqtt.getString("publishTopic")
+    lazy val publishTopic: String = mqtt.getString("publish-topic")
 
   }
 
@@ -83,8 +103,8 @@ private[mist] object MistConfig {
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
     private val contexts = if (config.hasPath("mist.contexts")) config.getConfig("mist.contexts") else null
-    private val contextDefaults = config.getConfig("mist.contextDefaults")
-    private val contextSettings = if (config.hasPath("mist.contextSettings")) config.getConfig("mist.contextSettings") else null
+    private val contextDefaults = config.getConfig("mist.context-defaults")
+    private val contextSettings = if (config.hasPath("mist.context-settings")) config.getConfig("mist.context-settings") else null
 
     /** Flag of context creating on start or on demand */
     lazy val precreated: List[String] = if (contextSettings != null) contextSettings.getStringList("onstart").toList else List()
@@ -118,7 +138,7 @@ private[mist] object MistConfig {
 
     /** Settings for SparkConf */
     def sparkConf(contextName: String): Set[List[String]] = {
-      getContextOrDefault(contextName).getConfig("sparkConf").entrySet.map {
+      getContextOrDefault(contextName).getConfig("spark-conf").entrySet.map {
         case (m: java.util.Map.Entry[String, ConfigValue]) => List(m.getKey, m.getValue.unwrapped().toString)
       }.toSet
     }
