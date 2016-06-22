@@ -12,5 +12,5 @@ private[mist] object Worker extends App {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
-  val contextNode = system.actorOf(Props[ContextNode], name = args(0))
+  val contextNode = system.actorOf(ContextNode.props(args(0)), name = args(0))
 }

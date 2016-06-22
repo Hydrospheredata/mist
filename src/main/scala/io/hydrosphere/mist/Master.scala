@@ -22,7 +22,7 @@ private[mist] object Master extends App with HTTPService {
 
   // TODO: Logging
   // Context creator actor
-  val contextManager = system.actorOf(Props[ContextManager], name = Constants.Actors.contextManagerName)
+  val contextManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.contextManagerName)
 
   // Creating contexts which are specified in config as `onstart`
   for (contextName:String <- MistConfig.Contexts.precreated) {
