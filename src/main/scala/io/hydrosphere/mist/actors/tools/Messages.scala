@@ -9,4 +9,6 @@ private[mist] object Messages {
   case class StopAllContexts()
 
   case class RemoveContext(context: ContextWrapper)
+
+  case class WorkerDidStart(name: String, address: String)
 }

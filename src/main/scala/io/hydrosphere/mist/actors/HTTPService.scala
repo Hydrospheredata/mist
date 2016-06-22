@@ -15,6 +15,8 @@ import org.json4s.native.Json
 import io.hydrosphere.mist.jobs.{JobResult, JobConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.Await
 
 import scala.language.reflectiveCalls
 
@@ -64,7 +66,11 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
           println(jobCreatingRequest.parameters)
 
           // Run job asynchronously
-          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
+//          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
+          val actorFuture = system.actorSelection(s"/mist/${Constants.Actors.contextManagerName}").resolveOne(248.days)
+          val workerManagerActor = Await.result(actorFuture, 1.seconds)
+
+          val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
 
           future
             .recover {
