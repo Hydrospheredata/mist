@@ -5,8 +5,8 @@ import java.net.URLEncoder
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.actors.tools.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.actors._
+import Messages.{CreateContext, StopAllContexts}
+import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.jobs._
 
 import scala.concurrent.ExecutionContext.Implicits.global

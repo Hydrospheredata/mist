@@ -1,6 +1,6 @@
-package io.hydrosphere.mist.actors
+package io.hydrosphere.mist.master
 
-import akka.actor.{Props, ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server._
@@ -15,8 +15,6 @@ import org.json4s.native.Json
 import io.hydrosphere.mist.jobs.{JobResult, JobConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.Await
 
 import scala.language.reflectiveCalls
 
@@ -52,9 +50,6 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
 
-  // actor which is used for running jobs according to request
-//  lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)
-
   // /jobs
   def route : Route = path("jobs") {
     // POST /jobs
@@ -66,9 +61,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
           println(jobCreatingRequest.parameters)
 
           // Run job asynchronously
-//          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
-          val actorFuture = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}").resolveOne(248.days)
-          val workerManagerActor = Await.result(actorFuture, 1.seconds)
+          val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
 
           val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
 

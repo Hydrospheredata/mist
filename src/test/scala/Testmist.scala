@@ -9,7 +9,7 @@ import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.actor.{ActorRef, ActorSystem, Props}
 import io.hydrosphere.mist._
-import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, StopAllContexts}
+import io.hydrosphere.mist.master.tools.Messages.{RemoveContext, StopAllContexts}
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
 import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, RecoveryJobRepository}
 
@@ -25,7 +25,7 @@ import spray.json._
 import org.apache.commons.lang.SerializationUtils
 import java.io.{File, FileInputStream, FileOutputStream}
 
-import io.hydrosphere.mist.actors.JsonFormatSupport
+import io.hydrosphere.mist.master.JsonFormatSupport
 
 
 
