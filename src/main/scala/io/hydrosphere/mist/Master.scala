@@ -22,12 +22,12 @@ private[mist] object Master extends App with HTTPService {
 
   // TODO: Logging
   // Context creator actor
-  val contextManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.contextManagerName)
+  val workerManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
 
   // Creating contexts which are specified in config as `onstart`
   for (contextName:String <- MistConfig.Contexts.precreated) {
     println("Creating contexts which are specified in config")
-    contextManager ! CreateContext(contextName)
+    workerManager ! CreateContext(contextName)
   }
 
   // Start HTTP server if it is on in config
@@ -63,6 +63,6 @@ private[mist] object Master extends App with HTTPService {
   // We need to stop contexts on exit
   sys addShutdownHook {
     println("Stopping all the contexts")
-    contextManager ! StopAllContexts
+    workerManager ! StopAllContexts
   }
 }

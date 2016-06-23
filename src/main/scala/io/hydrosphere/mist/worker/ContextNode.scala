@@ -14,7 +14,7 @@ import collection.JavaConversions._
 import akka.cluster.Cluster
 import akka.actor.{Props, ActorLogging, Actor}
 
-import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Random}
@@ -25,7 +25,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/clusterMist"
+  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress = cluster.selfAddress
@@ -36,6 +36,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
   override def preStart() {
 //    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
     serverActor ! WorkerDidStart(name, cluster.selfAddress.toString)
+    println("[WORKER] my path is: " + context.self.path)
   }
 
   override def postStop() {
@@ -44,6 +45,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
   override def receive: Receive = {
     case jobRequest: JobConfiguration =>
+      println(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
       lazy val job = Job(jobRequest, contextWrapper, self.path.name)

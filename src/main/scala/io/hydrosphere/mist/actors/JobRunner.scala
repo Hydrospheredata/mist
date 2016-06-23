@@ -20,7 +20,7 @@ private[mist] class JobRunner(contextWrapper: ContextWrapper) extends Actor {
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
   // Actor which is creates spark contexts
-  lazy val contextManager: ActorRef = context.actorOf(Props[WorkerManager], name = Constants.Actors.contextManagerName)
+  lazy val contextManager: ActorRef = context.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
 
   override def receive: Receive = {
     case configuration: JobConfiguration =>

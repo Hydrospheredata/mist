@@ -53,7 +53,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
   implicit val materializer: ActorMaterializer
 
   // actor which is used for running jobs according to request
-  lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)
+//  lazy val jobRequestActor:ActorRef = system.actorOf(Props[JobRunner], name = Constants.Actors.syncJobRunnerName)
 
   // /jobs
   def route : Route = path("jobs") {
@@ -67,7 +67,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
 
           // Run job asynchronously
 //          val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
-          val actorFuture = system.actorSelection(s"/mist/${Constants.Actors.contextManagerName}").resolveOne(248.days)
+          val actorFuture = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}").resolveOne(248.days)
           val workerManagerActor = Await.result(actorFuture, 1.seconds)
 
           val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))

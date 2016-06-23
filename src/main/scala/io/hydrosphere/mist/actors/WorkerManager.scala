@@ -23,6 +23,7 @@ private[mist] class WorkerManager extends Actor {
 
   override def preStart() {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+    println("my path is: " + context.self.path)
   }
 
   override def postStop() {
@@ -57,11 +58,10 @@ private[mist] class WorkerManager extends Actor {
 
     case jobRequest: JobConfiguration =>
       val originalSender = sender
-      val remoteActor = cluster.system.actorSelection(workers(jobRequest.name))
-
-//      implicit val timeout = 1000.days
+      val remoteActor = cluster.system.actorSelection(workers(jobRequest.name) + s"/user/${jobRequest.name}")
+      
       val future = remoteActor.ask(jobRequest)(timeout = 248.days)
-      future.andThen {
+      future.onSuccess {
         case response => originalSender ! response
       }
   }

@@ -675,7 +675,7 @@ import io.hydrosphere.mist.actors.JsonFormatSupport
        && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
        && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
        && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-       && Constants.Actors.contextManagerName == "ContextManager"
+       && Constants.Actors.workerManagerName == "ContextManager"
        && Constants.Actors.mqttServiceName == "MQTTService")
   }
 
