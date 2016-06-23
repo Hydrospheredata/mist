@@ -1,6 +1,4 @@
-package io.hydrosphere.mist.actors.tools
-
-import io.hydrosphere.mist.contexts.ContextWrapper
+package io.hydrosphere.mist
 
 private[mist] object Messages {
 
@@ -8,7 +6,7 @@ private[mist] object Messages {
 
   case class StopAllContexts()
 
-  case class RemoveContext(context: ContextWrapper)
+  case class RemoveContext(context: String)
 
   case class WorkerDidStart(name: String, address: String)
 }

@@ -1,8 +1,8 @@
-package io.hydrosphere.mist.actors
+package io.hydrosphere.mist.master
 
 
 import akka.actor.{Actor, ActorRef, Props}
-import io.hydrosphere.mist.actors.MqttPubSub.Publish
+import io.hydrosphere.mist.master.MqttPubSub.Publish
 import io.hydrosphere.mist.{MistConfig}
 import io.hydrosphere.mist.jobs._
 import org.json4s.jackson.Serialization

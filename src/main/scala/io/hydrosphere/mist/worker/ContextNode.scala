@@ -2,14 +2,10 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors._
 
-import akka.cluster.ClusterEvent.{UnreachableMember, MemberEvent, InitialStateAsEvents}
-import akka.pattern.ask
-import io.hydrosphere.mist.actors.JobRunner
-import io.hydrosphere.mist.actors.tools.Messages.{RemoveContext, WorkerDidStart, CreateContext}
+import akka.cluster.ClusterEvent._
+import io.hydrosphere.mist.Messages.WorkerDidStart
 import io.hydrosphere.mist.contexts.ContextBuilder
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, RecoveryJobRepository, Job, JobConfiguration}
-
-import collection.JavaConversions._
+import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
 
 import akka.cluster.Cluster
 import akka.actor.{Props, ActorLogging, Actor}
@@ -31,17 +27,16 @@ class ContextNode(name: String) extends Actor with ActorLogging{
   val nodeAddress = cluster.selfAddress
 
   lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
-  lazy val jobRunnerActor = context.system.actorOf(JobRunner.props(contextWrapper))
 
   override def preStart() {
-//    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
     serverActor ! WorkerDidStart(name, cluster.selfAddress.toString)
-    println("[WORKER] my path is: " + context.self.path)
+    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
   override def postStop() {
-//    cluster.unsubscribe(self)
+    cluster.unsubscribe(self)
   }
+
 
   override def receive: Receive = {
     case jobRequest: JobConfiguration =>
@@ -50,24 +45,22 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
       lazy val job = Job(jobRequest, contextWrapper, self.path.name)
 
-//      lazy val jobRepository = {
-//        MistConfig.Recovery.recoveryOn match {
-//          case true => RecoveryJobRepository
-//          case _ => InMemoryJobRepository
-//        }
-//      }
       val future: Future[Either[Map[String, Any], String]] = Future {
-//        jobRepository.add(job)
         println(s"${jobRequest.name}#${job.id} is running")
         job.run()
       }(executionContext)
       future
         // TODO: recovery
-        // TODO: disposable context
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
+
+
+    case MemberExited(member) =>
+      if (member.address == cluster.selfAddress) {
+        cluster.system.shutdown()
+      }
   }
 }
 

@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.actors
+package io.hydrosphere.mist.master
 
 import akka.actor._
 import akka.pattern.ask
@@ -181,12 +181,12 @@ private[mist] case object MqttSubscribe
 
 
 private[mist] trait MqttPubSubActor { this: Actor =>
-  val pubsub = context.actorOf(Props(classOf[MqttPubSub], (s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}")))
+  val pubsub = context.actorOf(Props(classOf[MqttPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
 }
 
 private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with JsonFormatSupport{
 
-  lazy val jobRequestActor: ActorRef = context.actorOf(Props[JobRunner], name = Constants.Actors.asyncJobRunnerName)
+//  lazy val jobRequestActor: ActorRef = context.actorOf(Props[JobRunner], name = Constants.Actors.asyncJobRunnerName)
 
   def receive = {
 
@@ -201,38 +201,38 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
 
       val stringMessage = new String(msg.payload, "utf-8")
 
-      println("Receiving Data, Topic : %s, Message : %s".format(MistConfig.MQTT.publishTopic, stringMessage))
-      try {
-        val json = stringMessage.parseJson
-        // map request into JobConfiguration
-        val jobCreatingRequest = json.convertTo[JobConfiguration]
-
-        // Run job asynchronously
-        val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
-
-        future
-          .recover {
-            case error: Throwable => Right(error.toString)
-          }
-          .onSuccess {
-            case result: Either[Map[String, Any], String] =>
-              val jobResult: JobResult = result match {
-                case Left(jobResult: Map[String, Any]) =>
-                  JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
-                case Right(error: String) =>
-                  JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
-              }
-
-              val jsonString = Json(DefaultFormats).write(jobResult)
-              pubsub ! new Publish(jsonString.getBytes("utf-8"))
-          }
-      }
-      catch {
-
-        case _: spray.json.JsonParser.ParsingException => println("BadJson")
-
-        case _: DeserializationException => println("DeserializationException Bad type in Json")
-      }
+//      println("Receiving Data, Topic : %s, Message : %s".format(MistConfig.MQTT.publishTopic, stringMessage))
+//      try {
+//        val json = stringMessage.parseJson
+//        // map request into JobConfiguration
+//        val jobCreatingRequest = json.convertTo[JobConfiguration]
+//
+//        // Run job asynchronously
+//        val future = jobRequestActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
+//
+//        future
+//          .recover {
+//            case error: Throwable => Right(error.toString)
+//          }
+//          .onSuccess {
+//            case result: Either[Map[String, Any], String] =>
+//              val jobResult: JobResult = result match {
+//                case Left(jobResult: Map[String, Any]) =>
+//                  JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
+//                case Right(error: String) =>
+//                  JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
+//              }
+//
+//              val jsonString = Json(DefaultFormats).write(jobResult)
+//              pubsub ! new Publish(jsonString.getBytes("utf-8"))
+//          }
+//      }
+//      catch {
+//
+//        case _: spray.json.JsonParser.ParsingException => println("BadJson")
+//
+//        case _: DeserializationException => println("DeserializationException Bad type in Json")
+//      }
 
     }
   }

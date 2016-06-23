@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.jobs
 
-import io.hydrosphere.mist.actors.{JobCompleted, JobStarted}
+import io.hydrosphere.mist.master.{JobCompleted, JobStarted}
 import io.hydrosphere.mist._
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
