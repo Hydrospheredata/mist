@@ -2,18 +2,16 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 
-import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, UnreachableMember, MemberExited}
-import io.hydrosphere.mist.Messages.WorkerDidStart
+import akka.cluster.ClusterEvent._
+import io.hydrosphere.mist.Messages.{AddJobToRecovery, RemoveJobFromRecovery, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
-
 import akka.cluster.Cluster
-import akka.actor.{Props, ActorLogging, Actor}
-
+import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Random}
+import scala.util.{Failure, Random, Success}
 
 class ContextNode(name: String) extends Actor with ActorLogging{
 
@@ -46,11 +44,16 @@ class ContextNode(name: String) extends Actor with ActorLogging{
       lazy val job = Job(jobRequest, contextWrapper, self.path.name)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
+        serverActor ! AddJobToRecovery(job)
         println(s"${jobRequest.name}#${job.id} is running")
         job.run()
       }(executionContext)
       future
         // TODO: recovery
+        .andThen {
+        case _ =>
+          serverActor ! RemoveJobFromRecovery(job)
+        }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
@@ -60,6 +63,11 @@ class ContextNode(name: String) extends Actor with ActorLogging{
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
         cluster.system.shutdown()
+      }
+
+    case MemberRemoved(member, prevStatus) =>
+      if (member.address == cluster.selfAddress) {
+        sys.exit(0)
       }
   }
 }

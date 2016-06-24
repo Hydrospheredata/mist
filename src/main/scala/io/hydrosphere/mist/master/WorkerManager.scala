@@ -3,12 +3,15 @@ package io.hydrosphere.mist.master
 import java.io.File
 
 import akka.actor.{AddressFromURIString, Actor}
+import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Messages, MistConfig}
+import io.hydrosphere.mist.{Messages, MistConfig, Worker}
+
 import scala.concurrent.duration.DurationInt
-import Messages.{CreateContext, StopAllContexts, RemoveContext, WorkerDidStart}
-import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.jobs.{JobConfiguration, RecoveryJobRepository}
+
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
 import sys.process._
@@ -76,6 +79,14 @@ private[mist] class WorkerManager extends Actor {
               originalSender ! response
           }
       })
+
+    case AddJobToRecovery(job) =>
+      if (MistConfig.Recovery.recoveryOn == true)
+        RecoveryJobRepository.add(job)
+
+    case RemoveJobFromRecovery(job) =>
+      if (MistConfig.Recovery.recoveryOn == true)
+        RecoveryJobRepository.remove(job)
 
   }
 
