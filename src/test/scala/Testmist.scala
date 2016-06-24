@@ -40,7 +40,7 @@ import io.hydrosphere.mist.master.JsonFormatSupport
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
   override def beforeAll() = {
   //prepare recovery file
-    if( MistConfig.Recovery.recoveryOn ) {
+    if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
         .make
@@ -92,7 +92,7 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("Recovery 3 jobs from MapDb"){
 
-      if( !MistConfig.Recovery.recoveryOn ) {
+      if (!MistConfig.Recovery.recoveryOn) {
         Mist.main(Array(""))
         cancel("Can't run the Recovery test because recovery off in config file")
       }
@@ -286,7 +286,7 @@ import io.hydrosphere.mist.master.JsonFormatSupport
         case HttpResponse(OK, _, _, _) => {
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "false" )
+          if (json == "false")
             http_response_success = true
         }
         case _ => {
@@ -669,7 +669,7 @@ import io.hydrosphere.mist.master.JsonFormatSupport
   }
 
   test("Constants Errors and Actors"){
-    assert( Constants.Errors.jobTimeOutError == "Job timeout error"
+    assert(Constants.Errors.jobTimeOutError == "Job timeout error"
        && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
        && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
        && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"

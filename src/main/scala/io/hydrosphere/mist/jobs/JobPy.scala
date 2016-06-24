@@ -112,7 +112,7 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
         }
 
         val exitCode = cmd.!
-        if( exitCode!=0 ) {
+        if (exitCode!=0) {
           lazy val errmsg = errorWrapper.get(id)
           //We must remove Error from ErrorWrapper
           errorWrapper.remove(id)

@@ -34,7 +34,7 @@ private [mist] class JobRecovery(configurationRepository :ConfigurationRepositor
     case TryRecoveyNext =>{
 
         if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-          if(TryRecoveyNext._collection.size > 0 ) {
+          if (TryRecoveyNext._collection.size > 0) {
             val job_configuration = TryRecoveyNext._collection.last
             val json = Serialization.write(job_configuration)
             println(s"send ${json}")

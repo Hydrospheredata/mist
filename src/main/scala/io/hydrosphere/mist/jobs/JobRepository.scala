@@ -143,7 +143,7 @@ private[mist] object RecoveryJobRepository extends JobRepository {
 
   override def add(job: Job): Unit = {
     _collection += job
-    if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
+    if (job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
       configurationRepository.add(job)
       Master.recoveryActor ! JobStarted
     }
@@ -164,7 +164,7 @@ private[mist] object RecoveryJobRepository extends JobRepository {
   }
 
   def removeFromRecovery(job: Job): Unit = {
-    if(job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
+    if (job.jobRunnerName == Constants.Actors.asyncJobRunnerName) {
       configurationRepository.remove(job)
       Master.recoveryActor ! JobCompleted
     }
