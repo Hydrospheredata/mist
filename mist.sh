@@ -29,13 +29,13 @@ done
 if [ "${app}" == 'worker' ]
 then
     echo "START WORKER WITH NAMESPACE $NAMESPACE"
-    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${MIST_HOME}/configs/vagrant.conf" /vagrant/target/scala-2.10/mist-assembly-0.2.0.jar ${NAMESPACE}
+    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${MIST_HOME}/configs/vagrant.conf" ${MIST_HOME}/target/scala-2.10/mist-assembly-0.2.0.jar ${NAMESPACE}
     exit 0
 fi
 
 if [ "${app}" == 'master' ]
 then
     echo "START MASTER!"
-    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${MIST_HOME}/configs/vagrant.conf" /vagrant/target/scala-2.10/mist-assembly-0.2.0.jar
+    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${MIST_HOME}/configs/vagrant.conf" ${MIST_HOME}/target/scala-2.10/mist-assembly-0.2.0.jar
     exit 0
 fi
