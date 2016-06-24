@@ -1,6 +1,6 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.{Job}
+import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
 
 private[mist] object Messages {
 
@@ -12,7 +12,9 @@ private[mist] object Messages {
 
   case class WorkerDidStart(name: String, address: String)
 
-  case class AddJobToRecovery(job: Job)
+  case class AddJobToRecovery(jobId: String, jobConfiguration: JobConfiguration)
 
-  case class RemoveJobFromRecovery(job: Job)
+  case class RemoveJobFromRecovery(jobId: String)
 }
+
+
