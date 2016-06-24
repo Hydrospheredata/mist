@@ -117,7 +117,7 @@ import sys.process._
 
     }
   }
-/*
+
   test("HTTP bad request") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
@@ -568,7 +568,7 @@ import sys.process._
       assert(http_response_success)
     }
   }
-*/
+
   test("Stop All Contexts") {
 
     Master.workerManager ! StopAllContexts
