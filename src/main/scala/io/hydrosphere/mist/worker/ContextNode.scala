@@ -1,8 +1,8 @@
 package io.hydrosphere.mist.worker
 
-import java.util.concurrent.Executors._
+import java.util.concurrent.Executors.newFixedThreadPool
 
-import akka.cluster.ClusterEvent._
+import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, UnreachableMember, MemberExited}
 import io.hydrosphere.mist.Messages.WorkerDidStart
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
@@ -28,12 +28,12 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
   lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
 
-  override def preStart() {
+  override def preStart(): Unit = {
     serverActor ! WorkerDidStart(name, cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
-  override def postStop() {
+  override def postStop(): Unit = {
     cluster.unsubscribe(self)
   }
 
@@ -65,5 +65,5 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 }
 
 object ContextNode {
-  def props(name: String) = Props(classOf[ContextNode], name)
+  def props(name: String): Props = Props(classOf[ContextNode], name)
 }

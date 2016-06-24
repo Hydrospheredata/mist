@@ -1,11 +1,7 @@
-package io.hydrosphere.mist.test
+package io.hydrosphere.mist
 
-import java.net.{InetAddress, InetSocketAddress}
-
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import io.hydrosphere.mist.MistConfig
-
-import org.eclipse.paho.client.mqttv3._
+import akka.actor.ActorSystem
+import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage, MqttCallback, IMqttDeliveryToken}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 object MqttSuccessObj{
@@ -15,12 +11,11 @@ object MqttSuccessObj{
 }
 
 object MQTTTest{
-  def publish(message: String) = {
-    var client: MqttClient = null
+  def publish(message: String): Unit = {
     val persistence = new MemoryPersistence
     try {
-      client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
-      client.connect
+      val client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+      client.connect()
       val msgTopic = client.getTopic(MistConfig.MQTT.publishTopic)
       val mqMessage = new MqttMessage(message.getBytes("utf-8"))
       msgTopic.publish(mqMessage)
@@ -28,15 +23,15 @@ object MQTTTest{
     }
   }
 
-  def subscribe(actorSystem: ActorSystem) = {
+  def subscribe(actorSystem: ActorSystem): Unit = {
     val persistence = new MemoryPersistence
     val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
-    mqttClient.connect
+    mqttClient.connect()
     mqttClient.subscribe(MistConfig.MQTT.subscribeTopic)
     val callback = new MqttCallback {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))
-        var stringMessage = message.toString
+        val stringMessage = message.toString
         stringMessage.split(':').drop(1).head.split(',').headOption.getOrElse("false") match {
           case "true" => MqttSuccessObj.success = true
           case "false" => MqttSuccessObj.success = false

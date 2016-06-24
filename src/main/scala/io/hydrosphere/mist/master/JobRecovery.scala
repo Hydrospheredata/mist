@@ -1,10 +1,11 @@
 package io.hydrosphere.mist.master
 
 
-import akka.actor.{Actor, ActorRef, Props}
-import io.hydrosphere.mist.master.MqttPubSub.Publish
-import io.hydrosphere.mist.{MistConfig}
-import io.hydrosphere.mist.jobs._
+import akka.actor.Actor
+import io.hydrosphere.mist.master.mqtt.{MqttPubSubActor, MqttPubSub}
+import MqttPubSub.Publish
+import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.jobs.{JobConfiguration, ConfigurationRepository, JobRepository}
 import org.json4s.jackson.Serialization
 
 import scala.collection.mutable.ArrayBuffer
@@ -19,43 +20,39 @@ case object JobStarted{
 }
 case object JobCompleted
 
-private [mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor with MqttPubSubActor {
+private[mist] class JobRecovery(configurationRepository :ConfigurationRepository, jobRepository: JobRepository) extends Actor with MqttPubSubActor {
 
   private implicit val formats = org.json4s.DefaultFormats
 
   override def receive: Receive = {
 
-    case StartRecovery =>{
+    case StartRecovery =>
       TryRecoveyNext._collection = configurationRepository.getAll
-      configurationRepository.clear
+      configurationRepository.clear()
       this.self ! TryRecoveyNext
-    }
 
-    case TryRecoveyNext =>{
+    case TryRecoveyNext =>
 
-        if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-          if(TryRecoveyNext._collection.size > 0 ) {
-            val job_configuration = TryRecoveyNext._collection.last
-            val json = Serialization.write(job_configuration)
-            println(s"send ${json}")
-            pubsub ! new Publish(json.getBytes("utf-8"))
-            TryRecoveyNext._collection -= TryRecoveyNext._collection.last
-          }
+      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+        if (TryRecoveyNext._collection.nonEmpty) {
+          val job_configuration = TryRecoveyNext._collection.last
+          val json = Serialization.write(job_configuration)
+          println(s"send $json")
+          pubsub ! new Publish(json.getBytes("utf-8"))
+          TryRecoveyNext._collection -= TryRecoveyNext._collection.last
         }
-    }
+      }
 
-    case JobStarted =>{
+    case JobStarted =>
       JobStarted.jobStartedCount += 1
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
         this.self ! TryRecoveyNext
       }
-    }
 
-    case JobCompleted => {
+    case JobCompleted =>
       JobStarted.jobStartedCount -= 1
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
         this.self ! TryRecoveyNext
       }
-    }
   }
 }

@@ -9,13 +9,13 @@ private[mist] trait Repository[T] {
     *
     * @param element element for add
     */
-  def add(element: T)
+  def add(element: T): Unit
 
   /** Removes element from repository
     *
     * @param element element for remove
     */
-  def remove(element: T)
+  def remove(element: T): Unit
 
   /** Returns ''first'' element in repository satisfied predicate
     *

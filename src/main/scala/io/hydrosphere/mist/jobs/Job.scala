@@ -2,6 +2,7 @@ package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.jobs.JobStatus.JobStatus
 
 /** Job state statuses */
 private[mist] object JobStatus extends Enumeration {
@@ -17,14 +18,14 @@ trait Job{
 
   protected var _status = JobStatus.Initialized
 
-  def initSqlContext: Unit = ???
-  def initHiveContext: Unit = ???
+  def initSqlContext(): Unit = ???
+  def initHiveContext(): Unit = ???
 
   /** Status getter
     *
     * @return [[JobStatus]]
     */
-  def status = _status
+  def status: JobStatus = _status
 
   val configuration : JobConfiguration
 
@@ -37,8 +38,8 @@ object Job{
 
     val path = jobConfiguration.jarPath.getOrElse(jobConfiguration.pyPath.getOrElse(""))
     path.split('.').drop(1).lastOption.getOrElse("") match {
-      case "jar" => return new JobJar(jobConfiguration, contextWrapper, JobRunnerName)
-      case "py" => return new JobPy(jobConfiguration, contextWrapper, JobRunnerName)
+      case "jar" => new JobJar(jobConfiguration, contextWrapper, JobRunnerName)
+      case "py" => new JobPy(jobConfiguration, contextWrapper, JobRunnerName)
       case _ => throw new Exception(Constants.Errors.extensionError)
     }
   }

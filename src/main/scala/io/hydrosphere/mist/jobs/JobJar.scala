@@ -28,7 +28,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
   }
 
   // Scala `object` reference of user job
-  private val objectRef = cls.getField("MODULE$").get(null)
+  private val objectRef = cls.getField("MODULE$").get(None)
 
   // We must add user jar into spark context
   contextWrapper.addJar(configuration.jarPath.get)
@@ -46,7 +46,9 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
             // if user object overrides method for SparkContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
             // run job with SparkContext and return result
+            // scalastyle:off
             return Left(objectRef.doStuff(contextWrapper.context, configuration.parameters))
+            // scalastyle:on
           } catch {
             case _: NoSuchMethodException => // pass
           }
@@ -54,7 +56,9 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
             // if user object overrides method for SQLContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SQLContext], classOf[Map[String, Any]])
             // run job with SQLContext and return result
+            // scalastyle:off
             return Left(objectRef.doStuff(contextWrapper.sqlContext, configuration.parameters))
+            // scalastyle:on
           } catch {
             case _: NoSuchMethodException => // pass
           }
@@ -62,12 +66,14 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
             // if user object overrides method for HiveContext, use it
             cls.getDeclaredMethod("doStuff", classOf[HiveContext], classOf[Map[String, Any]])
             // run job with HiveContext and return result
+            // scalastyle:off
             return Left(objectRef.doStuff(contextWrapper.hiveContext, configuration.parameters))
+            // scalastyle:on
           } catch {
             case _: NoSuchMethodException => // pass
           }
-          return Right(Constants.Errors.noDoStuffMethod)
-        case _ => return Right(Constants.Errors.notJobSubclass)
+          Right(Constants.Errors.noDoStuffMethod)
+        case _ => Right(Constants.Errors.notJobSubclass)
       }
 
       _status = JobStatus.Stopped
