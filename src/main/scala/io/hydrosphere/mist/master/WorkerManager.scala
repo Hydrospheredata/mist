@@ -80,13 +80,13 @@ private[mist] class WorkerManager extends Actor {
           }
       })
 
-    case AddJobToRecovery(job) =>
+    case AddJobToRecovery(jobId, jobConfiguration) =>
       if (MistConfig.Recovery.recoveryOn == true)
-        RecoveryJobRepository.add(job)
+        RecoveryJobRepository.addById(jobId, jobConfiguration)
 
-    case RemoveJobFromRecovery(job) =>
+    case RemoveJobFromRecovery(jobId) =>
       if (MistConfig.Recovery.recoveryOn == true)
-        RecoveryJobRepository.remove(job)
+        RecoveryJobRepository.removeById(jobId)
 
   }
 

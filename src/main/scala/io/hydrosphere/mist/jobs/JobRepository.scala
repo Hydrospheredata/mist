@@ -86,10 +86,29 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     }
   }
 
+  def addById(jobId: String, jobConfiguration: JobConfiguration): Unit = {
+    try {
+      val w_job = SerializationUtils.serialize(jobConfiguration)
+      map.put(jobId, w_job)
+      println(s"${jobId} saved in MapDb")
+    } catch {
+      case e: Exception => println(e)
+    }
+  }
+
   override def remove(job: Job): Unit = {
     try {
       map.remove(job.id)
       println(s"${job.id} removed from MapDb")
+    } catch{
+      case e: Exception => println(e)
+    }
+  }
+
+  def removeById(jobId: String): Unit = {
+    try {
+      map.remove(jobId)
+      println(s"${jobId} removed from MapDb")
     } catch{
       case e: Exception => println(e)
     }
@@ -125,10 +144,13 @@ private[mist] object RecoveryJobRepository extends JobRepository {
 
   private val _collection = ArrayBuffer.empty[Job]
 
+  lazy val configurationRepository = InMapDbJobConfigurationRepository
+  /*
   lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
     case "MapDb" => InMapDbJobConfigurationRepository
     case _ => InMemoryJobConfigurationRepository
-  }
+
+  }*/
 
   override def add(job: Job): Unit = {
     _collection += job
@@ -136,6 +158,16 @@ private[mist] object RecoveryJobRepository extends JobRepository {
       configurationRepository.add(job)
       Master.recoveryActor ! JobStarted
     }
+  }
+
+  def addById(jobId: String, jobConfiguration: JobConfiguration): Unit = {
+    configurationRepository.addById(jobId, jobConfiguration)
+    Master.recoveryActor ! JobStarted
+  }
+
+  def removeById(jobId: String): Unit = {
+    configurationRepository.removeById(jobId)
+    Master.recoveryActor ! JobCompleted
   }
 
   override def get(specification: Specification[Job]): Option[Job] = {

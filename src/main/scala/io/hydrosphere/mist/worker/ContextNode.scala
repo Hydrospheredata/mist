@@ -44,7 +44,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
       lazy val job = Job(jobRequest, contextWrapper, self.path.name)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        serverActor ! AddJobToRecovery(job)
+        serverActor ! AddJobToRecovery(job.id, job.configuration)
         println(s"${jobRequest.name}#${job.id} is running")
         job.run()
       }(executionContext)
@@ -52,7 +52,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         // TODO: recovery
         .andThen {
         case _ =>
-          serverActor ! RemoveJobFromRecovery(job)
+          serverActor ! RemoveJobFromRecovery(job.id)
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
