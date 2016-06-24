@@ -12,11 +12,11 @@ class WorkerCollection {
 
     private val callbacks = ArrayBuffer[NameCallbackPair]()
 
-    def +=(nameCallbackPair: NameCallbackPair) = {
+    def +=(nameCallbackPair: NameCallbackPair): Unit = {
       callbacks += nameCallbackPair
     }
 
-    def -=(nameCallbackPair: NameCallbackPair) = {
+    def -=(nameCallbackPair: NameCallbackPair): Unit = {
       callbacks -= nameCallbackPair
     }
 
@@ -34,7 +34,7 @@ class WorkerCollection {
 
   private val callbacks = new CallbackCollection()
 
-  def +=(worker: WorkerLink) = {
+  def +=(worker: WorkerLink): Unit = {
     workers += (worker.name -> worker.address)
     callbacks(worker.name).foreach { (callback) =>
       callback(worker)
@@ -42,7 +42,7 @@ class WorkerCollection {
     }
   }
 
-  def -=(worker: WorkerLink) = {
+  def -=(worker: WorkerLink): Unit = {
     workers -= worker.name
   }
 
@@ -50,7 +50,7 @@ class WorkerCollection {
     workers.contains(name)
   }
 
-  def foreach(f: (WorkerLink) => Unit) = {
+  def foreach(f: (WorkerLink) => Unit): Unit = {
     workers.foreach {
       case (name, address) =>
         f(WorkerLink(name, address))
@@ -61,7 +61,7 @@ class WorkerCollection {
     WorkerLink(name, workers(name))
   }
 
-  def registerCallbackForName(name: String, callback: WorkerCollection.Callback) = {
+  def registerCallbackForName(name: String, callback: WorkerCollection.Callback): Unit = {
     if (workers.contains(name)) {
       callback(this(name))
     } else {
@@ -74,7 +74,7 @@ class WorkerCollection {
 object WorkerCollection {
   type Callback = (WorkerLink) => Unit
 
-  def apply() = {
+  def apply(): WorkerCollection = {
     new WorkerCollection()
   }
 }

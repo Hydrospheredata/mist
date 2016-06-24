@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.master.{JobCompleted, JobStarted}
-import io.hydrosphere.mist._
+import io.hydrosphere.mist.{Repository, Specification, MistConfig, Constants, Master}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 
@@ -32,22 +32,11 @@ private[mist] object InMemoryJobRepository extends JobRepository {
   }
 }
 
-private[mist] object SQLiteJobRepository extends JobRepository {
-
-  override def add(job: Job): Unit = ???
-
-  override def get(specification: Specification[Job]): Option[Job] = ???
-
-  override def filter(specification: Specification[Job]): List[Job] = ???
-
-  override def remove(job: Job): Unit = ???
-}
-
 private[mist] trait ConfigurationRepository {
   def add(job: Job): Unit = ???
   def remove(job: Job): Unit = ???
   def getAll: ArrayBuffer[JobConfiguration] = ???
-  def clear: Unit = ???
+  def clear(): Unit = ???
 }
 
 private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRepository {
@@ -64,14 +53,14 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
 
   override def getAll: ArrayBuffer[JobConfiguration] = _collection
 
-  override def clear = {
+  override def clear(): Unit = {
     for(jobConf <- getAll){
       _collection -= jobConf
     }
   }
 }
 
-private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository {
+private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository {
   // Db
   private lazy val db  =  DBMaker
     .fileDB(MistConfig.Recovery.recoveryDbFileName)
@@ -97,7 +86,7 @@ private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRep
     }
   }
 
-  override def remove(job: Job) = {
+  override def remove(job: Job): Unit = {
     try {
       map.remove(job.id)
       println(s"${job.id} removed from MapDb")
@@ -117,15 +106,15 @@ private [mist] object InMapDbJobConfigurationRepository extends ConfigurationRep
       _collection
     }
     catch {
-      case e: Exception => {
+      case e: Exception =>
         println(e)
         ArrayBuffer.empty[JobConfiguration]
-      }
     }
   }
- override def clear = {
+
+ override def clear(): Unit = {
    try {
-     map.clear
+     map.clear()
    } catch {
      case e: Exception => println(e)
    }

@@ -3,12 +3,12 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
 import akka.pattern.{ask, AskTimeoutException}
 import io.hydrosphere.mist.{Constants, MistConfig}
 
-import spray.json._
+import spray.json.{DefaultJsonProtocol, JsonFormat, JsValue, JsNumber, JsString, JsTrue, JsFalse, serializationError, JsArray, JsObject, deserializationError}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
@@ -21,23 +21,23 @@ import scala.language.reflectiveCalls
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */
   implicit object AnyJsonFormat extends JsonFormat[Any] {
-    def write(x: Any) = x match {
+    def write(x: Any): JsValue = x match {
       case number: Int => JsNumber(number)
       case string: String => JsString(string)
       case sequence: Seq[_] => seqFormat[Any].write(sequence)
       case map: Map[String, _] => mapFormat[String, Any] write map
       case boolean: Boolean if boolean => JsTrue
       case boolean: Boolean if !boolean => JsFalse
-      case unknown => serializationError("Do not understand object of type " + unknown.getClass.getName)
+      case unknown: Any => serializationError("Do not understand object of type " + unknown.getClass.getName)
     }
-    def read(value: JsValue) = value match {
+    def read(value: JsValue): Any = value match {
       case JsNumber(number) => number.toBigInt()
       case JsString(string) => string
       case array: JsArray => listFormat[Any].read(value)
       case jsObject: JsObject => mapFormat[String, Any].read(value)
       case JsTrue => true
       case JsFalse => false
-      case unknown => deserializationError("Do not understand how to deserialize " + unknown)
+      case unknown: Any => deserializationError("Do not understand how to deserialize " + unknown)
     }
   }
 

@@ -1,15 +1,17 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.{AddressFromURIString, Actor}
-import akka.cluster.ClusterEvent._
 import akka.pattern.ask
-import akka.cluster._
+import akka.cluster.Cluster
 import io.hydrosphere.mist.{Messages, MistConfig}
-import scala.concurrent.duration._
-import Messages._
+import scala.concurrent.duration.DurationInt
+import Messages.{CreateContext, StopAllContexts, RemoveContext, WorkerDidStart}
 import io.hydrosphere.mist.jobs.JobConfiguration
-import sys.process._
+import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
+// scalastyle:off
+import sys.process._
+// scalastyle:on
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor {
@@ -18,7 +20,7 @@ private[mist] class WorkerManager extends Actor {
 
   private val workers = WorkerCollection()
 
-  def startNewWorkerWithName(name: String) = {
+  def startNewWorkerWithName(name: String): Unit = {
     if (!workers.contains(name)) {
       new Thread {
         override def run() = {
@@ -28,22 +30,13 @@ private[mist] class WorkerManager extends Actor {
     }
   }
 
-  def removeWorkerByName(name: String) = {
+  def removeWorkerByName(name: String): Unit = {
     if (workers.contains(name)) {
       val address = workers(name).address
       workers -= WorkerLink(name, address)
       cluster.leave(AddressFromURIString(address))
     }
   }
-
-  override def preStart() {
-    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
-  }
-
-  override def postStop() {
-    cluster.unsubscribe(self)
-  }
-
 
   override def receive: Receive = {
     case CreateContext(name) =>
@@ -74,7 +67,7 @@ private[mist] class WorkerManager extends Actor {
 
           val future = remoteActor.ask(jobRequest)(timeout = 248.days)
           future.onSuccess {
-            case response =>
+            case response: Any =>
               if (MistConfig.Contexts.isDisposable(name)) {
                 removeWorkerByName(name)
               }

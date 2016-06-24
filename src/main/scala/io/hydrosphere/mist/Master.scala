@@ -1,13 +1,13 @@
 package io.hydrosphere.mist
 
-import java.net.URLEncoder
-
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.master._
-import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
+import io.hydrosphere.mist.master.{HTTPService, WorkerManager, JobRecovery, StartRecovery}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, InMapDbJobConfigurationRepository,
+                                 RecoveryJobRepository, InMemoryJobRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -25,7 +25,7 @@ private[mist] object Master extends App with HTTPService {
   val workerManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
 
   // Creating contexts which are specified in config as `onstart`
-  for (contextName:String <- MistConfig.Contexts.precreated) {
+  MistConfig.Contexts.precreated foreach { contextName =>
     println("Creating contexts which are specified in config")
     workerManager ! CreateContext(contextName)
   }
@@ -45,12 +45,11 @@ private[mist] object Master extends App with HTTPService {
   var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
   val jobRepository = {
     MistConfig.Recovery.recoveryOn match {
-      case true => {
+      case true =>
         configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
         }
         RecoveryJobRepository
-      }
       case _ => InMemoryJobRepository
     }
   }

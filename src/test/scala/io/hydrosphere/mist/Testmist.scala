@@ -1,45 +1,42 @@
-package io.hydrosphere.mist.test
+package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.ErrorWrapper
-import org.scalatest._
-import org.scalatest.concurrent._
-import akka.actor._
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
-import akka.stream.ActorMaterializer
-import akka.actor.{ActorRef, ActorSystem, Props}
-import io.hydrosphere.mist._
-import io.hydrosphere.mist.master.tools.Messages.{RemoveContext, StopAllContexts}
-import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
-import io.hydrosphere.mist.jobs.{InMemoryJobRepository, Job, RecoveryJobRepository}
-
-import scala.util.{Failure, Success}
-import scala.concurrent.duration._
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import HttpMethods._
-import StatusCodes._
-import org.mapdb.{DBMaker, Serializer}
-import io.hydrosphere.mist.jobs.JobConfiguration
-import spray.json._
-import org.apache.commons.lang.SerializationUtils
 import java.io.{File, FileInputStream, FileOutputStream}
 
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods.POST
+import akka.http.scaladsl.model.StatusCodes.{OK, BadRequest}
+import akka.http.scaladsl.model.{HttpRequest, HttpEntity, HttpResponse, MediaTypes}
+import akka.stream.ActorMaterializer
+import io.hydrosphere.mist.Messages.StopAllContexts
+import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
+import io.hydrosphere.mist.jobs.{ErrorWrapper, Job, JobConfiguration, RecoveryJobRepository}
 import io.hydrosphere.mist.master.JsonFormatSupport
+import org.apache.commons.lang.SerializationUtils
+import org.mapdb.{DBMaker, Serializer}
+import org.scalatest.{FunSuite, BeforeAndAfterAll}
+import org.scalatest.concurrent.Eventually
+import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString, JsNumber, JsString, JsTrue, JsValue, JsFalse, JsArray, JsNull, JsObject}
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 
-
-/*@Ignore*/ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll{
+/* @Ignore */ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  val testsystem = ActorSystem("test-mist")
-  val clientHTTP = Http(testsystem)
+  val testSystem = ActorSystem("test-mist")
+  val clientHTTP = Http(testSystem)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
-  override def beforeAll() = {
-  //prepare recovery file
+
+  override def beforeAll(): Unit = {
+    // prepare recovery file
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -80,61 +77,58 @@ import io.hydrosphere.mist.master.JsonFormatSupport
     var no_context_success = false
     InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
 
-      case Some(contextWrapper) => {
+      case Some(contextWrapper) =>
         println(contextWrapper)
         println(contextWrapper.sqlContext.toString)
         no_context_success = false
-      }
       case None => no_context_success = true
     }
     assert(no_context_success)
   }
 
-  test("Recovery 3 jobs from MapDb"){
+  test("Recovery 3 jobs from MapDb") {
 
-      if (!MistConfig.Recovery.recoveryOn) {
-        Mist.main(Array(""))
-        cancel("Can't run the Recovery test because recovery off in config file")
+    if (!MistConfig.Recovery.recoveryOn) {
+      Master.main(Array(""))
+      cancel("Can't run the Recovery test because recovery off in config file")
+    }
+    else {
+
+      Master.main(Array(""))
+
+      var jobidSet = Set.empty[String]
+
+      val jobRepository = RecoveryJobRepository
+
+      eventually(timeout(90 seconds), interval(500 milliseconds)) {
+        jobRepository.filter(new Specification[Job] {
+          override def specified(element: Job): Boolean = true
+        }).foreach(x => {
+          jobidSet = jobidSet + x.id
+        })
+        assert(jobidSet.size == 3)
       }
-      else {
-
-        Mist.main(Array(""))
-
-        var jobidSet = Set.empty[String]
-
-        val jobRepository =  RecoveryJobRepository
-
-        eventually(timeout(90 seconds), interval(500 milliseconds)) {
-          jobRepository.filter(new Specification[Job] {
-            override def specified(element: Job): Boolean = true
-          }).map(x => {
-            jobidSet = jobidSet + x.id
-          })
-          assert(jobidSet.size == 3)
-        }
 
     }
   }
 
   test("HTTP bad request") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
+    val future_response = clientHTTP.singleRequest(httpRequest)
 
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(BadRequest, _, _, _) => {
+        case HttpResponse(BadRequest, _, _, _) =>
           println(msg)
           http_response_success = true
-        }
-        case _ => {
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -144,24 +138,23 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "false")
+          if (json == "false") {
             http_response_success = true
-        }
-        case _ => {
+          }
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -171,22 +164,20 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP bad JSON") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(BadRequest, _, _, _) => {
+        case HttpResponse(BadRequest, _, _, _) =>
           println(msg)
           http_response_success = true
-        }
-        case _ => {
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
 
     Await.result(future_response, 10.seconds)
@@ -197,25 +188,24 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP bad extension in patch") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badextension)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badextension))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
           val errmsg = msg.entity.toString.split(':').drop(4).head.split(',').head.split('"').headOption.getOrElse("")
-          if (json == "false" && errmsg == (s" ${Constants.Errors.extensionError}"))
+          if (json == "false" && errmsg == s" ${Constants.Errors.extensionError}") {
             http_response_success = true
-        }
-        case _ => {
+          }
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -226,24 +216,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
   test("HTTP noDoStuff in jar") {
 
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "false")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "false"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -253,24 +240,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Spark Context jar") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -280,24 +264,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP error in python") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "false")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "false"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -307,24 +288,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Pyspark Context") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -334,24 +312,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP SparkSQL") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -361,24 +336,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Python SparkSQL") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -388,24 +360,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Spark HIVE") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 60.seconds)
     eventually(timeout(60 seconds), interval(1 second)) {
@@ -415,24 +384,21 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Python Spark HIVE") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "true")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "true"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 60.seconds)
     eventually(timeout(60 seconds), interval(1 second)) {
@@ -533,26 +499,23 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Timeout Exception") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
           val errmsg = msg.entity.toString.split(':').drop(3).head.split(',').headOption.getOrElse("")
           val comperr = "[\"" + Constants.Errors.jobTimeOutError + "\"]"
-          if (json == "false" && errmsg == comperr)
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "false" && errmsg == comperr
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -565,10 +528,9 @@ import io.hydrosphere.mist.master.JsonFormatSupport
     var context_success = false
     eventually(timeout(190 seconds), interval(1 second)) {
       InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
-        case Some(contextWrapper) => {
+        case Some(contextWrapper) =>
 
           context_success = true
-        }
         case None => context_success = false
       }
       assert(context_success)
@@ -577,26 +539,23 @@ import io.hydrosphere.mist.master.JsonFormatSupport
 
   test("HTTP Exception in jar code") {
     var http_response_success = false
-    val future_response = clientHTTP.singleRequest(HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror)))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
+    val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) => {
+        case HttpResponse(OK, _, _, _) =>
           println(msg)
           val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
           val errmsg = msg.entity.toString.split(':').drop(4).head.split('\"').headOption.getOrElse("")
           println(errmsg)
-          if (json == "false" && errmsg == " Test Error")
-            http_response_success = true
-        }
-        case _ => {
+          http_response_success = json == "false" && errmsg == " Test Error"
+        case _ =>
           println(msg)
           http_response_success = false
-        }
       }
-      case Failure(e) => {
+      case Failure(e) =>
         println(e)
         http_response_success = false
-      }
     }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
@@ -604,9 +563,9 @@ import io.hydrosphere.mist.master.JsonFormatSupport
     }
   }
 
-  test("Stop All Contexts"){
+  test("Stop All Contexts") {
 
-    Mist.contextManager ! StopAllContexts
+    Master.workerManager ! StopAllContexts
 
     eventually(timeout(10 seconds), interval(1 second)) {
 
@@ -618,28 +577,28 @@ import io.hydrosphere.mist.master.JsonFormatSupport
       assert(stop_context_success)
     }
 
-    clientHTTP.shutdownAllConnectionPools().onComplete{ _ =>
-      testsystem.shutdown()
+    clientHTTP.shutdownAllConnectionPools().onComplete { _ =>
+      testSystem.shutdown()
     }
 
-    Mist.system.stop(Mist.contextManager)
-    Mist.system.shutdown()
+    Master.system.stop(Master.workerManager)
+    Master.system.shutdown()
 
   }
 
   test("AnyJsonFormat read") {
     assert(
       5 == AnyJsonFormat.read(JsNumber(5)) &&
-      "TestString" == AnyJsonFormat.read(JsString("TestString")) &&
-      Map.empty[String, JsValue] == AnyJsonFormat.read(JsObject(Map.empty[String, JsValue])) &&
-      true == AnyJsonFormat.read(JsTrue) &&
-      false == AnyJsonFormat.read(JsFalse)
+        "TestString" == AnyJsonFormat.read(JsString("TestString")) &&
+        Map.empty[String, JsValue] == AnyJsonFormat.read(JsObject(Map.empty[String, JsValue])) &&
+        true == AnyJsonFormat.read(JsTrue) &&
+        false == AnyJsonFormat.read(JsFalse)
     )
   }
 
   test("AnyJsonFormat write") {
     assert(
-        JsNumber(5) == AnyJsonFormat.write(5) &&
+      JsNumber(5) == AnyJsonFormat.write(5) &&
         JsString("TestString") == AnyJsonFormat.write("TestString") &&
         JsArray(JsNumber(1), JsNumber(1), JsNumber(2)) == AnyJsonFormat.write(Seq(1, 1, 2)) &&
         JsObject(Map.empty[String, JsValue]) == AnyJsonFormat.write(Map.empty[String, JsValue]) &&
@@ -648,35 +607,35 @@ import io.hydrosphere.mist.master.JsonFormatSupport
     )
   }
 
-  test("ErrorWrapper"){
+  test("ErrorWrapper") {
     ErrorWrapper.set("TestUUID", "TestError")
     assert("TestError" == ErrorWrapper.get("TestUUID"))
     ErrorWrapper.remove("TestUUID")
   }
 
   test("AnyJsonFormat serializationError") {
-   intercept[spray.json.SerializationException] {
-     val unknown = Set(1, 2)
-     AnyJsonFormat.write(unknown)
-   }
+    intercept[spray.json.SerializationException] {
+      val unknown = Set(1, 2)
+      AnyJsonFormat.write(unknown)
+    }
   }
 
   test("AnyJsonFormat deserilalizationError") {
-   intercept[spray.json.DeserializationException] {
-     val unknown = JsNull
-     AnyJsonFormat.read(unknown)
-   }
+    intercept[spray.json.DeserializationException] {
+      val unknown = JsNull
+      AnyJsonFormat.read(unknown)
+    }
   }
 
-  test("Constants Errors and Actors"){
+  test("Constants Errors and Actors") {
     assert(Constants.Errors.jobTimeOutError == "Job timeout error"
-       && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
-       && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
-       && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
-       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
-       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-       && Constants.Actors.workerManagerName == "ContextManager"
-       && Constants.Actors.mqttServiceName == "MQTTService")
+      && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
+      && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
+      && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
+      && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
+      && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
+      && Constants.Actors.workerManagerName == "ContextManager"
+      && Constants.Actors.mqttServiceName == "MQTTService")
   }
 
 }
