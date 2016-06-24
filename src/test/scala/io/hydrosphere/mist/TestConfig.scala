@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.test
+package io.hydrosphere.mist
 
 import com.typesafe.config.ConfigFactory
 
