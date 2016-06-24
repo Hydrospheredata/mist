@@ -131,6 +131,33 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     }
   }
 
+  def checkById(jobId: String): Boolean = {
+    try {
+      val jobConfiguration = SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[JobConfiguration]
+      jobConfiguration.name.nonEmpty
+    }
+    catch {
+      case e: Exception =>
+        false
+    }
+  }
+
+  def countAll: Int ={
+    try{
+      val keys = map.getKeys.toArray()
+      var _count = 0
+      for(key <- keys){
+        _count += 1
+      }
+      _count
+    }
+    catch {
+      case e: Exception =>
+        println(e)
+        0
+    }
+  }
+
  override def clear(): Unit = {
    try {
      map.clear()
@@ -189,5 +216,13 @@ private[mist] object RecoveryJobRepository extends JobRepository {
       configurationRepository.remove(job)
       Master.recoveryActor ! JobCompleted
     }
+  }
+
+  def checkById(jobId: String): Boolean = {
+    configurationRepository.checkById(jobId)
+  }
+
+  def countAll: Int ={
+    configurationRepository.countAll
   }
 }
