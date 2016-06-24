@@ -632,7 +632,7 @@ import sys.process._
       AnyJsonFormat.read(unknown)
     }
   }
-
+/*
   test("Constants Errors and Actors") {
     assert(Constants.Errors.jobTimeOutError == "Job timeout error"
       && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
@@ -643,5 +643,5 @@ import sys.process._
       && Constants.Actors.workerManagerName == "ContextManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
-
+*/
 }
