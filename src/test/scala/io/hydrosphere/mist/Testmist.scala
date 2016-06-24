@@ -93,36 +93,26 @@ import sys.process._
 
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
-      /*
-        new Thread {
-          override def run() = {
-            "./mist.sh master" !
-          }
-        }.start()
-*/
       cancel("Can't run the Recovery test because recovery off in config file")
     }
     else {
 
       Master.main(Array(""))
-/*
-      new Thread {
-        override def run() = {
-          "./mist.sh master" !
-        }
-      }.start()
-*/
+
       var jobidSet = Set.empty[String]
 
       val jobRepository = RecoveryJobRepository
 
       eventually(timeout(90 seconds), interval(500 milliseconds)) {
+        /*
         jobRepository.filter(new Specification[Job] {
           override def specified(element: Job): Boolean = true
         }).foreach(x => {
           jobidSet = jobidSet + x.id
         })
         assert(jobidSet.size == 3)
+        */
+        assert(jobRepository.countAll == 0)
       }
 
     }
