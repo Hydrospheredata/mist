@@ -27,8 +27,8 @@ private[mist] class WorkerManager extends Actor {
       new Thread {
         override def run() = {
           val value = sys.env.get("MIST_HOME")
-          value.getOrElse(".") + "/mist.sh worker --namespace " + name !
-          //Worker.main(Array(name))
+          //value.getOrElse(".") + "/mist.sh worker --namespace " + name !
+          Worker.main(Array(name))
         }
       }.start()
     }
