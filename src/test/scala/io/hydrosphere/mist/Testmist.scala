@@ -23,6 +23,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
+// scalastyle:off
+import sys.process._
+// scalastyle:on
 
 
 /* @Ignore */ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
@@ -90,12 +93,25 @@ import scala.util.{Failure, Success}
 
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
+      /*
+        new Thread {
+          override def run() = {
+            "./mist.sh master" !
+          }
+        }.start()
+*/
       cancel("Can't run the Recovery test because recovery off in config file")
     }
     else {
 
       Master.main(Array(""))
-
+/*
+      new Thread {
+        override def run() = {
+          "./mist.sh master" !
+        }
+      }.start()
+*/
       var jobidSet = Set.empty[String]
 
       val jobRepository = RecoveryJobRepository
@@ -111,7 +127,7 @@ import scala.util.{Failure, Success}
 
     }
   }
-
+/*
   test("HTTP bad request") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
@@ -562,7 +578,7 @@ import scala.util.{Failure, Success}
       assert(http_response_success)
     }
   }
-
+*/
   test("Stop All Contexts") {
 
     Master.workerManager ! StopAllContexts
