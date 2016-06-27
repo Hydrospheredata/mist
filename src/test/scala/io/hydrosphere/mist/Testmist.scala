@@ -93,12 +93,24 @@ import sys.process._
 
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
+      /*
+      new Thread {
+        override def run() = {
+          Worker.main(Array("foo"))
+        }
+      }.start()
+      */
       cancel("Can't run the Recovery test because recovery off in config file")
     }
     else {
 
       Master.main(Array(""))
-
+      /*new Thread {
+        override def run() = {
+          Worker.main(Array("foo"))
+        }
+      }.start()
+*/
       var jobidSet = Set.empty[String]
 
       val jobRepository = RecoveryJobRepository
@@ -612,13 +624,13 @@ import sys.process._
         JsFalse == AnyJsonFormat.write(false)
     )
   }
-
+/*
   test("ErrorWrapper") {
     ErrorWrapper.set("TestUUID", "TestError")
     assert("TestError" == ErrorWrapper.get("TestUUID"))
     ErrorWrapper.remove("TestUUID")
   }
-
+*/
   test("AnyJsonFormat serializationError") {
     intercept[spray.json.SerializationException] {
       val unknown = Set(1, 2)
