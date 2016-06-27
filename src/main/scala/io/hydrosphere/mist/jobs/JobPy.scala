@@ -13,7 +13,7 @@ import sys.process._
 
 
 // wrapper for error of python
-object ErrorWrapper{
+class ErrorWrapper{
   var m_error = scala.collection.mutable.Map[String, String]()
   def set(k: String, in: String): Unit = { m_error put(k, in) }
   def get(k: String): String = m_error(k)
@@ -21,15 +21,18 @@ object ErrorWrapper{
 }
 
 // wrapper for data in/of python
-object DataWrapper{
+class DataWrapper{
   var m_data = scala.collection.mutable.Map[String, Any]()
-  def set(k: String, in: Any): Unit = { m_data put(k, in) }
+  def set(k: String, in: Any): Unit = {
+    m_data put(k, in)
+    println("Data set", in, k)
+  }
   def get(k: String): Any = m_data(k)
   def remove(k: String): Unit = {m_data - k}
 }
 
 // wrapper for SparkContext, SQLContext, HiveContext in python
-object SparkContextWrapper{
+class SparkContextWrapper{
   var m_conf = scala.collection.mutable.Map[String,SparkConf]()
   def getSparkConf(k: String): SparkConf = {m_conf(k)}
   def setSparkConf(k: String, conf: SparkConf): Unit = {m_conf put (k, conf)}
@@ -40,35 +43,44 @@ object SparkContextWrapper{
   def setSparkContext(k: String, sc: SparkContext): Unit = {m_context put (k, new JavaSparkContext(sc))}
   def removeSparkContext(k: String): Unit = {m_context - k}
 
-  lazy val jobRepository = {
-    MistConfig.Recovery.recoveryOn match {
-      case false => InMemoryJobRepository
-      case true => RecoveryJobRepository
-    }
+  var m_context_wrapper = scala.collection.mutable.Map[String, ContextWrapper]()
+
+  def addContextWrapper(id: String, contextWrapper: ContextWrapper): Unit ={
+    m_context_wrapper put (id, contextWrapper)
+  }
+  //2var m_sqlcontext = scala.collection.mutable.Map[String, SQLContext]()
+ // var m_job_py = scala.collection.mutable.Map[String, JobPy]()
+
+  def getSqlContext(k: String): SQLContext = {
+    //m_job_py(k).initSqlContext()
+    //m_sqlcontext(k)
+    m_context_wrapper(k).sqlContext
   }
 
-  var m_sqlcontext = scala.collection.mutable.Map[String, SQLContext]()
-  def getSqlContext(k: String): SQLContext = {
-    jobRepository.get(new JobByIdSpecification(k)).get.initSqlContext()
-    m_sqlcontext(k)
-  }
-  def setSqlContext(k: String, sqlc: SQLContext): Unit = {
-    m_sqlcontext put(k, sqlc)
+
+  def setSqlContext(k: String, sqlc: SQLContext, jobPy: JobPy): Unit = {
+    //m_job_py put (k, jobPy)
+    //m_sqlcontext put(k, sqlc)
+
   }
   def removeSqlContext(k: String): Unit = {
-    m_sqlcontext -k
+   // m_job_py - k
+    //m_sqlcontext - k
   }
 
-  var m_hivecontext = scala.collection.mutable.Map[String, HiveContext]()
+  //var m_hivecontext = scala.collection.mutable.Map[String, HiveContext]()
   def getHiveContext(k: String): HiveContext = {
-    jobRepository.get(new JobByIdSpecification(k)).get.initHiveContext()
-    m_hivecontext(k)
+    //m_job_py(k).initHiveContext()
+    //m_hivecontext(k)
+    m_context_wrapper(k).hiveContext
   }
-  def setHiveContext(k: String, hc: HiveContext): Unit = {
-    m_hivecontext put(k, hc)
+  def setHiveContext(k: String, hc: HiveContext, jobPy: JobPy): Unit = {
+   // m_job_py put (k, jobPy)
+    //m_hivecontext put(k, hc)
   }
   def removeHiveContext(k: String): Unit = {
-    m_hivecontext - k
+    //m_job_py - k
+    //m_hivecontext - k
   }
 }
 
@@ -79,16 +91,20 @@ object SparkContextWrapper{
   */
 private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job {
 
+  val dataWrapper = new DataWrapper
+  val errorWrapper = new ErrorWrapper
+  val sparkContextWrapper = new SparkContextWrapper
+
   override val jobRunnerName = JobRunnerName
 
   override val configuration = jobConfiguration
 
   // lazy initialisation Contexts
   override def initSqlContext(): Unit = {
-    SparkContextWrapper.setSqlContext(id, contextWrapper.sqlContext)
+    //sparkContextWrapper.setSqlContext(id, contextWrapper.sqlContext, this)
   }
   override def initHiveContext(): Unit = {
-    SparkContextWrapper.setHiveContext(id, contextWrapper.hiveContext)
+    //sparkContextWrapper.setHiveContext(id, contextWrapper.hiveContext, this)
   }
 
   /** Runs a job
@@ -100,10 +116,11 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
     try {
       var cmd = "python " + configuration.pyPath.get
 
-      DataWrapper.set(id, configuration.parameters)
+      dataWrapper.set(id, configuration.parameters)
 
-      SparkContextWrapper.setSparkConf(id, contextWrapper.context.getConf)
-      SparkContextWrapper.setSparkContext(id, contextWrapper.context)
+      sparkContextWrapper.addContextWrapper(id, contextWrapper)
+      sparkContextWrapper.setSparkConf(id, contextWrapper.context.getConf)
+      sparkContextWrapper.setSparkContext(id, contextWrapper.context)
 
       val gatewayServer: GatewayServer = new GatewayServer(this)
       try {
@@ -119,16 +136,16 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
 
         val exitCode = cmd.!
         if (exitCode != 0) {
-          val errmsg = ErrorWrapper.get(id)
+          val errmsg = errorWrapper.get(id)
           // We must remove Error from ErrorWrapper
-          ErrorWrapper.remove(id)
+          errorWrapper.remove(id)
           throw new Exception("Error in python code: " + errmsg)
         }
       }
       catch {
         case e: Throwable =>
           // We must remove Data from DataWrapper
-          DataWrapper.remove(id)
+          dataWrapper.remove(id)
           throw new Exception(e)
       }
       finally {
@@ -136,15 +153,15 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
         gatewayServer.shutdown()
         println(" Exiting due to broken pipe from Python driver")
 
-        SparkContextWrapper.removeSparkConf(id)
-        SparkContextWrapper.removeSparkContext(id)
-        SparkContextWrapper.removeSqlContext(id)
-        SparkContextWrapper.removeHiveContext(id)
+        sparkContextWrapper.removeSparkConf(id)
+        sparkContextWrapper.removeSparkContext(id)
+        sparkContextWrapper.removeSqlContext(id)
+        sparkContextWrapper.removeHiveContext(id)
       }
 
-      val result = DataWrapper.get(id)
+      val result = dataWrapper.get(id)
       // We must remove Data from DataWrapper
-      DataWrapper.remove(id)
+      dataWrapper.remove(id)
 
       Left(Map("result" -> result))
     } catch {
