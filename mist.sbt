@@ -80,7 +80,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
