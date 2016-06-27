@@ -61,7 +61,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 * Create [configuration file](#configuration)
 * Run
 
-        ./mist.sh   --config /path/to/application.conf
+        ./mist.sh   --config /path/to/application.conf \
                     --jar target/scala-2.10/mist-assembly-0.2.0.jar
 
 ##Configuration
@@ -397,10 +397,10 @@ Apache 2.0 License
 
 -----------------
 - [x] Persist job state for self healing
-- [x] Super parallel mode Support multi JVM
+- [x] Super parallel mode: run Spark contexts in separate JVMs
 - [ ] Cluster mode and node framework
-- [ ] Add logging
-- [ ] Restification
+- [ ] Powerful logging
+- [ ] RESTification
 - [ ] Support streaming contexts/jobs
 - [ ] Apache Kafka support
 - [ ] AMQP support
