@@ -7,9 +7,7 @@ import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.api.java.JavaSparkContext
 import py4j.GatewayServer
-// scalastyle:off
 import sys.process._
-// scalastyle:on
 
 
 // wrapper for error of python
