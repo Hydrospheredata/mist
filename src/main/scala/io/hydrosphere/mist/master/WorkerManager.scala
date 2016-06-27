@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
+
 import akka.actor.{AddressFromURIString, Actor}
 import akka.pattern.ask
 import akka.cluster.Cluster
@@ -9,9 +11,7 @@ import Messages.{CreateContext, StopAllContexts, RemoveContext, WorkerDidStart}
 import io.hydrosphere.mist.jobs.JobConfiguration
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
-// scalastyle:off
 import sys.process._
-// scalastyle:on
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor {
@@ -24,7 +24,9 @@ private[mist] class WorkerManager extends Actor {
     if (!workers.contains(name)) {
       new Thread {
         override def run() = {
-          sys.env("MIST_HOME") + "/mist.sh worker --namespace " + name !
+          val configFile = System.getProperty("config.file")
+          val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+          s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
         }
       }.start()
     }

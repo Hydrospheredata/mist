@@ -4,9 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import com.typesafe.config.{ConfigValue, ConfigException, ConfigFactory, Config}
 
-// scalastyle:off
 import scala.collection.JavaConversions._
-// scalastyle:on
 import scala.concurrent.duration.{FiniteDuration, Duration}
 
 /** Configuration wrapper */

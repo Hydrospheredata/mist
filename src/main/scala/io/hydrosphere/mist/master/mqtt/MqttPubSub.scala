@@ -17,9 +17,7 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
   }
 
   private[this] val client = {
-    // scalastyle:off
     val client = new MqttAsyncClient(connectionUrl, MqttAsyncClient.generateClientId(), null)
-    // scalastyle:on
     client.setCallback(new MqttPubSub.Callback(self))
     client
   }
