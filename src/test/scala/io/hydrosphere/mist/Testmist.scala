@@ -514,7 +514,7 @@ import sys.process._
       assert(!MqttSuccessObj.success)
     }
   }
-
+/*
   test("HTTP Timeout Exception") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
@@ -540,7 +540,8 @@ import sys.process._
       assert(http_response_success)
     }
   }
-
+*/
+  /*
   test("Spark context launched") {
 
     var context_success = false
@@ -554,7 +555,7 @@ import sys.process._
       assert(context_success)
     }
   }
-
+*/
   test("HTTP Exception in jar code") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
