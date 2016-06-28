@@ -7,7 +7,7 @@ class MyJob:
     def doStuff(self, job):
 
         err = job._entry_point.errorWrapper()
-        err.set(sys.argv[2], "TestError")
+        err.set("TestError")
         result = 1/0
 
         return result

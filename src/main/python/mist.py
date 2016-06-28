@@ -41,9 +41,9 @@ class Job:
   def sc(self):
     try:
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
-      sconf = sparkContextWrapper.getSparkConf(sys.argv[2])
+      sconf = sparkContextWrapper.getSparkConf()
       conf = SparkConf(_jvm = self._gateway.jvm, _jconf = sconf)
-      jsc = sparkContextWrapper.getSparkContext(sys.argv[2])
+      jsc = sparkContextWrapper.getSparkContext()
       self._sc = SparkContext(jsc=jsc, gateway=self._gateway, conf=conf)
       self.sc = self._getSC()
       return self._sc
@@ -51,7 +51,7 @@ class Job:
     except Exception:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
   def _getSQLC(self):
     return self._sqlc
@@ -60,14 +60,14 @@ class Job:
   def sqlc(self):
     try:
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
-      self._sqlc = SQLContext(self.sc, sparkContextWrapper.getSqlContext(sys.argv[2]))
+      self._sqlc = SQLContext(self.sc, sparkContextWrapper.getSqlContext())
       self.sqlc = self._getSQLC()
       return  self._sqlc
 
     except Exception:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
   def _getHC(self):
     return self._hc
@@ -76,45 +76,45 @@ class Job:
   def hc(self):
     try:
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
-      self._hc = HiveContext(self.sc, sparkContextWrapper.getHiveContext(sys.argv[2]))
+      self._hc = HiveContext(self.sc, sparkContextWrapper.getHiveContext())
       self.hc = self._getHC()
       return self._hc
 
     except Exception:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
   @property
   def parameters(self):
     try:
       dataWrapper = self._entry_point.dataWrapper()
-      self._parameters = dataWrapper.get(sys.argv[2])
+      self._parameters = dataWrapper.get()
       return self._parameters
 
     except Py4JJavaError:
       print("except Py4JJavaError")
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
     except Exception:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
   def sendResult(self, result):
     try:
       dataWrapper = self._entry_point.dataWrapper()
-      dataWrapper.set(sys.argv[2], result)
+      dataWrapper.set(result)
 
     except Py4JJavaError:
       print("except Py4JJavaError")
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
 
     except Exception:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
-      err.set(sys.argv[2], traceback.format_exc())
+      err.set(traceback.format_exc())
