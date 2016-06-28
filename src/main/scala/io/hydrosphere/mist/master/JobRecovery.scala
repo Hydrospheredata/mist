@@ -5,7 +5,7 @@ import akka.actor.Actor
 import io.hydrosphere.mist.master.mqtt.{MqttPubSubActor, MqttPubSub}
 import MqttPubSub.Publish
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.jobs.{JobConfiguration, ConfigurationRepository, JobRepository}
+import io.hydrosphere.mist.jobs.{JobConfiguration, ConfigurationRepository}
 import org.json4s.jackson.Serialization
 
 import scala.collection.mutable.ArrayBuffer
