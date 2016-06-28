@@ -3,11 +3,11 @@ package io.hydrosphere.mist.master
 import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Messages, MistConfig, Worker}
+import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker}
 
 import scala.concurrent.duration.DurationInt
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.jobs.{JobConfiguration, RecoveryJobRepository}
+import io.hydrosphere.mist.jobs._
 
 import scala.language.postfixOps
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -80,12 +80,26 @@ private[mist] class WorkerManager extends Actor {
       })
 
     case AddJobToRecovery(jobId, jobConfiguration) =>
-      if (MistConfig.Recovery.recoveryOn == true)
-        RecoveryJobRepository.addById(jobId, jobConfiguration)
+      if (MistConfig.Recovery.recoveryOn == true) {
+        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+          case "MapDb" => InMapDbJobConfigurationRepository
+          case _ => InMemoryJobConfigurationRepository
+
+        }
+        configurationRepository.add(jobId, jobConfiguration)
+        Master.recoveryActor ! JobStarted
+      }
 
     case RemoveJobFromRecovery(jobId) =>
-      if (MistConfig.Recovery.recoveryOn == true)
-        RecoveryJobRepository.removeById(jobId)
+      if (MistConfig.Recovery.recoveryOn == true) {
+        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+          case "MapDb" => InMapDbJobConfigurationRepository
+          case _ => InMemoryJobConfigurationRepository
+
+        }
+        configurationRepository.remove(jobId)
+        Master.recoveryActor ! JobCompleted
+      }
 
   }
 

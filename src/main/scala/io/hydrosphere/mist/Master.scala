@@ -6,8 +6,7 @@ import akka.stream.ActorMaterializer
 import Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
 import io.hydrosphere.mist.master.{HTTPService, WorkerManager, JobRecovery, StartRecovery}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, InMapDbJobConfigurationRepository,
-                                 RecoveryJobRepository, InMemoryJobRepository}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, InMapDbJobConfigurationRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -43,18 +42,16 @@ private[mist] object Master extends App with HTTPService {
 
   // Job Recovery
   var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
-  val jobRepository = {
-    MistConfig.Recovery.recoveryOn match {
-      case true =>
-        configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-          case "MapDb" => InMapDbJobConfigurationRepository
-        }
-        RecoveryJobRepository
-      case _ => InMemoryJobRepository
-    }
+
+  MistConfig.Recovery.recoveryOn match {
+    case true =>
+      configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+        case "MapDb" => InMapDbJobConfigurationRepository
+        case _ => InMemoryJobConfigurationRepository
+      }
   }
 
-  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository, jobRepository))
+  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository))
   if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
     recoveryActor ! StartRecovery
   }

@@ -5,18 +5,18 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods.POST
-import akka.http.scaladsl.model.StatusCodes.{OK, BadRequest}
-import akka.http.scaladsl.model.{HttpRequest, HttpEntity, HttpResponse, MediaTypes}
+import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
-import io.hydrosphere.mist.jobs.{ErrorWrapper, Job, JobConfiguration, RecoveryJobRepository}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, _}
 import io.hydrosphere.mist.master.JsonFormatSupport
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
-import org.scalatest.{FunSuite, BeforeAndAfterAll}
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
-import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString, JsNumber, JsString, JsTrue, JsValue, JsFalse, JsArray, JsNull, JsObject}
+import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsFalse, JsNull, JsNumber, JsObject, JsString, JsTrue, JsValue, pimpString}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -93,38 +93,30 @@ import sys.process._
 
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
-      /*
-      new Thread {
-        override def run() = {
-          Worker.main(Array("foo"))
-        }
-      }.start()
-      */
+
       cancel("Can't run the Recovery test because recovery off in config file")
     }
     else {
 
       Master.main(Array(""))
-      /*new Thread {
-        override def run() = {
-          Worker.main(Array("foo"))
-        }
-      }.start()
-*/
+
       var jobidSet = Set.empty[String]
 
-      val jobRepository = RecoveryJobRepository
+      var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
+        MistConfig.Recovery.recoveryOn match {
+        case true =>
+          configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+            case "MapDb" => InMapDbJobConfigurationRepository
+            case _ => InMemoryJobConfigurationRepository
+          }
+      }
 
       eventually(timeout(90 seconds), interval(500 milliseconds)) {
-        /*
-        jobRepository.filter(new Specification[Job] {
-          override def specified(element: Job): Boolean = true
-        }).foreach(x => {
-          jobidSet = jobidSet + x.id
+
+        configurationRepository.getAll.foreach(x => {
+          jobidSet = jobidSet + x._1
         })
         assert(jobidSet.size == 3)
-        */
-        assert(jobRepository.countAll == 0)
       }
 
     }
