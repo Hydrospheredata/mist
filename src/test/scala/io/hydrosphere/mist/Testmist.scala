@@ -11,7 +11,7 @@ import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, _}
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
@@ -99,9 +99,7 @@ import sys.process._
     else {
 
       Master.main(Array(""))
-
-      var jobidSet = Set.empty[String]
-
+      var jobidSet = scala.collection.mutable.Map[String, JobConfiguration]()
       var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
         MistConfig.Recovery.recoveryOn match {
         case true =>
@@ -111,14 +109,11 @@ import sys.process._
           }
       }
 
-      eventually(timeout(90 seconds), interval(500 milliseconds)) {
+      eventually (timeout(5 seconds), interval(5 millis)) { TryRecoveyNext._collection.size > 0 }
 
-        configurationRepository.getAll.foreach(x => {
-          jobidSet = jobidSet + x._1
-        })
-        assert(jobidSet.size == 3)
+      eventually(timeout(30 seconds), interval(500 milliseconds)) {
+        assert(TryRecoveyNext._collection.size == 0 && configurationRepository.size == 0)
       }
-
     }
   }
 
@@ -649,4 +644,5 @@ import sys.process._
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
 */
+
 }

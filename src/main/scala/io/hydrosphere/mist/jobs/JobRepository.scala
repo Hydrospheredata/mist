@@ -85,7 +85,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
       for(key <- keys){
         _collection put (key.toString, SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[JobConfiguration])
       }
-      println(s"${_collection.size} loaded from MapDb")
+      println(s"${_collection.size} get from MapDb")
     }
     catch {
       case e: Exception =>
@@ -125,6 +125,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
  override def clear(): Unit = {
    try {
      map.clear()
+     println("MpDb cleaned", size)
    } catch {
      case e: Exception => println(e)
    }
