@@ -24,7 +24,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Tests](#tests)
 - [Contact](#contact)
 - [License](#license)
-- [TODO](#todo)
+- [Roadmap](#roadmap)
 
 ## Features
 
@@ -60,18 +60,9 @@ It implements Spark as a Service and creates a unified API layer for building en
     
 * Create [configuration file](#configuration)
 * Run
-	        
-        spark-submit    --class io.hydrosphere.mist.Mist \
-                        --driver-java-options "-Dconfig.file=/path/to/application.conf" \ target/scala-2.10/mist-assembly-0.2.0.jar
 
-Or if you use mesos will be need specify master and executor (but not necessarily)
-
-        spark-submit    --master mesos://vagrant-ubuntu-trusty-64:5050 \
-                        -c spark.executor.uri=hdfs://vagrant-ubuntu-trusty-64/user/spark-1.5.2-bin-hadoop2.6.tgz  \
-                        --class io.hydrosphere.mist.Mist  \
-                        --driver-java-options "-Dconfig.file=/path/to/application.conf" \ target/scala-2.10/mist-assembly-0.2.0.jar
-
-
+        ./mist.sh   --config /path/to/application.conf \
+                    --jar target/scala-2.10/mist-assembly-0.2.0.jar
 
 ##Configuration
 
@@ -82,9 +73,6 @@ Configuration files are in [HOCON format](https://github.com/typesafehub/config/
 ```hocon
 # spark master url can be either of three: local, yarn, mesos (local by default)
 mist.spark.master = "local[*]"
-
-# number of threads: one thread for one job
-mist.settings.thread-number = 16
 
 # http interface (off by default)
 mist.http.on = false
@@ -362,7 +350,7 @@ mist.contexts.foo.spark-conf = {
 
 Next start Mist like this, changing the mist-assembly-X.X.X.jar file name to match the version you installed:
 
-         spark-submit --class io.hydrosphere.mist.Mist --driver-java-options "-Dconfig.file=/usr/src/mist/mist/mist.conf" /usr/src/mist/mist/mistsrc/mist/target/scala-2.10/mist-assembly-0.1.1.jar
+         ./mist.sh --config /usr/src/mist/mist/mist.conf --jar /usr/src/mist/mist/mistsrc/mist/target/scala-2.10/mist-assembly-0.2.0.jar
          
 Set Python Path as shown below, again adjusting the file names and paths to match your installation:
 
@@ -405,12 +393,15 @@ Please report bugs/problems to:
 
 Apache 2.0 License
 
-## TODO
+## Roadmap
 
-- Super parallel mode support multi JVM
-- Cluster mode and node framework
-- Add logging
-- Restification 
-- Support streaming contexts/jobs
-- Apache Kafka support
-- AMQP support
+-----------------
+- [x] Persist job state for self healing
+- [x] Super parallel mode: run Spark contexts in separate JVMs
+- [ ] Cluster mode and node framework
+- [ ] Powerful logging
+- [ ] RESTification
+- [ ] Support streaming contexts/jobs
+- [ ] Apache Kafka support
+- [ ] AMQP support
+- [ ] Web Interface
