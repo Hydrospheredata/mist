@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.{AddressFromURIString, Actor}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker}
+import io.hydrosphere.mist.{Master, MistConfig, Worker}
 
 import scala.concurrent.duration.DurationInt
 import io.hydrosphere.mist.Messages._
@@ -28,8 +28,8 @@ private[mist] class WorkerManager extends Actor {
         override def run() = {
           val configFile = System.getProperty("config.file")
           val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-          s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
-            Worker.main(Array(name))
+          //s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
+          Worker.main(Array(name))
         }
       }.start()
     }
