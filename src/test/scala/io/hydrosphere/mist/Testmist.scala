@@ -29,7 +29,7 @@ import sys.process._
 // scalastyle:on
 
 
-@Ignore class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
+/*@Ignore*/ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
