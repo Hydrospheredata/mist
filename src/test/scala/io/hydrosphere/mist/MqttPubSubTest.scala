@@ -11,20 +11,21 @@ import org.scalatest.time.{Second, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
+//import org.scalatest._ //for Ignore
 
-class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
+/*@Ignore*/ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures {
-  import Master.system.dispatcher
+  import system.dispatcher
 
   def this() = this(ActorSystem("MqttTestActor"))
 
-  override def afterAll() = TestKit.shutdownActorSystem(Master.system)
+  override def afterAll() = TestKit.shutdownActorSystem(system)
 
   "MqttPubSub" must {
     "Mqtt ok" in {
       val count = 10
 
-      val subs = Master.system.actorOf(Props(classOf[SubsActor], testActor, count))
+      val subs = system.actorOf(Props(classOf[SubsActor], testActor, count))
       subs ! SubscribeTest
 
       within(30.seconds) {
@@ -38,7 +39,7 @@ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
       implicit val askTimeout = akka.util.Timeout(1, SECONDS)
 
       for (delay <- 1 to 50 if (receivedCount < count)) {
-        receivedCount = akka.pattern.after(1.seconds, Master.system.scheduler)(subs ? Report).mapTo[Int].futureValue
+        receivedCount = akka.pattern.after(1.seconds, system.scheduler)(subs ? Report).mapTo[Int].futureValue
         println(s"$delay: Pub $count Rec $receivedCount ~ ${receivedCount * 100.0 / count}%")
       }
       assert(receivedCount == count)
