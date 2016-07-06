@@ -7,7 +7,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.2.0"
+version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")

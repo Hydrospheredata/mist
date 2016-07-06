@@ -28,8 +28,8 @@ private[mist] class WorkerManager extends Actor {
         override def run() = {
           val configFile = System.getProperty("config.file")
           val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-          //s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
-          Worker.main(Array(name))
+          val home = sys.env.getOrElse("MIST_HOME", ".")
+          s"${home}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
         }
       }.start()
     }
@@ -42,6 +42,7 @@ private[mist] class WorkerManager extends Actor {
       cluster.leave(AddressFromURIString(address))
     }
   }
+
 
   override def receive: Receive = {
     case CreateContext(name) =>
@@ -101,6 +102,10 @@ private[mist] class WorkerManager extends Actor {
         configurationRepository.remove(jobId)
         Master.recoveryActor ! JobCompleted
       }
+
+    case ShutdownMaster => {
+      cluster.leave(cluster.selfAddress)
+    }
 
   }
 

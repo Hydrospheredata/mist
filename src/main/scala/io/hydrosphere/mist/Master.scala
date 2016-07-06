@@ -3,10 +3,10 @@ package io.hydrosphere.mist
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import Messages.{CreateContext, StopAllContexts}
+import Messages.{CreateContext, ShutdownMaster, StopAllContexts}
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, WorkerManager, JobRecovery, StartRecovery}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, InMapDbJobConfigurationRepository}
+import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, WorkerManager}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
@@ -60,5 +60,6 @@ private[mist] object Master extends App with HTTPService {
   sys addShutdownHook {
     println("Stopping all the contexts")
     workerManager ! StopAllContexts
+    workerManager ! ShutdownMaster
   }
 }

@@ -10,8 +10,10 @@ import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.{Constants, MistConfig}
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Random, Success}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.{Failure, Random, Success, Try}
+
+import scala.concurrent.duration.DurationInt
 
 class ContextNode(name: String) extends Actor with ActorLogging{
 
@@ -60,14 +62,12 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
 
 
-    case MemberExited(member) =>
-      if (member.address == cluster.selfAddress) {
-        cluster.system.shutdown()
-      }
-
     case MemberRemoved(member, prevStatus) =>
-      if (member.address == cluster.selfAddress) {
-        sys.exit(0)
+      if (member.address == nodeAddress || member.address == serverAddress) {
+        //sys.exit(0)
+        context.system.registerOnTermination(System.exit(0))
+        context.system.scheduler.scheduleOnce(10.seconds)(System.exit(0))(context.system.dispatcher)
+        context.system.shutdown()
       }
   }
 }
