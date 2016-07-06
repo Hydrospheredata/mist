@@ -1,35 +1,29 @@
-package io.hydrosphere.mist
+package  io.hydrosphere.mist
 
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpMethods.POST
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
+import akka.http.scaladsl.model.HttpMethods._
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.Messages.StopAllContexts
-//import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, _}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, JobConfiguration}
 import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsFalse, JsNull, JsNumber, JsObject, JsString, JsTrue, JsValue, pimpString}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
-import scala.language.postfixOps
 import scala.util.{Failure, Success}
-import org.scalatest._ //for Ignore
-// scalastyle:off
 import sys.process._
-// scalastyle:on
+import scala.io.Source
 
-
-@Ignore class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
+class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -39,8 +33,18 @@ import sys.process._
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
+object StartMist {
+  val threadMaster = {
+    new Thread {
+      override def run() = {
+        "./mist.sh master --config configs/travis.conf --jar target/scala-2.10/mist-assembly-0.3.0.jar" !
+      }
+    }
+  }
+}
+
+
   override def beforeAll(): Unit = {
-    // prepare recovery file
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -75,54 +79,14 @@ import sys.process._
       new FileOutputStream(dest) getChannel() transferFrom(
         new FileInputStream(src) getChannel, 0, Long.MaxValue)
     }
+
+    MQTTTest.subscribe(system)
+
+    StartMist.threadMaster.start()
+
+    Thread.sleep(10000)
   }
-  /*
-  test("Spark Context is not running") {
-    var no_context_success = false
-    InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
 
-      case Some(contextWrapper) =>
-        println(contextWrapper)
-        println(contextWrapper.sqlContext.toString)
-        no_context_success = false
-      case None => no_context_success = true
-    }
-    assert(no_context_success)
-  }
-  */
-  test("Recovery 3 jobs from MapDb") {
-
-    if (!MistConfig.Recovery.recoveryOn) {
-      Master.main(Array(""))
-
-      cancel("Can't run the Recovery test because recovery off in config file")
-    }
-    else {
-
-      Master.main(Array(""))
-      /*
-      val configFile = System.getProperty("config.file")
-      val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-      val home = sys.env.getOrElse("MIST_HOME", ".")
-      s"${home}/mist.sh master mist--config $configFile --jar $jarPath" !
-*/
-      var jobidSet = scala.collection.mutable.Map[String, JobConfiguration]()
-      var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
-        MistConfig.Recovery.recoveryOn match {
-        case true =>
-          configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-            case "MapDb" => InMapDbJobConfigurationRepository
-            case _ => InMemoryJobConfigurationRepository
-          }
-      }
-
-      eventually (timeout(5 seconds), interval(5 millis)) { TryRecoveyNext._collection.size > 0 }
-
-      eventually(timeout(30 seconds), interval(500 milliseconds)) {
-        assert(TryRecoveyNext._collection.size == 0 && configurationRepository.size == 0)
-      }
-    }
-  }
 
   test("HTTP bad request") {
     var http_response_success = false
@@ -508,48 +472,7 @@ import sys.process._
       assert(!MqttSuccessObj.success)
     }
   }
-/*
-  test("HTTP Timeout Exception") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          val errmsg = msg.entity.toString.split(':').drop(3).head.split(',').headOption.getOrElse("")
-          val comperr = "[\"" + Constants.Errors.jobTimeOutError + "\"]"
-          http_response_success = json == "false" && errmsg == comperr
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-*/
-  /*
-  test("Spark context launched") {
 
-    var context_success = false
-    eventually(timeout(190 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
-        case Some(contextWrapper) =>
-
-          context_success = true
-        case None => context_success = false
-      }
-      assert(context_success)
-    }
-  }
-*/
   test("HTTP Exception in jar code") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
@@ -576,81 +499,12 @@ import sys.process._
     }
   }
 
-  test("Stop All Contexts") {
+  override def afterAll(): Unit ={
 
-    Master.workerManager ! StopAllContexts
+    StartMist.threadMaster.interrupt()
+    StartMist.threadMaster.join()
 
-    eventually(timeout(10 seconds), interval(1 second)) {
-
-      var stop_context_success = true
-      /*
-      for (contextWrapper <- InMemoryContextRepository.filter(new DummyContextSpecification())) {
-        println(contextWrapper)
-        stop_context_success = false
-      }  */
-      assert(stop_context_success)
-    }
-
-    clientHTTP.shutdownAllConnectionPools().onComplete { _ =>
-      testSystem.shutdown()
-    }
-
-    Master.system.stop(Master.workerManager)
-    Master.system.shutdown()
-
+    val pid = Source.fromFile("master.pid").getLines.mkString
+    s"kill ${pid}"!
   }
-
-  test("AnyJsonFormat read") {
-    assert(
-      5 == AnyJsonFormat.read(JsNumber(5)) &&
-        "TestString" == AnyJsonFormat.read(JsString("TestString")) &&
-        Map.empty[String, JsValue] == AnyJsonFormat.read(JsObject(Map.empty[String, JsValue])) &&
-        true == AnyJsonFormat.read(JsTrue) &&
-        false == AnyJsonFormat.read(JsFalse)
-    )
-  }
-
-  test("AnyJsonFormat write") {
-    assert(
-      JsNumber(5) == AnyJsonFormat.write(5) &&
-        JsString("TestString") == AnyJsonFormat.write("TestString") &&
-        JsArray(JsNumber(1), JsNumber(1), JsNumber(2)) == AnyJsonFormat.write(Seq(1, 1, 2)) &&
-        JsObject(Map.empty[String, JsValue]) == AnyJsonFormat.write(Map.empty[String, JsValue]) &&
-        JsTrue == AnyJsonFormat.write(true) &&
-        JsFalse == AnyJsonFormat.write(false)
-    )
-  }
-/*
-  test("ErrorWrapper") {
-    ErrorWrapper.set("TestUUID", "TestError")
-    assert("TestError" == ErrorWrapper.get("TestUUID"))
-    ErrorWrapper.remove("TestUUID")
-  }
-*/
-  test("AnyJsonFormat serializationError") {
-    intercept[spray.json.SerializationException] {
-      val unknown = Set(1, 2)
-      AnyJsonFormat.write(unknown)
-    }
-  }
-
-  test("AnyJsonFormat deserilalizationError") {
-    intercept[spray.json.DeserializationException] {
-      val unknown = JsNull
-      AnyJsonFormat.read(unknown)
-    }
-  }
-/*
-  test("Constants Errors and Actors") {
-    assert(Constants.Errors.jobTimeOutError == "Job timeout error"
-      && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
-      && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
-      && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
-      && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
-      && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "ContextManager"
-      && Constants.Actors.mqttServiceName == "MQTTService")
-  }
-*/
-
 }

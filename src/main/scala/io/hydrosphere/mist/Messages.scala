@@ -15,6 +15,8 @@ private[mist] object Messages {
   case class AddJobToRecovery(jobId: String, jobConfiguration: JobConfiguration)
 
   case class RemoveJobFromRecovery(jobId: String)
+
+  case class ShutdownMaster
 }
 
 

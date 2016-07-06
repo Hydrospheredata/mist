@@ -7,7 +7,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.2.0"
+version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -81,9 +81,9 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
 
-ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := false
 
 parallelExecution in Test := false
 
