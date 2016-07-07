@@ -24,7 +24,7 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
   }
 
   override def remove(jobId: String): Unit = {
-    _collection - jobId
+    _collection.remove(jobId)
   }
 
   override def get(jobId: String): JobConfiguration = {
@@ -36,9 +36,7 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
   override def size: Int = _collection.size
 
   override def clear(): Unit = {
-    for(jobConf <- getAll){
-      _collection - jobConf._1
-    }
+    _collection.clear()
   }
 }
 
@@ -95,15 +93,14 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
   }
 
   override def get(jobId: String): JobConfiguration = {
-    var jobConfiguration: JobConfiguration = ???
     try {
-      jobConfiguration = SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[JobConfiguration]
+      SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[JobConfiguration]
     }
     catch {
       case e: Exception =>
         println(e)
+        new JobConfiguration(None, None, None, "Empty", Map().empty, None)
     }
-    jobConfiguration
   }
 
   override def size: Int ={
