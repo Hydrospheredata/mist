@@ -331,8 +331,6 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
 
       lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository))
 
-      eventually (timeout(5 seconds), interval(5 millis)) { configurationRepository.size == 3 }
-
       recoveryActor ! StartRecovery
 
       eventually (timeout(5 seconds), interval(5 millis)) {
