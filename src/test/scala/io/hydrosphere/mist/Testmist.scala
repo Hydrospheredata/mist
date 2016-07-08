@@ -29,8 +29,8 @@ import sys.process._
 // scalastyle:on
 
 
-@Ignore class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
-
+class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
+/*
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -38,9 +38,10 @@ import sys.process._
   val clientHTTP = Http(testSystem)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
-
+*/
   override def beforeAll(): Unit = {
     // prepare recovery file
+    /*
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -75,6 +76,7 @@ import sys.process._
       new FileOutputStream(dest) getChannel() transferFrom(
         new FileInputStream(src) getChannel, 0, Long.MaxValue)
     }
+    */
   }
   /*
   test("Spark Context is not running") {
@@ -89,7 +91,7 @@ import sys.process._
     }
     assert(no_context_success)
   }
-  */
+
   test("Recovery 3 jobs from MapDb") {
 
     if (!MistConfig.Recovery.recoveryOn) {
@@ -508,7 +510,7 @@ import sys.process._
       assert(!MqttSuccessObj.success)
     }
   }
-/*
+
   test("HTTP Timeout Exception") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
@@ -534,8 +536,7 @@ import sys.process._
       assert(http_response_success)
     }
   }
-*/
-  /*
+
   test("Spark context launched") {
 
     var context_success = false
@@ -549,7 +550,7 @@ import sys.process._
       assert(context_success)
     }
   }
-*/
+
   test("HTTP Exception in jar code") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
@@ -598,7 +599,7 @@ import sys.process._
     Master.system.stop(Master.workerManager)
     Master.system.shutdown()
 
-  }
+  }*/
 
   test("AnyJsonFormat read") {
     assert(
@@ -640,17 +641,16 @@ import sys.process._
       AnyJsonFormat.read(unknown)
     }
   }
-/*
+
   test("Constants Errors and Actors") {
     assert(Constants.Errors.jobTimeOutError == "Job timeout error"
       && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
       && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
       && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
+
       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "ContextManager"
+      && Constants.Actors.workerManagerName == "WorkerManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
-*/
-
 }

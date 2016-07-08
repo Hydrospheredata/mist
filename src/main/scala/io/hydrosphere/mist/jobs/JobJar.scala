@@ -21,10 +21,13 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
   override val configuration = jobConfiguration
 
   // Class with job in user jar
-  private val cls = {
+  private val cls = try{
     val jarFile = new File(configuration.jarPath.get)
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
     classLoader.loadClass(configuration.className.get)
+  } catch {
+    case e: Throwable =>
+      throw new Exception(e)
   }
 
   // Scala `object` reference of user job

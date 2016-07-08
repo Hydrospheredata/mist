@@ -44,6 +44,7 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 )
@@ -81,9 +82,9 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 
-ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := false
+ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
 parallelExecution in Test := false
 

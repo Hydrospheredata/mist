@@ -22,9 +22,6 @@ trait Job{
 
   protected var _status = JobStatus.Initialized
 
-  //def initSqlContext(): Unit = ???
-  //def initHiveContext(): Unit = ???
-
   /** Status getter
     *
     * @return [[JobStatus]]
@@ -44,9 +41,7 @@ object Job{
     val file = try {
        new FileReader(path)
     } catch {
-      case e: Throwable =>
-        println(e.getMessage)
-        throw new Exception(e)
+      case e: Throwable => Right(e.toString)
     }
 
     path.split('.').drop(1).lastOption.getOrElse("") match {

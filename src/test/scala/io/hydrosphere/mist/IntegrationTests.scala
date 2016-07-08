@@ -133,8 +133,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 20.seconds)
+    eventually(timeout(20 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -501,7 +501,7 @@ object StartMist {
   }
 
   override def afterAll(): Unit ={
-    StartMist.threadMaster.interrupt()
+
     val pid = Source.fromFile("master.pid").getLines.mkString
     s"kill ${pid}"!
 
