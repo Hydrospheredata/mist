@@ -33,6 +33,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
   // We must add user jar into spark context
   contextWrapper.addJar(configuration.jarPath.get)
 
+  _status = JobStatus.Initialized
   /** Runs a job
     *
     * @return results of user job

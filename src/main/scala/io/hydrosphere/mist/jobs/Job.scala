@@ -1,8 +1,12 @@
 package io.hydrosphere.mist.jobs
 
+import java.io.FileReader
+
 import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.JobStatus.JobStatus
+
+import scala.reflect.io.File
 
 /** Job state statuses */
 private[mist] object JobStatus extends Enumeration {
@@ -37,6 +41,14 @@ object Job{
   def apply(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String):Job = {
 
     val path = jobConfiguration.jarPath.getOrElse(jobConfiguration.pyPath.getOrElse(""))
+    val file = try {
+       new FileReader(path)
+    } catch {
+      case e: Throwable =>
+        println(e.getMessage)
+        throw new Exception(e)
+    }
+
     path.split('.').drop(1).lastOption.getOrElse("") match {
       case "jar" => new JobJar(jobConfiguration, contextWrapper, JobRunnerName)
       case "py" => new JobPy(jobConfiguration, contextWrapper, JobRunnerName)

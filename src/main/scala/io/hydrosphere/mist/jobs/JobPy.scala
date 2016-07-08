@@ -62,6 +62,7 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
 
   override val configuration = jobConfiguration
 
+  _status = JobStatus.Initialized
   /** Runs a job
     *
     * @return results of user jobPy

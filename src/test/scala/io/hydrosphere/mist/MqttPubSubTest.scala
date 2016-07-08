@@ -11,9 +11,9 @@ import org.scalatest.time.{Second, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
-//import org.scalatest._ //for Ignore
+import org.scalatest._ //for Ignore
 
-/*@Ignore*/ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
+class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures {
   import system.dispatcher
 
