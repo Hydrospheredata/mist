@@ -1,15 +1,20 @@
 package  io.hydrosphere.mist
+import java.io.{File, FileInputStream, FileOutputStream}
+
+import akka.actor.{ActorSystem, Props}
+import akka.stream.ActorMaterializer
+import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.JsonFormatSupport
-import org.scalatest.concurrent.Eventually
+import io.hydrosphere.mist.master.{JobRecovery, JsonFormatSupport, StartRecovery, TryRecoveyNext}
+import org.apache.commons.lang.SerializationUtils
+import org.mapdb.{DBMaker, Serializer}
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 
-import scala.concurrent.duration.DurationInt
-
-import spray.json.{pimpString}
-import spray.json.DefaultJsonProtocol
-
-import org.scalatest._ //for Ignore
+import scala.concurrent.duration._
+import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
+import org.scalatest._
+import org.scalatest.time.{Second, Seconds, Span} //for Ignore
 
 class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol {
 
@@ -116,7 +121,6 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   val jobConfiguration_Python = new JobConfiguration(None, Option("some.py"), None, "Python Test Jobconfiguration", Map().empty, Option("2"))
   val jobConfiguration_Jar = new JobConfiguration(Option("some.jar"), None, Option("SomeClassName"), "Jar Test Jobconfiguration", Map().empty, Option("3"))
   val contextWrapper = ContextBuilder.namedSparkContext("foo")
-  //lazy val job = Job(jobRequest, contextWrapper, self.path.name)
 
   override def beforeAll(): Unit = {
 
@@ -244,16 +248,6 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
     }
   }
 
-  test("Jar job no do stuff run") {
-    val json = TestConfig.request_nodostuff.parseJson
-    val jobConfiguration = json.convertTo[JobConfiguration]
-    val someJarJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
-    someJarJob.run()
-    eventually(timeout(10 seconds), interval(500 milliseconds)) {
-      assert(someJarJob.status == JobStatus.Running)
-    }
-  }
-
   test("Jar job testerror run") {
     val json = TestConfig.request_testerror.parseJson
     val jobConfiguration = json.convertTo[JobConfiguration]
@@ -281,3 +275,71 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
 }
 
+// Job Recovery
+
+class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
+  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually{
+
+  val db = DBMaker
+    .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+    .make
+
+  // Map
+  val map = db
+    .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+    .createOrOpen
+
+  val stringMessage = TestConfig.request_jar
+  val json = stringMessage.parseJson
+  val jobCreatingRequest = {
+    try {
+      json.convertTo[JobConfiguration]
+    } catch {
+      case _: DeserializationException => None
+    }
+  }
+  val w_job = SerializationUtils.serialize(jobCreatingRequest)
+  var i = 0
+  map.clear()
+  for (i <- 1 to 3) {
+    map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
+  }
+
+  map.close()
+  db.close()
+
+  val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+  val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+  new FileOutputStream(dest) getChannel() transferFrom(
+    new FileInputStream(src) getChannel, 0, Long.MaxValue)
+
+  def this() = this(ActorSystem("MqttTestActor"))
+
+  override def afterAll() = TestKit.shutdownActorSystem(system)
+
+  "Recovery 3 jobs" must {
+    "All recovered ok" in {
+      var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
+
+      MistConfig.Recovery.recoveryOn match {
+        case true =>
+          configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+            case "MapDb" => InMapDbJobConfigurationRepository
+            case _ => InMemoryJobConfigurationRepository
+          }
+      }
+
+      lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository))
+
+      eventually (timeout(5 seconds), interval(5 millis)) { configurationRepository.size == 3 }
+
+      recoveryActor ! StartRecovery
+
+      eventually (timeout(5 seconds), interval(5 millis)) {
+        assert(TryRecoveyNext._collection.size == 0 && configurationRepository.size == 0)
+      }
+    }
+  }
+
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
+}

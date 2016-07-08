@@ -22,6 +22,7 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 import sys.process._
 import scala.io.Source
+import org.scalatest._ //for Ignore
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -161,7 +162,7 @@ object StartMist {
       assert(http_response_success)
     }
   }
-
+/*
   test("HTTP bad extension in patch") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badextension))
@@ -188,7 +189,7 @@ object StartMist {
       assert(http_response_success)
     }
   }
-
+*/
   test("HTTP noDoStuff in jar") {
 
     var http_response_success = false
@@ -500,11 +501,10 @@ object StartMist {
   }
 
   override def afterAll(): Unit ={
-
     StartMist.threadMaster.interrupt()
-    StartMist.threadMaster.join()
-
     val pid = Source.fromFile("master.pid").getLines.mkString
     s"kill ${pid}"!
+
+    StartMist.threadMaster.join()
   }
 }
