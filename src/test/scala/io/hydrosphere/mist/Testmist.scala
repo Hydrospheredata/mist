@@ -85,8 +85,6 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
       Worker.main(Array("foo"))
-      //Worker.main(Array("testtimeout"))
-      Thread.sleep(10000)
 
       cancel("Can't run the Recovery test because recovery off in config file")
     }
@@ -94,7 +92,6 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
 
       Master.main(Array(""))
       Worker.main(Array("foo"))
-      //Worker.main(Array("testtimeout"))
 
       Thread.sleep(10000)
       /*
@@ -505,7 +502,7 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
       assert(!MqttSuccessObj.success)
     }
   }
-/*
+
   test("HTTP Timeout Exception") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
@@ -531,7 +528,7 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
       assert(http_response_success)
     }
   }
-*/
+
 
   test("HTTP Exception in jar code") {
     var http_response_success = false
