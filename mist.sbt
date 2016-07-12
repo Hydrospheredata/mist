@@ -28,6 +28,8 @@ resolvers ++= Seq(
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
+resolvers += Classpaths.sbtPluginReleases
+
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
@@ -44,7 +46,6 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 )

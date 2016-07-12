@@ -24,7 +24,7 @@ import sys.process._
 import scala.io.Source
 import org.scalatest._ //for Ignore
 
-class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
+@Ignore class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
