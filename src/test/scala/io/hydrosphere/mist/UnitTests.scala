@@ -406,7 +406,7 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSuppo
 
 import akka.pattern.{ask, AskTimeoutException}
 import scala.concurrent.ExecutionContext.Implicits.global
-
+/*
 @Ignore class workerManagerTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually{
 
@@ -454,3 +454,4 @@ import scala.concurrent.ExecutionContext.Implicits.global
   }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
 }
+*/
