@@ -2,19 +2,29 @@ package  io.hydrosphere.mist
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.{ActorSystem, Props}
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.pattern.AskTimeoutException
 import akka.stream.ActorMaterializer
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.contexts.ContextBuilder
+import io.hydrosphere.mist.Messages.{CreateContext, RemoveContext}
+import io.hydrosphere.mist.contexts.{ContextBuilder, NamedContextWrapper}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master._
 import org.apache.commons.lang.SerializationUtils
+import org.apache.spark.SparkContext
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 
 import scala.concurrent.duration._
 import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import org.scalatest._
-import org.scalatest.time.{Second, Seconds, Span} //for Ignore
+import org.scalatest.time.{Second, Seconds, Span}
+import org.scalatest.FlatSpec
+import org.scalamock.scalatest.MockFactory
+
+import scala.concurrent.Await
 
 class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol {
 
@@ -341,5 +351,56 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
     }
   }
 
+  override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
+}
+
+import akka.pattern.{ask, AskTimeoutException}
+import scala.concurrent.ExecutionContext.Implicits.global
+
+@Ignore class workerManagerTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
+  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually{
+
+  def this() = this(ActorSystem("mist", MistConfig.Akka.Main.settings))
+
+  val workerManager = system.actorOf(Props[WorkerManager], name = "TestWorkerManager")
+
+  override def afterAll() = {
+    TestKit.shutdownActorSystem(system)
+  }
+  "WorkerManager Tests" must {
+    "Worker must started" in {
+
+        //workerManager ! CreateContext("test context")
+
+        //val json = TestConfig.request_jar.parseJson
+        //val jobConfiguration = json.convertTo[JobConfiguration]
+
+        //val future = workerManager.ask(jobConfiguration)(timeout = 10.minutes)
+        /*var result_state = false
+        future
+          .onSuccess {
+            case result: Either[Map[String, Any], String] =>
+              val jobResult: JobResult = result match {
+                case Left(jobResult: Map[String, Any]) =>
+                  result_state = true
+                  JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
+                case Right(error: String) =>
+                  JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
+              }
+
+              val jsonString = Json(DefaultFormats).write(jobResult)
+          }
+        Await.result(future, 10.seconds)
+        eventually(timeout(10 seconds), interval(1 second)) {
+          assert(result_state)
+        }*/
+      Thread.sleep(5000)
+      }
+
+    "Worker must removed" in {
+      workerManager ! RemoveContext("test context")
+      Thread.sleep(5000)
+    }
+  }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
 }

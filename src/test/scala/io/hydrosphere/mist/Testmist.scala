@@ -9,7 +9,8 @@ import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.StopAllContexts
-//import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
+import io.hydrosphere.mist.contexts.NamedContextSpecification
+import io.hydrosphere.mist.contexts.{DummyContextSpecification, NamedContextSpecification}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, _}
 import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
 import org.apache.commons.lang.SerializationUtils
@@ -30,7 +31,7 @@ import sys.process._
 
 
 class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
-/*
+
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -38,10 +39,10 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
   val clientHTTP = Http(testSystem)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
-*/
+
   override def beforeAll(): Unit = {
     // prepare recovery file
-    /*
+
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -76,32 +77,23 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
       new FileOutputStream(dest) getChannel() transferFrom(
         new FileInputStream(src) getChannel, 0, Long.MaxValue)
     }
-    */
-  }
-  /*
-  test("Spark Context is not running") {
-    var no_context_success = false
-    InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
 
-      case Some(contextWrapper) =>
-        println(contextWrapper)
-        println(contextWrapper.sqlContext.toString)
-        no_context_success = false
-      case None => no_context_success = true
-    }
-    assert(no_context_success)
   }
 
   test("Recovery 3 jobs from MapDb") {
 
     if (!MistConfig.Recovery.recoveryOn) {
       Master.main(Array(""))
+      Worker.main(Array("foo"))
 
       cancel("Can't run the Recovery test because recovery off in config file")
     }
     else {
 
       Master.main(Array(""))
+      Worker.main(Array("foo"))
+
+      Thread.sleep(10000)
       /*
       val configFile = System.getProperty("config.file")
       val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -537,19 +529,6 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
     }
   }
 
-  test("Spark context launched") {
-
-    var context_success = false
-    eventually(timeout(190 seconds), interval(1 second)) {
-      InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
-        case Some(contextWrapper) =>
-
-          context_success = true
-        case None => context_success = false
-      }
-      assert(context_success)
-    }
-  }
 
   test("HTTP Exception in jar code") {
     var http_response_success = false
@@ -599,7 +578,7 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
     Master.system.stop(Master.workerManager)
     Master.system.shutdown()
 
-  }*/
+  }
 
   test("AnyJsonFormat read") {
     assert(
@@ -621,13 +600,7 @@ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with Js
         JsFalse == AnyJsonFormat.write(false)
     )
   }
-/*
-  test("ErrorWrapper") {
-    ErrorWrapper.set("TestUUID", "TestError")
-    assert("TestError" == ErrorWrapper.get("TestUUID"))
-    ErrorWrapper.remove("TestUUID")
-  }
-*/
+
   test("AnyJsonFormat serializationError") {
     intercept[spray.json.SerializationException] {
       val unknown = Set(1, 2)
