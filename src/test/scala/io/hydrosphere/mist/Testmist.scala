@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.StatusCodes.{BadRequest, OK}
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.StopAllContexts
-import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
+//import io.hydrosphere.mist.contexts.{DummyContextSpecification, InMemoryContextRepository, NamedContextSpecification}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, _}
 import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
 import org.apache.commons.lang.SerializationUtils
@@ -23,13 +23,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
+import org.scalatest._ //for Ignore
 // scalastyle:off
 import sys.process._
 // scalastyle:on
 
 
-/* @Ignore */ class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
-
+class Testmist extends FunSuite with Eventually with DefaultJsonProtocol with JsonFormatSupport with BeforeAndAfterAll {
+/*
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -37,9 +38,10 @@ import sys.process._
   val clientHTTP = Http(testSystem)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
-
+*/
   override def beforeAll(): Unit = {
     // prepare recovery file
+    /*
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -74,8 +76,9 @@ import sys.process._
       new FileOutputStream(dest) getChannel() transferFrom(
         new FileInputStream(src) getChannel, 0, Long.MaxValue)
     }
+    */
   }
-
+  /*
   test("Spark Context is not running") {
     var no_context_success = false
     InMemoryContextRepository.get(new NamedContextSpecification(contextName)) match {
@@ -99,6 +102,12 @@ import sys.process._
     else {
 
       Master.main(Array(""))
+      /*
+      val configFile = System.getProperty("config.file")
+      val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+      val home = sys.env.getOrElse("MIST_HOME", ".")
+      s"${home}/mist.sh master mist--config $configFile --jar $jarPath" !
+*/
       var jobidSet = scala.collection.mutable.Map[String, JobConfiguration]()
       var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
         MistConfig.Recovery.recoveryOn match {
@@ -501,7 +510,7 @@ import sys.process._
       assert(!MqttSuccessObj.success)
     }
   }
-/*
+
   test("HTTP Timeout Exception") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_test_timeout))
@@ -527,8 +536,7 @@ import sys.process._
       assert(http_response_success)
     }
   }
-*/
-  /*
+
   test("Spark context launched") {
 
     var context_success = false
@@ -542,7 +550,7 @@ import sys.process._
       assert(context_success)
     }
   }
-*/
+
   test("HTTP Exception in jar code") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
@@ -576,10 +584,11 @@ import sys.process._
     eventually(timeout(10 seconds), interval(1 second)) {
 
       var stop_context_success = true
+      /*
       for (contextWrapper <- InMemoryContextRepository.filter(new DummyContextSpecification())) {
         println(contextWrapper)
         stop_context_success = false
-      }
+      }  */
       assert(stop_context_success)
     }
 
@@ -590,7 +599,7 @@ import sys.process._
     Master.system.stop(Master.workerManager)
     Master.system.shutdown()
 
-  }
+  }*/
 
   test("AnyJsonFormat read") {
     assert(
@@ -632,17 +641,16 @@ import sys.process._
       AnyJsonFormat.read(unknown)
     }
   }
-/*
+
   test("Constants Errors and Actors") {
     assert(Constants.Errors.jobTimeOutError == "Job timeout error"
       && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
       && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
       && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
+
       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "ContextManager"
+      && Constants.Actors.workerManagerName == "WorkerManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
-*/
-
 }
