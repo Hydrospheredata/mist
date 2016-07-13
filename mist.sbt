@@ -7,7 +7,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.2.0"
+version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -28,6 +28,8 @@ resolvers ++= Seq(
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
+resolvers += Classpaths.sbtPluginReleases
+
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
@@ -43,6 +45,7 @@ libraryDependencies ++= Seq(
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 )

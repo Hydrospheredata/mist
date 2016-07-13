@@ -24,7 +24,7 @@ import sys.process._
 import scala.io.Source
 import org.scalatest._ //for Ignore
 
-class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
+@Ignore class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -38,7 +38,7 @@ object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {
-        "./mist.sh master --config configs/travis.conf --jar /home/travis/build/Hydrospheredata/mist/target/scala-2.10/mist-assembly-0.3.0.jar" !
+        "./mist.sh master --config configs/travis.conf --jar target/scala-2.10/mist-assembly-0.3.0.jar" !
       }
     }
   }
