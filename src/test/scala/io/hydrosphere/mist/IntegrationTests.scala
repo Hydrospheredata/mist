@@ -38,7 +38,7 @@ object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {
-        "./mist.sh master --config configs/travis.conf --jar target/scala-2.10/mist-assembly-0.3.0.jar" !
+        "./mist.sh master --config configs/travis.conf --jar /home/travis/build/Hydrospheredata/mist/target/scala-2.10/mist-assembly-0.3.0.jar" !
       }
     }
   }
