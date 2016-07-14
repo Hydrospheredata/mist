@@ -26,7 +26,7 @@ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
 
   "MqttPubSub" must {
     "Mqtt ok" in {
-      val count = 10
+      val count = 50
 
       val subs = system.actorOf(Props(classOf[SubsActor], testActor, count))
       subs ! SubscribeTest
