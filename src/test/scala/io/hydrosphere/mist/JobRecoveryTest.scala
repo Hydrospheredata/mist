@@ -1,4 +1,4 @@
-package  io.hydrosphere.mist
+package io.hydrosphere.mist
 
 import java.io.{File, FileInputStream, FileOutputStream}
 
@@ -15,47 +15,53 @@ import spray.json.{DefaultJsonProtocol, DeserializationException}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import spray.json._
+import org.scalatest._
 
 class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
-  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually{
+  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually {
 
-  val db = DBMaker
-    .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
-    .make
-
-  // Map
-  val map = db
-    .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
-    .createOrOpen
-
-  val stringMessage = TestConfig.request_jar
-  val json = stringMessage.parseJson
-  val jobCreatingRequest = {
-    try {
-      json.convertTo[JobConfiguration]
-    } catch {
-      case _: DeserializationException => None
-    }
-  }
-  val w_job = SerializationUtils.serialize(jobCreatingRequest)
-  var i = 0
-  map.clear()
-  for (i <- 1 to 3) {
-    map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
-  }
-
-  map.close()
-  db.close()
-
-  val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
-  val dest = new File(MistConfig.Recovery.recoveryDbFileName)
-  new FileOutputStream(dest) getChannel() transferFrom(
-    new FileInputStream(src) getChannel, 0, Long.MaxValue)
-
-  def this() = this(ActorSystem("MqttTestActor"))
+  def this() = this(ActorSystem("JobRecoveryTestActorSystem"))
 
   override def afterAll() = {
     TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(_system)
+    Thread.sleep(5000)
+  }
+
+  override def beforeAll() = {
+    Thread.sleep(5000)
+    val db = DBMaker
+      .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+      .make
+
+    // Map
+    val map = db
+      .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+      .createOrOpen
+
+    val stringMessage = TestConfig.request_jar
+    val json = stringMessage.parseJson
+    val jobCreatingRequest = {
+      try {
+        json.convertTo[JobConfiguration]
+      } catch {
+        case _: DeserializationException => None
+      }
+    }
+    val w_job = SerializationUtils.serialize(jobCreatingRequest)
+    var i = 0
+    map.clear()
+    for (i <- 1 to 3) {
+      map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
+    }
+
+    map.close()
+    db.close()
+
+    val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
+    val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+    new FileOutputStream(dest) getChannel() transferFrom(
+      new FileInputStream(src) getChannel, 0, Long.MaxValue)
   }
 
   "Recovery 3 jobs" must {

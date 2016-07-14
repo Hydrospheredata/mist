@@ -1,11 +1,13 @@
 package  io.hydrosphere.mist
 
 
-import akka.actor.{ActorSystem, Props}
+import java.util.concurrent.Executors._
+
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.{AskTimeoutException, ask}
-import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.Messages.RemoveContext
-import io.hydrosphere.mist.master.{JsonFormatSupport, WorkerManager}
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import io.hydrosphere.mist.Messages.{RemoveContext, ShutdownMaster, StopAllContexts, WorkerDidStart}
+import io.hydrosphere.mist.master.{JobRecovery, JsonFormatSupport, WorkerManager}
 import io.hydrosphere.mist.worker.ContextNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,58 +16,170 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time._
 
 import scala.concurrent.duration._
-import spray.json.DefaultJsonProtocol //for Ignore
+import akka.cluster._
+import akka.cluster.ClusterEvent._
+import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
+import spray.json.{DefaultJsonProtocol, pimpString}
 
-@Ignore class workerManagerTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
-  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually{
+import scala.concurrent.{Await, ExecutionContext}
 
-  def this() = this(ActorSystem("mist", MistConfig.Akka.Worker.settings))
+object AddressAndSuccessForWorkerTest {
+  var nodeAddress: String = _
+  var nodeName: String = _
+  var serverAddress: String = _
+  var serverName: String = _
+  var success: Boolean = false
+}
 
-  //val workerManager = system.actorOf(Props[WorkerManager], name = "TestWorkerManager")
+object WorkerIsUp
+object WorkerIsRemoved
 
-  override def afterAll() = {
-    TestKit.shutdownActorSystem(system)
+class ActorForWorkerTest extends Actor with ActorLogging {
+
+  private val cluster = Cluster(context.system)
+  private var workerUp = false
+  private var workerRemowed = false
+  //var gocha
+  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  override def preStart(): Unit = {
+    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
-  /*
-  "WorkerManager Tests" must {
-    "Worker must started" in {
 
-        //workerManager ! CreateContext("test context")
+  override def postStop(): Unit = {
+    cluster.unsubscribe(self)
+  }
 
-        //val json = TestConfig.request_jar.parseJson
-        //val jobConfiguration = json.convertTo[JobConfiguration]
+  override def receive: Receive = {
+    case MemberUp(member) =>
+      println(s"TestActor: catch Up  ${member.address}", AddressAndSuccessForWorkerTest.nodeAddress)
+      if (member.address.toString == AddressAndSuccessForWorkerTest.nodeAddress) {
+        workerUp = true
+      }
+      println("TestActor workerUp:", workerUp)
 
-        //val future = workerManager.ask(jobConfiguration)(timeout = 10.minutes)
-        /*var result_state = false
+    case MemberRemoved(member, previousStatus) =>
+      println(s"TestActor: catch Removed  ${member.address}", AddressAndSuccessForWorkerTest.nodeAddress)
+      if (member.address.toString == AddressAndSuccessForWorkerTest.nodeAddress) {
+        workerRemowed = true
+      }
+      println("TestActor workerRemoved:", workerRemowed)
+
+    case WorkerIsUp =>
+      sender ! workerUp
+
+    case WorkerIsRemoved =>
+      sender ! workerRemowed
+  }
+}
+
+class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol{
+
+  val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
+  val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+
+  override  def beforeAll() = {
+    Thread.sleep(5000)
+  }
+  override def afterAll() = {
+    TestKit.shutdownActorSystem(systemM)
+    TestKit.shutdownActorSystem(systemW)
+    Thread.sleep(5000)
+  }
+
+    "ContextNode" must {
+      "started" in {
+        val workerManager = systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+        Thread.sleep(5000)
+        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+          case "MapDb" => InMapDbJobConfigurationRepository
+          case _ => InMemoryJobConfigurationRepository
+        }
+        val recoveryActor = systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
+        val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
+
+        AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
+        AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
+        AddressAndSuccessForWorkerTest.nodeAddress = Cluster(systemW).selfAddress.toString
+        AddressAndSuccessForWorkerTest.nodeName = "/user/" + "foo"
+
+        val contextNode = systemW.actorOf(ContextNode.props("foo"), name = "foo")
+        Thread.sleep(5000)
+        val future = workerTestActor.ask(WorkerIsUp)(timeout = 1.day)
+        var success = false
+        future
+            .onSuccess{
+              case result:Boolean => val Result: Boolean = result match {
+                case answer: Boolean => answer
+              }
+              success = result
+              println("workerUp status", success)
+            }
+        Await.result(future, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
+          assert(success)
+        }
+      }
+      "message" in {
+        val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
+        val json = TestConfig.request_jar.parseJson
+        val jobConfiguration = json.convertTo[JobConfiguration]
+        val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.name))
+        var success = false
         future
           .onSuccess {
             case result: Either[Map[String, Any], String] =>
               val jobResult: JobResult = result match {
                 case Left(jobResult: Map[String, Any]) =>
-                  result_state = true
                   JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
                 case Right(error: String) =>
                   JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
               }
-
-              val jsonString = Json(DefaultFormats).write(jobResult)
+              success = jobResult.success
           }
-        Await.result(future, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
-          assert(result_state)
-        }*/
-      Thread.sleep(5000)
+        Await.result(future, 60.seconds)
+        eventually(timeout(60 seconds), interval(1 second)) {
+         assert(success)
+        }
       }
 
-    "Worker must removed" in {
-      workerManager ! RemoveContext("test context")
-      Thread.sleep(5000)
-    }*/
+      "mqtt" in {
+        MqttSuccessObj.success = false
+        val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+        mqttActor ! MqttSubscribe
+        MQTTTest.subscribe(systemM)
+        Thread.sleep(5000)
+        //MqttSuccessObj.success = false
+        MQTTTest.publish(TestConfig.request_jar)
+        Thread.sleep(5000)
 
-    "ContextNode" must {
-      "strted" in {
-        val node = system.actorOf(Props[ContextNode], name = "TestWorkerNode")
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
+        }
 
+      }
+
+      "stopped" in {
+        /*
+        AddressAndSuccessForWorkerTest.success = false
+        val workerManager = systemM.actorSelection(AddressAndSuccessForWorkerTest.serverAddress + AddressAndSuccessForWorkerTest.serverName)
+        workerManager ! StopAllContexts
+        Thread.sleep(5000)
+        val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + "/user/TestActor")
+        val future = workerTestActor.ask(WorkerIsRemoved)(timeout = 1.day)
+        var success = false
+        future
+          .onSuccess{
+            case result:Boolean => { success = result }
+            println("workerRemoved status", success)
+          }
+        Await.result(future, 30.seconds)
+        workerManager ! ShutdownMaster
+        Thread.sleep(5000)
+        eventually(timeout(30 seconds), interval(1 second)) {
+          assert(success)
+        }
+        */
       }
 
   }
