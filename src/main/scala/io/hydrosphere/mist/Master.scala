@@ -51,7 +51,7 @@ private[mist] object Master extends App with HTTPService {
       }
   }
 
-  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository))
+  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
   if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
     recoveryActor ! StartRecovery
   }
