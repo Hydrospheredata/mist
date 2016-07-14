@@ -17,13 +17,16 @@ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
   with BeforeAndAfterAll with ScalaFutures {
   import system.dispatcher
 
-  def this() = this(ActorSystem("MqttTestActor"))
+  def this() = this(ActorSystem("MqttTestActorSystem"))
 
-  override def afterAll() = TestKit.shutdownActorSystem(system)
+  override def afterAll() = {
+    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(_system)
+  }
 
   "MqttPubSub" must {
     "Mqtt ok" in {
-      val count = 10
+      val count = 50
 
       val subs = system.actorOf(Props(classOf[SubsActor], testActor, count))
       subs ! SubscribeTest

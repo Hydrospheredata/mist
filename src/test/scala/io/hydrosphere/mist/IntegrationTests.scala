@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
+import akka.testkit.TestKit
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, JobConfiguration}
 import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
 import org.apache.commons.lang.SerializationUtils
@@ -46,6 +47,7 @@ object StartMist {
 
 
   override def beforeAll(): Unit = {
+    Thread.sleep(5000)
     if (MistConfig.Recovery.recoveryOn) {
       val db = DBMaker
         .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
@@ -505,6 +507,11 @@ object StartMist {
     val pid = Source.fromFile("master.pid").getLines.mkString
     s"kill ${pid}"!
 
+    TestKit.shutdownActorSystem(system)
+    TestKit.shutdownActorSystem(testSystem)
+
     StartMist.threadMaster.join()
+
+    Thread.sleep(5000)
   }
 }
