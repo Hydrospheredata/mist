@@ -109,8 +109,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -135,8 +135,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 20.seconds)
-    eventually(timeout(20 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -159,8 +159,8 @@ object StartMist {
         http_response_success = false
     }
 
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -211,8 +211,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -235,8 +235,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -259,8 +259,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -283,8 +283,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -307,8 +307,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -331,8 +331,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -399,7 +399,7 @@ object StartMist {
     MqttSuccessObj.success = false
     MQTTTest.publish(TestConfig.request_jar)
 
-    eventually(timeout(8 seconds), interval(1 second)) {
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(MqttSuccessObj.success)
     }
   }
@@ -407,7 +407,7 @@ object StartMist {
   test("MQTT Spark SQL") {
     MqttSuccessObj.success = false
     MQTTTest.publish(TestConfig.request_sparksql)
-    eventually(timeout(8 seconds), interval(1 second)) {
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(MqttSuccessObj.success)
     }
   }
@@ -415,7 +415,7 @@ object StartMist {
   test("MQTT Pyspark Context") {
     MqttSuccessObj.success = false
     MQTTTest.publish(TestConfig.request_pyspark)
-    eventually(timeout(8 seconds), interval(1 second)) {
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(MqttSuccessObj.success)
     }
   }
@@ -423,7 +423,7 @@ object StartMist {
   test("MQTT Python SQL") {
     MqttSuccessObj.success = false
     MQTTTest.publish(TestConfig.request_pysparksql)
-    eventually(timeout(8 seconds), interval(1 second)) {
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(MqttSuccessObj.success)
     }
   }
@@ -496,8 +496,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
