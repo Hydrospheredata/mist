@@ -89,7 +89,8 @@ private[mist] class WorkerManager extends Actor {
 
         }
         configurationRepository.add(jobId, jobConfiguration)
-        Master.recoveryActor ! JobStarted
+        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+        recoveryActor ! JobStarted
       }
 
     case RemoveJobFromRecovery(jobId) =>
@@ -100,7 +101,8 @@ private[mist] class WorkerManager extends Actor {
 
         }
         configurationRepository.remove(jobId)
-        Master.recoveryActor ! JobCompleted
+        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+        recoveryActor ! JobCompleted
       }
 
     case ShutdownMaster => {

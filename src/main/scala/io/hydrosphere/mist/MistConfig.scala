@@ -68,6 +68,18 @@ private[mist] object MistConfig {
     lazy val master: String = spark.getString("master")
   }
 
+  /** Hive Test*/
+
+  object Hive {
+    lazy val hivetest: Boolean = {
+      try {
+        config.getBoolean("mist.hive.test")
+      } catch {
+        case _ => false
+      }
+    }
+  }
+
   /** MQTT specific settings */
   object MQTT {
     private val mqtt = config.getConfig("mist.mqtt")

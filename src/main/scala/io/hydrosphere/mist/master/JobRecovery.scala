@@ -37,7 +37,7 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
           val job_configuration = TryRecoveyNext._collection.last
           val json = Serialization.write(job_configuration._2)
           println(s"send $json")
-          TryRecoveyNext._collection -= TryRecoveyNext._collection.last._1
+          TryRecoveyNext._collection.remove(TryRecoveyNext._collection.last._1)
           pubsub ! new Publish(json.getBytes("utf-8"))
         }
       }

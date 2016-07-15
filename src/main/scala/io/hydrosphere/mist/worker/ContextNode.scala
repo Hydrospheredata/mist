@@ -51,7 +51,9 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         job.run()
       }(executionContext)
       future
-        // TODO: recovery
+        .recover {
+         case e: Throwable => originalSender ! Right(e.toString)
+        }(ExecutionContext.global)
         .andThen {
         case _ =>
           serverActor ! RemoveJobFromRecovery(job.id)

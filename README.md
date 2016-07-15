@@ -39,6 +39,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 | Mist Version   | Scala Version  | Python Version | Spark Version    |
 |----------------|----------------|----------------|------------------|
 | 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
@@ -398,7 +399,7 @@ Apache 2.0 License
 -----------------
 - [x] Persist job state for self healing
 - [x] Super parallel mode: run Spark contexts in separate JVMs
-- [ ] Cluster mode and node framework
+- [x] Cluster mode and node framework
 - [ ] Powerful logging
 - [ ] RESTification
 - [ ] Support streaming contexts/jobs
