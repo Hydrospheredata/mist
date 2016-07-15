@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import io.hydrosphere.mist.Messages.{RemoveContext, ShutdownMaster, StopAllContexts, WorkerDidStart}
-import io.hydrosphere.mist.master.{JobRecovery, JsonFormatSupport, WorkerManager}
+import io.hydrosphere.mist.master.{HTTPService, JobRecovery, JsonFormatSupport, WorkerManager}
 import io.hydrosphere.mist.worker.ContextNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -18,11 +18,18 @@ import org.scalatest.time._
 import scala.concurrent.duration._
 import akka.cluster._
 import akka.cluster.ClusterEvent._
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.HttpMethods._
+import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
+import akka.stream.ActorMaterializer
+import io.hydrosphere.mist.MistConfig.Akka.Main
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
 import spray.json.{DefaultJsonProtocol, pimpString}
 
 import scala.concurrent.{Await, ExecutionContext}
+import scala.util.{Failure, Success}
 
 object AddressAndSuccessForWorkerTest {
   var nodeAddress: String = _
@@ -73,10 +80,13 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   }
 }
 
-class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol{
+class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol with HTTPService{
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+
+  override implicit val system = systemM
+  override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   override  def beforeAll() = {
     Thread.sleep(5000)
@@ -143,7 +153,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-      "mqtt" in {
+      "mqtt jar" in {
         MqttSuccessObj.success = false
         val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
         mqttActor ! MqttSubscribe
@@ -156,7 +166,33 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(MqttSuccessObj.success)
         }
+      }
 
+      "http jar" in {
+        Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+        val clientHTTP = Http(systemM)
+        Thread.sleep(5000)
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "false"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 60.seconds)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
       }
 
       "stopped" in {
@@ -182,6 +218,22 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         */
       }
 
+
+
   }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
+}
+
+class MasterWorkerAppsTest extends WordSpecLike {
+  "Must started" must { //TODO test started apps
+    "Master App" in {
+      Master.main(Array(""))
+      Thread.sleep(20000)
+    }
+    "Worker App" in {
+      Worker.main(Array("foo"))
+
+      Thread.sleep(20000)
+    }
+  }
 }
