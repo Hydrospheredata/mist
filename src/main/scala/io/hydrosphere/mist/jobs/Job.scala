@@ -22,9 +22,6 @@ trait Job{
 
   protected var _status = JobStatus.Initialized
 
-  def initSqlContext(): Unit = ???
-  def initHiveContext(): Unit = ???
-
   /** Status getter
     *
     * @return [[JobStatus]]
