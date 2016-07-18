@@ -2,9 +2,11 @@ package io.hydrosphere.mist.contexts
 
 import java.io.File
 
+import io.hydrosphere.mist.MistConfig
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.hive.test.TestHiveContext
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -14,7 +16,12 @@ private[mist] trait ContextWrapper {
 
   lazy val sqlContext = new SQLContext(context)
 
-  lazy val hiveContext = new HiveContext(context)
+  lazy val hiveContext = {
+    MistConfig.Hive.hivetest match {
+      case true => new TestHiveContext(context)
+      case _ => new HiveContext(context)
+    }
+  }
 
   def context: SparkContext
 

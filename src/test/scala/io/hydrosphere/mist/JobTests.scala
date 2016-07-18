@@ -1,26 +1,20 @@
 package  io.hydrosphere.mist
-
 import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.{ActorSystem, Props}
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.pattern.AskTimeoutException
 import akka.stream.ActorMaterializer
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.Messages.{CreateContext, RemoveContext}
-import io.hydrosphere.mist.contexts.{ContextBuilder, NamedContextWrapper}
+import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master._
 import org.apache.commons.lang.SerializationUtils
-import org.apache.spark.SparkContext
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
 import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 
 import scala.concurrent.duration._
-import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsFalse, JsNull, JsNumber, JsObject, JsString, JsTrue, JsValue, pimpString}
+import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import org.scalatest._
+import org.scalatest.time.{Second, Seconds, Span}
 
 class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol {
 
