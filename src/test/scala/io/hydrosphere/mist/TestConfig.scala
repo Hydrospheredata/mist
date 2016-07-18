@@ -11,6 +11,7 @@ object TestConfig{
   val mqtt_test_pub_name = testconfig.getString("mist.test.mqtt.pub.name")
 
   val http_url = testconfig.getString("mist.test.http.url")
+  val http_url_it = testconfig.getString("mist.test.http.url_it")
 
   val request_test_timeout = testconfig.getString("mist.test.request.testtimeout")
   val request_jar = testconfig.getString("mist.test.request.jar")

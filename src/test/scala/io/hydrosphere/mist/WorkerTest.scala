@@ -106,6 +106,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case _ => InMemoryJobConfigurationRepository
         }
         val recoveryActor = systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
+
         val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
 
         AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString

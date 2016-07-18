@@ -30,8 +30,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  val testSystem = ActorSystem("test-mist")
-  val clientHTTP = Http(testSystem)
+  //val testSystem = ActorSystem("test-mist")
+  val clientHTTP = Http(system)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
@@ -39,12 +39,11 @@ object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {
-        "./mist.sh master --config configs/travis.conf --jar target/scala-2.10/mist-assembly-0.3.0.jar" !
+        "./mist.sh master --config configs/integration.conf --jar target/scala-2.10/mist-assembly-0.3.0.jar" !
       }
     }
   }
 }
-
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
@@ -93,7 +92,7 @@ object StartMist {
 
   test("HTTP bad request") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
     val future_response = clientHTTP.singleRequest(httpRequest)
 
     future_response onComplete {
@@ -117,7 +116,7 @@ object StartMist {
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -143,7 +142,7 @@ object StartMist {
 
   test("HTTP bad JSON") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -195,7 +194,7 @@ object StartMist {
   test("HTTP noDoStuff in jar") {
 
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -219,7 +218,7 @@ object StartMist {
 
   test("HTTP Spark Context jar") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -243,7 +242,7 @@ object StartMist {
 
   test("HTTP error in python") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -267,7 +266,7 @@ object StartMist {
 
   test("HTTP Pyspark Context") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -291,7 +290,7 @@ object StartMist {
 
   test("HTTP SparkSQL") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -315,7 +314,7 @@ object StartMist {
 
   test("HTTP Python SparkSQL") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -339,7 +338,7 @@ object StartMist {
 
   test("HTTP Spark HIVE") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -363,7 +362,7 @@ object StartMist {
 
   test("HTTP Python Spark HIVE") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -478,7 +477,7 @@ object StartMist {
 
   test("HTTP Exception in jar code") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -508,7 +507,7 @@ object StartMist {
     s"kill ${pid}"!
 
     TestKit.shutdownActorSystem(system)
-    TestKit.shutdownActorSystem(testSystem)
+    //TestKit.shutdownActorSystem(testSystem)
 
     StartMist.threadMaster.join()
 
