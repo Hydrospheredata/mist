@@ -25,7 +25,7 @@ import sys.process._
 import scala.io.Source
 import org.scalatest._ //for Ignore
 
-@Ignore class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
+class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -98,12 +98,9 @@ object StartMist {
 
     future_response onComplete {
       case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
+        case HttpResponse(BadRequest, _, _, _) =>
           println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          if (json == "false") {
-            http_response_success = true
-          }
+          http_response_success = true
         case _ =>
           println(msg)
           http_response_success = false
@@ -138,8 +135,8 @@ object StartMist {
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 20.seconds)
+    eventually(timeout(20 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -506,7 +503,7 @@ object StartMist {
   }
 
   override def afterAll(): Unit ={
-    StartMist.threadMaster.interrupt()
+
     val pid = Source.fromFile("master.pid").getLines.mkString
     s"kill ${pid}"!
 

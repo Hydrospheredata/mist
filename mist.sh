@@ -71,6 +71,8 @@ fi
 
 if [ "${app}" == 'master' ]
 then
-    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE"
+    PID_FILE="${MIST_HOME}/master.pid"
+    ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE" &
+    echo $! > ${PID_FILE}
     exit 0
 fi
