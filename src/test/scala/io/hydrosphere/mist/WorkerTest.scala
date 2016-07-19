@@ -91,6 +91,10 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
   override  def beforeAll() = {
     Thread.sleep(5000)
+    AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
+    AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
+    AddressAndSuccessForWorkerTest.nodeAddress = Cluster(systemW).selfAddress.toString
+    AddressAndSuccessForWorkerTest.nodeName = "/user/" + "foo"
   }
   override def afterAll() = {
     Http().shutdownAllConnectionPools()
@@ -109,20 +113,14 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
         val recoveryActor = systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
 
-        //new Thread {
-          //override def run() = {
-            val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
-          //}
-        //}.start()
-
-
-        AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
-        AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
-        AddressAndSuccessForWorkerTest.nodeAddress = Cluster(systemW).selfAddress.toString
-        AddressAndSuccessForWorkerTest.nodeName = "/user/" + "foo"
+        val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
 
         val contextNode = systemW.actorOf(ContextNode.props("foo"), name = "foo")
         Thread.sleep(5000)
+
+
+
+
        // val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
 
         val future = workerTestActor.ask(WorkerIsUp)(timeout = 1.day)
