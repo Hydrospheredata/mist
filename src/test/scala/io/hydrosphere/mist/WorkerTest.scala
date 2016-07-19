@@ -1,6 +1,7 @@
 package  io.hydrosphere.mist
 
 
+import java.io.File
 import java.util.concurrent.Executors._
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
@@ -92,6 +93,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
     Thread.sleep(5000)
   }
   override def afterAll() = {
+    Http().shutdownAllConnectionPools()
     TestKit.shutdownActorSystem(systemM)
     TestKit.shutdownActorSystem(systemW)
     Thread.sleep(5000)
@@ -107,7 +109,12 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
         val recoveryActor = systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
 
-        val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
+        //new Thread {
+          //override def run() = {
+            val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
+          //}
+        //}.start()
+
 
         AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
         AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
@@ -116,6 +123,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
         val contextNode = systemW.actorOf(ContextNode.props("foo"), name = "foo")
         Thread.sleep(5000)
+       // val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
+
         val future = workerTestActor.ask(WorkerIsUp)(timeout = 1.day)
         var success = false
         future
@@ -169,7 +178,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-      "http jar" in {
+      "http jar no do stuff" in {
         Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
         val clientHTTP = Http(systemM)
         Thread.sleep(5000)
@@ -196,27 +205,103 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-      "stopped" in {
-        /*
-        AddressAndSuccessForWorkerTest.success = false
-        val workerManager = systemM.actorSelection(AddressAndSuccessForWorkerTest.serverAddress + AddressAndSuccessForWorkerTest.serverName)
-        workerManager ! StopAllContexts
+      "mqtt spark sql" in {
+        MqttSuccessObj.success = false
+        val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+        mqttActor ! MqttSubscribe
+        MQTTTest.subscribe(systemM)
         Thread.sleep(5000)
-        val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + "/user/TestActor")
-        val future = workerTestActor.ask(WorkerIsRemoved)(timeout = 1.day)
-        var success = false
-        future
-          .onSuccess{
-            case result:Boolean => { success = result }
-            println("workerRemoved status", success)
-          }
-        Await.result(future, 30.seconds)
-        workerManager ! ShutdownMaster
+        //MqttSuccessObj.success = false
+        MQTTTest.publish(TestConfig.request_sparksql)
         Thread.sleep(5000)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(success)
+
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
         }
-        */
+      }
+
+      "HTTP error in python" in {
+        Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+        val clientHTTP = Http(systemM)
+        Thread.sleep(5000)
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "false"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 60.seconds)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
+
+      "mqtt python spark sql" in {
+        MqttSuccessObj.success = false
+        val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+        mqttActor ! MqttSubscribe
+        MQTTTest.subscribe(systemM)
+        Thread.sleep(5000)
+        //MqttSuccessObj.success = false
+        MQTTTest.publish(TestConfig.request_pysparksql)
+        Thread.sleep(5000)
+
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
+        }
+      }
+
+      "mqtt python spark" in {
+        MqttSuccessObj.success = false
+        val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+        mqttActor ! MqttSubscribe
+        MQTTTest.subscribe(systemM)
+        Thread.sleep(5000)
+        //MqttSuccessObj.success = false
+        MQTTTest.publish(TestConfig.request_pyspark)
+        Thread.sleep(5000)
+
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
+        }
+      }
+
+      "stopped" in {
+        new Thread {
+          override def run() = {
+            AddressAndSuccessForWorkerTest.success = false
+            val workerManager = systemM.actorSelection(AddressAndSuccessForWorkerTest.serverAddress + AddressAndSuccessForWorkerTest.serverName)
+            workerManager ! StopAllContexts
+            Thread.sleep(5000)
+            val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + "/user/TestActor")
+            val future = workerTestActor.ask(WorkerIsRemoved)(timeout = 1.day)
+            var success = false
+            future
+              .onSuccess {
+                case result: Boolean => {
+                  success = result
+                }
+                  println("workerRemoved status", success)
+              }
+            Await.result(future, 30.seconds)
+            workerManager ! ShutdownMaster
+            Thread.sleep(5000)
+            eventually(timeout(30 seconds), interval(1 second)) {
+              assert(success)
+            }
+          }
+        }.start()
       }
 
 

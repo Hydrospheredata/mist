@@ -239,7 +239,7 @@ object StartMist {
       assert(http_response_success)
     }
   }
-
+/*
   test("HTTP error in python") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
@@ -500,7 +500,7 @@ object StartMist {
       assert(http_response_success)
     }
   }
-
+*/
   override def afterAll(): Unit ={
 
     val pid = Source.fromFile("master.pid").getLines.mkString
