@@ -3,7 +3,7 @@ package io.hydrosphere.mist.contexts
 import io.hydrosphere.mist.{Specification, Repository}
 
 import scala.collection.mutable.ArrayBuffer
-
+/*
 private[mist] trait ContextRepository extends Repository[ContextWrapper]
 
 private[mist] object InMemoryContextRepository extends ContextRepository {
@@ -28,3 +28,4 @@ private[mist] object InMemoryContextRepository extends ContextRepository {
     collection.filter(predicate).toList
   }
 }
+*/

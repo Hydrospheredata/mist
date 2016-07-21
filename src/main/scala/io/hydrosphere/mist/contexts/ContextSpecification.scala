@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.contexts
 
 import io.hydrosphere.mist.Specification
-
+/*
 private[mist] trait ContextSpecification extends Specification[ContextWrapper]
 
 /** Predicate for search the first available [[ContextWrapper]] */
@@ -20,3 +20,4 @@ private[mist] class NamedContextSpecification(name: String) extends ContextSpeci
     context.asInstanceOf[NamedContextWrapper].name == name
   }
 }
+*/
