@@ -10,7 +10,7 @@ organization := "io.hydrosphere"
 version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2]")
 
 scalaVersion := {
   sparkVersion match {
@@ -31,9 +31,9 @@ resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-hive" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
@@ -92,6 +92,8 @@ test in assembly := {}
 
 //Maven
 publishMavenStyle := true
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
