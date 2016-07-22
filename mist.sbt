@@ -1,4 +1,5 @@
 import AssemblyKeys._
+import sbt.Keys._
 
 assemblySettings
 
@@ -6,7 +7,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.2.0"
+version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,)")
@@ -27,6 +28,8 @@ resolvers ++= Seq(
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 
+libraryDependencies <++= scalaVersion(akkaDependencies)
+
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-sql" % sparkVersion,
@@ -34,18 +37,35 @@ libraryDependencies ++= Seq(
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.15",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.1",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.1",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "2.2.6",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.0"
+
+def akkaDependencies(scalaVersion: String) = {
+  val Old = """2\.10\..""".r
+
+  scalaVersion match {
+    case Old() => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15"
+    )
+    case _ => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.4.7",
+      "com.typesafe.akka" %% "akka-cluster" % "2.4.7"
+    )
+  }
+
+}
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   {
@@ -62,7 +82,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 lazy val sub = LocalProject("examples")
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
@@ -85,33 +105,31 @@ publishArtifact in Test := false
 
 pomIncludeRepository := { _ => false }
 
-pomExtra := (
-  <url>https://github.com/Hydrospheredata/mist</url>
-    <licenses>
-      <license>
-        <name>Apache 2.0 License</name>
-        <url>https://github.com/Hydrospheredata/mist/LICENSE</url>
-        <distribution>repo</distribution>
-      </license>
-    </licenses>
-    <scm>
-      <url>https://github.com/Hydrospheredata/mist.git</url>
-      <connection>https://github.com/Hydrospheredata/mist.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>mkf-simpson</id>
-        <name>Konstantin Makarychev</name>
-        <url>https://github.com/mkf-simpson</url>
-        <organization>Hydrosphere</organization>
-        <organizationUrl>http://hydrosphere.io/</organizationUrl>
-      </developer>
-      <developer>
-        <id>leonid133</id>
-        <name>Leonid Blokhin</name>
-        <url>https://github.com/leonid133</url>
-        <organization>Hydrosphere</organization>
-        <organizationUrl>http://hydrosphere.io/</organizationUrl>
-      </developer>
-    </developers>
-  )
+pomExtra := <url>https://github.com/Hydrospheredata/mist</url>
+  <licenses>
+    <license>
+      <name>Apache 2.0 License</name>
+      <url>https://github.com/Hydrospheredata/mist/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/Hydrospheredata/mist.git</url>
+    <connection>https://github.com/Hydrospheredata/mist.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>mkf-simpson</id>
+      <name>Konstantin Makarychev</name>
+      <url>https://github.com/mkf-simpson</url>
+      <organization>Hydrosphere</organization>
+      <organizationUrl>http://hydrosphere.io/</organizationUrl>
+    </developer>
+    <developer>
+      <id>leonid133</id>
+      <name>Leonid Blokhin</name>
+      <url>https://github.com/leonid133</url>
+      <organization>Hydrosphere</organization>
+      <organizationUrl>http://hydrosphere.io/</organizationUrl>
+    </developer>
+  </developers>

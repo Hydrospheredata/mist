@@ -15,9 +15,10 @@ object Constants {
 
     final lazy val syncJobRunnerName = "SyncJobRunner"
     final lazy val asyncJobRunnerName = "AsyncJobRunner"
-    final lazy val contextManagerName = "ContextManager"
+    final lazy val workerManagerName = "WorkerManager"
     final lazy val mqttServiceName = "MQTTService"
 
+    final lazy val contextNode = "ContextNode"
   }
 
 }

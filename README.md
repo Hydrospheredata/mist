@@ -24,7 +24,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Tests](#tests)
 - [Contact](#contact)
 - [License](#license)
-- [TODO](#todo)
+- [Roadmap](#roadmap)
 
 ## Features
 
@@ -40,6 +40,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 |----------------|----------------|----------------|------------------|
 | 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
 
@@ -60,18 +61,9 @@ It implements Spark as a Service and creates a unified API layer for building en
     
 * Create [configuration file](#configuration)
 * Run
-	        
-        spark-submit    --class io.hydrosphere.mist.Mist \
-                        --driver-java-options "-Dconfig.file=/path/to/application.conf" \ target/scala-2.10/mist-assembly-0.2.0.jar
 
-Or if you use mesos will be need specify master and executor (but not necessarily)
-
-        spark-submit    --master mesos://vagrant-ubuntu-trusty-64:5050 \
-                        -c spark.executor.uri=hdfs://vagrant-ubuntu-trusty-64/user/spark-1.5.2-bin-hadoop2.6.tgz  \
-                        --class io.hydrosphere.mist.Mist  \
-                        --driver-java-options "-Dconfig.file=/path/to/application.conf" \ target/scala-2.10/mist-assembly-0.2.0.jar
-
-
+        ./mist.sh   --config /path/to/application.conf \
+                    --jar target/scala-2.10/mist-assembly-0.3.0.jar
 
 ##Configuration
 
@@ -83,9 +75,6 @@ Configuration files are in [HOCON format](https://github.com/typesafehub/config/
 # spark master url can be either of three: local, yarn, mesos (local by default)
 mist.spark.master = "local[*]"
 
-# number of threads: one thread for one job
-mist.settings.threadNumber = 16
-
 # http interface (off by default)
 mist.http.on = false
 mist.http.host = "0.0.0.0"
@@ -96,9 +85,9 @@ mist.mqtt.on = false
 mist.mqtt.host = "192.168.10.33"
 mist.mqtt.port = 1883
 # mist listens this topic for incoming requests
-mist.mqtt.subscribeTopic = "foo"
+mist.mqtt.subscribe-topic = "foo"
 # mist answers in this topic with the results
-mist.mqtt.publishTopic = "foo"
+mist.mqtt.publish-topic = "foo"
 
 # recovery job (off by default)
 mist.recovery.on = false
@@ -108,12 +97,12 @@ mist.recovery.on = false
 
 # default settings for all contexts
 # timeout for each job in context
-mist.contextDefaults.timeout = 100 days
+mist.context-defaults.timeout = 100 days
 # mist can kill context after job finished (off by default)
-mist.contextDefaults.disposable = false
+mist.context-defaults.disposable = false
 
 # settings for SparkConf
-mist.contextDefaults.sparkConf = {
+mist.context-defaults.spark-conf = {
     spark.default.parallelism = 128
     spark.driver.memory = "10g"
     spark.scheduler.mode = "FAIR"
@@ -122,7 +111,7 @@ mist.contextDefaults.sparkConf = {
 # settings can be overridden for each context
 mist.contexts.foo.timeout = 100 days
 
-mist.contexts.foo.sparkConf = {
+mist.contexts.foo.spark-conf = {
     spark.scheduler.mode = "FIFO"
 }
 
@@ -130,7 +119,7 @@ mist.contexts.bar.timeout = 1000 second
 mist.contexts.bar.disposable = true
 
 # mist can create context on start, so we don't waste time on first request
-mist.contextSettings.onstart = ["foo"]
+mist.context-settings.onstart = ["foo"]
 ```
 
 ## Spark Job at Mist
@@ -162,7 +151,7 @@ object SimpleContext extends MistJob {
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.2.0"
+libraryDependencies += "io.hydrosphere" % "mist" % "0.3.0"
 ```
 
 Maven dependency:
@@ -171,7 +160,7 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
     
@@ -240,7 +229,7 @@ Mist could be deployed in [cluster mode](#cluster-mode) on Marathon with [Hydros
 
 ## API Reference
 
-Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in a response. MQTT requests work almost the same: you send a message with a request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribeTopic`) and then Mist sends a message back with the results ([configuration](#configuration): `mist.mqtt.publishTopic`). To dispatch multiple future responses you can add the `external_id` field into request message. `external_id` will be returned in a message with the results.
+Mist’s goal is to run Apache Spark jobs as a service. There might be fast (< 5s) and long running analytics jobs. Mist supports two modes: synchronous (HTTP) and asynchronous (MQTT). HTTP is straightforward: you make a POST request and then get results in a response. MQTT requests work almost the same: you send a message with a request into a specified topic ([configuration](#configuration): `mist.mqtt.subscribe-topic`) and then Mist sends a message back with the results ([configuration](#configuration): `mist.mqtt.publish-topic`). To dispatch multiple future responses you can add the `external_id` field into request message. `external_id` will be returned in a message with the results.
 
 ######Requests
 for Scala jobs:
@@ -273,13 +262,13 @@ for Python jobs:
 e.g. from MQTT [(MQTT server and client)](http://mosquitto.org/) are necessary
 
 ```sh
-mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.2.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
+mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.3.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'  -t 'foo'
 ```
 
 e.g. from HTTP
 
 ```sh
-curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.2.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"jarPath":"/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.3.0.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
 ```
 
 
@@ -303,7 +292,7 @@ e.g.
     },
     "errors": [],
     "request": {
-        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.2.0.jar",
+        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.3.0.jar",
         "className": "SimpleContext$",
         "name": "foo",
         "parameters": {
@@ -339,7 +328,7 @@ Create this configuration file mist.conf and save it someplace.  In this example
 ```hocon
 mist.spark.master = "local[*]"
 
-mist.settings.threadNumber = 16
+mist.settings.thread-number = 16
 
 mist.http.on = true
 mist.http.host = "127.0.0.1"
@@ -351,7 +340,7 @@ mist.recovery.on = false
 
 mist.contexts.foo.timeout = 100 days
 
-mist.contexts.foo.sparkConf = {
+mist.contexts.foo.spark-conf = {
   spark.default.parallelism = 4
   spark.driver.memory = "128m"
   spark.executor.memory = "64m"
@@ -362,7 +351,7 @@ mist.contexts.foo.sparkConf = {
 
 Next start Mist like this, changing the mist-assembly-X.X.X.jar file name to match the version you installed:
 
-         spark-submit --class io.hydrosphere.mist.Mist --driver-java-options "-Dconfig.file=/usr/src/mist/mist/mist.conf" /usr/src/mist/mist/mistsrc/mist/target/scala-2.10/mist-assembly-0.1.1.jar
+         ./mist.sh --config /usr/src/mist/mist/mist.conf --jar /usr/src/mist/mist/mistsrc/mist/target/scala-2.10/mist-assembly-0.3.0.jar
          
 Set Python Path as shown below, again adjusting the file names and paths to match your installation:
 
@@ -405,12 +394,15 @@ Please report bugs/problems to:
 
 Apache 2.0 License
 
-## TODO
+## Roadmap
 
-- Super parallel mode support multi JVM
-- Cluster mode and node framework
-- Add logging
-- Restification 
-- Support streaming contexts/jobs
-- Apache Kafka support
-- AMQP support
+-----------------
+- [x] Persist job state for self healing
+- [x] Super parallel mode: run Spark contexts in separate JVMs
+- [x] Cluster mode and node framework
+- [ ] Powerful logging
+- [ ] RESTification
+- [ ] Support streaming contexts/jobs
+- [ ] Apache Kafka support
+- [ ] AMQP support
+- [ ] Web Interface

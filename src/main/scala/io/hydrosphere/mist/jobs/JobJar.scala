@@ -21,18 +21,22 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
   override val configuration = jobConfiguration
 
   // Class with job in user jar
-  private val cls = {
+  private val cls = try{
     val jarFile = new File(configuration.jarPath.get)
     val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
     classLoader.loadClass(configuration.className.get)
+  } catch {
+    case e: Throwable =>
+      throw new Exception(e)
   }
 
   // Scala `object` reference of user job
-  private val objectRef = cls.getField("MODULE$").get(null)
+  private val objectRef = cls.getField("MODULE$").get(None)
 
   // We must add user jar into spark context
   contextWrapper.addJar(configuration.jarPath.get)
 
+  _status = JobStatus.Initialized
   /** Runs a job
     *
     * @return results of user job
@@ -66,8 +70,8 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
           } catch {
             case _: NoSuchMethodException => // pass
           }
-          return Right(Constants.Errors.noDoStuffMethod)
-        case _ => return Right(Constants.Errors.notJobSubclass)
+          Right(Constants.Errors.noDoStuffMethod)
+        case _ => Right(Constants.Errors.notJobSubclass)
       }
 
       _status = JobStatus.Stopped

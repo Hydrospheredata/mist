@@ -8,4 +8,9 @@ package io.hydrosphere.mist.jobs
   * @param parameters   parameters for user job
   * @param external_id  optional external id used to differ async answers from mist
   */
-private[mist] case class JobConfiguration(jarPath: Option[String] = None, pyPath: Option[String] = None, className: Option[String] = None, name: String, parameters: Map[String, Any] = Map(), external_id: Option[String] = None)
+private[mist] case class JobConfiguration(jarPath: Option[String] = None,
+                                          pyPath: Option[String] = None,
+                                          className: Option[String] = None,
+                                          name: String,
+                                          parameters: Map[String, Any] = Map(),
+                                          external_id: Option[String] = None)

@@ -12,12 +12,32 @@ private[mist] object MistConfig {
 
   private val config = ConfigFactory.load()
 
+  val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
+
+  object Akka {
+
+    trait AkkaSettings {
+      def settings: Config = config.getConfig("mist").withOnlyPath("akka")
+
+      lazy val serverList = settings.getStringList("akka.cluster.seed-nodes").toList
+      lazy val port = settings.getInt("akka.remote.netty.tcp.port")
+    }
+
+    object Worker extends AkkaSettings {
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.worker"))
+    }
+
+    object Main extends AkkaSettings {
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.main"))
+    }
+  }
+
   /** Common application settings */
   object Settings {
     private val settings = config.getConfig("mist.settings")
 
     /** Max number of threads for JVM where jobs are running */
-    lazy val threadNumber: Int = settings.getInt("threadNumber")
+    lazy val threadNumber: Int = settings.getInt("thread-number")
   }
 
   /** HTTP specific settings */
@@ -48,6 +68,18 @@ private[mist] object MistConfig {
     lazy val master: String = spark.getString("master")
   }
 
+  /** Hive Test*/
+
+  object Hive {
+    lazy val hivetest: Boolean = {
+      try {
+        config.getBoolean("mist.hive.test")
+      } catch {
+        case _ => false
+      }
+    }
+  }
+
   /** MQTT specific settings */
   object MQTT {
     private val mqtt = config.getConfig("mist.mqtt")
@@ -60,34 +92,39 @@ private[mist] object MistConfig {
     /** MQTT port */
     lazy val port: Int = mqtt.getInt("port")
     /** MQTT topic used for ''reading'' */
-    lazy val subscribeTopic: String = mqtt.getString("subscribeTopic")
+    lazy val subscribeTopic: String = mqtt.getString("subscribe-topic")
     /** MQTT topic used for ''writing'' */
-    lazy val publishTopic: String = mqtt.getString("publishTopic")
+    lazy val publishTopic: String = mqtt.getString("publish-topic")
 
   }
 
   object Recovery {
     private val recovery = config.getConfig("mist.recovery")
 
-    /** job recovery after mist Failure*/
+    /** job recovery after mist Failure */
     lazy val recoveryOn: Boolean = recovery.getBoolean("on")
     /** job recovery multi start limit */
     lazy val recoveryMultilimit: Int = recovery.getInt("multilimit")
-    /** type Db*/
+    /** type Db */
     lazy val recoveryTypeDb: String = recovery.getString("typedb")
-    /** job recovery MapDb file name*/
+    /** job recovery MapDb file name */
     lazy val recoveryDbFileName: String = recovery.getString("dbfilename")
   }
 
 
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
-    private val contexts = if (config.hasPath("mist.contexts")) config.getConfig("mist.contexts") else null
-    private val contextDefaults = config.getConfig("mist.contextDefaults")
-    private val contextSettings = if (config.hasPath("mist.contextSettings")) config.getConfig("mist.contextSettings") else null
+    private val contexts = getConfigOption(config, "mist.context")
+    private val contextDefaults = config.getConfig("mist.context-defaults")
+    private val contextSettings = getConfigOption(config, "mist.context-settings")
 
     /** Flag of context creating on start or on demand */
-    lazy val precreated: List[String] = if (contextSettings != null) contextSettings.getStringList("onstart").toList else List()
+    lazy val precreated: List[String] = {
+      contextSettings match {
+        case Some(cnf) => cnf.getStringList("onstart").toList
+        case None => List()
+      }
+    }
 
     /** Return config for specified context or default settings
       *
@@ -95,15 +132,16 @@ private[mist] object MistConfig {
       * @return               config for `contextName` or default config
       */
     private def getContextOrDefault(contextName: String): Config = {
-      var contextConfig:Config = null
       try {
-        contextConfig = contexts.getConfig(contextName).withFallback(contextDefaults)
+        contexts match {
+          case Some(cnf) => cnf.getConfig(contextName).withFallback(contextDefaults)
+          case None => contextDefaults
+        }
       }
       catch {
-        case _: ConfigException.Missing  | _: NullPointerException =>
-          contextConfig = contextDefaults
+        case _: ConfigException.Missing =>
+          contextDefaults
       }
-      contextConfig
     }
 
     /** Waiting for job completion timeout */
@@ -118,10 +156,19 @@ private[mist] object MistConfig {
 
     /** Settings for SparkConf */
     def sparkConf(contextName: String): Set[List[String]] = {
-      getContextOrDefault(contextName).getConfig("sparkConf").entrySet.map {
+      getContextOrDefault(contextName).getConfig("spark-conf").entrySet.map {
         case (m: java.util.Map.Entry[String, ConfigValue]) => List(m.getKey, m.getValue.unwrapped().toString)
       }.toSet
     }
 
+  }
+
+
+  private def getConfigOption(config: Config, path: String): Option[Config] = {
+    if (config.hasPath(path)) {
+      Some(config.getConfig(path))
+    } else {
+      None
+    }
   }
 }
