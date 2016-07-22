@@ -46,7 +46,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
-  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
+  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.0"
