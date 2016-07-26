@@ -31,9 +31,9 @@ resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-core" % sparkVersion,
+  "org.apache.spark" %% "spark-sql" % sparkVersion,
+  "org.apache.spark" %% "spark-hive" % sparkVersion,
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
@@ -46,7 +46,13 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
-  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2"
+  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2",
+
+  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+  "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+  "org.slf4j" % "slf4j-api" % "1.7.1",
+ // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
+  "ch.qos.logback" % "logback-classic" % "1.0.3"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.0"
