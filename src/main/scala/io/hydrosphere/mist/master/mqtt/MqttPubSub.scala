@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.master.mqtt
 
 import akka.actor.{Props, Terminated, Actor, ActorRef}
-import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.{Constants, MistConfig, Logger}
 import org.eclipse.paho.client.mqttv3.{IMqttActionListener, IMqttDeliveryToken, IMqttToken, MqttAsyncClient, MqttCallback, MqttConnectOptions, MqttMessage}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, DurationInt}
 
 
-private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
+private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
 
   lazy val connectionOptions = {
     val opt = new MqttConnectOptions
@@ -28,11 +28,11 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
 
   def receive: Receive = {
     case MqttPubSub.Connect =>
-      println(s"connecting to $connectionUrl..")
+      logger.info(s"connecting to $connectionUrl..")
       try {
         client.connect(connectionOptions, None, connectionListener)
       } catch {
-        case e: Exception => println(s"can't connect to $connectionUrl")
+        case e: Exception => logger.error(s"can't connect to $connectionUrl")
       }
 
     case MqttPubSub.Connected =>
@@ -55,7 +55,7 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
       try {
         client.publish(MistConfig.MQTT.publishTopic, p.message())
       } catch {
-        case e: Exception => println(s"can't publish to ${MistConfig.MQTT.publishTopic}")
+        case e: Exception => logger.error(s"can't publish to ${MistConfig.MQTT.publishTopic}")
       }
 
     case msg@MqttPubSub.Subscribe(ref) =>
@@ -69,7 +69,7 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
           try {
             client.subscribe(MistConfig.MQTT.publishTopic, 0, None, MqttPubSub.SubscribeListener)
           } catch {
-            case e: Exception => println(e); println(s"can't subscribe to ${MistConfig.MQTT.publishTopic}")
+            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.publishTopic}", e)
           }
       }
 
@@ -79,7 +79,7 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor{
       try {
         client.unsubscribe(Constants.Actors.mqttServiceName)
       } catch {
-        case e: Exception => println(s"can't unsubscribe from ${topicRef.path.name}")
+        case e: Exception => logger.error(s"can't unsubscribe from ${topicRef.path.name}", e)
       }
 
     case MqttPubSub.Disconnected =>
@@ -126,10 +126,10 @@ private[mist] object MqttPubSub {
     }
   }
 
-  class Callback(owner: ActorRef) extends MqttCallback {
+  class Callback(owner: ActorRef) extends MqttCallback with Logger{
 
     def connectionLost(cause: Throwable): Unit = {
-      println("connection lost")
+      logger.info("connection lost")
       owner ! Disconnected
     }
 
@@ -153,13 +153,13 @@ private[mist] object MqttPubSub {
     }
   }
 
-  object SubscribeListener extends IMqttActionListener {
+  object SubscribeListener extends IMqttActionListener with Logger{
     def onSuccess(asyncActionToken: IMqttToken): Unit = {
-      println("subscribed to " + asyncActionToken.getTopics.mkString("[", ",", "]"))
+      logger.info("subscribed to " + asyncActionToken.getTopics.mkString("[", ",", "]"))
     }
 
     def onFailure(asyncActionToken: IMqttToken, e: Throwable): Unit = {
-      println("subscribe failed to " + asyncActionToken.getTopics.mkString("[", ",", "]"))
+      logger.info("subscribe failed to " + asyncActionToken.getTopics.mkString("[", ",", "]"))
     }
   }
 }

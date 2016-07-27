@@ -10,6 +10,7 @@ import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import io.hydrosphere.mist.Logger
 
 
 private[mist] case object MqttSubscribe
@@ -18,7 +19,7 @@ private[mist] trait MqttPubSubActor { this: Actor =>
   val pubsub = context.actorOf(Props(classOf[MqttPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
 }
 
-private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with JsonFormatSupport {
+private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with JsonFormatSupport with Logger{
 
   def receive: Receive = {
 
@@ -33,7 +34,7 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
 
       val stringMessage = new String(msg.payload, "utf-8")
 
-      println("Receiving Data, Topic : %s, Message : %s".format(MistConfig.MQTT.publishTopic, stringMessage))
+      logger.info("Receiving Data, Topic : %s, Message : %s".format(MistConfig.MQTT.publishTopic, stringMessage))
       try {
         val json = stringMessage.parseJson
         // map request into JobConfiguration
@@ -62,9 +63,9 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
       }
       catch {
 
-        case _: spray.json.JsonParser.ParsingException => println("BadJson")
+        case _: spray.json.JsonParser.ParsingException => logger.error("BadJson")
 
-        case _: DeserializationException => println("DeserializationException Bad type in Json")
+        case _: DeserializationException => logger.error("DeserializationException Bad type in Json")
       }
   }
 }

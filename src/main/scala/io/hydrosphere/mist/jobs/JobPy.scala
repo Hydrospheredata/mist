@@ -82,15 +82,17 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
         val boundPort = gatewayServer.getListeningPort
 
         if (boundPort == -1) {
+          logger.error("GatewayServer to Python exception")
           throw new Exception("GatewayServer to Python exception")
         } else {
-          println(s" Started PythonGatewayServer on port $boundPort")
+          logger.info(s" Started PythonGatewayServer on port $boundPort")
           cmd += s" $boundPort"
         }
 
         val exitCode = cmd.!
         if (exitCode != 0) {
           val errmsg = errorWrapper.get
+          logger.error(errmsg)
           throw new Exception("Error in python code: " + errmsg)
         }
       }
@@ -101,13 +103,13 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
       finally {
         // We must shutdown gatewayServer
         gatewayServer.shutdown()
-        println(" Exiting due to broken pipe from Python driver")
+        logger.info(" Exiting due to broken pipe from Python driver")
       }
 
       Left(Map("result" -> dataWrapper.get))
     } catch {
       case e: Throwable =>
-        println(e)
+        logger.error(e.getMessage, e)
         _status = JobStatus.Aborted
         Right(e.toString)
     }

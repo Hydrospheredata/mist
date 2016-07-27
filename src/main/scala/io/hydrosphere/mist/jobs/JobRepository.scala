@@ -4,9 +4,9 @@ import io.hydrosphere.mist.master.{JobCompleted, JobStarted}
 import io.hydrosphere.mist.{Repository, Specification, MistConfig, Constants, Master}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
+import io.hydrosphere.mist.Logger
 
-
-private[mist] trait ConfigurationRepository {
+private[mist] trait ConfigurationRepository extends Logger{
   def add(jobId: String, jobConfiguration: JobConfiguration): Unit = ???
   def remove(jobId: String): Unit = ???
   def get(jobId: String): JobConfiguration = ???
@@ -60,18 +60,18 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     try {
       val w_job = SerializationUtils.serialize(jobConfiguration)
       map.put(jobId, w_job)
-      println(s"${jobId} saved in MapDb")
+      logger.info(s"${jobId} saved in MapDb")
     } catch {
-      case e: Exception => println(e)
+      case e: Exception => logger.error(e.getMessage, e)
     }
   }
 
   override def remove(jobId: String): Unit = {
     try {
       map.remove(jobId)
-      println(s"${jobId} removed from MapDb")
+      logger.info(s"${jobId} removed from MapDb")
     } catch{
-      case e: Exception => println(e)
+      case e: Exception => logger.error(e.getMessage, e)
     }
   }
 
@@ -83,11 +83,11 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
       for(key <- keys){
         _collection put (key.toString, SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[JobConfiguration])
       }
-      println(s"${_collection.size} get from MapDb")
+      logger.info(s"${_collection.size} get from MapDb")
     }
     catch {
       case e: Exception =>
-        println(e)
+        logger.error(e.getMessage, e)
     }
     _collection
   }
@@ -98,7 +98,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     }
     catch {
       case e: Exception =>
-        println(e)
+        logger.error(e.getMessage, e)
         new JobConfiguration(None, None, None, "Empty", Map().empty, None)
     }
   }
@@ -114,7 +114,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     }
     catch {
       case e: Exception =>
-        println(e)
+        logger.error(e.getMessage, e)
         0
     }
   }
@@ -122,9 +122,9 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
  override def clear(): Unit = {
    try {
      map.clear()
-     println("MpDb cleaned", size)
+     logger.info("MpDb cleaned", size)
    } catch {
-     case e: Exception => println(e)
+     case e: Exception => logger.error(e.getMessage, e)
    }
  }
 }

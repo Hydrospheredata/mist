@@ -5,17 +5,14 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.stream.ActorMaterializer
-import akka.pattern.{ask, AskTimeoutException}
-import io.hydrosphere.mist.{Constants, MistConfig}
-
-import spray.json.{DefaultJsonProtocol, JsonFormat, JsValue, JsNumber, JsString, JsTrue, JsFalse, serializationError, JsArray, JsObject, deserializationError}
+import akka.pattern.{AskTimeoutException, ask}
+import io.hydrosphere.mist.{Constants, Logger, MistConfig}
+import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
-
-import io.hydrosphere.mist.jobs.{JobResult, JobConfiguration}
+import io.hydrosphere.mist.jobs.{JobConfiguration, JobResult}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.language.reflectiveCalls
 
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
@@ -45,7 +42,7 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   implicit val jobCreatingRequestFormat = jsonFormat6(JobConfiguration)
 }
 /** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport {
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport with Logger{
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -58,7 +55,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
       entity(as[JobConfiguration]) { jobCreatingRequest =>
         complete {
 
-          println(jobCreatingRequest.parameters)
+          logger.info(jobCreatingRequest.parameters.toString)
 
           // Run job asynchronously
           val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
