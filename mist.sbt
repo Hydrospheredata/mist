@@ -7,7 +7,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.4.0"
+version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2]")
@@ -46,13 +46,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
-  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.0.2",
-
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
   "org.slf4j" % "slf4j-api" % "1.7.1",
  // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
-  "ch.qos.logback" % "logback-classic" % "1.0.3"
+  "ch.qos.logback" % "logback-classic" % "1.0.3",
+  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.0"

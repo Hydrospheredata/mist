@@ -1,12 +1,10 @@
 package  io.hydrosphere.mist
 
-
-import java.io.File
 import java.util.concurrent.Executors._
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.pattern.{AskTimeoutException, ask}
-import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import akka.pattern.{ask, AskTimeoutException}
+import akka.testkit.{TestKit, ImplicitSender, TestActorRef}
 import io.hydrosphere.mist.Messages.{RemoveContext, StopAllContexts, WorkerDidStart}
 import io.hydrosphere.mist.master.{HTTPService, JobRecovery, JsonFormatSupport, WorkerManager}
 import io.hydrosphere.mist.worker.ContextNode
