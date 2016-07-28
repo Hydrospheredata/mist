@@ -39,7 +39,7 @@ object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {
-        "./mist.sh master --config configs/integration.conf --jar target/scala-2.10/mist-assembly-0.4.0.jar" !
+        s"./mist.sh master --config configs/integration.conf --jar ${TestConfig.assemblyjar}" !
       }
     }
   }
