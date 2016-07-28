@@ -2,11 +2,9 @@ package io.hydrosphere.mist.jobs
 
 import java.io.FileReader
 
-import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.{Logger, Constants}
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.JobStatus.JobStatus
-
-import scala.reflect.io.File
 
 /** Job state statuses */
 private[mist] object JobStatus extends Enumeration {
@@ -14,7 +12,7 @@ private[mist] object JobStatus extends Enumeration {
   val Initialized, Running, Stopped, Aborted = Value
 }
 
-trait Job{
+trait Job extends Logger{
 
   final val id = java.util.UUID.randomUUID.toString
 
@@ -34,7 +32,7 @@ trait Job{
 
 }
 
-object Job{
+object Job extends Logger{
   def apply(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String):Job = {
 
     val path = jobConfiguration.jarPath.getOrElse(jobConfiguration.pyPath.getOrElse(""))
@@ -42,7 +40,7 @@ object Job{
        new FileReader(path)
     } catch {
       case e: Throwable =>
-        println(e.getMessage)
+        logger.error(e.getMessage, e)
         throw new Exception(e)
     }
 

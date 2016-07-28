@@ -79,7 +79,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
       result
     } catch {
       case e: Throwable =>
-        println(e)
+        logger.error(e.getMessage, e)
         _status = JobStatus.Aborted
         Right(e.toString)
     }

@@ -4,7 +4,7 @@ package io.hydrosphere.mist.master
 import akka.actor.Actor
 import io.hydrosphere.mist.master.mqtt.{MqttPubSub, MqttPubSubActor}
 import MqttPubSub.Publish
-import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.{MistConfig,Logger}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, JobConfiguration}
 import org.json4s.jackson.Serialization
 
@@ -18,7 +18,7 @@ case object JobStarted{
 }
 case object JobCompleted
 
-private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MqttPubSubActor {
+private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MqttPubSubActor with Logger {
 
   private implicit val formats = org.json4s.DefaultFormats
 
@@ -26,7 +26,7 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
 
     case StartRecovery =>
       TryRecoveyNext._collection = configurationRepository.getAll
-      println(s"${TryRecoveyNext._collection.size} loaded from MapDb ")
+      logger.info(s"${TryRecoveyNext._collection.size} loaded from MapDb ")
       configurationRepository.clear()
       this.self ! TryRecoveyNext
 
@@ -36,7 +36,7 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
         if (TryRecoveyNext._collection.nonEmpty) {
           val job_configuration = TryRecoveyNext._collection.last
           val json = Serialization.write(job_configuration._2)
-          println(s"send $json")
+          logger.info(s"send $json")
           TryRecoveyNext._collection.remove(TryRecoveyNext._collection.last._1)
           pubsub ! new Publish(json.getBytes("utf-8"))
         }

@@ -6,7 +6,7 @@ import akka.actor.{AddressFromURIString, Actor}
 import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker}
+import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker, Logger}
 
 import scala.concurrent.duration.DurationInt
 import io.hydrosphere.mist.Messages._
@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import sys.process._
 
 /** Manages context repository */
-private[mist] class WorkerManager extends Actor {
+private[mist] class WorkerManager extends Actor with Logger{
 
   private val cluster = Cluster(context.system)
 
@@ -59,7 +59,7 @@ private[mist] class WorkerManager extends Actor {
       removeWorkerByName(name)
 
     case WorkerDidStart(name, address) =>
-      println(s"Worker `$name` did start on $address")
+      logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
     case jobRequest: JobConfiguration =>

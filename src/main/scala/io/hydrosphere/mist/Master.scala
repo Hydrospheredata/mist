@@ -12,20 +12,19 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Master extends App with HTTPService {
+private[mist] object Master extends App with HTTPService with Logger{
   override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  println(MistConfig.Akka.Worker.port)
-  println(MistConfig.Akka.Main.port)
+  logger.info(MistConfig.Akka.Worker.port.toString)
+  logger.info(MistConfig.Akka.Main.port.toString)
 
-  // TODO: Logging
   // Context creator actor
   val workerManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
 
-  // Creating contexts which are specified in config as `onstart`
+    // Creating contexts which are specified in config as `onstart`
   MistConfig.Contexts.precreated foreach { contextName =>
-    println("Creating contexts which are specified in config")
+    logger.info("Creating contexts which are specified in config")
     workerManager ! CreateContext(contextName)
   }
 
@@ -58,7 +57,7 @@ private[mist] object Master extends App with HTTPService {
 
   // We need to stop contexts on exit
   sys addShutdownHook {
-    println("Stopping all the contexts")
+    logger.info("Stopping all the contexts")
     workerManager ! StopAllContexts
   }
 }

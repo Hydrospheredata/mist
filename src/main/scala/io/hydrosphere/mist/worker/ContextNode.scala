@@ -35,17 +35,16 @@ class ContextNode(name: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
-
   override def receive: Receive = {
     case jobRequest: JobConfiguration =>
-      println(s"[WORKER] received JobRequest: $jobRequest")
+      log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
       lazy val job = Job(jobRequest, contextWrapper, self.path.name)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
         serverActor ! AddJobToRecovery(job.id, job.configuration)
-        println(s"${jobRequest.name}#${job.id} is running")
+        log.info(s"${jobRequest.name}#${job.id} is running")
         job.run()
       }(executionContext)
       future
@@ -60,7 +59,6 @@ class ContextNode(name: String) extends Actor with ActorLogging{
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
-
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
