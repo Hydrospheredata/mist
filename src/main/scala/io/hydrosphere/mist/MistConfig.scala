@@ -75,7 +75,7 @@ private[mist] object MistConfig {
       try {
         config.getBoolean("mist.hive.test")
       } catch {
-        case _: Throwable => false
+        case _ => false
       }
     }
   }

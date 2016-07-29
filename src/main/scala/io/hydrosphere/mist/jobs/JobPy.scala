@@ -43,7 +43,7 @@ class SparkContextWrapper{
   def getSparkConf:    SparkConf         = m_context_wrapper.context.getConf
 
   def getSqlContext:   SQLContext        = m_context_wrapper.sqlContext
-  def getHiveContext:  HiveContext       = m_context_wrapper.hiveContext
+  def getHiveContext/*:  HiveContext */      = m_context_wrapper.hiveContext
 
 }
 

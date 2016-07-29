@@ -10,7 +10,7 @@ organization := "io.hydrosphere"
 version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2]")
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2, 2.0.0]")
 
 scalaVersion := {
   sparkVersion match {
