@@ -21,6 +21,8 @@ script:
 - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
 - sbt ++$TRAVIS_SCALA_VERSION $TEST
 - sbt -DsparkVersion=1.5.2 assembly
+- sbt -DsparkVersion=2.0.0 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
+- sbt -DsparkVersion=1.6.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
 - sbt -DsparkVersion=1.5.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf coverage test
 after_success:
 - sbt coveralls

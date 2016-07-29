@@ -46,11 +46,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-  "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-  "org.slf4j" % "slf4j-api" % "1.7.1",
- // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
-  "ch.qos.logback" % "logback-classic" % "1.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
 )
 
@@ -62,11 +57,18 @@ def akkaDependencies(scalaVersion: String) = {
   scalaVersion match {
     case Old() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.15"
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
+      "org.slf4j" % "slf4j-api" % "1.7.1",
+      // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
+      "ch.qos.logback" % "logback-classic" % "1.0.3",
+      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
     )
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
-      "com.typesafe.akka" %% "akka-cluster" % "2.4.7"
+      "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
+      "ch.qos.logback" % "logback-classic" % "1.1.7",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0"
     )
   }
 
