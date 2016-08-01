@@ -45,20 +45,8 @@ class SparkContextWrapper {
 
   def getSparkConf: SparkConf = m_context_wrapper.context.getConf
 
-  val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-  val checkSparkSessionLogic = {
-    sparkVersion match {
-      case versionRegex(major, minor) if major.toInt > 1 => true
-      case _ => false
-    }
-  }
-  if (!checkSparkSessionLogic)
-  {
-    def getSqlContext: SQLContext = m_context_wrapper.sqlContext
-    def getHiveContext/*: HiveContext*/ = m_context_wrapper.hiveContext
-  }
+  def getSqlContext: SQLContext = m_context_wrapper.sqlContext
+  def getHiveContext/*: HiveContext*/ = m_context_wrapper.hiveContext
 
 }
 

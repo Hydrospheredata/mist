@@ -15,7 +15,6 @@ import scala.concurrent.duration._
 import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import org.scalatest._
 import org.scalatest.time.{Second, Seconds, Span}
-import sbt.Keys._
 
 import scala.util.matching.Regex
 
@@ -212,6 +211,8 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Jar job run") {
+    if(checkSparkSessionLogic)
+      cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.request_jar.parseJson
     val jobConfiguration = json.convertTo[JobConfiguration]
     val someJarJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
@@ -246,6 +247,8 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Py job run") {
+    if(checkSparkSessionLogic)
+      cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.request_pyspark.parseJson
     val jobConfiguration = json.convertTo[JobConfiguration]
     val somePyJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")

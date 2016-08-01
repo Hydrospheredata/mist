@@ -501,6 +501,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 */
       "mqtt python spark" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+        
         MqttSuccessObj.success = false
         MQTTTest.publish(TestConfig.request_pyspark)
         Thread.sleep(5000)
