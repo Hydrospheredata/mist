@@ -94,6 +94,16 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   mqttActor ! MqttSubscribe
   MQTTTest.subscribe(systemM)
 
+  val versionRegex = "(\\d+)\\.(\\d+).*".r
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+
+  val checkSparkSessionLogic = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt > 1 => true
+      case _ => false
+    }
+  }
+
   override  def beforeAll() = {
     Thread.sleep(5000)
     AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
@@ -318,6 +328,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Pyspark Context" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
@@ -343,6 +355,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP SparkSQL" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
         val future_response = clientHTTP.singleRequest(httpRequest)
@@ -367,6 +382,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Python SparkSQL" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
         val future_response = clientHTTP.singleRequest(httpRequest)
@@ -391,6 +409,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Spark HIVE" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
         val future_response = clientHTTP.singleRequest(httpRequest)
@@ -415,6 +436,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Python Spark HIVE" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
         val future_response = clientHTTP.singleRequest(httpRequest)
@@ -452,6 +476,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "mqtt spark sql" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
 
         MqttSuccessObj.success = false
 
@@ -493,6 +519,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "MQTT Spark HIVE" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         MqttSuccessObj.success = false
         MQTTTest.publish(TestConfig.request_sparkhive)
         eventually(timeout(60 seconds), interval(1 second)) {
@@ -501,6 +530,9 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "MQTT Python Spark HIVE" in {
+        if(checkSparkSessionLogic)
+          cancel("Can't run in Spark 2.0.0")
+
         MqttSuccessObj.success = false
         MQTTTest.publish(TestConfig.request_pysparkhive)
         eventually(timeout(60 seconds), interval(1 second)) {

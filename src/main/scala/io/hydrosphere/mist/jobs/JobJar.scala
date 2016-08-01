@@ -6,7 +6,7 @@ import java.net.{URL, URLClassLoader}
 import io.hydrosphere.mist.{Constants, MistJob}
 import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql._
 import org.apache.spark.sql.hive.HiveContext
 
 /** Class-container for user jobs
@@ -70,6 +70,16 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
           } catch {
             case _: NoSuchMethodException => // pass
           }
+/*
+          try {
+            // if user object overrides method for SparkSession(SQLContext or HiveContext context on Spark 2.0.0), use it
+            cls.getDeclaredMethod("doStuff", classOf[SparkSession], classOf[Map[String, Any]])
+            // run job with SQLContext or Hive on Spark 2.0.0 and return result
+            return Left(objectRef.doStuff(contextWrapper.sparkSession, configuration.parameters))
+          } catch {
+            case _: NoSuchMethodException => // pass
+          }
+*/
           Right(Constants.Errors.noDoStuffMethod)
         case _ => Right(Constants.Errors.notJobSubclass)
       }

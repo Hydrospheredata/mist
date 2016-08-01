@@ -31,19 +31,34 @@ class DataWrapper{
 }
 
 // wrapper for SparkContext, SQLContext, HiveContext in python
-class SparkContextWrapper{
+class SparkContextWrapper {
 
   var m_context_wrapper: ContextWrapper = _
 
   lazy val javaSparkContext = new JavaSparkContext(m_context_wrapper.context)
 
-  def setContextWrapper(contextWrapper: ContextWrapper) = {m_context_wrapper = contextWrapper}
+  def setContextWrapper(contextWrapper: ContextWrapper) = {
+    m_context_wrapper = contextWrapper
+  }
 
-  def getSparkContext: JavaSparkContext  = javaSparkContext
-  def getSparkConf:    SparkConf         = m_context_wrapper.context.getConf
+  def getSparkContext: JavaSparkContext = javaSparkContext
 
-  def getSqlContext:   SQLContext        = m_context_wrapper.sqlContext
-  def getHiveContext/*:  HiveContext */      = m_context_wrapper.hiveContext
+  def getSparkConf: SparkConf = m_context_wrapper.context.getConf
+
+  val versionRegex = "(\\d+)\\.(\\d+).*".r
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+
+  val checkSparkSessionLogic = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt > 1 => true
+      case _ => false
+    }
+  }
+  if (!checkSparkSessionLogic)
+  {
+    def getSqlContext: SQLContext = m_context_wrapper.sqlContext
+    def getHiveContext/*: HiveContext*/ = m_context_wrapper.hiveContext
+  }
 
 }
 

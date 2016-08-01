@@ -10,7 +10,7 @@ organization := "io.hydrosphere"
 version := "0.3.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2, 2.0.0]")
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
 scalaVersion := {
   sparkVersion match {
@@ -27,6 +27,7 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
@@ -67,8 +68,12 @@ def akkaDependencies(scalaVersion: String) = {
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "ch.qos.logback" % "logback-classic" % "1.1.7",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0"
+      /*"ch.qos.logback" % "logback-classic" % "1.1.7",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.3.6"*/
+      "ch.qos.logback" % "logback-classic" % "1.1.3",  //logback, in order to log to file
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
     )
   }
 
