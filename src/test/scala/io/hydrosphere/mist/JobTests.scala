@@ -166,10 +166,13 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
     }
   }
 
-  test("Jar job hive") {
-    if(checkSparkSessionLogic)
-      cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_sparkhive.parseJson
+  test("Jar job Hive") {
+    val json = if(checkSparkSessionLogic) {
+      TestConfig.request_sparksession.parseJson
+    }
+    else {
+      TestConfig.request_sparkhive.parseJson
+    }
     val jobConfiguration = json.convertTo[JobConfiguration]
     val someJarJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
@@ -200,9 +203,12 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Py job hive") {
-    if(checkSparkSessionLogic)
-      cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pysparkhive.parseJson
+    val json = if(checkSparkSessionLogic) {
+      TestConfig.request_pysparksession.parseJson
+    }
+    else {
+      TestConfig.request_pysparkhive.parseJson
+    }
     val jobConfiguration = json.convertTo[JobConfiguration]
     val somePyJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
@@ -235,9 +241,12 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Jar job hive run ") {
-    if(checkSparkSessionLogic)
-      cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_sparkhive.parseJson
+    val json = if(checkSparkSessionLogic) {
+      TestConfig.request_sparksession.parseJson
+    }
+    else {
+      TestConfig.request_sparkhive.parseJson
+    }
     val jobConfiguration = json.convertTo[JobConfiguration]
     val someJarJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
     someJarJob.run()
@@ -271,9 +280,12 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Py job hive run ") {
-    if(checkSparkSessionLogic)
-      cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pysparkhive.parseJson
+    val json = if(checkSparkSessionLogic) {
+      TestConfig.request_pysparksession.parseJson
+    }
+    else {
+      TestConfig.request_pysparkhive.parseJson
+    }
     val jobConfiguration = json.convertTo[JobConfiguration]
     val somePyJob = Job(jobConfiguration, contextWrapper, "Test Jar Job")
     somePyJob.run()

@@ -85,6 +85,23 @@ class Job:
       err = self._entry_point.errorWrapper()
       err.set(traceback.format_exc())
 
+  def _getSS(self):
+    return self._ss
+
+  @property
+  def ss(self):
+    try:
+      sparkContextWrapper = self._entry_point.sparkContextWrapper()
+      self._ss = SparkSession(self.sc, sparkContextWrapper.getSparkSession())
+      self.ss = self._getSS()
+      return self._ss
+
+    except Exception:
+      print(traceback.format_exc())
+      err = self._entry_point.errorWrapper()
+      err.set(traceback.format_exc())
+
+
   @property
   def parameters(self):
     try:

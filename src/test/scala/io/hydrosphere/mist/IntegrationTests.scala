@@ -23,7 +23,9 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 import sys.process._
 import scala.io.Source
-import org.scalatest._ //for Ignore
+import org.scalatest._
+
+import scala.util.matching.Regex //for Ignore
 
 @Ignore class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -34,8 +36,19 @@ import org.scalatest._ //for Ignore
   val clientHTTP = Http(system)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
+/*
+  val versionRegex = "(\\d+)\\.(\\d+).*".r
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
-object StartMist {
+  val checkSparkSessionLogic = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt > 1 => true
+      case _ => false
+    }
+  }
+*/
+
+  object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {

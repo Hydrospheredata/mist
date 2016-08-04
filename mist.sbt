@@ -93,6 +93,63 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   }
 }
 
+excludeFilter in Compile ~= {  _ ||
+  new FileFilter {
+    def accept(f: File) = {
+      val versionRegex = "(\\d+)\\.(\\d+).*".r
+      sparkVersion match {
+        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+          f.getPath.containsSlice("MistJob_SparkSession.scala")
+        }
+        case versionRegex(major, minor) if major.toInt > 1 => {
+          f.getPath.containsSlice("MistJob.scala")
+        }
+      }
+    }
+  } ||
+  new FileFilter {
+    def accept(f: File) = {
+      val versionRegex = "(\\d+)\\.(\\d+).*".r
+      sparkVersion match {
+        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+          f.getPath.containsSlice("JobJar_SparkSession.scala")
+        }
+        case versionRegex(major, minor) if major.toInt > 1 => {
+          f.getPath.containsSlice("JobJar.scala")
+        }
+      }
+    }
+  } ||
+  new FileFilter {
+    def accept(f: File) = {
+      val versionRegex = "(\\d+)\\.(\\d+).*".r
+      sparkVersion match {
+        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+          f.getPath.containsSlice("ContextWrapper_SparkSession.scala")
+        }
+        case versionRegex(major, minor) if major.toInt > 1 => {
+          f.getPath.containsSlice("ContextWrapper.scala")
+        }
+      }
+    }
+  } ||
+  new FileFilter {
+    def accept(f: File) = {
+      val versionRegex = "(\\d+)\\.(\\d+).*".r
+      sparkVersion match {
+        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+          f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
+        }
+        case versionRegex(major, minor) if major.toInt > 1 => {
+          f.getPath.containsSlice("JobPyWrappers.scala")
+        }
+      }
+    }
+  }
+}
+
+
+
 lazy val sub = LocalProject("examples")
 ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 

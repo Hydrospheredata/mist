@@ -23,6 +23,8 @@ object TestConfig{
   val request_sparkhive = testconfig.getString("mist.test.request.sparkhive")
   val request_pysparksql = testconfig.getString("mist.test.request.pysparksql")
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
+  val request_sparksession = testconfig.getString("mist.test.request.sparksession")
+  val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
 
   val request_jar_other_context = testconfig.getString("mist.test.request.jarother")
 
