@@ -112,10 +112,10 @@ excludeFilter in Compile ~= {  _ ||
       val versionRegex = "(\\d+)\\.(\\d+).*".r
       sparkVersion match {
         case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-          f.getPath.containsSlice("JobJar_SparkSession.scala")
+          f.getPath.containsSlice("JobJarRun_SparkSession.scala")
         }
         case versionRegex(major, minor) if major.toInt > 1 => {
-          f.getPath.containsSlice("JobJar.scala")
+          f.getPath.containsSlice("JobJarRun.scala")
         }
       }
     }

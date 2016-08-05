@@ -1,42 +1,18 @@
 package io.hydrosphere.mist.jobs
 
-import java.io.File
-import java.net.{URL, URLClassLoader}
-
-import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.{Constants, MistJob}
+import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.SparkContext
-import org.apache.spark.sql._
-//import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.SparkSession
 
-/** Class-container for user jobs
-  *
-  * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
-  * @param contextWrapper   contexts for concrete job running
-  */
-private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job {
+trait JobJarRun extends Job {
 
-  override val jobRunnerName = JobRunnerName
+  val cls: Class[_] = ???
 
-  override val configuration = jobConfiguration
+  val objectRef: AnyRef = ???
 
-  // Class with job in user jar
-  private val cls = try{
-    val jarFile = new File(configuration.jarPath.get)
-    val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className.get)
-  } catch {
-    case e: Throwable =>
-      throw new Exception(e)
-  }
+  val contextWrapper: ContextWrapper = ???
 
-  // Scala `object` reference of user job
-  private val objectRef = cls.getField("MODULE$").get(None)
-
-  // We must add user jar into spark context
-  contextWrapper.addJar(configuration.jarPath.get)
-
-  _status = JobStatus.Initialized
   /** Runs a job
     *
     * @return results of user job
