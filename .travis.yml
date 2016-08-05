@@ -10,22 +10,43 @@ install:
 - sudo apt-get install -qq mosquitto mosquitto-clients
 - wget -c -N --no-verbose http://d3kbcqa49mib13.cloudfront.net/spark-1.5.2-bin-hadoop2.6.tgz
 - tar xzf spark-1.5.2-bin-hadoop2.6.tgz -C $HOME
+- wget -c -N --no-verbose http://d3kbcqa49mib13.cloudfront.net/spark-1.6.2-bin-hadoop2.6.tgz
+- tar xzf spark-1.6.2-bin-hadoop2.6.tgz -C $HOME
+- wget -c -N --no-verbose http://d3kbcqa49mib13.cloudfront.net/spark-2.0.0-bin-hadoop2.6.tgz
+- tar xzf spark-2.0.0-bin-hadoop2.6.tgz -C $HOME
+
 before_script:
 - mosquitto -p 1883 1>/dev/null 2>/dev/null &
 script:
 - jdk_switcher use oraclejdk8
+- sbt ++$TRAVIS_SCALA_VERSION $TEST
+- sudo $HOME/spark-2.0.0-bin-hadoop2.6/sbin/start-master.sh
+- sudo $HOME/spark-2.0.0-bin-hadoop2.6/sbin/start-slave.sh localhost:7077
+- export SPARK_HOME=$HOME/spark-2.0.0-bin-hadoop2.6/
+- export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.10.1-src.zip:$PYTHONPATH
+- export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+- sbt -DsparkVersion=2.0.0 assembly
+- sbt -DsparkVersion=2.0.0 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
+- sudo $HOME/spark-2.0.0-bin-hadoop2.6/sbin/stop-master.sh
+- sudo $HOME/spark-2.0.0-bin-hadoop2.6/sbin/stop-slave.sh
+- sudo $HOME/spark-1.6.2-bin-hadoop2.6/sbin/start-master.sh
+- sudo $HOME/spark-1.6.2-bin-hadoop2.6/sbin/start-slave.sh localhost:7077
+- export SPARK_HOME=$HOME/spark-1.6.2-bin-hadoop2.6/
+- export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.9-src.zip:$PYTHONPATH
+- export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+- sbt -DsparkVersion=1.6.2 assembly
+- sbt -DsparkVersion=1.6.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
+- sudo $HOME/spark-1.6.2-bin-hadoop2.6/sbin/stop-master.sh
+- sudo $HOME/spark-1.6.2-bin-hadoop2.6/sbin/stop-slave.sh
 - sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/start-master.sh
 - sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/start-slave.sh localhost:7077
 - export SPARK_HOME=$HOME/spark-1.5.2-bin-hadoop2.6/
 - export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
 - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
-- sbt ++$TRAVIS_SCALA_VERSION $TEST
-- sbt -DsparkVersion=2.0.0 assembly
-- sbt -DsparkVersion=2.0.0 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
-- sbt -DsparkVersion=1.6.2 assembly
-- sbt -DsparkVersion=1.6.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
 - sbt -DsparkVersion=1.5.2 assembly
 - sbt -DsparkVersion=1.5.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf coverage test
+- sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/stop-master.sh
+- sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/stop-slave.sh
 after_success:
 - sbt coveralls
 

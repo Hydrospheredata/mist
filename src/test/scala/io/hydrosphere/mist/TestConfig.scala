@@ -5,7 +5,8 @@ import com.typesafe.config.ConfigFactory
 object TestConfig{
   private val testconfig = ConfigFactory.load()
 
-  val assemblyjar = testconfig.getString("mist.test.assemblyjar")
+  val assemblyjar_2_10 = testconfig.getString("mist.test.assemblyjar_2_10")
+  val assemblyjar_2_11 = testconfig.getString("mist.test.assemblyjar_2_11")
 
   val other_context_name = testconfig.getString("mist.test.othercontextname")
 

@@ -1,4 +1,4 @@
-import mist
+import mist_sparksession
 
 class MyJob:
     def __init__(self, job):
@@ -13,11 +13,11 @@ class MyJob:
         df.registerTempTable("people")
 
         df.show()
-        df2 = job.sqlc.sql("SELECT AVG(age) AS avg_age FROM people")
+        df2 = job.ss.sql("SELECT AVG(age) AS avg_age FROM people")
         df2.show()
 
         result = df2.toJSON().first()
 
         return result
 
-job = MyJob(mist.Job())
+job = MyJob(mist_sparksession.Job())

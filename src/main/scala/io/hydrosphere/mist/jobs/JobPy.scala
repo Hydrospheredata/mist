@@ -1,14 +1,8 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.MistConfig
-import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.hive.HiveContext
-import org.apache.spark.{SparkContext, SparkConf}
-import org.apache.spark.api.java.JavaSparkContext
 import py4j.GatewayServer
 import sys.process._
-
 
 /** Class-container for user jobs in python
   *

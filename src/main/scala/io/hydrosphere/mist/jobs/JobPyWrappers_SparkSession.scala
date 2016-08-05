@@ -3,7 +3,7 @@ package io.hydrosphere.mist.jobs
 import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.SparkConf
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.{SparkSession}
+import org.apache.spark.sql.SparkSession
 
 // wrapper for error of python
 class ErrorWrapper{
