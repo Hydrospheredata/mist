@@ -4,8 +4,6 @@ import java.io.File
 
 import io.hydrosphere.mist.MistConfig
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.hive.HiveContext
-import org.apache.spark.sql.hive.test.TestHiveContext
 import org.apache.spark.sql._
 
 import scala.collection.mutable.ArrayBuffer
@@ -14,33 +12,13 @@ private[mist] trait ContextWrapper {
 
   private val jars: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
-/*
-  val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-  val checkSparkSessionLogic = {
-    sparkVersion match {
-      case versionRegex(major, minor) if major.toInt > 1 => true
-      case _ => false
-    }
-  }
-
-  lazy val sparkSession = if (checkSparkSessionLogic) {
+  lazy val sparkSession = {
      SparkSession
       .builder()
       .appName(context.appName)
       .config(context.getConf)
       .enableHiveSupport()
       .getOrCreate()
-  }
-*/
-  lazy val sqlContext = new SQLContext(context)
-
-  lazy val hiveContext = {
-    MistConfig.Hive.hivetest match {
-      case true => new TestHiveContext(context)
-      case _ => new HiveContext(context)
-    }
   }
 
   def context: SparkContext

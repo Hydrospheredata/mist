@@ -1,13 +1,11 @@
 package io.hydrosphere.mist
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql._
 import org.apache.spark.sql.hive.HiveContext
-
 
 /** Provides abstract class for user spark jobs */
 class MistJob {
-
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
@@ -34,4 +32,5 @@ class MistJob {
     * @return             result of the job
     */
   def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
+
 }

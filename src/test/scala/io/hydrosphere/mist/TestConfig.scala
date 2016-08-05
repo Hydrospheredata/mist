@@ -5,7 +5,8 @@ import com.typesafe.config.ConfigFactory
 object TestConfig{
   private val testconfig = ConfigFactory.load()
 
-  val assemblyjar = testconfig.getString("mist.test.assemblyjar")
+  val assemblyjar_2_10 = testconfig.getString("mist.test.assemblyjar_2_10")
+  val assemblyjar_2_11 = testconfig.getString("mist.test.assemblyjar_2_11")
 
   val other_context_name = testconfig.getString("mist.test.othercontextname")
 
@@ -23,6 +24,8 @@ object TestConfig{
   val request_sparkhive = testconfig.getString("mist.test.request.sparkhive")
   val request_pysparksql = testconfig.getString("mist.test.request.pysparksql")
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
+  val request_sparksession = testconfig.getString("mist.test.request.sparksession")
+  val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
 
   val request_jar_other_context = testconfig.getString("mist.test.request.jarother")
 

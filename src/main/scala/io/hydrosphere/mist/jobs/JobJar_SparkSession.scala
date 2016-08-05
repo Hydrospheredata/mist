@@ -3,11 +3,11 @@ package io.hydrosphere.mist.jobs
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import io.hydrosphere.mist.{Constants, MistJob}
 import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.{Constants, MistJob}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql._
-import org.apache.spark.sql.hive.HiveContext
+//import org.apache.spark.sql.hive.HiveContext
 
 /** Class-container for user jobs
   *
@@ -46,6 +46,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
     try {
       val result = objectRef match {
         case objectRef: MistJob =>
+
           try {
             // if user object overrides method for SparkContext, use it
             cls.getDeclaredMethod("doStuff", classOf[SparkContext], classOf[Map[String, Any]])
@@ -54,23 +55,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
           } catch {
             case _: NoSuchMethodException => // pass
           }
-          try {
-            // if user object overrides method for SQLContext, use it
-            cls.getDeclaredMethod("doStuff", classOf[SQLContext], classOf[Map[String, Any]])
-            // run job with SQLContext and return result
-            return Left(objectRef.doStuff(contextWrapper.sqlContext, configuration.parameters))
-          } catch {
-            case _: NoSuchMethodException => // pass
-          }
-          try {
-            // if user object overrides method for HiveContext, use it
-            cls.getDeclaredMethod("doStuff", classOf[HiveContext], classOf[Map[String, Any]])
-            // run job with HiveContext and return result
-            return Left(objectRef.doStuff(contextWrapper.hiveContext, configuration.parameters))
-          } catch {
-            case _: NoSuchMethodException => // pass
-          }
-/*
+
           try {
             // if user object overrides method for SparkSession(SQLContext or HiveContext context on Spark 2.0.0), use it
             cls.getDeclaredMethod("doStuff", classOf[SparkSession], classOf[Map[String, Any]])
@@ -79,7 +64,7 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: C
           } catch {
             case _: NoSuchMethodException => // pass
           }
-*/
+
           Right(Constants.Errors.noDoStuffMethod)
         case _ => Right(Constants.Errors.notJobSubclass)
       }

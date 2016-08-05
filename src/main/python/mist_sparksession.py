@@ -15,7 +15,7 @@ from pyspark.storagelevel import StorageLevel
 from pyspark.accumulators import Accumulator, AccumulatorParam
 from pyspark.broadcast import Broadcast
 from pyspark.serializers import MarshalSerializer, PickleSerializer
-from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
+from pyspark.sql import SparkSession, Row
 
 ###################################################################
 class Job:
@@ -53,38 +53,6 @@ class Job:
       err = self._entry_point.errorWrapper()
       err.set(traceback.format_exc())
 
-  def _getSQLC(self):
-    return self._sqlc
-
-  @property
-  def sqlc(self):
-    try:
-      sparkContextWrapper = self._entry_point.sparkContextWrapper()
-      self._sqlc = SQLContext(self.sc, sparkContextWrapper.getSqlContext())
-      self.sqlc = self._getSQLC()
-      return  self._sqlc
-
-    except Exception:
-      print(traceback.format_exc())
-      err = self._entry_point.errorWrapper()
-      err.set(traceback.format_exc())
-
-  def _getHC(self):
-    return self._hc
-
-  @property
-  def hc(self):
-    try:
-      sparkContextWrapper = self._entry_point.sparkContextWrapper()
-      self._hc = HiveContext(self.sc, sparkContextWrapper.getHiveContext())
-      self.hc = self._getHC()
-      return self._hc
-
-    except Exception:
-      print(traceback.format_exc())
-      err = self._entry_point.errorWrapper()
-      err.set(traceback.format_exc())
-
   def _getSS(self):
     return self._ss
 
@@ -100,7 +68,6 @@ class Job:
       print(traceback.format_exc())
       err = self._entry_point.errorWrapper()
       err.set(traceback.format_exc())
-
 
   @property
   def parameters(self):
