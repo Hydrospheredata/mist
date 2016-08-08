@@ -1,4 +1,4 @@
-import mist_sparksession
+import mist
 
 class MyJob:
     def __init__(self, job):
@@ -20,4 +20,4 @@ class MyJob:
 
         return result
 
-job = MyJob(mist_sparksession.Job())
+job = MyJob(mist.Job())

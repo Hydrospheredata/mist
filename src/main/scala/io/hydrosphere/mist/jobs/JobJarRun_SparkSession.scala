@@ -7,11 +7,11 @@ import org.apache.spark.sql.SparkSession
 
 trait JobJarRun extends Job {
 
-  val cls: Class[_] = ???
+  val cls: Class[_] = null
 
-  val objectRef: AnyRef = ???
+  val objectRef: Object = null
 
-  val contextWrapper: ContextWrapper = ???
+  val contextWrapper: ContextWrapper = null
 
   /** Runs a job
     *

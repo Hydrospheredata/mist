@@ -8,9 +8,11 @@ import io.hydrosphere.mist.contexts.ContextWrapper
 /** Class-container for user jobs
   *
   * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
-  * @param contextWrapper   contexts for concrete job running
+  * @param _contextWrapper   contexts for concrete job running
   */
-private[mist] class JobJar(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job with JobJarRun{
+private[mist] class JobJar(jobConfiguration: JobConfiguration, _contextWrapper: ContextWrapper, JobRunnerName: String) extends JobJarRun{
+
+  override val contextWrapper = _contextWrapper
 
   override val jobRunnerName = JobRunnerName
 

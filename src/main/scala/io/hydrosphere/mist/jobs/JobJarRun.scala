@@ -2,18 +2,17 @@ package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.{Constants, MistJob}
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{Job, JobStatus}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
 
 trait JobJarRun extends Job{
 
-  val cls: Class[_] = ???
+  val cls: Class[_] = null
 
-  val objectRef: AnyRef = ???
+  val objectRef: Object = null
 
-  val contextWrapper: ContextWrapper = ???
+  val contextWrapper: ContextWrapper = null
 
   /** Runs a job
     *

@@ -15,7 +15,7 @@ from pyspark.storagelevel import StorageLevel
 from pyspark.accumulators import Accumulator, AccumulatorParam
 from pyspark.broadcast import Broadcast
 from pyspark.serializers import MarshalSerializer, PickleSerializer
-from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
+#from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
 
 ###################################################################
 class Job:
@@ -59,6 +59,7 @@ class Job:
   @property
   def sqlc(self):
     try:
+      from pyspark.sql import SQLContext, SchemaRDD, Row
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
       self._sqlc = SQLContext(self.sc, sparkContextWrapper.getSqlContext())
       self.sqlc = self._getSQLC()
@@ -75,6 +76,7 @@ class Job:
   @property
   def hc(self):
     try:
+      from pyspark.sql import SQLContext, HiveContext, SchemaRDD, Row
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
       self._hc = HiveContext(self.sc, sparkContextWrapper.getHiveContext())
       self.hc = self._getHC()
@@ -91,6 +93,7 @@ class Job:
   @property
   def ss(self):
     try:
+      from pyspark.sql import SparkSession
       sparkContextWrapper = self._entry_point.sparkContextWrapper()
       self._ss = SparkSession(self.sc, sparkContextWrapper.getSparkSession())
       self.ss = self._getSS()
