@@ -41,17 +41,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val threadMaster = {
     new Thread {
       override def run() = {
-        val versionRegex = "(\\d+)\\.(\\d+).*".r
-        val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-        val assemblyjar = {
-          sparkVersion match {
-            case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => TestConfig.assemblyjar_2_10
-            case versionRegex(major, minor) if major.toInt > 1 => TestConfig.assemblyjar_2_11
-            case _ => TestConfig.assemblyjar_2_10
-          }
-        }
-        s"./mist.sh master --config configs/integration.conf --jar ${assemblyjar}" !
+        s"./mist.sh master --config configs/integration.conf --jar ${TestConfig.assemblyjar}" !
       }
     }
   }

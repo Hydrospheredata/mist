@@ -78,7 +78,6 @@ def akkaDependencies(scalaVersion: String) = {
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
     )
   }
-
 }
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
