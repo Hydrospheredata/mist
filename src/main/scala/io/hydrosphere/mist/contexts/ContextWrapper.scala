@@ -14,26 +14,6 @@ private[mist] trait ContextWrapper {
 
   private val jars: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
-/*
-  val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-  val checkSparkSessionLogic = {
-    sparkVersion match {
-      case versionRegex(major, minor) if major.toInt > 1 => true
-      case _ => false
-    }
-  }
-
-  lazy val sparkSession = if (checkSparkSessionLogic) {
-     SparkSession
-      .builder()
-      .appName(context.appName)
-      .config(context.getConf)
-      .enableHiveSupport()
-      .getOrCreate()
-  }
-*/
   lazy val sqlContext = new SQLContext(context)
 
   lazy val hiveContext = {
