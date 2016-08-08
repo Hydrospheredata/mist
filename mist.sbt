@@ -1,6 +1,8 @@
 import AssemblyKeys._
 import sbt.Keys._
 
+import scala.util.matching.Regex
+
 assemblySettings
 
 name := "mist"
@@ -93,62 +95,26 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   }
 }
 
-excludeFilter in Compile ~= {  _ ||
-  new FileFilter {
-    def accept(f: File) = {
-      val versionRegex = "(\\d+)\\.(\\d+).*".r
-      sparkVersion match {
-        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-          f.getPath.containsSlice("MistJob_SparkSession.scala")
-        }
-        case versionRegex(major, minor) if major.toInt > 1 => {
-          f.getPath.containsSlice("MistJob.scala")
-        }
+val exludes = new FileFilter {
+  def accept(f: File) = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
+        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
+        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
+        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
       }
-    }
-  } ||
-  new FileFilter {
-    def accept(f: File) = {
-      val versionRegex = "(\\d+)\\.(\\d+).*".r
-      sparkVersion match {
-        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-          f.getPath.containsSlice("JobJarRun_SparkSession.scala")
-        }
-        case versionRegex(major, minor) if major.toInt > 1 => {
-          f.getPath.containsSlice("JobJarRun.scala")
-        }
-      }
-    }
-  } ||
-  new FileFilter {
-    def accept(f: File) = {
-      val versionRegex = "(\\d+)\\.(\\d+).*".r
-      sparkVersion match {
-        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-          f.getPath.containsSlice("ContextWrapper_SparkSession.scala")
-        }
-        case versionRegex(major, minor) if major.toInt > 1 => {
-          f.getPath.containsSlice("ContextWrapper.scala")
-        }
-      }
-    }
-  } ||
-  new FileFilter {
-    def accept(f: File) = {
-      val versionRegex = "(\\d+)\\.(\\d+).*".r
-      sparkVersion match {
-        case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-          f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
-        }
-        case versionRegex(major, minor) if major.toInt > 1 => {
-          f.getPath.containsSlice("JobPyWrappers.scala")
-        }
+      case versionRegex(major, minor) if major.toInt > 1 => {
+        f.getPath.containsSlice("MistJob.scala") ||
+        f.getPath.containsSlice("JobJarRun.scala") ||
+        f.getPath.containsSlice("ContextWrapper.scala") ||
+        f.getPath.containsSlice("JobPyWrappers.scala")
       }
     }
   }
 }
 
-
+excludeFilter in Compile ~= {  _ || exludes }
 
 lazy val sub = LocalProject("examples")
 ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
