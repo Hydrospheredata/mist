@@ -20,7 +20,8 @@ scalaVersion := {
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
   "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-hive" % sparkVersion
+  "org.apache.spark" %% "spark-hive" % sparkVersion,
+  "io.hydrosphere" %% "mist" % "0.3.0"
 )
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>

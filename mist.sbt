@@ -116,6 +116,7 @@ val exludes = new FileFilter {
 excludeFilter in Compile ~= {  _ || exludes }
 
 lazy val sub = LocalProject("examples")
+
 ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true

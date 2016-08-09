@@ -25,6 +25,7 @@ script:
 - export SPARK_HOME=$HOME/spark-2.0.0-bin-hadoop2.6/
 - export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.10.1-src.zip:$PYTHONPATH
 - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+- sbt -DsparkVersion=2.0.0 package
 - sbt -DsparkVersion=2.0.0 assembly
 - sbt -DsparkVersion=2.0.0 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
 - sudo $HOME/spark-2.0.0-bin-hadoop2.6/sbin/stop-master.sh
@@ -34,6 +35,7 @@ script:
 - export SPARK_HOME=$HOME/spark-1.6.2-bin-hadoop2.6/
 - export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.9-src.zip:$PYTHONPATH
 - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+- sbt -DsparkVersion=1.6.2 package
 - sbt -DsparkVersion=1.6.2 assembly
 - sbt -DsparkVersion=1.6.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf test
 - sudo $HOME/spark-1.6.2-bin-hadoop2.6/sbin/stop-master.sh
@@ -43,6 +45,7 @@ script:
 - export SPARK_HOME=$HOME/spark-1.5.2-bin-hadoop2.6/
 - export PYTHONPATH=$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.8.2.1-src.zip:$PYTHONPATH
 - export PYTHONPATH=$PYTHONPATH:/home/travis/build/Hydrospheredata/mist/src/main/python
+- sbt -DsparkVersion=1.5.2 package
 - sbt -DsparkVersion=1.5.2 assembly
 - sbt -DsparkVersion=1.5.2 -Dconfig.file=/home/travis/build/Hydrospheredata/mist/configs/travis.conf coverage test
 - sudo $HOME/spark-1.5.2-bin-hadoop2.6/sbin/stop-master.sh

@@ -3,7 +3,8 @@ import Keys._
 
 object MistBuild extends Build {
 
-  lazy val mist = project.in(file("."))
+  lazy val mist = project
 
-  lazy val examples = project.in(file("./examples")).dependsOn(mist)
+  lazy val examples = project in file("examples") dependsOn(mist)
+
 }
