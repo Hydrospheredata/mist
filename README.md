@@ -34,6 +34,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
+- Maintence Spark 2.0.0
 
 ## Version Information
 
