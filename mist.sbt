@@ -9,7 +9,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.3.0"
+version := "0.4.0-SNAPSHOT"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
@@ -34,9 +34,9 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-hive" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
@@ -109,6 +109,12 @@ val exludes = new FileFilter {
         f.getPath.containsSlice("ContextWrapper.scala") ||
         f.getPath.containsSlice("JobPyWrappers.scala")
       }
+      case _ => {
+        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
+        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
+        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
+        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
+      }
     }
   }
 }
@@ -129,6 +135,7 @@ test in assembly := {}
 publishMavenStyle := true
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
