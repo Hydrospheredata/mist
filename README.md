@@ -35,6 +35,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
 - Super parallel mode: run Spark contexts in separate JVMs
+- Powerful logging
 - Maintence Spark 2.0.0
 
 ## Version Information
@@ -44,8 +45,8 @@ It implements Spark as a Service and creates a unified API layer for building en
 | 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2, >=2.0.0 |
-| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2, >=2.0.0 |
+| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
 ## Getting Started with Mist
