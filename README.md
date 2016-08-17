@@ -15,7 +15,6 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Version Information](#version-information)
 - [Getting Started with Mist](#getting-started-with-mist)
 - [Configuration](#configuration)
-- [Logger](#logger)
 - [Development mode](#development-mode)
 - [Cluster mode](#cluster-mode)
 - [Spark Job at Mist](#spark-job-at-mist)
@@ -34,7 +33,6 @@ It implements Spark as a Service and creates a unified API layer for building en
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
-- Maintence Spark 2.0.0
 
 ## Version Information
 
@@ -43,15 +41,15 @@ It implements Spark as a Service and creates a unified API layer for building en
 | 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2, >=2.0.0 |
-| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2, >=2.0.0 |
+| 0.4.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| master         | 2.10.6         | 2.7.6          | >=1.5.2          |
 
 
 ## Getting Started with Mist
 
 ######Dependencies
 - jdk = 8
-- scala = 2.10.6, (2.11.8 for Spark Version >=2.0.0)
+- scala = 2.10.6
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server (optional)
 
@@ -123,88 +121,8 @@ mist.contexts.bar.disposable = true
 
 # mist can create context on start, so we don't waste time on first request
 mist.context-settings.onstart = ["foo"]
-
-# mist log level
-mist.akka {
-  # Event handlers to register at boot time (Logging$DefaultLogger logs to STDOUT)
-  # loggers = ["akka.event.Logging$DefaultLogger"]
-  loggers = ["akka.event.slf4j.Slf4jLogger"]
-
-  event-handlers = ["akka.event.slf4j.Slf4jEventHandler"]
-
-  # Log level used by the configured loggers (see "event-handlers") as soon
-  # as they have been started; before that, see "stdout-loglevel"
-  # Options: OFF, ERROR, WARNING, INFO, DEBUG
-  loglevel = "INFO"
-
-  # logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
-
-  # Log level for the very basic logger activated during AkkaApplication startup
-  # Options: OFF, ERROR, WARNING, INFO, DEBUG
-  stdout-loglevel = "INFO"
-
-  log-config-on-start = on
-}
 ```
 
-## Logger
-
-You can use any logger on you project, for configure them, you should add appenders in logback.xml 
-
-```
-<configuration>
-
- <appender name="sout" class="ch.qos.logback.core.ConsoleAppender">
-     <layout class="ch.qos.logback.classic.PatternLayout">
-         <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
-     </layout>
- </appender>
-
- <appender name="log4j" class="ch.qos.logback.core.FileAppender">
-     <file>./logs/log_log4j.log</file>
-     <layout class="ch.qos.logback.classic.PatternLayout">
-         <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
-     </layout>
- </appender>
-
- <root level="INFO">
-     <appender-ref ref="sout" />
-     <appender-ref ref="log4j" />
- </root>
-
-</configuration>
-```
-
-If you use log4j and SparkVersion erlier 2.0.0, you so will need create log4j.properties.
-   
-```
-# Set everything to be logged to the console
-log4j.rootCategory=DEBUG, file
-log4j.appender.console=org.apache.log4j.ConsoleAppender
-log4j.appender.console.target=System.err
-log4j.appender.console.layout=org.apache.log4j.PatternLayout
-log4j.appender.console.layout.ConversionPattern=%d{yy/MM/dd HH:mm:ss} %p %c{1}: %m%n
-
-log4j.appender.file=org.apache.log4j.FileAppender
-log4j.appender.file.File=./logs/mist.log
-log4j.appender.file.append=true
-log4j.appender.file.layout=org.apache.log4j.PatternLayout
-log4j.appender.file.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
-
-# Settings to quiet third party logs that are too verbose
-log4j.logger.org.spark-project.jetty=WARN
-log4j.logger.org.spark-project.jetty.util.component.AbstractLifeCycle=ERROR
-log4j.logger.org.apache.spark.repl.SparkIMain$exprTyper=INFO
-log4j.logger.org.apache.spark.repl.SparkILoop$SparkILoopInterpreter=INFO
-log4j.logger.org.apache.parquet=ERROR
-log4j.logger.parquet=ERROR
-
-# SPARK-9183: Settings to avoid annoying messages when looking up nonexistent UDFs in SparkSQL with Hive support
-log4j.logger.org.apache.hadoop.hive.metastore.RetryingHMSHandler=FATAL
-log4j.logger.org.apache.hadoop.hive.ql.exec.FunctionRegistry=ERROR
-```
- 
- 
 ## Spark Job at Mist
 
 ######Mist Scala Spark Job 
@@ -215,13 +133,6 @@ In order to prepare your job to run on Mist you should extend scala `object` fro
 def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
 def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = ???
 def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
-```
-
-for Version Spark >= 2.0.0
-
-```scala
-def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
-def doStuff(context: SparkSession, parameters: Map[String, Any]): Map[String, Any] = ???
 ```
 
 Example:
@@ -268,15 +179,6 @@ job.sc = SparkContext
 job.sqlc = SQL Context 
 job.hc = Hive Context
 ```
-
-for Version Spark >= 2.0.0
-
-```python
-job.sc = SparkContext 
-job.ss = SparkSession
-```
-
-
 
 for example:
 ```python
@@ -498,9 +400,9 @@ Apache 2.0 License
 -----------------
 - [x] Persist job state for self healing
 - [x] Super parallel mode: run Spark contexts in separate JVMs
+- [x] Cluster mode and node framework
 - [x] Powerful logging
 - [ ] RESTification
-- [ ] Cluster mode and node framework
 - [ ] Support streaming contexts/jobs
 - [ ] Apache Kafka support
 - [ ] AMQP support
