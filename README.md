@@ -8,7 +8,7 @@ Mist—is a thin service on top of Spark which makes it possible to execute Scal
 
 It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a Big Data lake.
 
-![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/03/scheme.png)
+![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 
 **Table of Contents**
 - [Features](#features)
@@ -33,6 +33,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
+- Super parallel mode: run Spark contexts in separate JVMs
 
 ## Version Information
 
@@ -399,9 +400,9 @@ Apache 2.0 License
 -----------------
 - [x] Persist job state for self healing
 - [x] Super parallel mode: run Spark contexts in separate JVMs
-- [x] Cluster mode and node framework
 - [ ] Powerful logging
 - [ ] RESTification
+- [ ] Cluster mode and node framework
 - [ ] Support streaming contexts/jobs
 - [ ] Apache Kafka support
 - [ ] AMQP support
