@@ -4,7 +4,7 @@ assemblySettings
 
 name := "mist_examples"
 
-version := "0.0.1"
+version := "0.0.2"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("1.5.2")
@@ -13,9 +13,11 @@ scalaVersion := {
   sparkVersion match {
     case versionRegex(major, minor) if major.toInt == 1 && List(3, 4, 5, 6).contains(minor.toInt) => "2.10.6"
     case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
-    case _ => "0.0.0"
+    case _ => "2.10.6"
   }
 }
+
+resolvers += "snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion,
@@ -35,3 +37,19 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   case _ => MergeStrategy.first
 }
 }
+
+val exludes = new FileFilter {
+  def accept(f: File) = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+        f.getPath.containsSlice("SimpleHiveContext_SparkSession.scala")
+      }
+      case versionRegex(major, minor) if major.toInt > 1 => {
+        f.getPath.containsSlice("SimpleSQLContext.scala") ||
+        f.getPath.containsSlice("SimpleHiveContext.scala")
+      }
+    }
+  }
+}
+
+excludeFilter in Compile ~= {  _ || exludes }

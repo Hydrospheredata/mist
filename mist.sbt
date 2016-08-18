@@ -1,16 +1,18 @@
 import AssemblyKeys._
 import sbt.Keys._
 
+import scala.util.matching.Regex
+
 assemblySettings
 
 name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.3.0"
+version := "0.4.0-SNAPSHOT"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, 1.6.2]")
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
 scalaVersion := {
   sparkVersion match {
@@ -27,13 +29,14 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
 libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion,
-  "org.apache.spark" %% "spark-hive" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",
@@ -46,11 +49,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.0-M6",
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-  "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-  "org.slf4j" % "slf4j-api" % "1.7.1",
- // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
-  "ch.qos.logback" % "logback-classic" % "1.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
 )
 
@@ -62,14 +60,24 @@ def akkaDependencies(scalaVersion: String) = {
   scalaVersion match {
     case Old() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.15"
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
+      "org.slf4j" % "slf4j-api" % "1.7.1",
+      // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
+      "ch.qos.logback" % "logback-classic" % "1.0.3",
+      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
     )
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
-      "com.typesafe.akka" %% "akka-cluster" % "2.4.7"
+      "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
+      /*"ch.qos.logback" % "logback-classic" % "1.1.7",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.3.6"*/
+      "ch.qos.logback" % "logback-classic" % "1.1.3",  //logback, in order to log to file
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
     )
   }
-
 }
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
@@ -86,7 +94,35 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   }
 }
 
+val exludes = new FileFilter {
+  def accept(f: File) = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
+        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
+        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
+        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
+        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
+      }
+      case versionRegex(major, minor) if major.toInt > 1 => {
+        f.getPath.containsSlice("MistJob.scala") ||
+        f.getPath.containsSlice("JobJarRun.scala") ||
+        f.getPath.containsSlice("ContextWrapper.scala") ||
+        f.getPath.containsSlice("JobPyWrappers.scala")
+      }
+      case _ => {
+        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
+        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
+        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
+        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
+      }
+    }
+  }
+}
+
+excludeFilter in Compile ~= {  _ || exludes }
+
 lazy val sub = LocalProject("examples")
+
 ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
@@ -99,6 +135,7 @@ test in assembly := {}
 publishMavenStyle := true
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"

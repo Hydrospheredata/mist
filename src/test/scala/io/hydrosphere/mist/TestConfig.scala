@@ -5,7 +5,17 @@ import com.typesafe.config.ConfigFactory
 object TestConfig{
   private val testconfig = ConfigFactory.load()
 
-  val assemblyjar = testconfig.getString("mist.test.assemblyjar")
+  val versionRegex = "(\\d+)\\.(\\d+).*".r
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+
+  val OldVersion = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => true
+      case versionRegex(major, minor) if major.toInt > 1 => false
+      case _ => true
+    }
+  }
+  val assemblyjar = if(OldVersion) testconfig.getString("mist.test.assemblyjar_2_10") else testconfig.getString("mist.test.assemblyjar_2_11")
 
   val other_context_name = testconfig.getString("mist.test.othercontextname")
 
@@ -15,24 +25,26 @@ object TestConfig{
   val http_url = testconfig.getString("mist.test.http.url")
   val http_url_it = testconfig.getString("mist.test.http.url_it")
 
-  val request_test_timeout = testconfig.getString("mist.test.request.testtimeout")
-  val request_jar = testconfig.getString("mist.test.request.jar")
-  val request_testerror = testconfig.getString("mist.test.request.testerror")
+  val request_test_timeout = if(OldVersion) testconfig.getString("mist.test.request.testtimeout_2_10") else testconfig.getString("mist.test.request.testtimeout_2_11")
+
+  val request_jar = if(OldVersion) testconfig.getString("mist.test.request.jar_2_10") else testconfig.getString("mist.test.request.jar_2_11")
+  val request_testerror = if(OldVersion) testconfig.getString("mist.test.request.testerror_2_10") else testconfig.getString("mist.test.request.testerror_2_11")
   val request_pyspark = testconfig.getString("mist.test.request.pyspark")
   val request_sparksql = testconfig.getString("mist.test.request.sparksql")
   val request_sparkhive = testconfig.getString("mist.test.request.sparkhive")
   val request_pysparksql = testconfig.getString("mist.test.request.pysparksql")
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
+  val request_sparksession = testconfig.getString("mist.test.request.sparksession")
+  val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
 
-  val request_jar_other_context = testconfig.getString("mist.test.request.jarother")
-
+  val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")
   val request_pyerror = testconfig.getString("mist.test.request.pyerror")
-  val request_nodostuff = testconfig.getString("mist.test.request.nodostuff")
+  val request_nodostuff = if(OldVersion) testconfig.getString("mist.test.request.nodostuff_2_10") else testconfig.getString("mist.test.request.nodostuff_2_11")
   val request_badpatch = testconfig.getString("mist.test.request.badpatch")
   val request_badextension = testconfig.getString("mist.test.request.badextension")
   val request_bad = testconfig.getString("mist.test.request.badrequest")
   val request_badjson = testconfig.getString("mist.test.request.badjson")
 
-  val request_jar_disposable_context = testconfig.getString("mist.test.request.disposable")
+  val request_jar_disposable_context = if(OldVersion) testconfig.getString("mist.test.request.disposable_2_10") else testconfig.getString("mist.test.request.disposable_2_11")
   val disposable_context_name = testconfig.getString("mist.test.disposable_context_name")
 }

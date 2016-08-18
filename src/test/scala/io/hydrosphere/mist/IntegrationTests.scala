@@ -23,7 +23,9 @@ import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 import sys.process._
 import scala.io.Source
-import org.scalatest._ //for Ignore
+import org.scalatest._
+
+import scala.util.matching.Regex //for Ignore
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -35,7 +37,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
-object StartMist {
+  object StartMist {
   val threadMaster = {
     new Thread {
       override def run() = {
