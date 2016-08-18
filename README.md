@@ -29,6 +29,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ## Features
 
+- Orchestrates Spark Contexts
 - HTTP and Messaging (MQTT) API
 - Scala & Python Spark job execution
 - Support for Spark SQL and Hive
