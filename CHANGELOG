@@ -1,0 +1,30 @@
+2016-04-16 Mist v0.1.0
+
+	First release
+
+	Scala version 2.10.6
+	Python Version 2.7.6
+	Spark Version >=1.5.2
+
+	HTTP and Messaging (MQTT) API
+	Scala & Python Spark Jobs execution
+	Support for Spark SQL, Hive
+	High Availability and Fault Tolerance
+
+2016-05-16 Mist v0.1.4
+
+	Fix Mqtt Client Id 
+	Fix libraryDependencies org.eclipse.paho
+
+2016-05-16 Mist v0.2.0
+
+	Persist job state for self healing
+	
+2016-07-22 Mist v0.3.0
+
+	Super parallel mode: run Spark contexts in separate JVMs
+
+2016-08-18 Mist v0.4.0
+
+	Powerful logging 
+	Maintence Spark 2.0.0
