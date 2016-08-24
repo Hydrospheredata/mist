@@ -85,8 +85,9 @@ Use Vagrantfile to configure port forwarding and other network setup to make Mis
 - [x] Super parallel mode: run Spark contexts in separate JVMs
 - [x] Powerful logging
 - [ ] RESTification
-- [ ] Cluster mode and Mesos node framework
 - [ ] Support streaming contexts/jobs
+- [ ] Reactive API
+- [ ] Cluster mode and Mesos node framework
 - [ ] Apache Kafka support
 - [ ] AMQP support
 - [ ] Web Interface
