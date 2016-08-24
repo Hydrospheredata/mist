@@ -14,7 +14,6 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Features](#features)
 - [Getting Started with Mist](#getting-started-with-mist)
 - [Development mode](#development-mode)
-- [Cluster mode](#cluster-mode)
 - [Version Information](#version-information)
 - [Roadmap](#roadmap)
 - [Contact](#contact)
@@ -67,10 +66,6 @@ cd /vagrant
 
 Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
 
-## Cluster mode
-
-Mist could be deployed in [cluster mode](#cluster-mode) on Marathon with [Hydrosphere](http://hydrosphere.io/) [Springhead](https://github.com/provectus/springhead) for fault tolerance.
-
 
 ## Version Information
 
@@ -90,7 +85,7 @@ Mist could be deployed in [cluster mode](#cluster-mode) on Marathon with [Hydros
 - [x] Super parallel mode: run Spark contexts in separate JVMs
 - [x] Powerful logging
 - [ ] RESTification
-- [ ] Cluster mode and node framework
+- [ ] Cluster mode and Mesos node framework
 - [ ] Support streaming contexts/jobs
 - [ ] Apache Kafka support
 - [ ] AMQP support
