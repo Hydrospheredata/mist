@@ -8,7 +8,7 @@ ENV MIST_HOME=/usr/share/mist \
 COPY . ${MIST_HOME}
 
 RUN apk update && \
-    apk add python && \
+    apk add python procps && \
     wget http://d3kbcqa49mib13.cloudfront.net/spark-${SPARK_VERSION}-bin-hadoop2.6.tgz && \
     tar xzf spark-${SPARK_VERSION}-bin-hadoop2.6.tgz && \
     mv spark-${SPARK_VERSION}-bin-hadoop2.6 ${SPARK_HOME} && \

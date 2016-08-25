@@ -7,9 +7,10 @@ services:
 
 before_install:
   - docker build --build-arg SPARK_VERSION=$SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
-  - docker run hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "/usr/share/spark/bin/spark-shell --version"
+  - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
+
 script:
-  - /usr/share/spark/bin/spark-shell --version
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "cd /usr/share/mist && chmod +x run-tests.sh && ./run-tests.sh"
 
 # after_success:
 #   - if [ "$TRAVIS_BRANCH" == "master" ]; then
