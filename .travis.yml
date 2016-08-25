@@ -6,7 +6,7 @@ services:
   - docker
 
 before_install:
-  - docker build --build-arg $SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
+  - docker build --build-arg SPARK_VERION=$SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
   - docker run hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "/usr/share/spark/bin/spark-shell --version"
 script:
   - /usr/share/spark/bin/spark-shell --version
