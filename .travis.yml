@@ -10,7 +10,7 @@ before_install:
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "cd /usr/share/mist && chmod +x run-tests.sh && source run-tests.sh"
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "cd /usr/share/mist && chmod +x run-tests.sh && source run-tests.sh --sparkVersion $SPARK_VERSION"
 
 # after_success:
 #   - if [ "$TRAVIS_BRANCH" == "master" ]; then
