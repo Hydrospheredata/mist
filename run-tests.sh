@@ -2,6 +2,11 @@ export PYTHONPATH=$MIST_HOME/src/main/python:$SPARK_HOME/python/:`readlink -f $S
 $SPARK_HOME/sbin/start-master.sh
 $SPARK_HOME/sbin/start-slave.sh localhost:7077
 cd $MIST_HOME
-./sbt/sbt $# -Dconfig.file=configs/docker.conf test
+if [ "${SPARK_VERSION}" == '' ] || [ ! -d "${SPARK_VERSION}" ]
+then
+    echo "SPARK_VERSION is not set"
+    exit 1
+fi
+./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=configs/docker.conf test
 $SPARK_HOME/sbin/stop-master.sh
 $SPARK_HOME/sbin/stop-slave.sh
