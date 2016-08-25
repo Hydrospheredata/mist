@@ -2,4 +2,4 @@ export PYTHONPATH=$MIST_HOME/src/main/python:$SPARK_HOME/python/:`readlink -f $S
 $SPARK_HOME/sbin/start-master.sh
 $SPARK_HOME/sbin/start-slave.sh localhost:7077
 cd $MIST_HOME
-./sbt/sbt -DsparkVersion=1.5.2 -Dconfig.file=configs/docker.conf test
+./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=configs/docker.conf test
