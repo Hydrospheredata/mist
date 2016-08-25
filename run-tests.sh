@@ -22,8 +22,9 @@ done
 
 if [ "${SPARK_VERSION}" == '' ] || [ ! -d "${SPARK_VERSION}" ]
 then
-    echo "SPARK_VERSION is not set"
-    exit 1
+    #echo "SPARK_VERSION is not set"
+    #exit 1
+    SPARK_VERSION = 1.5.2
 fi
 ./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=configs/docker.conf test
 $SPARK_HOME/sbin/stop-master.sh
