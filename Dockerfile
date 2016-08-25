@@ -14,5 +14,5 @@ RUN apk update && \
     mv spark-${SPARK_VERSION}-bin-hadoop2.6 ${SPARK_HOME} && \
     rm spark-${SPARK_VERSION}-bin-hadoop2.6.tgz && \
     cd ${MIST_HOME} && \
-    ./sbt/sbt package && \
-    ./sbt/sbt assembly
+    ./sbt/sbt package -DsparkVersion=${SPARK_VERSION} && \
+    ./sbt/sbt assembly -DsparkVersion=${SPARK_VERSION}
