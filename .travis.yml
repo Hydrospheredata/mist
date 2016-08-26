@@ -10,12 +10,12 @@ before_install:
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "cd /usr/share/mist && chmod +x run-tests.sh && source run-tests.sh"
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION tests
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "docker" ]; then
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
     docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push hydrosphere/mist:docker-$SPARK_VERSION;
+    docker push hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION;
     fi
 
 env:
@@ -25,7 +25,3 @@ env:
     - SPARK_VERSION=1.5.2
     - SPARK_VERSION=1.6.2
     - SPARK_VERSION=2.0.0
-
-branches:
-  only:
-  - docker
