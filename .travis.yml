@@ -12,11 +12,11 @@ before_install:
 script:
   - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION /bin/sh -c "cd /usr/share/mist && chmod +x run-tests.sh && source run-tests.sh"
 
-# after_success:
-#   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-#     docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-#     docker push hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION;
-#     fi
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "docker" ]; then
+    docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+    docker push hydrosphere/mist:docker-$SPARK_VERSION;
+    fi
 
 env:
   global:
