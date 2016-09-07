@@ -11,14 +11,97 @@ It implements Spark as a Service and creates a unified API layer for building en
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 
 **Table of Contents**
-- [How to build application on a top of Apache Spark](#how-to-build)
 - [Features](#features)
 - [Getting Started with Mist](#getting-started-with-mist)
 - [Development mode](#development-mode)
 - [Version Information](#version-information)
 - [Roadmap](#roadmap)
+- [How to build application on a top of Apache Spark](#how-to-build-application)
 - [Contact](#contact)
 - [More docs](/docs/README.md)
+
+## Features
+
+- Spark **2.0.0** support!
+- Spark Contexts orchestration
+- Super parallel mode: multiple Spark contexts in separate JVMs
+- HTTP & Messaging (MQTT) API
+- Scala & **Python** Spark jobs support
+- Support for Spark SQL and Hive
+- High Availability and Fault Tolerance
+- Self Healing after driver program failure
+- Powerful logging
+
+## Getting Started with Mist
+
+######Dependencies
+- jdk = 8
+- scala = 2.10.6, (2.11.8 for Spark Version >=2.0.0)
+- spark >= 1.5.2 (earlier versions were not tested)
+- MQTT Server (optional)
+
+######Running   
+
+
+		docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
+
+		docker run --link mosquitto-$SPARK_VERSION:mosquitto -p 2003:2003  -d hydrosphere/mist:master-$SPARK_VERSION mist
+
+[more about this](https://hub.docker.com/r/hydrosphere/mist/)
+
+or
+
+* Build the project
+
+        git clone https://github.com/hydrospheredata/mist.git
+        cd mist
+        ./sbt/sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
+    
+* Create [configuration file](#configuration)
+* Run
+
+        ./mist.sh   --config /path/to/application.conf \
+                    --jar target/scala-2.10/mist-assembly-0.4.0.jar
+
+## Development mode
+
+You can use Vagrant and work in a preconfigured virtual machine.
+
+```sh
+git clone https://github.com/Hydrospheredata/mist
+vagrant up
+vagrant ssh
+cd /vagrant
+./sbt/sbt run
+```
+
+Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
+
+
+## Version Information
+
+| Mist Version   | Scala Version  | Python Version | Spark Version    |
+|----------------|----------------|----------------|------------------|
+| 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
+| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+
+
+## Roadmap
+
+-----------------
+- [x] Persist job state for self healing
+- [x] Super parallel mode: run Spark contexts in separate JVMs
+- [x] Powerful logging
+- [ ] RESTification
+- [ ] Support streaming contexts/jobs
+- [ ] Reactive API
+- [ ] Cluster mode and Mesos node framework
+- [ ] Apache Kafka support
+- [ ] AMQP support
+- [ ] Web Interface
 
 ## How to build application
 In this tutorial we’ll learn how to allow end users to interact with your big data analytics models which are deployed on Apache Spark cluster.
@@ -32,7 +115,7 @@ Consider the following types of solutions:
 	-Applications for consumers - Recommendation engines, Shopping cart bots.
 	-Utilities for Data Scientist/Analyst - Custom Notebook, ETL builder, Data cleansing app.
 
-###1. Take your awesome Apache Spark program.
+####1. Take your awesome Apache Spark program.
 
 So, you have an Apache Spark program you would like to expose to outside world.
 
@@ -47,7 +130,7 @@ object LocalWeatherForecastApp {
 }
 ```
 
-###2. Wrap it into a Mist job
+####2. Wrap it into a Mist job
 
 ```
 (LocalWeatherForecastApp.scala)
@@ -107,7 +190,7 @@ object LocalWeatherForecastApp extends MistJob {
  }
 }
 ```
-###3. Update project dependencies
+####3. Update project dependencies
 
 ```
 (build.sbt)
@@ -124,7 +207,7 @@ libraryDependencies ++= Seq(
  "io.hydrosphere" %% "mist" % "0.4.0"
 )
 ```
-###4. Build and deploy
+####4. Build and deploy
 
 		sbt package 
 		[info] Packaging .../localweatherforecastapp_2.10-1.0.jar …
@@ -135,92 +218,11 @@ libraryDependencies ++= Seq(
 
 [more about this](https://hub.docker.com/r/hydrosphere/mist/)
 
-###5. Bootstrap UI & enjoy
+####5. Bootstrap UI & enjoy
 Congratulations! You have just exposed your awesome local weather forecast model for entire organisation or even for public access. 
 Now web developer could build an application in 20 lines of Node.js code:
 
 [link to demo](https://github.com/Hydrospheredata/mist-weather-demo/)
-
-###Put it all together
-Here is a docker container and source code of the project we’ve just created.
-Check out the demo app
-
-###What’s next
-At the next series we’ll learn how to build reactive application on a top of Apache Spark. It’s much more natural user experience especially for streaming services and long running services. Also we’ll learn how scale an analytics service and use caching for providing the best user experience. 
-
-
-## Features
-
-- Spark **2.0.0** support!
-- Spark Contexts orchestration
-- Super parallel mode: multiple Spark contexts in separate JVMs
-- HTTP & Messaging (MQTT) API
-- Scala & **Python** Spark jobs support
-- Support for Spark SQL and Hive
-- High Availability and Fault Tolerance
-- Self Healing after driver program failure
-- Powerful logging
-
-## Getting Started with Mist
-
-######Dependencies
-- jdk = 8
-- scala = 2.10.6, (2.11.8 for Spark Version >=2.0.0)
-- spark >= 1.5.2 (earlier versions were not tested)
-- MQTT Server (optional)
-
-######Running   
-* Build the project
-
-        git clone https://github.com/hydrospheredata/mist.git
-        cd mist
-        ./sbt/sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
-    
-* Create [configuration file](#configuration)
-* Run
-
-        ./mist.sh   --config /path/to/application.conf \
-                    --jar target/scala-2.10/mist-assembly-0.4.0.jar
-
-## Development mode
-
-You can use Vagrant and work in a preconfigured virtual machine.
-
-```sh
-git clone https://github.com/Hydrospheredata/mist
-vagrant up
-vagrant ssh
-cd /vagrant
-./sbt/sbt run
-```
-
-Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
-
-
-## Version Information
-
-| Mist Version   | Scala Version  | Python Version | Spark Version    |
-|----------------|----------------|----------------|------------------|
-| 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-
-
-## Roadmap
-
------------------
-- [x] Persist job state for self healing
-- [x] Super parallel mode: run Spark contexts in separate JVMs
-- [x] Powerful logging
-- [ ] RESTification
-- [ ] Support streaming contexts/jobs
-- [ ] Reactive API
-- [ ] Cluster mode and Mesos node framework
-- [ ] Apache Kafka support
-- [ ] AMQP support
-- [ ] Web Interface
 
 ## Contact
 
