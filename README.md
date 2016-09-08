@@ -40,6 +40,16 @@ It implements Spark as a Service and creates a unified API layer for building en
 - MQTT Server (optional)
 
 ######Running   
+
+
+		docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
+
+		docker run --link mosquitto-$SPARK_VERSION:mosquitto -p 2003:2003  -d hydrosphere/mist:master-$SPARK_VERSION mist
+
+[more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
+
+or
+
 * Build the project
 
         git clone https://github.com/hydrospheredata/mist.git
