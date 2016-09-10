@@ -48,7 +48,7 @@ Vagrant.configure(2) do |config|
   #   vb.gui = true
   
      # Customize the amount of memory on the VM:
-    vb.memory = "4096"
+    vb.memory = "2048"
   end
   #
   # View the documentation for the provider you are using for more
@@ -74,5 +74,6 @@ Vagrant.configure(2) do |config|
     tar xzf spark-1.5.2-bin-hadoop2.6.tgz
     sudo /home/vagrant/spark-1.5.2-bin-hadoop2.6/sbin/start-master.sh
     sudo /home/vagrant/spark-1.5.2-bin-hadoop2.6/sbin/start-slave.sh vagrant-ubuntu-trusty-64:7077
+    export SPARK_HOME=/home/vagrant/spark-1.5.2-bin-hadoop2.6/
   SHELL
 end
