@@ -40,11 +40,11 @@ object Job extends Logger{
     if (path.startsWith("hdfs://")) {
       val conf = new Configuration()
       val fileSystem = FileSystem.get(conf)
-      if (!fileSystem.exists(new Path(configuration.jarPath.get))) {
+      if (!fileSystem.exists(new Path(path))) {
         throw new Exception(s"$path does not exist")
       }
     } else {
-      val file = new File(fileSystem)
+      val file = new File(path)
       if(file.exists() && !file.isDirectory()) { 
           throw new Exception(s"$path does not exist")
       }
