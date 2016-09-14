@@ -3,3 +3,10 @@ target/
 .vagrant
 derby.log
 metastore_db/
+file.db
+file.dbb
+stdout.txt
+logs/
+master.pid
+*.pyc
+*.~
