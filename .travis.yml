@@ -8,9 +8,10 @@ services:
 before_install:
   - docker build --build-arg SPARK_VERSION=$SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
+  - docker run --name hdfs-$SPARK_VERSION -d hydrosphere/hdfs start
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION tests
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION tests
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
