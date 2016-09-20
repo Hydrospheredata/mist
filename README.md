@@ -17,7 +17,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Version Information](#version-information)
 - [Roadmap](#roadmap)
 - [Contact](#contact)
-- [More docs](/docs/README.md)
+- [More docs](#more-docs)
 
 ## Features
 
@@ -41,7 +41,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Running   
 
-		docker run -p 2003:2003 -d hydrosphere/mist:master-1.5.2 mist
+        docker run -p 2003:2003 -d hydrosphere/mist:master-1.5.2 mist
 
 [more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
 
@@ -51,7 +51,7 @@ or
 
         git clone https://github.com/hydrospheredata/mist.git
         cd mist
-        sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
+        sbt -DsparkVersion=1.5.2 assembly 
     
 * Create [configuration file](#configuration)
 * Run
@@ -60,7 +60,7 @@ or
                     --jar target/scala-2.10/mist-assembly-0.4.0.jar
 
 
-* Run example
+######Run example
 
 ```
 sbt
@@ -81,7 +81,8 @@ git clone https://github.com/Hydrospheredata/mist
 vagrant up
 vagrant ssh
 cd /vagrant
-./sbt/sbt run
+./sbt/sbt -DsparkVersion=1.5.2 assembly
+./mist.sh master --config configs/localhost.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
 ```
 
 Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.
@@ -111,6 +112,12 @@ Use Vagrantfile to configure port forwarding and another network setup to make M
 - [ ] Apache Kafka support
 - [ ] AMQP support
 - [ ] Web Interface
+
+
+## More docs
+
+- [More docs](/docs/README.md)
+
 
 ## Contact
 
