@@ -1,11 +1,12 @@
 package io.hydrosphere.mist.jobs
 
-import io.hydrosphere.mist.{Logger, Constants}
+import io.hydrosphere.mist.{Constants, Logger}
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.JobStatus.JobStatus
 import org.apache.hadoop.conf._
 import org.apache.hadoop.fs._
 import java.io.File
+import java.net.URI
 
 /** Job state statuses */
 private[mist] object JobStatus extends Enumeration {
@@ -39,13 +40,14 @@ object Job extends Logger{
     val path = jobConfiguration.jarPath.getOrElse(jobConfiguration.pyPath.getOrElse(""))
     if (path.startsWith("hdfs://")) {
       val conf = new Configuration()
-      val fileSystem = FileSystem.get(conf)
-      if (!fileSystem.exists(new Path(path))) {
+      val uriParts = path.replaceFirst("hdfs://", "").split("/", 2)
+      val fileSystem = FileSystem.get(new URI(s"hdfs://${uriParts(0)}"), conf)
+      if (!fileSystem.exists(new Path(s"/${uriParts(1)}"))) {
         throw new Exception(s"$path does not exist")
       }
     } else {
       val file = new File(path)
-      if(file.exists() && !file.isDirectory()) { 
+      if(file.exists() && !file.isDirectory) {
           throw new Exception(s"$path does not exist")
       }
     }

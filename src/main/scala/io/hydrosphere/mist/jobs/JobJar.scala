@@ -1,9 +1,10 @@
 package io.hydrosphere.mist.jobs
 
 import java.io.File
-import java.net.{URL, URLClassLoader}
+import java.net.{URI, URL, URLClassLoader}
+
 import io.hydrosphere.mist.contexts.ContextWrapper
-import java.io.FileInputStream
+
 import org.apache.hadoop.conf._
 import org.apache.hadoop.fs._
 
@@ -25,34 +26,20 @@ private[mist] class JobJar(jobConfiguration: JobConfiguration, _contextWrapper: 
   // Class with job in user jar
   override val cls = try{
 
-    val classLoader = configuration.jarPath.get.split(':').headOption.getOrElse("") match {
-      case "hdfs" => {
-        val conf = new Configuration()
-        val fileSystem = FileSystem.get(conf)
-        val path = new Path(configuration.jarPath.get)
-        val localpath = new Path(path.getName())
-        fileSystem.copyToLocalFile(false, path, localpath, true)
-        val jarFile = new File(path.getName())
-        //val istream = fileSystem.open(path)
-        //val jarFile = istream.getFileDescriptor()
-       /*
-        val uriPath = path.toUri()
-        val urlPath = uriPath.toURL()
-        val jarFile = urlPath.getFile
-        println(jarFile)
-        val tmpFile = new File("job.tmp")
-        val fos = new FileOutputStream(tmpFile)
-        fos.write(istream.getBytes())
-        */
-        new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)    
-      }
-      case _ => {
-        val jarFile = new File(configuration.jarPath.get)
-        new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)    
-      }
+    val jarFile = configuration.jarPath.get.split(':').headOption.getOrElse("") match {
+      case "hdfs" =>
+        val uriParts = configuration.jarPath.get.replaceFirst("hdfs://", "").split("/", 2)
+        val fileSystem = FileSystem.get(new URI(s"hdfs://${uriParts(0)}"), new Configuration())
+        val remotePath = new Path(configuration.jarPath.get)
+        val localPath = new Path(s"/tmp/${remotePath.getName}")
+        fileSystem.copyToLocalFile(false, remotePath, localPath, true)
+
+        new File(localPath.toString)
+
+      case _ => new File(configuration.jarPath.get)
     }
 
-    
+    val classLoader = new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader)
     classLoader.loadClass(configuration.className.get)
   } catch {
     case e: Throwable =>

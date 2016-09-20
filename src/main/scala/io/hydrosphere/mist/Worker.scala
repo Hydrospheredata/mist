@@ -13,5 +13,4 @@ private[mist] object Worker extends App with Logger{
   implicit val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
   val contextNode = system.actorOf(ContextNode.props(args(0)), name = args(0))
-
 }
