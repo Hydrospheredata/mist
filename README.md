@@ -41,10 +41,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Running   
 
-
-		docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
-
-		docker run --link mosquitto-$SPARK_VERSION:mosquitto -p 2003:2003  -d hydrosphere/mist:master-$SPARK_VERSION mist
+		docker run -p 2003:2003 -d hydrosphere/mist:master-1.5.2 mist
 
 [more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
 
