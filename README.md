@@ -71,7 +71,7 @@ git clone https://github.com/Hydrospheredata/mist
 vagrant up
 vagrant ssh
 cd /vagrant
-./sbt/sbt run
+./sbt/sbt -Dconfig.file=/vagrant/configs/vagrant.conf -Dmist.settings.single-jvm-mode=true run
 ```
 
 Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
