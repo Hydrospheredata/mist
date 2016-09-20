@@ -54,13 +54,26 @@ or
 
         git clone https://github.com/hydrospheredata/mist.git
         cd mist
-        ./sbt/sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
+        sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
     
 * Create [configuration file](#configuration)
 * Run
 
         ./mist.sh   --config /path/to/application.conf \
                     --jar target/scala-2.10/mist-assembly-0.4.0.jar
+
+
+* Run example
+
+```
+sbt
+project examples
+package
+
+curl --header "Content-Type: application/json" -X POST http://mist_http_host:mist_http_port/jobs --data '{"jarPath":"/path_to_jar/mist_examples.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+```
+
+[lern more examples here](/docs/code-examples.md)
 
 ## Development mode
 
@@ -74,7 +87,7 @@ cd /vagrant
 ./sbt/sbt run
 ```
 
-Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
+Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.
 
 
 ## Version Information
