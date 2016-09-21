@@ -12,15 +12,13 @@ private[mist] trait ContextWrapper {
 
   private val jars: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
-  lazy val sparkSession = {
+  lazy val sparkSession = 
      SparkSession
       .builder()
       .appName(context.appName)
       .config(context.getConf)
-      .enableHiveSupport()
       .getOrCreate()
-  }
-
+  
   def context: SparkContext
 
   def addJar(jarPath: String): Unit = {
@@ -38,4 +36,21 @@ private[mist] trait ContextWrapper {
 
 private[mist] case class OrdinaryContextWrapper(context: SparkContext) extends ContextWrapper
 
-private[mist] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper
+private[mist] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper{
+  
+  override lazy val sparkSession = if(MistConfig.Contexts.enableHiveSupport(name)){
+     SparkSession
+      .builder()
+      .appName(context.appName)
+      .config(context.getConf)
+      .enableHiveSupport()
+      .getOrCreate()
+  } else {
+     SparkSession
+      .builder()
+      .appName(context.appName)
+      .config(context.getConf)
+      .getOrCreate()
+  }
+
+}

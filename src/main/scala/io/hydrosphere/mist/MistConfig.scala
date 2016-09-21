@@ -161,6 +161,11 @@ private[mist] object MistConfig {
       }.toSet
     }
 
+    /** If true we`ll SparkSession enableHiveSupport */
+    def enableHiveSupport(contextName: String): Boolean = {
+      getContextOrDefault(contextName).getBoolean("enableHiveSupport")
+    }
+
   }
 
 
