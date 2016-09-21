@@ -6,7 +6,7 @@ Install Moquito:
 
 	sudo apt-get install mosquitto mosquitto-clients
 
-Build Mist as explained above.
+Build Mist as explained here[https://github.com/Hydrospheredata/mist#getting-started-with-mist].
 
 Create this configuration file mist.conf and save it someplace.  In this example we use /usr/src/mist/mist/mist.conf.
 
