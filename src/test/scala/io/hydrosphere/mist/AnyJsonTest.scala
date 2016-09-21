@@ -1,6 +1,6 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.master.{JsonFormatSupport}
+import io.hydrosphere.mist.master.JsonFormatSupport
 import org.scalatest.FunSuite
 import spray.json._
 
