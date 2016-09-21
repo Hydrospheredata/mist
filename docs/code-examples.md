@@ -2,25 +2,13 @@
 
 * [Scala examples](https://github.com/Hydrospheredata/mist/tree/master/examples/src/main/scala)
 
-If you want to get examples.jar, you need clone mist from git and run this commands
+If you want to get examples.jar, you need clone mist from git and package jar file
 
-```
-sbt
-```
-
-in SBT console you will need change project to examples
-
-```
-project examples
+```sh
+./sbt/sbt "project examples" package
 ```
 
-and package to jar
-
-```
-package
-```
-
-this jar, you can use from test Mist, for example, send Http requests
+this jar (`examples/target/scala-2.10/mist_examples_2.10-0.0.2.jar`), you can use from test Mist, for example, send Http requests
 
 ```
 curl --header "Content-Type: application/json" -X POST http://mist_http_host:mist_http_port/jobs --data '{"jarPath":"/path_to_jar/mist_examples.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
