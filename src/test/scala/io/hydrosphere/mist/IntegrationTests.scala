@@ -9,30 +9,25 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, JobConfiguration}
-import io.hydrosphere.mist.master.{JsonFormatSupport, TryRecoveyNext}
+import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.master.JsonFormatSupport
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
-import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsFalse, JsNull, JsNumber, JsObject, JsString, JsTrue, JsValue, pimpString}
+import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.util.{Failure, Success}
 import sys.process._
-import scala.io.Source
-import org.scalatest._
-
-import scala.util.matching.Regex //for Ignore
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  //val testSystem = ActorSystem("test-mist")
   val clientHTTP = Http(system)
 
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
@@ -165,34 +160,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       assert(http_response_success)
     }
   }
-/*
-  test("HTTP bad extension in patch") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badextension))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          val errmsg = msg.entity.toString.split(':').drop(4).head.split(',').head.split('"').headOption.getOrElse("")
-          if (json == "false" && errmsg == s" ${Constants.Errors.extensionError}") {
-            http_response_success = true
-          }
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-*/
+
   test("HTTP noDoStuff in jar") {
 
     var http_response_success = false
@@ -241,274 +209,12 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       assert(http_response_success)
     }
   }
-/*
-  test("HTTP error in python") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "false"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
 
-  test("HTTP Pyspark Context") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "true"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP SparkSQL") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "true"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP Python SparkSQL") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "true"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP Spark HIVE") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "true"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 60.seconds)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP Python Spark HIVE") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "true"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 60.seconds)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  MQTTTest.subscribe(system)
-
-  test("MQTT bad JSON") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_badjson)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Spark Context jar") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_jar)
-
-    eventually(timeout(8 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Spark SQL") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_sparksql)
-    eventually(timeout(8 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Pyspark Context") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_pyspark)
-    eventually(timeout(8 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Python SQL") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_pysparksql)
-    eventually(timeout(8 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Spark HIVE") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_sparkhive)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT Python Spark HIVE") {
-    MqttSuccessObj.success = false
-    MQTTTest.publish(TestConfig.request_pysparkhive)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT error in Python") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_pyerror)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(!MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT bad path") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_badpatch)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(!MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT noDoStuff in jar") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_nodostuff)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(!MqttSuccessObj.success)
-    }
-  }
-
-  test("MQTT bad extension in path") {
-    MqttSuccessObj.success = true
-    MQTTTest.publish(TestConfig.request_badextension)
-    eventually(timeout(60 seconds), interval(1 second)) {
-      assert(!MqttSuccessObj.success)
-    }
-  }
-
-  test("HTTP Exception in jar code") {
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_testerror))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          val errmsg = msg.entity.toString.split(':').drop(4).head.split('\"').headOption.getOrElse("")
-          println(errmsg)
-          http_response_success = json == "false" && errmsg == " Test Error"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-*/
   override def afterAll(): Unit ={
 
     "./killmist.sh" !
     
     TestKit.shutdownActorSystem(system)
-    //TestKit.shutdownActorSystem(testSystem)
 
     StartMist.threadMaster.join()
 

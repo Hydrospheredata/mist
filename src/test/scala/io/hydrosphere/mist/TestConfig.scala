@@ -28,6 +28,7 @@ object TestConfig{
   val request_test_timeout = if(OldVersion) testconfig.getString("mist.test.request.testtimeout_2_10") else testconfig.getString("mist.test.request.testtimeout_2_11")
 
   val request_jar = if(OldVersion) testconfig.getString("mist.test.request.jar_2_10") else testconfig.getString("mist.test.request.jar_2_11")
+  val request_hdfs_jar = if(OldVersion) testconfig.getString("mist.test.request.hdfs_jar_2_10") else testconfig.getString("mist.test.request.hdfs_jar_2_11")
   val request_testerror = if(OldVersion) testconfig.getString("mist.test.request.testerror_2_10") else testconfig.getString("mist.test.request.testerror_2_11")
   val request_pyspark = testconfig.getString("mist.test.request.pyspark")
   val request_sparksql = testconfig.getString("mist.test.request.sparksql")

@@ -38,6 +38,9 @@ private[mist] object MistConfig {
 
     /** Max number of threads for JVM where jobs are running */
     lazy val threadNumber: Int = settings.getInt("thread-number")
+
+    /** Single JVM mode only for easier run for development */
+    lazy val singleJVMMode: Boolean = settings.getBoolean("single-jvm-mode")
   }
 
   /** HTTP specific settings */

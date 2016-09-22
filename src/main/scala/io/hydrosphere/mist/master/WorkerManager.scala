@@ -25,13 +25,17 @@ private[mist] class WorkerManager extends Actor with Logger{
 
   def startNewWorkerWithName(name: String): Unit = {
     if (!workers.contains(name)) {
-      new Thread {
-        override def run() = {
-          val configFile = System.getProperty("config.file")
-          val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-          s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
-        }
-      }.start()
+      if (MistConfig.Settings.singleJVMMode) {
+        Worker.main(Array(name))
+      } else {
+        new Thread {
+          override def run() = {
+            val configFile = System.getProperty("config.file")
+            val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+            s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
+          }
+        }.start()
+      }
     }
   }
 
@@ -81,7 +85,7 @@ private[mist] class WorkerManager extends Actor with Logger{
       })
 
     case AddJobToRecovery(jobId, jobConfiguration) =>
-      if (MistConfig.Recovery.recoveryOn == true) {
+      if (MistConfig.Recovery.recoveryOn) {
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
@@ -93,7 +97,7 @@ private[mist] class WorkerManager extends Actor with Logger{
       }
 
     case RemoveJobFromRecovery(jobId) =>
-      if (MistConfig.Recovery.recoveryOn == true) {
+      if (MistConfig.Recovery.recoveryOn) {
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
