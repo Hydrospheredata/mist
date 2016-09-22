@@ -17,7 +17,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - [Version Information](#version-information)
 - [Roadmap](#roadmap)
 - [Contact](#contact)
-- [More docs](/docs/README.md)
+- [More docs](#more-docs)
 
 ## Features
 
@@ -41,10 +41,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Running   
 
-
-		docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
-
-		docker run --link mosquitto-$SPARK_VERSION:mosquitto -p 2003:2003  -d hydrosphere/mist:master-$SPARK_VERSION mist
+        docker run -p 2003:2003 -d hydrosphere/mist:master-1.5.2 mist
 
 [more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
 
@@ -54,13 +51,26 @@ or
 
         git clone https://github.com/hydrospheredata/mist.git
         cd mist
-        ./sbt/sbt -DsparkVersion=1.5.2 assembly # change version according to your installed spark
+        sbt -DsparkVersion=1.5.2 assembly 
     
 * Create [configuration file](#configuration)
 * Run
 
         ./mist.sh   --config /path/to/application.conf \
                     --jar target/scala-2.10/mist-assembly-0.4.0.jar
+
+
+######Run example
+
+```
+sbt
+project examples
+package
+
+curl --header "Content-Type: application/json" -X POST http://localhost:2003/jobs --data '{"jarPath":"/path_to_jar/mist_examples.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
+```
+
+[lern more examples here](/docs/code-examples.md)
 
 ## Development mode
 
@@ -71,10 +81,11 @@ git clone https://github.com/Hydrospheredata/mist
 vagrant up
 vagrant ssh
 cd /vagrant
-./sbt/sbt -Dconfig.file=/vagrant/configs/vagrant.conf -Dmist.settings.single-jvm-mode=true run
+./sbt/sbt -DsparkVersion=1.5.2 assembly
+./mist.sh master --config configs/localhost.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
 ```
 
-Use Vagrantfile to configure port forwarding and other network setup to make Mist available externally.
+Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.
 
 
 ## Version Information
@@ -101,6 +112,12 @@ Use Vagrantfile to configure port forwarding and other network setup to make Mis
 - [ ] Apache Kafka support
 - [ ] AMQP support
 - [ ] Web Interface
+
+
+## More docs
+
+- [More docs](/docs/README.md)
+
 
 ## Contact
 
