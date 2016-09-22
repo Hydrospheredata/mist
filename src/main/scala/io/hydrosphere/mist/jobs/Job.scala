@@ -47,7 +47,7 @@ object Job extends Logger{
       }
     } else {
       val file = new File(path)
-      if(file.exists() && !file.isDirectory) {
+      if(!file.exists() || file.isDirectory) {
           throw new Exception(s"$path does not exist")
       }
     }
