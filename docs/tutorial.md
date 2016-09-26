@@ -43,7 +43,7 @@ Set Python Path as shown below, again adjusting the file names and paths to matc
 
         export PYTHONPATH=$PYTHONPATH:/usr/src/mist/mist/mistsrc/mist/src/main/python:$SPARK_HOME/python/:$SPARK_HOME/python/lib/py4j-0.9-src.zip
 
-Copy the code from above and save the sample Python code somewhere. The sample program iterates over and prints the parameters sent to it at runtime.
+Copy [this Python code](https://raw.githubusercontent.com/Hydrospheredata/mist/master/examples/src/main/python/example.py). The sample program iterates over and prints the parameters sent to it at runtime.
         
 Run the sample using curl:
 
