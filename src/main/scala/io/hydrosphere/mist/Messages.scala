@@ -1,6 +1,6 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
+import io.hydrosphere.mist.jobs.JobConfiguration
 
 private[mist] object Messages {
 

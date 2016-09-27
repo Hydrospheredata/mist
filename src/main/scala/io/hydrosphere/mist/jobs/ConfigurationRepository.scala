@@ -1,18 +1,17 @@
 package io.hydrosphere.mist.jobs
 
-import io.hydrosphere.mist.master.{JobCompleted, JobStarted}
-import io.hydrosphere.mist.{Repository, Specification, MistConfig, Constants, Master}
+import io.hydrosphere.mist.MistConfig
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import io.hydrosphere.mist.Logger
 
 private[mist] trait ConfigurationRepository extends Logger{
-  def add(jobId: String, jobConfiguration: JobConfiguration): Unit = ???
-  def remove(jobId: String): Unit = ???
-  def get(jobId: String): JobConfiguration = ???
-  def getAll: scala.collection.mutable.Map[String, JobConfiguration] = ???
-  def size: Int = ???
-  def clear(): Unit = ???
+  def add(jobId: String, jobConfiguration: JobConfiguration): Unit
+  def remove(jobId: String): Unit
+  def get(jobId: String): JobConfiguration
+  def getAll: scala.collection.mutable.Map[String, JobConfiguration]
+  def size: Int
+  def clear(): Unit
 }
 
 private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRepository {
@@ -60,7 +59,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     try {
       val w_job = SerializationUtils.serialize(jobConfiguration)
       map.put(jobId, w_job)
-      logger.info(s"${jobId} saved in MapDb")
+      logger.info(s"$jobId saved in MapDb")
     } catch {
       case e: Exception => logger.error(e.getMessage, e)
     }
@@ -69,7 +68,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
   override def remove(jobId: String): Unit = {
     try {
       map.remove(jobId)
-      logger.info(s"${jobId} removed from MapDb")
+      logger.info(s"$jobId removed from MapDb")
     } catch{
       case e: Exception => logger.error(e.getMessage, e)
     }
