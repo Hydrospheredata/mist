@@ -6,6 +6,7 @@ services:
   - docker
 
 before_install:
+  - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
   - docker build --build-arg SPARK_VERSION=$SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
   - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
