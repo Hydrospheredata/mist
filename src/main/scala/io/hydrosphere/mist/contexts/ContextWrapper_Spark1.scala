@@ -3,7 +3,8 @@ package io.hydrosphere.mist.contexts
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.hive.test.TestHiveContext
 import org.apache.spark.sql._
@@ -25,6 +26,10 @@ private[mist] trait ContextWrapper {
 
   def context: SparkContext
 
+  def javaContext: JavaSparkContext = new JavaSparkContext(context)
+
+  def sparkConf: SparkConf = context.getConf
+
   def addJar(jarPath: String): Unit = {
     val jarAbsolutePath = new File(jarPath).getAbsolutePath
     if (!jars.contains(jarAbsolutePath)) {
@@ -38,6 +43,4 @@ private[mist] trait ContextWrapper {
   }
 }
 
-private[mist] case class OrdinaryContextWrapper(context: SparkContext) extends ContextWrapper
 
-private[mist] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper

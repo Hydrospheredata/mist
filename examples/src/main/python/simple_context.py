@@ -1,11 +1,9 @@
-import mist
+from mist.mist_job import MistJob
 
-class MyJob:
-    def __init__(self, job):
-        job.sendResult(self.doStuff(job))
+class SimpleContext(MistJob):
 
-    def doStuff(self, job):
-        val = job.parameters.values()
+    def do_stuff(self, params):
+        val = params.values()
         list = val.head()
         size = list.size()
         pylist = []
@@ -16,9 +14,7 @@ class MyJob:
             list = list.tail()
 
 
-        rdd = job.sc.parallelize(pylist)
+        rdd = self.context.parallelize(pylist)
         result = rdd.map(lambda s: 2 * s).collect()
 
         return result
-
-job = MyJob(mist.Job())

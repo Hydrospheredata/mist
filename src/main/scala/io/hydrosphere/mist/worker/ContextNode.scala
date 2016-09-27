@@ -5,9 +5,10 @@ import java.util.concurrent.Executors.newFixedThreadPool
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{AddJobToRecovery, RemoveJobFromRecovery, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
-import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
+import io.hydrosphere.mist.jobs.JobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
+import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,12 +41,12 @@ class ContextNode(name: String) extends Actor with ActorLogging{
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
-      lazy val job = Job(jobRequest, contextWrapper, self.path.name)
+      lazy val runner = Runner(jobRequest, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        serverActor ! AddJobToRecovery(job.id, job.configuration)
-        log.info(s"${jobRequest.name}#${job.id} is running")
-        job.run()
+        serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        log.info(s"${jobRequest.name}#${runner.id} is running")
+        runner.run()
       }(executionContext)
       future
         .recover {
@@ -53,7 +54,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
         case _ =>
-          serverActor ! RemoveJobFromRecovery(job.id)
+          serverActor ! RemoveJobFromRecovery(runner.id)
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result

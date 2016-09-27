@@ -18,6 +18,7 @@ case object JobStarted{
 }
 case object JobCompleted
 
+// TODO: add abstract async interface instead of mqtt-specific one
 private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MqttPubSubActor with Logger {
 
   private implicit val formats = org.json4s.DefaultFormats

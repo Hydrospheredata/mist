@@ -3,7 +3,8 @@ package io.hydrosphere.mist.contexts
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import org.apache.spark.SparkContext
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql._
 
 import scala.collection.mutable.ArrayBuffer
@@ -12,16 +13,29 @@ private[mist] trait ContextWrapper {
 
   private val jars: ArrayBuffer[String] = ArrayBuffer.empty[String]
 
+  private var isHive = false
+
   lazy val sparkSession = {
-     SparkSession
+     var builder = SparkSession
       .builder()
       .appName(context.appName)
       .config(context.getConf)
-      .enableHiveSupport()
-      .getOrCreate()
+     if (isHive) {
+       builder = builder.enableHiveSupport()
+     }
+     builder.getOrCreate()
+  }
+
+  def withHive() = {
+    isHive = true
+    this
   }
 
   def context: SparkContext
+
+  def javaContext: JavaSparkContext = new JavaSparkContext(context)
+
+  def sparkConf: SparkConf = context.getConf
 
   def addJar(jarPath: String): Unit = {
     val jarAbsolutePath = new File(jarPath).getAbsolutePath
@@ -35,7 +49,3 @@ private[mist] trait ContextWrapper {
     context.stop()
   }
 }
-
-private[mist] case class OrdinaryContextWrapper(context: SparkContext) extends ContextWrapper
-
-private[mist] case class NamedContextWrapper(context: SparkContext, name: String) extends ContextWrapper

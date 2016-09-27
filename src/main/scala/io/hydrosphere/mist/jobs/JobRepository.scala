@@ -99,7 +99,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     catch {
       case e: Exception =>
         logger.error(e.getMessage, e)
-        new JobConfiguration(None, None, None, "Empty", Map().empty, None)
+        new JobConfiguration("", "", "")
     }
   }
 

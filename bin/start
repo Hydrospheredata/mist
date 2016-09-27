@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export MIST_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export MIST_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )"
 
 read -d '' help <<- EOF
 MIST – is a thin service on top of Spark which makes it possible to execute Scala & Python Spark Jobs from application layers and get synchronous, asynchronous, and reactive results as well as provide an API to external clients.
@@ -52,7 +52,7 @@ do
 shift
 done
 
-if [ ${CONFIG_FILE} == '' ]
+if [ "${CONFIG_FILE}" == '' ]
 then
     CONFIG_FILE="${MIST_HOME}/config/default.conf"
 fi
@@ -72,7 +72,7 @@ function maxVersionFile {
     return ${MAX_VERSION_FILE}
 }
 
-if [ ${JAR_FILE} == '' ]
+if [ "${JAR_FILE}" == '' ]
 then
     if [ -d "${MIST_HOME}/target/scala-2.10/" ]
     then
@@ -85,7 +85,7 @@ then
     fi
 fi
 
-if [ "${CONFIG_FILE}" == '' ] || [ ${JAR_FILE} == '' ]
+if [ "${CONFIG_FILE}" == '' ] || [ "${JAR_FILE}" == '' ]
 then
     echo "${help}"
     exit 1

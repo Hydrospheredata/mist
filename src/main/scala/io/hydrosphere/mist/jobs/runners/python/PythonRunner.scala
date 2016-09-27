@@ -1,37 +1,32 @@
-package io.hydrosphere.mist.jobs
+package io.hydrosphere.mist.jobs.runners.python
+
+import java.io.File
 
 import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.jobs.{JobConfiguration, JobFile}
+import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.jobs.runners.python.wrappers.{ConfigurationWrapper, DataWrapper, ErrorWrapper}
 import py4j.GatewayServer
+
 import sys.process._
 
-/** Class-container for user jobs in python
-  *
-  * @param jobConfiguration [[io.hydrosphere.mist.jobs.JobConfiguration]] instance
-  * @param contextWrapper   contexts for concrete job running
-  */
-private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: ContextWrapper, JobRunnerName: String) extends Job {
+class PythonRunner(jobConfiguration: JobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+  override val configuration: JobConfiguration = jobConfiguration
 
-  val dataWrapper = new DataWrapper
+  _status = Runner.Status.Initialized
+
   val errorWrapper = new ErrorWrapper
-  val sparkContextWrapper = new SparkContextWrapper
+  val dataWrapper = new DataWrapper
+  val sparkContextWrapper = contextWrapper
+  val configurationWrapper = new ConfigurationWrapper(jobConfiguration)
 
-  override val jobRunnerName = JobRunnerName
-
-  override val configuration = jobConfiguration
-
-  _status = JobStatus.Initialized
-  /** Runs a job
-    *
-    * @return results of user jobPy
-    */
   override def run(): Either[Map[String, Any], String] = {
-    _status = JobStatus.Running
+    _status = Runner.Status.Running
     try {
-      var cmd = "python " + configuration.pyPath.get
+      val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+      var cmd = "python " + selfJarPath
 
       dataWrapper.set(configuration.parameters)
-
-      sparkContextWrapper.setContextWrapper(contextWrapper)
 
       val gatewayServer: GatewayServer = new GatewayServer(this)
       try {
@@ -48,16 +43,11 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
 
         val exitCode = cmd.!
         if (exitCode != 0) {
-          val errmsg = errorWrapper.get
+          val errmsg = errorWrapper.get()
           logger.error(errmsg)
           throw new Exception("Error in python code: " + errmsg)
         }
-      }
-      catch {
-        case e: Throwable =>
-          throw new Exception(e)
-      }
-      finally {
+      } finally {
         // We must shutdown gatewayServer
         gatewayServer.shutdown()
         logger.info(" Exiting due to broken pipe from Python driver")
@@ -67,7 +57,7 @@ private[mist] class JobPy(jobConfiguration: JobConfiguration, contextWrapper: Co
     } catch {
       case e: Throwable =>
         logger.error(e.getMessage, e)
-        _status = JobStatus.Aborted
+        _status = Runner.Status.Aborted
         Right(e.toString)
     }
   }

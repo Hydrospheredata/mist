@@ -98,24 +98,11 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 val exludes = new FileFilter {
   def accept(f: File) = {
     sparkVersion match {
-      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
-        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
-        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
-        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
-      }
-      case versionRegex(major, minor) if major.toInt > 1 => {
-        f.getPath.containsSlice("MistJob.scala") ||
-        f.getPath.containsSlice("JobJarRun.scala") ||
-        f.getPath.containsSlice("ContextWrapper.scala") ||
-        f.getPath.containsSlice("JobPyWrappers.scala")
-      }
-      case _ => {
-        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
-        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
-        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
-        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
-      }
+      case versionRegex(major, minor) if major.toInt < 2 =>
+        f.getPath.containsSlice("_Spark2.scala")
+
+      case _ =>
+        f.getPath.containsSlice("_Spark1.scala")
     }
   }
 }
