@@ -6,7 +6,7 @@ read -d '' help <<- EOF
 MIST – is a thin service on top of Spark which makes it possible to execute Scala & Python Spark Jobs from application layers and get synchronous, asynchronous, and reactive results as well as provide an API to external clients.
 
 Usage:
-  ./mist.sh master --config <config_file> --jar <mist_assembled_jar>
+  ./start master [--config <config_file>] [--jar <mist_assembled_jar>]
 
 Report bugs to: https://github.com/hydrospheredata/mist/issues
 Up home page: http://hydrosphere.io
@@ -54,13 +54,13 @@ done
 
 if [ "${CONFIG_FILE}" == '' ]
 then
-    CONFIG_FILE="${MIST_HOME}/config/default.conf"
+    CONFIG_FILE="${MIST_HOME}/configs/default.conf"
 fi
 
 function maxVersionFile {
     MAX_VERSION=0
     MAX_VERSION_FILE=""
-    for jar in "${1}/*.jar"
+    for jar in `readlink -f $1/scala-2.*/mist-assembly-0.*`
     do
         a=$(echo ${jar} | sed 's|${1}/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
         if [[ ${a} > ${MAX_VERSION} ]]
@@ -69,20 +69,13 @@ function maxVersionFile {
             MAX_VERSION_FILE=${jar}
         fi
     done
-    return ${MAX_VERSION_FILE}
+    # bash can not return non-numeric values
+    echo ${MAX_VERSION_FILE}
 }
 
 if [ "${JAR_FILE}" == '' ]
 then
-    if [ -d "${MIST_HOME}/target/scala-2.10/" ]
-    then
-        JAR_FILE=maxVersionFile "${MIST_HOME}/target/scala-2.10"
-    fi
-
-    if [ -d "${MIST_HOME}/target/scala-2.11/" ]
-    then
-        JAR_FILE=maxVersionFile "${MIST_HOME}/target/scala-2.11"
-    fi
+    JAR_FILE=$(maxVersionFile $MIST_HOME/target)
 fi
 
 if [ "${CONFIG_FILE}" == '' ] || [ "${JAR_FILE}" == '' ]
