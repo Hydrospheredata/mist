@@ -5,7 +5,6 @@ import org.scalatest.FunSuite
 import spray.json._
 
 import scala.language.postfixOps
-import org.scalatest._ //for Ignore
 
 class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSupport {
 
@@ -46,7 +45,6 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSuppo
 
   test("Constants Errors and Actors") {
     assert(Constants.Errors.jobTimeOutError == "Job timeout error"
-      && Constants.Errors.noDoStuffMethod == "No overridden doStuff method"
       && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
       && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
 

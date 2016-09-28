@@ -56,15 +56,12 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
       val stringMessage = TestConfig.request_jar
       val json = stringMessage.parseJson
-      val jobCreatingRequest = {
-        try {
-          json.convertTo[JobConfiguration]
-        } catch {
-          case _: DeserializationException => None
-        }
+      val jobCreatingRequest = try {
+        json.convertTo[JobConfiguration]
+      } catch {
+        case _: DeserializationException => None
       }
       val w_job = SerializationUtils.serialize(jobCreatingRequest)
-      var i = 0
       map.clear()
       for (i <- 1 to 3) {
         map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
@@ -155,31 +152,6 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         http_response_success = false
     }
 
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
-      assert(http_response_success)
-    }
-  }
-
-  test("HTTP noDoStuff in jar") {
-
-    var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
-    val future_response = clientHTTP.singleRequest(httpRequest)
-    future_response onComplete {
-      case Success(msg) => msg match {
-        case HttpResponse(OK, _, _, _) =>
-          println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-          http_response_success = json == "false"
-        case _ =>
-          println(msg)
-          http_response_success = false
-      }
-      case Failure(e) =>
-        println(e)
-        http_response_success = false
-    }
     Await.result(future_response, 10.seconds)
     eventually(timeout(10 seconds), interval(1 second)) {
       assert(http_response_success)

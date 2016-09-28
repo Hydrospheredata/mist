@@ -1,11 +1,8 @@
-import mist
+from mist.mist_job import *
 
-class MyJob:
-    def __init__(self, job):
-        job.sendResult(self.doStuff(job))
-
-    def doStuff(self, job):
-        val = job.parameters.values()
+class SimpleSparkContext(MistJob):
+    def do_stuff(self, parameters):
+        val = parameters.values()
         list = val.head()
         size = list.size()
         pylist = []
@@ -16,9 +13,7 @@ class MyJob:
             list = list.tail()
 
 
-        rdd = job.sc.parallelize(pylist)
+        rdd = self.context.parallelize(pylist)
         result = rdd.map(lambda s: 2 * s).collect()
 
         return result
-
-job = MyJob(mist.Job())

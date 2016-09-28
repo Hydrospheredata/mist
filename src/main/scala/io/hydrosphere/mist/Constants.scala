@@ -4,21 +4,20 @@ object Constants {
 
   object Errors {
 
-    final lazy val jobTimeOutError = "Job timeout error"
-    final lazy val noDoStuffMethod = "No overridden doStuff method"
-    final lazy val notJobSubclass = "External module is not MistJob subclass"
-    final lazy val extensionError = "You must specify the path to .jar or .py file"
+    final val jobTimeOutError = "Job timeout error"
+    final val notJobSubclass = "External module is not MistJob subclass"
+    final val extensionError = "You must specify the path to .jar or .py file"
 
   }
 
   object Actors {
 
-    final lazy val syncJobRunnerName = "SyncJobRunner"
-    final lazy val asyncJobRunnerName = "AsyncJobRunner"
-    final lazy val workerManagerName = "WorkerManager"
-    final lazy val mqttServiceName = "MQTTService"
+    final val syncJobRunnerName = "SyncJobRunner"
+    final val asyncJobRunnerName = "AsyncJobRunner"
+    final val workerManagerName = "WorkerManager"
+    final val mqttServiceName = "MQTTService"
 
-    final lazy val contextNode = "ContextNode"
+    final val contextNode = "ContextNode"
   }
 
 }

@@ -5,7 +5,6 @@ import java.io.{File, FileInputStream, FileOutputStream}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, JobConfiguration}
-import io.hydrosphere.mist.{MistConfig, TestConfig}
 import io.hydrosphere.mist.master._
 import scala.concurrent.duration._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
@@ -15,7 +14,6 @@ import spray.json.{DefaultJsonProtocol, DeserializationException}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import spray.json._
-import org.scalatest._
 
 class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually {
@@ -49,7 +47,6 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
       }
     }
     val w_job = SerializationUtils.serialize(jobCreatingRequest)
-    var i = 0
     map.clear()
     for (i <- 1 to 3) {
       map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
@@ -83,7 +80,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
       eventually (timeout(10 seconds), interval(1 second)) {
         recoveryActor ! JobStarted
         recoveryActor ! JobCompleted
-        assert(TryRecoveyNext._collection.size == 0 && configurationRepository.size == 0)
+        assert(TryRecoveyNext._collection.isEmpty && configurationRepository.size == 0)
       }
     }
   }

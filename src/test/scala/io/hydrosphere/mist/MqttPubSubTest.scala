@@ -11,7 +11,6 @@ import org.scalatest.time.{Second, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
-import org.scalatest._ //for Ignore
 
 class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures {
@@ -41,7 +40,7 @@ class MqttTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSende
 
       implicit val askTimeout = akka.util.Timeout(1, SECONDS)
 
-      for (delay <- 1 to 50 if (receivedCount < count)) {
+      for (delay <- 1 to 50 if receivedCount < count) {
         receivedCount = akka.pattern.after(1.seconds, system.scheduler)(subs ? Report).mapTo[Int].futureValue
         println(s"$delay: Pub $count Rec $receivedCount ~ ${receivedCount * 100.0 / count}%")
       }
@@ -72,13 +71,12 @@ private class SubsActor(reporTo: ActorRef, count: Int) extends Actor with MqttPu
   def ready: Receive = {
     case msg: Message => if( "testmsg" == new String(msg.payload, "utf-8") ) counter += 1
     case Report       => sender() ! counter
-    case PublishTest  => {
+    case PublishTest  =>
       var i = 0
       while (i < count) {
         val payload = "testmsg".getBytes("utf-8")
         pubsub ! new Publish(payload)
         i += 1
       }
-    }
   }
 }
