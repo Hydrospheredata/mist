@@ -184,7 +184,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   override def afterAll(): Unit ={
 
-    "./killmist.sh" !
+    "./bin/stop" !
     
     TestKit.shutdownActorSystem(system)
 
