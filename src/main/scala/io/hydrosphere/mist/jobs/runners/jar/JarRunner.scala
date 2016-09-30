@@ -27,6 +27,7 @@ private[mist] class JarRunner(jobConfiguration: JobConfiguration, jobFile: JobFi
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
+    new Thread().run()
     try {
       val result = objectRef match {
         case objectRef: MistJob =>

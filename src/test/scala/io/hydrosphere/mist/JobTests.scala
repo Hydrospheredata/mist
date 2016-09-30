@@ -216,7 +216,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
-      assert(someJarJob.status == Runner.Status.Running)
+      assert(someJarJob.status == Runner.Status.Stopped)
     }
   }
 
@@ -228,7 +228,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
-      assert(someJarJob.status == Runner.Status.Running)
+      assert(someJarJob.status == Runner.Status.Stopped)
     }
   }
 
@@ -243,7 +243,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
-      assert(someJarJob.status == Runner.Status.Running)
+      assert(someJarJob.status == Runner.Status.Stopped)
     }
   }
 
