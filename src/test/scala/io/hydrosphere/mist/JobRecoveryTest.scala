@@ -65,12 +65,11 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
     "All recovered ok" in {
       var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
 
-      MistConfig.Recovery.recoveryOn match {
-        case true =>
-          configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-            case "MapDb" => InMapDbJobConfigurationRepository
-            case _ => InMemoryJobConfigurationRepository
-          }
+      if (MistConfig.Recovery.recoveryOn) {
+        configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+          case "MapDb" => InMapDbJobConfigurationRepository
+          case _ => InMemoryJobConfigurationRepository
+        }
       }
 
       lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository))
