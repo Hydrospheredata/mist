@@ -35,7 +35,7 @@ private[mist] object Runner {
 
   def apply(configuration: JobConfiguration, contextWrapper: ContextWrapper): Runner = {
     val jobFile = JobFile(configuration.path)
-    jobFile.fileType match {
+    JobFile.fileType(configuration.path) match {
       case JobFile.FileType.Jar => new JarRunner(configuration, jobFile, contextWrapper)
       case JobFile.FileType.Python => new PythonRunner(configuration, jobFile, contextWrapper)
       case _ => throw new Exception(s"Unknown file type in ${configuration.path}")
