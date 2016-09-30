@@ -17,6 +17,7 @@ RUN apk update && \
     cd ${MIST_HOME} && \
     ./sbt/sbt -DsparkVersion=${SPARK_VERSION} package  && \
     ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly && \
+    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package && \
     chmod +x /usr/share/mist/docker-entrypoint.sh 
 
 EXPOSE 2003
