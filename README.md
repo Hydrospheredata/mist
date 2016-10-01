@@ -82,7 +82,7 @@ vagrant up
 vagrant ssh
 cd /vagrant
 ./sbt/sbt -DsparkVersion=1.5.2 assembly
-./mist.sh master --config configs/localhost.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
+./mist.sh master --config configs/localtest.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
 ```
 
 Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.
