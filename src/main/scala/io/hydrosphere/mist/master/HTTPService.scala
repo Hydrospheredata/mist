@@ -15,9 +15,13 @@ import io.hydrosphere.mist.jobs.{JobConfiguration, JobResult}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
+import scala.util.{Try, Success, Failure}
 
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import com.typesafe.config.{ConfigFactory, Config}
+import java.io.File
+import scala.util.control.Exception._
 
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */
@@ -45,6 +49,8 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   // JSON to JobConfiguration mapper (6 fields)
   implicit val jobCreatingRequestFormat = jsonFormat6(JobConfiguration)
   implicit val jobResultFormat = jsonFormat4(JobResult)
+
+  case class JobConfigError(reason: String)
 }
 /** HTTP interface */
 private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport with Logger{
@@ -57,34 +63,69 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     path("jobs") {
       // POST /jobs
       post {
-          entity(as[JobConfiguration]) { jobCreatingRequest =>
-              respondWithHeader(RawHeader("Content-Type", "application/json"))
-              complete {
-                logger.info(jobCreatingRequest.parameters.toString)
-
-                // Run job asynchronously
-                val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
-
-                val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name))
-
-                future
-                  .recover {
-                    case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
-                    case error: Throwable => Right(error.toString)
-                  }
-                  .map[ToResponseMarshallable] {
-                  case result: Either[Map[String, Any], String] =>
-                    val jobResult: JobResult = result match {
-                      case Left(jobResults: Map[String, Any]) =>
-                        JobResult(success = true, payload = jobResults, request = jobCreatingRequest, errors = List.empty)
-                      case Right(error: String) =>
-                        JobResult(success = false, payload = Map.empty[String, Any], request = jobCreatingRequest, errors = List(error))
-                    }
-                    HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
-                }
-              }
+        entity(as[JobConfiguration]) { jobCreatingRequest =>
+          doComplete(jobCreatingRequest)
+        }
+      }
+    } ~
+    pathPrefix("api" / Segment ) { jobRoute =>
+      pathEnd {
+        post {
+          entity(as[Map[String, Any]]) { jobRequestParams =>
+            fillJobRequestFromConfig(jobRequestParams, jobRoute) match {
+              case Left(error: JobConfigError) =>
+                complete(HttpResponse(404, entity = "Job route config is not valid. Unknown resource!"))
+              case Right(jobRequest: JobConfiguration) =>
+                doComplete(jobRequest)
+            }
           }
+        }
       }
     }
   }
+
+  def doComplete(jobRequest: JobConfiguration): akka.http.scaladsl.server.Route =  {
+
+    respondWithHeader(RawHeader("Content-Type", "application/json"))
+
+    complete {
+      logger.info(jobRequest.parameters.toString)
+
+      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
+
+      val future = workerManagerActor.ask(jobRequest)(timeout = MistConfig.Contexts.timeout(jobRequest.name))
+
+      future
+        .recover {
+          case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
+          case error: Throwable => Right(error.toString)
+        }
+        .map[ToResponseMarshallable] {
+        case result: Either[Map[String, Any], String] =>
+          val jobResult: JobResult = result match {
+            case Left(jobResults: Map[String, Any]) =>
+              JobResult(success = true, payload = jobResults, request = jobRequest, errors = List.empty)
+            case Right(error: String) =>
+              JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
+          }
+          HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+      }
+    }
+  }
+
+  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, JobConfiguration] = {
+    getRouteConfig(jobRoute) match {
+      case Success(v) =>
+        Right(JobConfiguration(allCatch.opt(v.getString("jarPath")), allCatch.opt(v.getString("pyPath")), allCatch.opt(v.getString("className")), v.getString("name"), jobRequestParams, allCatch.opt(v.getString("external_id"))))
+      case Failure(e) =>
+        logger.info(e.getMessage)
+        Left(JobConfigError(s"Route configuration /${jobRoute} not found"))
+    }
+  }
+
+  def getRouteConfig(jobRoute: String): Try[Config] = Try {
+    val routerConfig = ConfigFactory.parseFile(new File(MistConfig.HTTP.router_config_path))
+    routerConfig.getConfig(jobRoute)
+  }
+
 }

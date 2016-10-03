@@ -51,6 +51,9 @@ private[mist] object MistConfig {
     lazy val host: String = http.getString("host")
     /** HTTP server port */
     lazy val port: Int = http.getInt("port")
+
+    /** Path to REST config */
+    lazy val router_config_path = http.getString("router_config_path")
   }
 
   /** Settings for each spark context */
