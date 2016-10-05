@@ -70,7 +70,7 @@ package
 curl --header "Content-Type: application/json" -X POST http://localhost:2003/jobs --data '{"jarPath":"/path_to_jar/mist_examples.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
 ```
 
-[lern more examples here](/docs/code-examples.md)
+[Here are more examples.](/docs/code-examples.md)
 
 ## Development mode
 
