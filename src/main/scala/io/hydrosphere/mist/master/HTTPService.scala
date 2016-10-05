@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.marshalling.{ToResponseMarshallable}
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
@@ -15,13 +15,9 @@ import io.hydrosphere.mist.jobs.{JobConfiguration, JobResult}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
-import scala.util.{Try, Success, Failure}
 
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import com.typesafe.config.{ConfigFactory, Config}
-import java.io.File
-import scala.util.control.Exception._
 
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */
@@ -50,7 +46,9 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   implicit val jobCreatingRequestFormat = jsonFormat5(JobConfiguration)
   implicit val jobResultFormat = jsonFormat4(JobResult)
 
-  case class JobConfigError(reason: String)
+  sealed trait JobConfigError
+  case class NoRouteError(reason: String) extends JobConfigError
+  case class ConfigError(reason: String) extends JobConfigError
 }
 /** HTTP interface */
 private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport with Logger{
@@ -73,8 +71,10 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
         post {
           entity(as[Map[String, Any]]) { jobRequestParams =>
             fillJobRequestFromConfig(jobRequestParams, jobRoute) match {
-              case Left(error: JobConfigError) =>
+              case Left(error: NoRouteError) =>
                 complete(HttpResponse(404, entity = "Job route config is not valid. Unknown resource!"))
+              case Left(error: ConfigError) =>
+                complete(HttpResponse(500, entity = error.reason))
               case Right(jobRequest: JobConfiguration) =>
                 doComplete(jobRequest)
             }
@@ -114,18 +114,13 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
   }
 
   def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, JobConfiguration] = {
-    getRouteConfig(jobRoute) match {
-      case Success(v) =>
-        Right(JobConfiguration(allCatch.opt(v.getString("jarPath")), allCatch.opt(v.getString("pyPath")), allCatch.opt(v.getString("className")), v.getString("name"), jobRequestParams, allCatch.opt(v.getString("external_id"))))
-      case Failure(e) =>
-        logger.info(e.getMessage)
-        Left(JobConfigError(s"Route configuration /${jobRoute} not found"))
+    try {
+      val config = RouteConfig(jobRoute)
+      Right(JobConfiguration(config.path, config.className, config.name, jobRequestParams))
+    } catch {
+      case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
+      case exc: Throwable => Left(ConfigError(exc.toString))
     }
-  }
-
-  def getRouteConfig(jobRoute: String): Try[Config] = Try {
-    val routerConfig = ConfigFactory.parseFile(new File(MistConfig.HTTP.router_config_path))
-    routerConfig.getConfig(jobRoute)
   }
 
 }

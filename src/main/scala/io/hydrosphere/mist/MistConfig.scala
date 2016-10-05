@@ -56,7 +56,7 @@ private[mist] object MistConfig {
     lazy val port: Int = http.getInt("port")
 
     /** Path to REST config */
-    lazy val router_config_path = http.getString("router_config_path")
+    lazy val routerConfigPath = http.getString("router-config-path")
   }
 
   /** Settings for each spark context */
@@ -81,7 +81,7 @@ private[mist] object MistConfig {
       try {
         config.getBoolean("mist.hive.test")
       } catch {
-        case _ => false
+        case _: Throwable => false
       }
     }
   }
