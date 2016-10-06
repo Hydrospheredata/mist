@@ -36,7 +36,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val threadMaster = {
     new Thread {
       override def run() = {
-        s"./bin/start master --config configs/integration.conf --jar ${TestConfig.assemblyjar}" !
+        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyjar}" !
       }
     }
   }
@@ -184,7 +184,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   override def afterAll(): Unit ={
 
-    "./bin/stop" !
+    "./bin/mist stop" !
     
     TestKit.shutdownActorSystem(system)
 

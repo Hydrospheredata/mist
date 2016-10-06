@@ -32,7 +32,7 @@ private[mist] class WorkerManager extends Actor with Logger{
           override def run() = {
             val configFile = System.getProperty("config.file")
             val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-            s"${sys.env("MIST_HOME")}/bin/start worker --namespace $name --config $configFile --jar $jarPath" !
+            s"${sys.env("MIST_HOME")}/bin/mist start worker --namespace $name --config $configFile --jar $jarPath" !
           }
         }.start()
       }
