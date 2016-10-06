@@ -35,7 +35,6 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Dependencies
 - jdk = 8
-- scala = 2.10.6, (2.11.8 for Spark Version >=2.0.0)
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server (optional)
 
