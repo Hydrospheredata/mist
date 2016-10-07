@@ -39,6 +39,7 @@ object TestConfig{
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
   val request_sparksession = testconfig.getString("mist.test.request.sparksession")
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
+  val request_pyhdfs = testconfig.getString("mist.test.request.hdfs_python")
 
   val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")
   val request_pyerror = testconfig.getString("mist.test.request.pyerror")
