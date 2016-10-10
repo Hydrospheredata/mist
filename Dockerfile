@@ -7,6 +7,7 @@ ENV MIST_HOME=/usr/share/mist \
     SPARK_HOME=/usr/share/spark
 
 COPY . ${MIST_HOME}
+COPY ./docker-entrypoint.sh /
 
 RUN apk update && \
     apk add python procps && \
@@ -15,11 +16,10 @@ RUN apk update && \
     mv spark-${SPARK_VERSION}-bin-hadoop2.6 ${SPARK_HOME} && \
     rm spark-${SPARK_VERSION}-bin-hadoop2.6.tgz && \
     cd ${MIST_HOME} && \
-    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} package  && \
     ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly && \
     ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package && \
-    chmod +x /usr/share/mist/docker-entrypoint.sh 
+    chmod +x /docker-entrypoint.sh 
 
 EXPOSE 2003
 
-ENTRYPOINT ["/usr/share/mist/docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
