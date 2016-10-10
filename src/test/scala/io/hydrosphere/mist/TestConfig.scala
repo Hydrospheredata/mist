@@ -24,6 +24,7 @@ object TestConfig{
 
   val http_url = testconfig.getString("mist.test.http.url")
   val http_url_it = testconfig.getString("mist.test.http.url_it")
+  val restificatedUrl = testconfig.getString("mist.test.http.restificated_url")
 
   val request_test_timeout = if(OldVersion) testconfig.getString("mist.test.request.testtimeout_2_10") else testconfig.getString("mist.test.request.testtimeout_2_11")
 
@@ -37,6 +38,9 @@ object TestConfig{
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
   val request_sparksession = testconfig.getString("mist.test.request.sparksession")
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
+
+  val async_restificated_request = testconfig.getString("mist.test.request.async-restifcated")
+  val restificatedRequest = testconfig.getString("mist.test.request.restificated")
 
   val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")
   val request_pyerror = testconfig.getString("mist.test.request.pyerror")

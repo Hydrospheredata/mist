@@ -458,7 +458,29 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-
+      "HTTP successful restificated request" in {
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.restificatedUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.restificatedRequest))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "true"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 60.seconds)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
 
       "mqtt jar" in {
 
@@ -485,6 +507,16 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "mqtt successful restificated request" in {
+        MqttSuccessObj.success = false
+
+        MQTTTest.publish(TestConfig.async_restificated_request)
+        Thread.sleep(5000)
+
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
+        }
+      }
 
 //TODO check py sql
       /*
