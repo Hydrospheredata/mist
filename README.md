@@ -35,7 +35,6 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Dependencies
 - jdk = 8
-- scala = 2.10.6, (2.11.8 for Spark Version >=2.0.0)
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server (optional)
 
@@ -82,7 +81,7 @@ vagrant up
 vagrant ssh
 cd /vagrant
 ./sbt/sbt -DsparkVersion=1.5.2 assembly
-./mist.sh master --config configs/localhost.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
+./mist.sh master --config configs/localtest.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
 ```
 
 Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.

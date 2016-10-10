@@ -11,11 +11,11 @@ if [ "$1" = 'tests' ]; then
   ./sbt/sbt -DsparkVersion=$SPARK_VERSION -Dconfig.file=configs/docker.conf "project examples" package "project mist" test
   bash
 elif [ "$1" = 'mist' ]; then
-  ./bin/start master --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
+  ./bin/mist start master --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
 elif [ "$1" = 'dev' ]; then
   ./sbt/sbt assembly
   ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package
-  ./bin/start master --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
+  ./bin/mist start master --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
 else
   exec "$@"
 fi

@@ -15,6 +15,7 @@ trait JobFile {
 object JobFile {
 
   class NotFoundException(message: String) extends Exception
+  class UnknownTypeException(message: String) extends Exception
 
   object FileType extends Enumeration {
     type FileType = Value
@@ -33,7 +34,7 @@ object JobFile {
     path.split('.').drop(1).lastOption.getOrElse("") match {
       case "jar" => JobFile.FileType.Jar
       case "py" => JobFile.FileType.Python
-      case _ => throw new Exception(s"Unknown file type in $path")
+      case _ => throw new UnknownTypeException(s"Unknown file type in $path")
     }
   }
 
