@@ -18,7 +18,7 @@ class PythonRunner(jobConfiguration: JobConfiguration, jobFile: JobFile, context
   val errorWrapper = new ErrorWrapper
   val dataWrapper = new DataWrapper
   val sparkContextWrapper = contextWrapper
-  val configurationWrapper = new ConfigurationWrapper(jobConfiguration)
+  val configurationWrapper = new ConfigurationWrapper(new JobConfiguration(jobFile.file.getPath, jobConfiguration.className, jobConfiguration.name, jobConfiguration.parameters, jobConfiguration.external_id))
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running

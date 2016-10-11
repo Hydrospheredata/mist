@@ -274,6 +274,31 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "HTTP Spark Context jar rest api" in {
+
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_rest, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar_rest))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "true"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 10.seconds)
+        eventually(timeout(10 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
+
       "HTTP Spark Context hdfs jar" in {
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_hdfs_jar))
@@ -324,8 +349,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Pyspark Context" in {
-        if(checkSparkSessionLogic)
-          cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
@@ -458,7 +481,30 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "HTTP Python hdfs" in {
 
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyhdfs))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "true"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 10.seconds)
+        eventually(timeout(10 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
 
       "mqtt jar" in {
 
