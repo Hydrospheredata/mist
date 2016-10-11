@@ -66,7 +66,7 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case jobRequest: JobConfiguration =>
+    case jobRequest: FullJobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.name)
 

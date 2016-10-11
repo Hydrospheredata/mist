@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import com.typesafe.config.ConfigFactory
 
-object TestConfig{
+object TestConfig {
   private val testconfig = ConfigFactory.load()
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
@@ -40,7 +40,7 @@ object TestConfig{
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
   val request_pyhdfs = testconfig.getString("mist.test.request.hdfs_python")
 
-  val async_restificated_request = testconfig.getString("mist.test.request.async-restifcated")
+  val async_restificated_request = testconfig.getString("mist.test.request.async-restificated")
   val restificatedRequest = testconfig.getString("mist.test.request.restificated")
 
   val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")

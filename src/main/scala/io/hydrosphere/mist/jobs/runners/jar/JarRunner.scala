@@ -4,13 +4,13 @@ import java.net.{URL, URLClassLoader}
 
 import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{JobConfiguration, JobFile}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.lib.MistJob
 
-private[mist] class JarRunner(jobConfiguration: JobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+private[mist] class JarRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
 
-  override val configuration: JobConfiguration = jobConfiguration
+  override val configuration: FullJobConfiguration = jobConfiguration
 
   val cls = {
     val classLoader = new URLClassLoader(Array[URL](jobFile.file.toURI.toURL), getClass.getClassLoader)

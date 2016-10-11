@@ -6,19 +6,19 @@ import org.mapdb.{DBMaker, Serializer}
 import io.hydrosphere.mist.Logger
 
 private[mist] trait ConfigurationRepository extends Logger{
-  def add(jobId: String, jobConfiguration: JobConfiguration): Unit
+  def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit
   def remove(jobId: String): Unit
-  def get(jobId: String): JobConfiguration
-  def getAll: scala.collection.mutable.Map[String, JobConfiguration]
+  def get(jobId: String): FullJobConfiguration
+  def getAll: scala.collection.mutable.Map[String, FullJobConfiguration]
   def size: Int
   def clear(): Unit
 }
 
 private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRepository {
 
-  private val _collection = scala.collection.mutable.Map[String, JobConfiguration]()
+  private val _collection = scala.collection.mutable.Map[String, FullJobConfiguration]()
 
-  override def add(jobId: String, jobConfiguration: JobConfiguration): Unit = {
+  override def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit = {
     _collection put (jobId, jobConfiguration)
   }
 
@@ -26,11 +26,11 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
     _collection.remove(jobId)
   }
 
-  override def get(jobId: String): JobConfiguration = {
+  override def get(jobId: String): FullJobConfiguration = {
     _collection(jobId)
   }
 
-  override def getAll: scala.collection.mutable.Map[String, JobConfiguration] = _collection
+  override def getAll: scala.collection.mutable.Map[String, FullJobConfiguration] = _collection
 
   override def size: Int = _collection.size
 
@@ -55,7 +55,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
   // Json formats
   private implicit val formats = org.json4s.DefaultFormats
 
-  override def add(jobId: String, jobConfiguration: JobConfiguration): Unit = {
+  override def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit = {
     try {
       val w_job = SerializationUtils.serialize(jobConfiguration)
       map.put(jobId, w_job)
@@ -74,13 +74,13 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     }
   }
 
-  override def getAll: scala.collection.mutable.Map[String, JobConfiguration] = {
-    val _collection = scala.collection.mutable.Map[String, JobConfiguration]()
+  override def getAll: scala.collection.mutable.Map[String, FullJobConfiguration] = {
+    val _collection = scala.collection.mutable.Map[String, FullJobConfiguration]()
     try{
       val keys = map.getKeys.toArray()
 
       for(key <- keys){
-        _collection put (key.toString, SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[JobConfiguration])
+        _collection put (key.toString, SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[FullJobConfiguration])
       }
       logger.info(s"${_collection.size} get from MapDb")
     }
@@ -91,14 +91,14 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     _collection
   }
 
-  override def get(jobId: String): JobConfiguration = {
+  override def get(jobId: String): FullJobConfiguration = {
     try {
-      SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[JobConfiguration]
+      SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[FullJobConfiguration]
     }
     catch {
       case e: Exception =>
         logger.error(e.getMessage, e)
-        new JobConfiguration("", "", "")
+        new FullJobConfiguration("", "", "")
     }
   }
 

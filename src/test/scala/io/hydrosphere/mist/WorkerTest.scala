@@ -152,7 +152,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "message" in {
         val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
         val json = TestConfig.request_jar.parseJson
-        val jobConfiguration = json.convertTo[JobConfiguration]
+        val jobConfiguration = json.convertTo[FullJobConfiguration]
         val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.name))
         var success = false
         future

@@ -11,11 +11,10 @@ import io.hydrosphere.mist.{Constants, Logger, MistConfig}
 import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
-import io.hydrosphere.mist.jobs.{JobConfiguration, JobResult}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
-
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 
@@ -43,7 +42,8 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   }
 
   // JSON to JobConfiguration mapper (6 fields)
-  implicit val jobCreatingRequestFormat = jsonFormat5(JobConfiguration)
+  implicit val jobCreatingRequestFormat = jsonFormat5(FullJobConfiguration)
+  implicit val jobCreatingRestificatedFormat = jsonFormat2(RestificatedJobConfiguration)
   implicit val jobResultFormat = jsonFormat4(JobResult)
 
   sealed trait JobConfigError
@@ -61,7 +61,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     path("jobs") {
       // POST /jobs
       post {
-        entity(as[JobConfiguration]) { jobCreatingRequest =>
+        entity(as[FullJobConfiguration]) { jobCreatingRequest =>
           doComplete(jobCreatingRequest)
         }
       }
@@ -75,7 +75,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
                 complete(HttpResponse(404, entity = "Job route config is not valid. Unknown resource!"))
               case Left(error: ConfigError) =>
                 complete(HttpResponse(500, entity = error.reason))
-              case Right(jobRequest: JobConfiguration) =>
+              case Right(jobRequest: FullJobConfiguration) =>
                 doComplete(jobRequest)
             }
           }
@@ -84,7 +84,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     }
   }
 
-  def doComplete(jobRequest: JobConfiguration): akka.http.scaladsl.server.Route =  {
+  def doComplete(jobRequest: FullJobConfiguration): akka.http.scaladsl.server.Route =  {
 
     respondWithHeader(RawHeader("Content-Type", "application/json"))
 
@@ -113,10 +113,10 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     }
   }
 
-  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, JobConfiguration] = {
+  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, FullJobConfiguration] = {
     try {
       val config = RouteConfig(jobRoute)
-      Right(JobConfiguration(config.path, config.className, config.name, jobRequestParams))
+      Right(FullJobConfiguration(config.path, config.className, config.name, jobRequestParams))
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
       case exc: Throwable => Left(ConfigError(exc.toString))
