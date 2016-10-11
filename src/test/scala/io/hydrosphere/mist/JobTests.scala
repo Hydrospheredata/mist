@@ -209,9 +209,17 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Jar job run") {
-    if(checkSparkSessionLogic)
-      cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.request_jar.parseJson
+    val jobConfiguration = json.convertTo[JobConfiguration]
+    val someJarJob = Runner(jobConfiguration, contextWrapper)
+    someJarJob.run()
+    eventually(timeout(30 seconds), interval(500 milliseconds)) {
+      assert(someJarJob.status == Runner.Status.Stopped)
+    }
+  }
+
+  test("Jar job hdfs run") {
+    val json = TestConfig.request_hdfs_jar.parseJson
     val jobConfiguration = json.convertTo[JobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
@@ -305,7 +313,6 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
       assert(somePyJob.status == Runner.Status.Aborted)
     }
   }
-
 
   override def afterAll(): Unit ={
     contextWrapper.stop()
