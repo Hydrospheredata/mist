@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.jobs.runners.python
+package io.hydrosphere.mist
 
 import org.scalatest.WordSpecLike
 import io.hydrosphere.mist.jobs.JobConfiguration
@@ -7,7 +7,7 @@ import io.hydrosphere.mist.jobs.runners.python.wrappers.{ConfigurationWrapper, D
 class PythonWrappersTest extends WordSpecLike {
   "Configuration wrapper" must {
     "contain configuration" in {
-      val jobConfiguration = new JobConfiguration("path", "className", "contextName", Map("parameters" -> Seq(1,2,3)), Option("1"))
+      val jobConfiguration = JobConfiguration("path", "className", "contextName", Map("parameters" -> Seq(1,2,3)), Option("1"))
       val contextWrapper = new ConfigurationWrapper(jobConfiguration)
 
       assert( contextWrapper.className == jobConfiguration.className &&

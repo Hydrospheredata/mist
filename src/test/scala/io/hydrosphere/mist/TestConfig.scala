@@ -38,6 +38,7 @@ object TestConfig{
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
   val request_sparksession = testconfig.getString("mist.test.request.sparksession")
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
+  val request_pyhdfs = testconfig.getString("mist.test.request.hdfs_python")
 
   val async_restificated_request = testconfig.getString("mist.test.request.async-restifcated")
   val restificatedRequest = testconfig.getString("mist.test.request.restificated")
