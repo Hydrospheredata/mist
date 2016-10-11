@@ -545,7 +545,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         MqttSuccessObj.success = true
         MQTTTest.publish(TestConfig.request_badjson)
         eventually(timeout(60 seconds), interval(1 second)) {
-          assert(MqttSuccessObj.success)
+          assert(!MqttSuccessObj.success)
         }
       }
 

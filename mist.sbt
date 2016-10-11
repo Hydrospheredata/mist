@@ -16,9 +16,9 @@ val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2,
 
 scalaVersion := {
   sparkVersion match {
-    case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => "2.10.6"
+    case versionRegex(major, minor) if major.toInt == 1 => "2.10.6"
     case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
-    case _ => "2.10.6"
+    case _ => "2.11.8"
   }
 }
 
@@ -63,7 +63,6 @@ def akkaDependencies(scalaVersion: String) = {
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
       "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
       "org.slf4j" % "slf4j-api" % "1.7.21",
-      // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
       "ch.qos.logback" % "logback-classic" % "1.0.3",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
@@ -71,9 +70,6 @@ def akkaDependencies(scalaVersion: String) = {
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      /*"ch.qos.logback" % "logback-classic" % "1.1.7",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.6"*/
       "ch.qos.logback" % "logback-classic" % "1.1.3",  //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
