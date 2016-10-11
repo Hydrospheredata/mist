@@ -37,6 +37,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.0",

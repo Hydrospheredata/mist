@@ -6,7 +6,7 @@ import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.{JobConfiguration, JobFile}
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.MistJob
+import io.hydrosphere.mist.lib.{MistJob, StreamingMistJob}
 
 private[mist] class JarRunner(jobConfiguration: JobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
 
@@ -33,6 +33,11 @@ private[mist] class JarRunner(jobConfiguration: JobConfiguration, jobFile: JobFi
         case objectRef: MistJob =>
           objectRef.setup(contextWrapper)
           Left(objectRef.doStuff(configuration.parameters))
+        case objectRef: StreamingMistJob =>
+          objectRef.setJobId(configuration.external_id.getOrElse(""))
+          objectRef.setup(contextWrapper)
+          objectRef.doStuff
+          Left(Map("Stream Job complit"->configuration.external_id))
         case _ => Right(Constants.Errors.notJobSubclass)
       }
 
