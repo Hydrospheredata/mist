@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{AddJobToRecovery, RemoveJobFromRecovery, WorkerDidStart}
+import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.JobConfiguration
 import akka.cluster.Cluster
@@ -59,6 +59,31 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
+        }(ExecutionContext.global)
+
+    case StartStreamingJob(streamingJobConfiguration) =>
+      log.info(s"[WORKER] received StreamJobRequest: $streamingJobConfiguration")
+      val originalSender = sender
+
+      lazy val runner = Runner(streamingJobConfiguration, contextWrapper)
+
+      val future: Future[Either[Map[String, Any], String]] = Future {
+        log.info(s"${streamingJobConfiguration.name}#${runner.id} is running")
+        runner.run()
+      }(executionContext)
+      future
+        .recover {
+          case e: Throwable => log.error(e, s"[WORKER]  ${streamingJobConfiguration.name}#${runner.id}" + e.getMessage)
+        }(ExecutionContext.global)
+        .andThen {
+          case _ =>
+            originalSender ! RemoveContext(name)
+        }(ExecutionContext.global)
+        .andThen {
+          case Success(_) => {
+            cluster.system.shutdown()
+          }
+          case Failure(error: Throwable) => log.error(error, s"[WORKER]  ${streamingJobConfiguration.name}#${runner.id}" + error.getMessage)
         }(ExecutionContext.global)
 
     case MemberExited(member) =>

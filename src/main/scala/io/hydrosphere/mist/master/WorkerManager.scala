@@ -66,6 +66,16 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
+    case StartStreamingJob(streamingJobConfig) =>
+      startNewWorkerWithName(streamingJobConfig.name)
+
+      workers.registerCallbackForName(streamingJobConfig.name, {
+        case WorkerLink(name, address) =>
+          println(s"$address/user/$name")
+          val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+          remoteActor ! new StartStreamingJob(streamingJobConfig)
+      })
+
     case jobRequest: JobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.name)

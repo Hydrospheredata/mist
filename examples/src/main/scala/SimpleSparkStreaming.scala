@@ -28,7 +28,7 @@ object SimpleSparkStreaming extends StreamingMistJob {
     ssc.start()
     val r = scala.util.Random
 
-    for (i <- 1 to 1000) {
+    for (i <- 1 to 30) {
       rddQueue.synchronized {
         rddQueue += ssc.sparkContext.makeRDD(1 to 1000, 10)
       }
