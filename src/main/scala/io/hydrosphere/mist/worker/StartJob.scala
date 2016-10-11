@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{StartStreamingJob, WorkerDidStart}
+import io.hydrosphere.mist.Messages.{StartInfinityJob, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.JobConfiguration
 import akka.cluster.Cluster
@@ -13,7 +13,7 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.concurrent.{ExecutionContext}
 import scala.util.{Random}
 
-class StreamingNode(path:String, className: String, name: String, externalId: String) extends Actor with ActorLogging{
+class StartJob(path:String, className: String, name: String, externalId: String, parameters: Map[String, Any]) extends Actor with ActorLogging {
 
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -26,10 +26,10 @@ class StreamingNode(path:String, className: String, name: String, externalId: St
 
   lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
 
-  val jobConfiguration = new JobConfiguration(path, className, name, Map().empty, Option(externalId))
+  val jobConfiguration = new JobConfiguration(path, className, name, parameters, Option(externalId))
 
   override def preStart(): Unit = {
-    serverActor ! WorkerDidStart("StreamingJobStarter", cluster.selfAddress.toString)
+    serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
@@ -40,7 +40,7 @@ class StreamingNode(path:String, className: String, name: String, externalId: St
   override def receive: Receive = {
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
-        serverActor ! new StartStreamingJob(jobConfiguration)
+        serverActor ! new StartInfinityJob(jobConfiguration)
         cluster.system.shutdown()
       }
 
@@ -56,6 +56,6 @@ class StreamingNode(path:String, className: String, name: String, externalId: St
   }
 }
 
-object StreamingNode {
-  def props(name: String): Props = Props(classOf[StreamingNode], name)
+object StartJob {
+  def props(name: String): Props = Props(classOf[StartJob], name)
 }

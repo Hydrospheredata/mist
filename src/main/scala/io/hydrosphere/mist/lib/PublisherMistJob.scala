@@ -2,10 +2,11 @@ package io.hydrosphere.mist.lib
 
 import io.hydrosphere.mist.MistConfig
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
-import org.eclipse.paho.client.mqttv3.persist.{MemoryPersistence, MqttDefaultFilePersistence}
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-trait JobMqtt {
-  def publishToMqtt(message: String): Unit = {
+trait Publisher {
+
+  def publish(message: String): Unit = {
     val persistence = new MemoryPersistence
     try {
       val client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)

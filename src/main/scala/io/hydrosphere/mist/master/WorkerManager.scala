@@ -6,7 +6,7 @@ import akka.actor.{AddressFromURIString, Actor}
 import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker, Logger}
+import io.hydrosphere.mist.{MistConfig, Worker, Logger}
 
 import scala.concurrent.duration.DurationInt
 import io.hydrosphere.mist.Messages._
@@ -66,14 +66,13 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case StartStreamingJob(streamingJobConfig) =>
-      startNewWorkerWithName(streamingJobConfig.name)
+    case StartInfinityJob(jobConfig) =>
+      startNewWorkerWithName(jobConfig.name)
 
-      workers.registerCallbackForName(streamingJobConfig.name, {
+      workers.registerCallbackForName(jobConfig.name, {
         case WorkerLink(name, address) =>
-          println(s"$address/user/$name")
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-          remoteActor ! new StartStreamingJob(streamingJobConfig)
+          remoteActor ! new StartInfinityJob(jobConfig)
       })
 
     case jobRequest: JobConfiguration =>

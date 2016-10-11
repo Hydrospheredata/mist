@@ -16,6 +16,6 @@ private[mist] object Messages {
 
   case class RemoveJobFromRecovery(jobId: String)
 
-  case class StartStreamingJob(jobConfiguration: JobConfiguration)
+  case class StartInfinityJob(jobConfiguration: JobConfiguration)
 
 }

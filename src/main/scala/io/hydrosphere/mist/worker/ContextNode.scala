@@ -61,19 +61,19 @@ class ContextNode(name: String) extends Actor with ActorLogging{
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
 
-    case StartStreamingJob(streamingJobConfiguration) =>
-      log.info(s"[WORKER] received StreamJobRequest: $streamingJobConfiguration")
+    case StartInfinityJob(jobConfiguration) =>
+      log.info(s"[WORKER] received StreamJobRequest: $jobConfiguration")
       val originalSender = sender
 
-      lazy val runner = Runner(streamingJobConfiguration, contextWrapper)
+      lazy val runner = Runner(jobConfiguration, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        log.info(s"${streamingJobConfiguration.name}#${runner.id} is running")
+        log.info(s"${jobConfiguration.name}#${runner.id} is running")
         runner.run()
       }(executionContext)
       future
         .recover {
-          case e: Throwable => log.error(e, s"[WORKER]  ${streamingJobConfiguration.name}#${runner.id}" + e.getMessage)
+          case e: Throwable => log.error(e, s"[WORKER]  ${jobConfiguration.name}#${runner.id}" + e.getMessage)
         }(ExecutionContext.global)
         .andThen {
           case _ =>
@@ -83,7 +83,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
           case Success(_) => {
             cluster.system.shutdown()
           }
-          case Failure(error: Throwable) => log.error(error, s"[WORKER]  ${streamingJobConfiguration.name}#${runner.id}" + error.getMessage)
+          case Failure(error: Throwable) => log.error(error, s"[WORKER]  ${jobConfiguration.name}#${runner.id}" + error.getMessage)
         }(ExecutionContext.global)
 
     case MemberExited(member) =>
