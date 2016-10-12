@@ -61,9 +61,9 @@ class ActorForWorkerTest extends Actor with ActorLogging {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
 
     if (checkSparkSessionLogic) {
-      MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
+      MistConfig.config = MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
     } else {
-      MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
+      MistConfig.config = MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
     }
   }
 
