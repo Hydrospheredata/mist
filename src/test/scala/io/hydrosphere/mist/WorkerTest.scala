@@ -22,6 +22,7 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
+import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -42,13 +43,28 @@ object WorkerIsRemoved
 
 class ActorForWorkerTest extends Actor with ActorLogging {
 
+  val versionRegex = "(\\d+)\\.(\\d+).*".r
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+
+  val checkSparkSessionLogic = {
+    sparkVersion match {
+      case versionRegex(major, minor) if major.toInt > 1 => true
+      case _ => false
+    }
+  }
+
   private val cluster = Cluster(context.system)
   private var workerUp = false
   private var workerRemowed = false
-  //var gocha
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+
+    if (checkSparkSessionLogic) {
+      MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
+    } else {
+      MistConfig.config.withValue("mist.http.router-config-path", ConfigValueFactory.fromAnyRef("./src/test/resources/router_2.11.conf"))
+    }
   }
 
   override def postStop(): Unit = {
