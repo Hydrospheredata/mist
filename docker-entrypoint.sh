@@ -5,7 +5,7 @@ cd ${MIST_HOME}
 
 if [ "$1" = 'tests' ]; then
   ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly
-  ./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=src/test/resources/tests-${SPARK_HOME}.conf "project examples" package "project mist" test
+  ./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=src/test/resources/tests-${SPARK_VERSION}.conf "project examples" package "project mist" test
   bash
 elif [ "$1" = 'mist' ]; then
   ./bin/mist start master --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
