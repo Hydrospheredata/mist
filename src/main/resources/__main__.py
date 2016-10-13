@@ -38,6 +38,7 @@ context_wrapper = ContextWrapper()
 context_wrapper.set_context(_gateway)
 
 configuration_wrapper = _entry_point.configurationWrapper()
+error_wrapper = _entry_point.errorWrapper()
 path = configuration_wrapper.path()
 class_name = configuration_wrapper.className()
 parameters = configuration_wrapper.parameters()
@@ -67,6 +68,9 @@ except ImportError:
     if issubclass(class_, WithHiveSupport):
         context_wrapper.set_hive_context(_gateway)
 
-instance.setup(context_wrapper)
-result = instance.do_stuff(parameters)
-data_wrapper.set(result)
+try:
+    instance.setup(context_wrapper)
+    result = instance.do_stuff(parameters)
+    data_wrapper.set(result)
+except Exception:
+    error_wrapper.set(traceback.format_exc())
