@@ -15,6 +15,9 @@ object TestConfig{
       case _ => true
     }
   }
+
+  val examples_path = if(OldVersion) testconfig.getString("mist.test.examples.path_2_10") else  testconfig.getString("mist.test.examples.path_2_11")
+
   val assemblyjar = if(OldVersion) testconfig.getString("mist.test.assemblyjar_2_10") else testconfig.getString("mist.test.assemblyjar_2_11")
 
   val other_context_name = testconfig.getString("mist.test.othercontextname")

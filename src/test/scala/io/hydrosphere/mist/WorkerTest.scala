@@ -1,4 +1,4 @@
-package  io.hydrosphere.mist
+package io.hydrosphere.mist
 
 import java.util.concurrent.Executors._
 
@@ -112,9 +112,13 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
   }
   override def afterAll() = {
+    clientHTTP.shutdownAllConnectionPools()
     Http().shutdownAllConnectionPools()
+
     TestKit.shutdownActorSystem(systemM)
     TestKit.shutdownActorSystem(systemW)
+    TestKit.shutdownActorSystem(system)
+
     Thread.sleep(5000)
   }
 
@@ -641,6 +645,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
 }
+
+
 
 class MasterWorkerAppsTest extends WordSpecLike {
   "Must started" must { //TODO test started apps
