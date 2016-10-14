@@ -53,6 +53,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 
   override def postStop(): Unit = {
     cluster.unsubscribe(self)
+    context.stop(self)
   }
 
   override def receive: Receive = {
@@ -75,6 +76,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 
     case WorkerIsRemoved =>
       sender ! workerRemowed
+
   }
 }
 

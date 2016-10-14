@@ -16,13 +16,12 @@ import scala.concurrent.duration._
 
 class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol {
 
-  val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
   val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
-  val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+  val mqttActor = systemW.actorOf(Props(classOf[MQTTServiceActor]))
   mqttActor ! MqttSubscribe
-  infinityJobTestMqttActor.subscribe(systemM)
+  infinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {
     Thread.sleep(5000)
@@ -31,7 +30,7 @@ class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
 
   override def afterAll() = {
     infinityJobTestMqttActor.disconnect
-    TestKit.shutdownActorSystem(systemM)
+
     TestKit.shutdownActorSystem(systemW)
     TestKit.shutdownActorSystem(systemS)
     Thread.sleep(5000)
@@ -39,10 +38,6 @@ class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
 
   "Streaming" must {
     "Start and success" in {
-      systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
-      Thread.sleep(5000)
-
-      systemM.actorOf(Props(classOf[JobRecovery], InMemoryJobConfigurationRepository), name = "RecoveryActor")
 
       systemW.actorOf(ContextNode.props("streaming"), name = "streaming")
       Thread.sleep(5000)
