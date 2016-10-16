@@ -111,7 +111,7 @@ then
         if [ "${RUNNER}" == 'local' ]
         then 
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE" ${NAMESPACE}
-        elif [ "${RUNNER}" == 'docker']
+        elif [ "${RUNNER}" == 'docker' ]
         then
             if [ "${HOST}" == 'localhost' ] || [ "${HOST}" == '127.0.0.1' ]
             then 
@@ -120,11 +120,13 @@ then
                 export image=`echo $parentContainer | jq -r '.Config.Image'`
                 export links="[\"$name:/master\"]"
                 export labels=`echo $parentContainer | jq -r '.Config.Labels'`
+                export config=`base64 -w 0 configs/docker.conf` 
                 export request="{
                     \"Image\":\"$image\",
                     \"Cmd\": [
                         \"worker\",
-                        \"${NAMESPACE}\"
+                        \"$NAMESPACE\",
+                        \"$config\"
                     ],
                     \"Labels\": $labels,
                     \"HostConfig\": {
@@ -139,11 +141,13 @@ then
                 export image=`echo $parentContainer | jq -r '.Config.Image'`
                 export links="[\"$name:/master\"]"
                 export labels=`echo $parentContainer | jq -r '.Config.Labels'`
+                export config=`base64 -w 0 configs/docker.conf`
                 export request="{
                     \"Image\":\"$image\",
                     \"Cmd\": [
                         \"worker\",
-                        \"${NAMESPACE}\"
+                        \"${NAMESPACE}\",
+                        \"$config\"
                     ],
                     \"Labels\": $labels,
                     \"HostConfig\": {
