@@ -56,7 +56,7 @@ or
 * Create [configuration file](#configuration)
 * Run
 
-        ./mist.sh   --config /path/to/application.conf \
+        ./mist.sh master  --config /path/to/application.conf \
                     --jar target/scala-2.10/mist-assembly-0.4.0.jar
 
 
