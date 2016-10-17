@@ -53,6 +53,8 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         logger.info(" Exiting due to broken pipe from Python driver")
       }
 
+      _status = Runner.Status.Stopped
+
       Left(Map("result" -> dataWrapper.get))
     } catch {
       case e: Throwable =>
