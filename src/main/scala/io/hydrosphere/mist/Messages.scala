@@ -16,6 +16,6 @@ private[mist] object Messages {
 
   case class RemoveJobFromRecovery(jobId: String)
 
-  case class StartInfinityJob(jobConfiguration: FullJobConfiguration)
+  case class StartInfinityJob(fullJobConfiguration: FullJobConfiguration)
 
 }

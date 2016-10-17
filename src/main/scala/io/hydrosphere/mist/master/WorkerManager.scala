@@ -66,13 +66,13 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case StartInfinityJob(jobConfig) =>
-      startNewWorkerWithName(jobConfig.name)
+    case StartInfinityJob(fullJobConfiguration) =>
+      startNewWorkerWithName(fullJobConfiguration.name)
 
-      workers.registerCallbackForName(jobConfig.name, {
+      workers.registerCallbackForName(fullJobConfiguration.name, {
         case WorkerLink(name, address) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-          remoteActor ! new StartInfinityJob(jobConfig)
+          remoteActor ! new StartInfinityJob(fullJobConfiguration)
       })
 
     case jobRequest: FullJobConfiguration =>

@@ -42,7 +42,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         }
 
         val exitCode = cmd.!
-        if (exitCode != 0) {
+        if (exitCode != 0 || errorWrapper.get().nonEmpty) {
           val errmsg = errorWrapper.get()
           logger.error(errmsg)
           throw new Exception("Error in python code: " + errmsg)

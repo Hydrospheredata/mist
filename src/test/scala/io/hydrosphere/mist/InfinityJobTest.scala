@@ -68,8 +68,6 @@ object infinityJobTestMqttActor{
 
         if( stringMessage contains "test message from stream job" )
           MqttSuccessObj.success = true
-        else
-          MqttSuccessObj.success = false
       }
 
       override def connectionLost(cause: Throwable): Unit = {
