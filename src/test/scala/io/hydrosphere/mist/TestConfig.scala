@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import com.typesafe.config.ConfigFactory
 
-object TestConfig{
+object TestConfig {
   private val testconfig = ConfigFactory.load()
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
@@ -27,12 +27,11 @@ object TestConfig{
 
   val http_url = testconfig.getString("mist.test.http.url")
   val http_url_it = testconfig.getString("mist.test.http.url_it")
-  val http_url_rest =  if(OldVersion) testconfig.getString("mist.test.http.url_rest_2_10") else testconfig.getString("mist.test.http.url_rest_2_11")
+  val restificatedUrl = testconfig.getString("mist.test.http.restificated_url")
 
   val request_test_timeout = if(OldVersion) testconfig.getString("mist.test.request.testtimeout_2_10") else testconfig.getString("mist.test.request.testtimeout_2_11")
 
   val request_jar = if(OldVersion) testconfig.getString("mist.test.request.jar_2_10") else testconfig.getString("mist.test.request.jar_2_11")
-  val request_jar_rest = testconfig.getString("mist.test.request.rest_api")
   val request_hdfs_jar = if(OldVersion) testconfig.getString("mist.test.request.hdfs_jar_2_10") else testconfig.getString("mist.test.request.hdfs_jar_2_11")
   val request_testerror = if(OldVersion) testconfig.getString("mist.test.request.testerror_2_10") else testconfig.getString("mist.test.request.testerror_2_11")
   val request_pyspark = testconfig.getString("mist.test.request.pyspark")
@@ -43,6 +42,9 @@ object TestConfig{
   val request_sparksession = testconfig.getString("mist.test.request.sparksession")
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
   val request_pyhdfs = testconfig.getString("mist.test.request.hdfs_python")
+
+  val async_restificated_request = testconfig.getString("mist.test.request.async-restificated")
+  val restificatedRequest = testconfig.getString("mist.test.request.restificated")
 
   val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")
   val request_pyerror = testconfig.getString("mist.test.request.pyerror")

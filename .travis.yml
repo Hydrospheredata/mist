@@ -1,25 +1,15 @@
 sudo: required
-language: scala
-scala:
-  - 2.10.6
 services:
   - docker
 
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
-  - docker build --build-arg SPARK_VERSION=$SPARK_VERSION -t hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION .
-  - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION
+  - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
   - docker run --name hdfs-$SPARK_VERSION --volumes-from mist-$SPARK_VERSION -d hydrosphere/hdfs start
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION tests
-
-after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-    docker push hydrosphere/mist:$TRAVIS_BRANCH-$SPARK_VERSION;
-    fi
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests         
 
 env:
   global:

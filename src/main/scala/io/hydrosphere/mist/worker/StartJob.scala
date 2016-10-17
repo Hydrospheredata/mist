@@ -5,7 +5,7 @@ import java.util.concurrent.Executors.newFixedThreadPool
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{StartInfinityJob, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
-import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -26,7 +26,7 @@ class StartJob(path:String, className: String, name: String, externalId: String,
 
   lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
 
-  val jobConfiguration = new JobConfiguration(path, className, name, parameters, Option(externalId))
+  val jobConfiguration = new FullJobConfiguration(path, className, name, parameters, Option(externalId))
 
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)

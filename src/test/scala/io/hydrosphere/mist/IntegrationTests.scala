@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.master.JsonFormatSupport
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
@@ -57,7 +57,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       val stringMessage = TestConfig.request_jar
       val json = stringMessage.parseJson
       val jobCreatingRequest = try {
-        json.convertTo[JobConfiguration]
+        json.convertTo[FullJobConfiguration]
       } catch {
         case _: DeserializationException => None
       }

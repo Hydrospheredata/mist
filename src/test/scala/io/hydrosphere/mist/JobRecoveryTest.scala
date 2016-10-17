@@ -4,7 +4,7 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, JobConfiguration}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, FullJobConfiguration}
 import io.hydrosphere.mist.master._
 import scala.concurrent.duration._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
@@ -41,7 +41,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
     val json = stringMessage.parseJson
     val jobCreatingRequest = {
       try {
-        json.convertTo[JobConfiguration]
+        json.convertTo[FullJobConfiguration]
       } catch {
         case _: DeserializationException => None
       }

@@ -1,8 +1,8 @@
 package io.hydrosphere.mist.jobs.runners.python.wrappers
 
-import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 
-private[python] class DataWrapper {
+private[mist] class DataWrapper {
   private var data: Any = _
 
   def set(in: Any): Unit = {
@@ -11,7 +11,7 @@ private[python] class DataWrapper {
   def get: Any = data
 }
 
-private[python] class ConfigurationWrapper(configuration: JobConfiguration) {
+private[mist] class ConfigurationWrapper(configuration: FullJobConfiguration) {
 
   def parameters: Map[String, Any] = {
     configuration.parameters

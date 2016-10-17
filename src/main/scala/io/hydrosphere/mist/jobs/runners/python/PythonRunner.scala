@@ -3,22 +3,22 @@ package io.hydrosphere.mist.jobs.runners.python
 import java.io.File
 
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{JobConfiguration, JobFile}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers.{ConfigurationWrapper, DataWrapper, ErrorWrapper}
 import py4j.GatewayServer
 
 import sys.process._
 
-class PythonRunner(jobConfiguration: JobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
-  override val configuration: JobConfiguration = jobConfiguration
+class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+  override val configuration: FullJobConfiguration = jobConfiguration
 
   _status = Runner.Status.Initialized
 
   val errorWrapper = new ErrorWrapper
   val dataWrapper = new DataWrapper
   val sparkContextWrapper = contextWrapper
-  val configurationWrapper = new ConfigurationWrapper(new JobConfiguration(jobFile.file.getPath, jobConfiguration.className, jobConfiguration.name, jobConfiguration.parameters, jobConfiguration.external_id))
+  val configurationWrapper = new ConfigurationWrapper(FullJobConfiguration(jobFile.file.getPath, jobConfiguration.className, jobConfiguration.name, jobConfiguration.parameters, jobConfiguration.external_id))
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running

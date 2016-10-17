@@ -75,7 +75,7 @@ private[mist] class WorkerManager extends Actor with Logger{
           remoteActor ! new StartInfinityJob(jobConfig)
       })
 
-    case jobRequest: JobConfiguration =>
+    case jobRequest: FullJobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.name)
 

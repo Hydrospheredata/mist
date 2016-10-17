@@ -5,7 +5,7 @@ import java.util.concurrent.Executors.newFixedThreadPool
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
-import io.hydrosphere.mist.jobs.JobConfiguration
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.jobs.runners.Runner
@@ -37,7 +37,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
   }
 
   override def receive: Receive = {
-    case jobRequest: JobConfiguration =>
+    case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 

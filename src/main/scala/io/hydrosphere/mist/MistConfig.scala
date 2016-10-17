@@ -10,7 +10,7 @@ import scala.concurrent.duration.{FiniteDuration, Duration}
 /** Configuration wrapper */
 private[mist] object MistConfig {
 
-  private val config = ConfigFactory.load()
+  private[mist] var config = ConfigFactory.load()
 
   val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
 

@@ -7,4 +7,4 @@ package io.hydrosphere.mist.jobs
   * @param errors possible error list
   * @param request user request
   */
-private[mist] case class JobResult(success: Boolean, payload: Map[String, Any], errors: List[String], request: JobConfiguration)
+private[mist] case class JobResult(success: Boolean, payload: Map[String, Any], errors: List[String], request: FullJobConfiguration)
