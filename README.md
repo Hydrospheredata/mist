@@ -63,7 +63,6 @@ curl --header "Content-Type: application/json" -X POST http://localhost:2003/api
         cd mist
         sbt -DsparkVersion=2.0.0 assembly 
     
-* Create [configuration file](#configuration)
 * Run
 
         ./bin/mist start master
@@ -90,7 +89,7 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 
 * [Write and build your own Mist job](/docs/spark-job-at-mist.md)
 * [Make awesome API for it](/docs/routes.md)
-* [Configure mist to make it fast and reliable](/configuration.md)
+* [Configure mist to make it fast and reliable](/docs/configuration.md)
 
 ## Version Information
 
