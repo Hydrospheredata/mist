@@ -2,7 +2,7 @@
 
 ######Mist Scala Spark Job 
 
-In order to prepare your job to run on Mist you should extend scala `object` from MistJob and implement method `doStuff(parameters: Map[String, Any]): Map[String, Any]`:
+In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `doStuff(parameters: Map[String, Any]): Map[String, Any]`:
 
 ```scala
 import io.hydrosphere.mist.MistJob
@@ -16,14 +16,14 @@ object MyCoolMistJob extends MistJob {
 } 
 ```
 
-All subclasses have `context` field which is `SparkContext` instance. Method `doStuff` must always return some result: this result Mist will send as response.
+All subclasses have `context` field which is `SparkContext` instance. Method `doStuff` must always return a result which will be serialised into API response by Mist.
 
-In Spark >= 2.0.0 jobs can have `SparkSession`. Mist manages sessions in contexts too. You should add `SQLSupport` as super class to your job to get `SparkSession` instance within it. Besides that you can extend your class with `HiveSupport` to use HiveQL inside `SparkSession`.
+Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions as well as contexts. You should use `SQLSupport` and `HiveSupport` Mist traits to add `SparkSession` and `HiveQL` API into your job.
 
 ```scala
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
-object MyCoolSessionJob extends MistJob with SQLSupport wiyj HiveSupport {
+object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
     def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
         val dataFrame = session.read.load("file.parquet")
         ...
@@ -32,12 +32,12 @@ object MyCoolSessionJob extends MistJob with SQLSupport wiyj HiveSupport {
 }
 ```
 
-There is no sessions but there are `SQLContext` and `HiveContext` in Spark < 2.0.0. You get these instances extending `SQLSupport` and `HiveContext` accordingly. 
+Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSupport` and `HiveContext` Mist traits. 
 
 ```scala
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
-object MyOldSparkJob extends MistJob with SQLSupport wiyj HiveSupport {
+object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
     def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
         val dataFrame = sqlContext.read.load("file.parquet") // or hiveContext.read.load("file.parquet")
         ...
@@ -46,7 +46,7 @@ object MyOldSparkJob extends MistJob with SQLSupport wiyj HiveSupport {
 }
 ```
 
-Inside `doStuff` method you can write any code you want as if it is ordinary Spark application.
+Inside `doStuff` method you can write any code you want as it is an ordinary Apache Spark application.
 
 ######Building Mist jobs
 
@@ -84,7 +84,7 @@ class MyPythonMistJob(MistJob):
         return dict()
 ```
 
-As it is in scala you can add `WithSQLSupport` and `WithHiveSupport` to get `SparkSession` instance in your subclass.
+Add `WithSQLSupport` and `WithHiveSupport` to get `SparkSession` instance in your subclass.
 
 ```python
 from mist.mist_job import *
