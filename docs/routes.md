@@ -1,6 +1,6 @@
 ## Mist RESTificated Routes
 
-By default Routes are described in `./configs/router.conf`. See [configuration docs](configuration.md) for more details). For example:
+By default Routes are described in `./configs/router.conf`. See [configuration docs](configuration.md) for more details. For example:
 
 ```hocon
 forecast = {
