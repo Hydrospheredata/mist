@@ -59,21 +59,6 @@ private[mist] object MistConfig {
     lazy val routerConfigPath = http.getString("router-config-path")
   }
 
-  /** Settings for each spark context */
-  object Spark {
-    private val spark = config.getConfig("mist.spark")
-
-    /** Spark master server url
-      *
-      * Any clear for spark string:
-      * local[*]
-      * spark://host:7077
-      * mesos://host:5050
-      * yarn
-      */
-    lazy val master: String = spark.getString("master")
-  }
-
   /** Hive Test*/
 
   object Hive {

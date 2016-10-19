@@ -42,7 +42,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         }
 
         val exitCode = cmd.!
-        if (exitCode != 0) {
+        if (exitCode != 0 || errorWrapper.get().nonEmpty) {
           val errmsg = errorWrapper.get()
           logger.error(errmsg)
           throw new Exception("Error in python code: " + errmsg)
@@ -52,6 +52,8 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         gatewayServer.shutdown()
         logger.info(" Exiting due to broken pipe from Python driver")
       }
+
+      _status = Runner.Status.Stopped
 
       Left(Map("result" -> dataWrapper.get))
     } catch {
