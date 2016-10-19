@@ -1,6 +1,6 @@
 ## Tests
 
-The easiest way to run tests is run them inside docker container.
+The easiest way to run tests is to run them inside docker container.
 
 First of all export SPARK_VERSION with version you want to work: 
 ```sh
