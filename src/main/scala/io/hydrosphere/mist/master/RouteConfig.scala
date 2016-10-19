@@ -25,7 +25,7 @@ private[master] class RouteConfig(route: String, config: Config) {
 
   def className: String = getString("className")
 
-  def name: String = getString("name")
+  def namespace: String = getString("namespace")
 }
 
 private[master] object RouteConfig {

@@ -67,16 +67,15 @@ then
     then
         MAX_VERSION=0
         MAX_VERSION_FILE=""
-        for jar in `readlink -f ${MIST_HOME}/target/scala-2.*/mist-assembly-0.*`
+        for jar in `find ${MIST_HOME} -path '*/target/scala-*/mist-assembly-*'`
         do
-            a=$(echo ${jar} | sed 's|${1}/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
+            a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
             if [[ ${a} > ${MAX_VERSION} ]]
             then
                 MAX_VERSION=${a}
                 MAX_VERSION_FILE=${jar}
             fi
         done
-
         JAR_FILE=${MAX_VERSION_FILE}
     fi
 

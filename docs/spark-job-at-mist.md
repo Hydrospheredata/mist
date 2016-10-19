@@ -2,39 +2,58 @@
 
 ######Mist Scala Spark Job 
 
-In order to prepare your job to run on Mist you should extend scala `object` from MistJob and implement abstract method *doStuff* :
+In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `doStuff(parameters: Map[String, Any]): Map[String, Any]`:
 
 ```scala
-def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
-def doStuff(context: SQLContext, parameters: Map[String, Any]): Map[String, Any] = ???
-def doStuff(context: HiveContext, parameters: Map[String, Any]): Map[String, Any] = ???
+import io.hydrosphere.mist.MistJob
+
+object MyCoolMistJob extends MistJob {
+    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+        val rdd = context.parallelize()
+        ...
+        return result.asInstance[Map[String, Any]]
+    }
+} 
 ```
 
-for Version Spark >= 2.0.0
+All subclasses have `context` field which is `SparkContext` instance. Method `doStuff` must always return a result which will be serialised into API response by Mist.
+
+Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions as well as contexts. You should use `SQLSupport` and `HiveSupport` Mist traits to add `SparkSession` and `HiveQL` API into your job.
 
 ```scala
-def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = ???
-def doStuff(context: SparkSession, parameters: Map[String, Any]): Map[String, Any] = ???
-```
+import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
-Example:
-
-```scala
-object SimpleContext extends MistJob {
-    override def doStuff(context: SparkContext, parameters: Map[String, Any]): Map[String, Any] = {
-        val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
-        val rdd = context.parallelize(numbers)
-        Map("result" -> rdd.map(x => x * 2).collect())
+object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
+    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+        val dataFrame = session.read.load("file.parquet")
+        ...
+        return Map[String, Any].empty
     }
 }
 ```
+
+Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSupport` and `HiveContext` Mist traits. 
+
+```scala
+import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
+
+object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
+    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+        val dataFrame = sqlContext.read.load("file.parquet") // or hiveContext.read.load("file.parquet")
+        ...
+        return Map[String, Any].empty
+    }
+}
+```
+
+Inside `doStuff` method you can write any code you want as it is an ordinary Apache Spark application.
 
 ######Building Mist jobs
 
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.4.0"
+libraryDependencies += "io.hydrosphere" % "mist" % "0.5.0"
 ```
 
 Maven dependency:
@@ -43,7 +62,7 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
     
@@ -52,45 +71,41 @@ Link for direct download if you don't use a dependency manager:
 
 ######Mist Python Spark Job 
 
-Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/python) and implement method *doStuff*. 
-
-The following are Spark Contexts aliases to be used for convenience:
+Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/reousrces/mist), extend MistJob class and implement method `def do_stuff(self, params)`: 
 
 ```python
-job.sc = SparkContext 
-job.sqlc = SQL Context 
-job.hc = Hive Context
+from mist.mist_job import *
+
+class MyPythonMistJob(MistJob):
+    
+    def do_stuff(self, parameters):
+        rdd = self.context.parallelize()
+        ...
+        return dict()
 ```
 
-for Version Spark >= 2.0.0
+Add `WithSQLSupport` and `WithHiveSupport` to get `SparkSession` instance in your subclass.
 
 ```python
-job.sc = SparkContext 
-job.ss = SparkSession
+from mist.mist_job import *
+
+class MySessionJob(MistJob, WithSQLSupport, WithHiveSupport):
+    
+    def do_stuff(self, parameters):
+        data_frame = self.session.read("file.parquet")
+        ...
+        return dict()
 ```
 
+Or for spark < 2.0.0:
 
-
-for example:
 ```python
-import mist
-class MyJob:
-    def __init__(self, job):
-        job.sendResult(self.doStuff(job))
-    def doStuff(self, job):
-        val = job.parameters.values()
-        list = val.head()
-        size = list.size()
-        pylist = []
-        count = 0
-        while count < size:
-            pylist.append(list.head())
-            count = count + 1
-            list = list.tail()
-        rdd = job.sc.parallelize(pylist)
-        result = rdd.map(lambda s: 2 * s).collect()
-        return result
-        
-if __name__ == "__main__":
-    job = MyJob(mist.Job())
+from mist.mist_job import *
+
+class MyOldSparkJob(MistJob, WithSQLSupport, WithHiveSupport):
+    
+    def do_stuff(self, parameters):
+        data_frame = self.sql_context.read("file.parquet") # or self.hive_context.read("file.parquet")
+        ...
+        return dict()
 ```

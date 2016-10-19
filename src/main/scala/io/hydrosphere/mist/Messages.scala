@@ -4,13 +4,13 @@ import io.hydrosphere.mist.jobs.FullJobConfiguration
 
 private[mist] object Messages {
 
-  case class CreateContext(name: String)
+  case class CreateContext(namespace: String)
 
   case class StopAllContexts()
 
   case class RemoveContext(context: String)
 
-  case class WorkerDidStart(name: String, address: String)
+  case class WorkerDidStart(namespace: String, address: String)
 
   case class AddJobToRecovery(jobId: String, jobConfiguration: FullJobConfiguration)
 

@@ -93,7 +93,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
 
       val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
 
-      val future = workerManagerActor.ask(jobRequest)(timeout = MistConfig.Contexts.timeout(jobRequest.name))
+      val future = workerManagerActor.ask(jobRequest)(timeout = MistConfig.Contexts.timeout(jobRequest.namespace))
 
       future
         .recover {
@@ -116,7 +116,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
   def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, FullJobConfiguration] = {
     try {
       val config = RouteConfig(jobRoute)
-      Right(FullJobConfiguration(config.path, config.className, config.name, jobRequestParams))
+      Right(FullJobConfiguration(config.path, config.className, config.namespace, jobRequestParams))
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
       case exc: Throwable => Left(ConfigError(exc.toString))

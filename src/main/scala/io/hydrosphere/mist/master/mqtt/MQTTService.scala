@@ -63,12 +63,12 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
                 throw IncomingMessageIsJobRequest
             }
             val config = RouteConfig(restificatedRequest.route)
-            FullJobConfiguration(config.path, config.className, config.name, restificatedRequest.parameters)
+            FullJobConfiguration(config.path, config.className, config.namespace, restificatedRequest.parameters)
         }
 
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
         // Run job asynchronously
-        val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.name)) recover {
+        val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)) recover {
           case error: Throwable => Right(error.toString)
         }
 

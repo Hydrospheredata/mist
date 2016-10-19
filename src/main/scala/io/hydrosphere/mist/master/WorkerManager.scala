@@ -77,9 +77,9 @@ private[mist] class WorkerManager extends Actor with Logger{
 
     case jobRequest: FullJobConfiguration =>
       val originalSender = sender
-      startNewWorkerWithName(jobRequest.name)
+      startNewWorkerWithName(jobRequest.namespace)
 
-      workers.registerCallbackForName(jobRequest.name, {
+      workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(name, address) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
 

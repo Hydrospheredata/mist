@@ -1,3 +1,11 @@
+2016-10-18 Mist v0.5.0
+
+	RESTification
+	More clear MistJob subclass signature
+	Unified API for Python and Scala jobs
+	Getting jobs from HDFS
+	Other minor fixes and improvements
+
 2016-08-18 Mist v0.4.0
 
 	Powerful logging 

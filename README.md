@@ -30,6 +30,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
 - Powerful logging
+- Clear end-user API
 
 ## Getting Started with Mist
 
@@ -38,54 +39,57 @@ It implements Spark as a Service and creates a unified API layer for building en
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server (optional)
 
-######Running   
+######Run mist   
 
-        docker run -p 2003:2003 -d hydrosphere/mist:master-1.5.2 mist
-
+        docker run -p 2003:2003 -d hydrosphere/mist:master-2.0.0 mist
+        
 [more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
+        
+######Run example
 
-or
+```
+sbt "project examples" package
+
+curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
+```
+
+[learn more examples here](/docs/code-examples.md)
+
+## Building from source
 
 * Build the project
 
         git clone https://github.com/hydrospheredata/mist.git
         cd mist
-        sbt -DsparkVersion=1.5.2 assembly 
+        sbt -DsparkVersion=2.0.0 assembly 
     
-* Create [configuration file](#configuration)
 * Run
 
-        ./mist.sh   --config /path/to/application.conf \
-                    --jar target/scala-2.10/mist-assembly-0.4.0.jar
-
-
-######Run example
-
-```
-sbt
-project examples
-package
-
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/jobs --data '{"jarPath":"/path_to_jar/mist_examples.jar", "className":"SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "external_id":"12345678","name":"foo"}'
-```
-
-[lern more examples here](/docs/code-examples.md)
+        ./bin/mist start master
 
 ## Development mode
 
-You can use Vagrant and work in a preconfigured virtual machine.
-
 ```sh
+# clone mist repo 
 git clone https://github.com/Hydrospheredata/mist
-vagrant up
-vagrant ssh
-cd /vagrant
-./sbt/sbt -DsparkVersion=1.5.2 assembly
-./mist.sh master --config configs/localtest.conf --jar target/scala-2.11/mist-assembly-0.4.0.jar
+
+# available spark versions: 1.5.2, 1.6.2, 2.0.0
+export SPARK_VERSION=2.0.0
+docker create --name mist-${SPARK_VERSION} -v /usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION}
+docker run --name mosquitto-${SPARK_VERSION} -d ansi/mosquitto
+docker run --name hdfs-${SPARK_VERSION} --volumes-from mist-${SPARK_VERSION} -d hydrosphere/hdfs start
+
+# run tests
+docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} tests
+# or run mist
+docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
 ```
 
-Use Vagrantfile to configure port forwarding and another network setup to make Mist available externally.
+## What's next
 
+* [Write and build your own Mist job](/docs/spark-job-at-mist.md)
+* [Make awesome API for it](/docs/routes.md)
+* [Configure mist to make it fast and reliable](/docs/configuration.md)
 
 ## Version Information
 
@@ -95,6 +99,7 @@ Use Vagrantfile to configure port forwarding and another network setup to make M
 | 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
@@ -104,7 +109,7 @@ Use Vagrantfile to configure port forwarding and another network setup to make M
 - [x] Persist job state for self healing
 - [x] Super parallel mode: run Spark contexts in separate JVMs
 - [x] Powerful logging
-- [ ] RESTification
+- [x] RESTification
 - [ ] Support streaming contexts/jobs
 - [ ] Reactive API
 - [ ] Cluster mode and Mesos node framework
@@ -115,8 +120,16 @@ Use Vagrantfile to configure port forwarding and another network setup to make M
 
 ## More docs
 
-- [More docs](/docs/README.md)
-
+- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
+- [REST API](/docs/routes.md)
+- [Code Examples](/docs/code-examples.md)
+- [Configuration](/docs/configuration.md)
+- [Low level API Reference](/docs/api-reference.md)
+- [Namespaces](/docs/context-namespaces.md)
+- [Logging](/docs/logger.md)
+- [Tests](/docs/tests.md)
+- [License](/LICENSE)
+- [Changelog](/CHANGELOG)
 
 ## Contact
 
