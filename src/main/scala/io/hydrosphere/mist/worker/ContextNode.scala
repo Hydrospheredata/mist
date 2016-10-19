@@ -68,22 +68,22 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       lazy val runner = Runner(jobConfiguration, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        log.info(s"${jobConfiguration.name}#${runner.id} is running")
+        log.info(s"${jobConfiguration.namespace}#${runner.id} is running")
         runner.run()
       }(executionContext)
       future
         .recover {
-          case e: Throwable => log.error(e, s"[WORKER]  ${jobConfiguration.name}#${runner.id}" + e.getMessage)
+          case e: Throwable => log.error(e, s"[WORKER]  ${jobConfiguration.namespace}#${runner.id}" + e.getMessage)
         }(ExecutionContext.global)
         .andThen {
           case _ =>
-            originalSender ! RemoveContext(name)
+            originalSender ! RemoveContext(namespace)
         }(ExecutionContext.global)
         .andThen {
           case Success(_) => {
             cluster.system.shutdown()
           }
-          case Failure(error: Throwable) => log.error(error, s"[WORKER]  ${jobConfiguration.name}#${runner.id}" + error.getMessage)
+          case Failure(error: Throwable) => log.error(error, s"[WORKER]  ${jobConfiguration.namespace}#${runner.id}" + error.getMessage)
         }(ExecutionContext.global)
 
     case MemberExited(member) =>
