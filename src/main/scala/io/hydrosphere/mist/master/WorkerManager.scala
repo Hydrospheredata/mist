@@ -32,7 +32,7 @@ private[mist] class WorkerManager extends Actor with Logger{
           override def run() = {
             val configFile = System.getProperty("config.file")
             val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-            s"${sys.env("MIST_HOME")}/mist.sh worker --namespace $name --config $configFile --jar $jarPath" !
+            s"${sys.env("MIST_HOME")}/bin/mist start worker --namespace $name --config $configFile --jar $jarPath" !
           }
         }.start()
       }
@@ -66,11 +66,11 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case jobRequest: JobConfiguration =>
+    case jobRequest: FullJobConfiguration =>
       val originalSender = sender
-      startNewWorkerWithName(jobRequest.name)
+      startNewWorkerWithName(jobRequest.namespace)
 
-      workers.registerCallbackForName(jobRequest.name, {
+      workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(name, address) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
 

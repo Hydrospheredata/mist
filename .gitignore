@@ -10,3 +10,4 @@ logs/
 master.pid
 *.pyc
 *.~
+.DS_STORE

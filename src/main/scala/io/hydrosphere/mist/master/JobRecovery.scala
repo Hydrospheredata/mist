@@ -5,19 +5,20 @@ import akka.actor.Actor
 import io.hydrosphere.mist.master.mqtt.{MqttPubSub, MqttPubSubActor}
 import MqttPubSub.Publish
 import io.hydrosphere.mist.{MistConfig,Logger}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, JobConfiguration}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
 import org.json4s.jackson.Serialization
 
 case object StartRecovery
 
 case object TryRecoveyNext{
- var _collection = scala.collection.mutable.Map[String, JobConfiguration]()
+ var _collection = scala.collection.mutable.Map[String, FullJobConfiguration]()
 }
 case object JobStarted{
   var jobStartedCount = 0
 }
 case object JobCompleted
 
+// TODO: add abstract async interface instead of mqtt-specific one
 private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MqttPubSubActor with Logger {
 
   private implicit val formats = org.json4s.DefaultFormats

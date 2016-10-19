@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import com.typesafe.config.ConfigFactory
 
-object TestConfig{
+object TestConfig {
   private val testconfig = ConfigFactory.load()
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
@@ -24,6 +24,7 @@ object TestConfig{
 
   val http_url = testconfig.getString("mist.test.http.url")
   val http_url_it = testconfig.getString("mist.test.http.url_it")
+  val restificatedUrl = testconfig.getString("mist.test.http.restificated_url")
 
   val request_test_timeout = if(OldVersion) testconfig.getString("mist.test.request.testtimeout_2_10") else testconfig.getString("mist.test.request.testtimeout_2_11")
 
@@ -37,10 +38,13 @@ object TestConfig{
   val request_pysparkhive = testconfig.getString("mist.test.request.pysparkhive")
   val request_sparksession = testconfig.getString("mist.test.request.sparksession")
   val request_pysparksession = testconfig.getString("mist.test.request.pysparksession")
+  val request_pyhdfs = testconfig.getString("mist.test.request.hdfs_python")
+
+  val async_restificated_request = testconfig.getString("mist.test.request.async-restificated")
+  val restificatedRequest = testconfig.getString("mist.test.request.restificated")
 
   val request_jar_other_context = if(OldVersion) testconfig.getString("mist.test.request.jarother_2_10") else testconfig.getString("mist.test.request.jarother_2_11")
   val request_pyerror = testconfig.getString("mist.test.request.pyerror")
-  val request_nodostuff = if(OldVersion) testconfig.getString("mist.test.request.nodostuff_2_10") else testconfig.getString("mist.test.request.nodostuff_2_11")
   val request_badpatch = testconfig.getString("mist.test.request.badpatch")
   val request_badextension = testconfig.getString("mist.test.request.badextension")
   val request_bad = testconfig.getString("mist.test.request.badrequest")

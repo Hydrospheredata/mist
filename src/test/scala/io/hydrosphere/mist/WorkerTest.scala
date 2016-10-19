@@ -3,9 +3,9 @@ package  io.hydrosphere.mist
 import java.util.concurrent.Executors._
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.pattern.{ask, AskTimeoutException}
-import akka.testkit.{TestKit, ImplicitSender, TestActorRef}
-import io.hydrosphere.mist.Messages.{RemoveContext, StopAllContexts, WorkerDidStart}
+import akka.pattern.ask
+import akka.testkit.TestKit
+import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.master.{HTTPService, JobRecovery, JsonFormatSupport, WorkerManager}
 import io.hydrosphere.mist.worker.ContextNode
 
@@ -22,7 +22,7 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.MistConfig.Akka.Main
+import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -46,7 +46,6 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   private val cluster = Cluster(context.system)
   private var workerUp = false
   private var workerRemowed = false
-  //var gocha
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
@@ -121,17 +120,17 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
     "ContextNode" must {
       "started" in {
-        val workerManager = systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+        systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
         Thread.sleep(5000)
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
         }
-        val recoveryActor = systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
+        systemM.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
 
         val workerTestActor = systemW.actorOf(Props[ActorForWorkerTest], name = "TestActor")
 
-        val contextNode = systemW.actorOf(ContextNode.props("foo"), name = "foo")
+        systemW.actorOf(ContextNode.props("foo"), name = "foo")
         Thread.sleep(5000)
 
        // val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
@@ -140,10 +139,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         var success = false
         future
             .onSuccess{
-              case result:Boolean => val Result: Boolean = result match {
-                case answer: Boolean => answer
-              }
-              success = result
+              case result:Boolean =>
+                success = result
               println("workerUp status", success)
             }
         Await.result(future, 30.seconds)
@@ -155,8 +152,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "message" in {
         val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
         val json = TestConfig.request_jar.parseJson
-        val jobConfiguration = json.convertTo[JobConfiguration]
-        val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.name))
+        val jobConfiguration = json.convertTo[FullJobConfiguration]
+        val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.namespace))
         var success = false
         future
           .onSuccess {
@@ -252,31 +249,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-      "http jar no do stuff" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_nodostuff))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
-              http_response_success = json == "false"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(http_response_success)
-        }
-      }
-
       "HTTP Spark Context jar" in {
 
         var http_response_success = false
@@ -352,8 +324,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "HTTP Pyspark Context" in {
-        if(checkSparkSessionLogic)
-          cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
         val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
@@ -486,7 +456,53 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "HTTP successful restificated request" in {
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.restificatedUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.restificatedRequest))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "true"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 60.seconds)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
+      "HTTP Python hdfs" in {
 
+        var http_response_success = false
+        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyhdfs))
+        val future_response = clientHTTP.singleRequest(httpRequest)
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              http_response_success = json == "true"
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 10.seconds)
+        eventually(timeout(10 seconds), interval(1 second)) {
+          assert(http_response_success)
+        }
+      }
 
       "mqtt jar" in {
 
@@ -513,6 +529,16 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "mqtt successful restificated request" in {
+        MqttSuccessObj.success = false
+
+        MQTTTest.publish(TestConfig.async_restificated_request)
+        Thread.sleep(5000)
+
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.success)
+        }
+      }
 
 //TODO check py sql
       /*
@@ -541,7 +567,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         MqttSuccessObj.success = true
         MQTTTest.publish(TestConfig.request_badjson)
         eventually(timeout(60 seconds), interval(1 second)) {
-          assert(MqttSuccessObj.success)
+          assert(!MqttSuccessObj.success)
         }
       }
 
@@ -578,14 +604,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "MQTT bad path" in {
         MqttSuccessObj.success = true
         MQTTTest.publish(TestConfig.request_badpatch)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(!MqttSuccessObj.success)
-        }
-      }
-
-      "MQTT noDoStuff in jar" in {
-        MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.request_nodostuff)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }

@@ -10,7 +10,7 @@ import scala.concurrent.duration.{FiniteDuration, Duration}
 /** Configuration wrapper */
 private[mist] object MistConfig {
 
-  private val config = ConfigFactory.load()
+  private[mist] var config = ConfigFactory.load()
 
   val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
 
@@ -54,21 +54,9 @@ private[mist] object MistConfig {
     lazy val host: String = http.getString("host")
     /** HTTP server port */
     lazy val port: Int = http.getInt("port")
-  }
 
-  /** Settings for each spark context */
-  object Spark {
-    private val spark = config.getConfig("mist.spark")
-
-    /** Spark master server url
-      *
-      * Any clear for spark string:
-      * local[*]
-      * spark://host:7077
-      * mesos://host:5050
-      * yarn
-      */
-    lazy val master: String = spark.getString("master")
+    /** Path to REST config */
+    lazy val routerConfigPath = http.getString("router-config-path")
   }
 
   /** Hive Test*/
@@ -78,7 +66,7 @@ private[mist] object MistConfig {
       try {
         config.getBoolean("mist.hive.test")
       } catch {
-        case _ => false
+        case _: Throwable => false
       }
     }
   }

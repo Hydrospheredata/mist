@@ -1,12 +1,13 @@
 **Table of Contents**
 
 - [README](/README.md)
-- [Changelog](/CHANGELOG)
+- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
+- [REST API](/docs/routes.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
-- [Logger](/docs/logger.md)
-- [Spark Job at Mist](/docs/spark-job-at-mist.md)
-- [Tutorial](/docs/tutorial.md)
-- [API Reference](/docs/api-reference.md)
+- [Low level API Reference](/docs/api-reference.md)
+- [Namespaces](/docs/context-namespaces.md)
+- [Logging](/docs/logger.md)
 - [Tests](/docs/tests.md)
 - [License](/LICENSE)
+- [Changelog](/CHANGELOG)

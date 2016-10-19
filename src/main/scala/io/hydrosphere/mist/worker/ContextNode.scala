@@ -5,15 +5,16 @@ import java.util.concurrent.Executors.newFixedThreadPool
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{AddJobToRecovery, RemoveJobFromRecovery, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
-import io.hydrosphere.mist.jobs.{Job, JobConfiguration}
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
+import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
-class ContextNode(name: String) extends Actor with ActorLogging{
+class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -24,10 +25,10 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
   val nodeAddress = cluster.selfAddress
 
-  lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
+  lazy val contextWrapper = ContextBuilder.namedSparkContext(namespace)
 
   override def preStart(): Unit = {
-    serverActor ! WorkerDidStart(name, cluster.selfAddress.toString)
+    serverActor ! WorkerDidStart(namespace, cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
@@ -36,16 +37,16 @@ class ContextNode(name: String) extends Actor with ActorLogging{
   }
 
   override def receive: Receive = {
-    case jobRequest: JobConfiguration =>
+    case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
-      lazy val job = Job(jobRequest, contextWrapper, self.path.name)
+      lazy val runner = Runner(jobRequest, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        serverActor ! AddJobToRecovery(job.id, job.configuration)
-        log.info(s"${jobRequest.name}#${job.id} is running")
-        job.run()
+        serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        log.info(s"${jobRequest.namespace}#${runner.id} is running")
+        runner.run()
       }(executionContext)
       future
         .recover {
@@ -53,7 +54,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
         case _ =>
-          serverActor ! RemoveJobFromRecovery(job.id)
+          serverActor ! RemoveJobFromRecovery(runner.id)
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
@@ -73,5 +74,5 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 }
 
 object ContextNode {
-  def props(name: String): Props = Props(classOf[ContextNode], name)
+  def props(namespace: String): Props = Props(classOf[ContextNode], namespace)
 }

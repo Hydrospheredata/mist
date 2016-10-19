@@ -8,22 +8,21 @@ private[mist] object ContextBuilder {
 
   /** Build contexts with namespace
     *
-    * @param name namespace
+    * @param namespace namespace
     * @return [[ContextWrapper]] with prepared context
     */
-  def namedSparkContext(name: String): ContextWrapper = {
+  def namedSparkContext(namespace: String): ContextWrapper = {
 
     val sparkConf = new SparkConf()
-      .setMaster(MistConfig.Spark.master)
-      .setAppName(name)
+      .setAppName(namespace)
       .set("spark.driver.allowMultipleContexts", "true")
 
-    val sparkConfSettings = MistConfig.Contexts.sparkConf(name)
+    val sparkConfSettings = MistConfig.Contexts.sparkConf(namespace)
 
     for (keyValue: List[String] <- sparkConfSettings) {
       sparkConf.set(keyValue.head, keyValue(1))
     }
 
-    NamedContextWrapper(new SparkContext(sparkConf), name)
+    NamedContextWrapper(new SparkContext(sparkConf), namespace)
   }
 }

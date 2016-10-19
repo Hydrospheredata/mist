@@ -9,16 +9,16 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.4.0"
+version := "0.5.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
 scalaVersion := {
   sparkVersion match {
-    case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => "2.10.6"
+    case versionRegex(major, minor) if major.toInt == 1 => "2.10.6"
     case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
-    case _ => "2.10.6"
+    case _ => "2.11.8"
   }
 }
 
@@ -63,7 +63,6 @@ def akkaDependencies(scalaVersion: String) = {
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
       "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
       "org.slf4j" % "slf4j-api" % "1.7.21",
-      // "org.slf4j" % "log4j-over-slf4j" % "1.7.1",  // for any java classes looking for this
       "ch.qos.logback" % "logback-classic" % "1.0.3",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
@@ -71,9 +70,6 @@ def akkaDependencies(scalaVersion: String) = {
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      /*"ch.qos.logback" % "logback-classic" % "1.1.7",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.4.0",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.6"*/
       "ch.qos.logback" % "logback-classic" % "1.1.3",  //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
@@ -98,24 +94,11 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 val exludes = new FileFilter {
   def accept(f: File) = {
     sparkVersion match {
-      case versionRegex(major, minor) if major.toInt == 1 && List(4, 5, 6).contains(minor.toInt) => {
-        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
-        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
-        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
-        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
-      }
-      case versionRegex(major, minor) if major.toInt > 1 => {
-        f.getPath.containsSlice("MistJob.scala") ||
-        f.getPath.containsSlice("JobJarRun.scala") ||
-        f.getPath.containsSlice("ContextWrapper.scala") ||
-        f.getPath.containsSlice("JobPyWrappers.scala")
-      }
-      case _ => {
-        f.getPath.containsSlice("MistJob_SparkSession.scala") ||
-        f.getPath.containsSlice("JobJarRun_SparkSession.scala") ||
-        f.getPath.containsSlice("ContextWrapper_SparkSession.scala") ||
-        f.getPath.containsSlice("JobPyWrappers_SparkSession.scala")
-      }
+      case versionRegex(major, minor) if major.toInt < 2 =>
+        f.getPath.containsSlice("_Spark2.scala")
+
+      case _ =>
+        f.getPath.containsSlice("_Spark1.scala")
     }
   }
 }
