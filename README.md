@@ -53,7 +53,7 @@ or
         cd mist
         sbt -DsparkVersion=1.5.2 assembly 
     
-* Create [configuration file](#configuration)
+* Create [configuration file](https://github.com/Hydrospheredata/mist/blob/master/configs/docker.conf)
 * Run
 
         ./mist.sh   --config /path/to/application.conf \
