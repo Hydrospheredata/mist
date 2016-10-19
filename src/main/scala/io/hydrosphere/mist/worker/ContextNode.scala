@@ -14,7 +14,7 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
-class ContextNode(name: String) extends Actor with ActorLogging{
+class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -25,10 +25,10 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
   val nodeAddress = cluster.selfAddress
 
-  lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
+  lazy val contextWrapper = ContextBuilder.namedSparkContext(namespace)
 
   override def preStart(): Unit = {
-    serverActor ! WorkerDidStart(name, cluster.selfAddress.toString)
+    serverActor ! WorkerDidStart(namespace, cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
@@ -45,7 +45,7 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 
       val future: Future[Either[Map[String, Any], String]] = Future {
         serverActor ! AddJobToRecovery(runner.id, runner.configuration)
-        log.info(s"${jobRequest.name}#${runner.id} is running")
+        log.info(s"${jobRequest.namespace}#${runner.id} is running")
         runner.run()
       }(executionContext)
       future
@@ -74,5 +74,5 @@ class ContextNode(name: String) extends Actor with ActorLogging{
 }
 
 object ContextNode {
-  def props(name: String): Props = Props(classOf[ContextNode], name)
+  def props(namespace: String): Props = Props(classOf[ContextNode], namespace)
 }

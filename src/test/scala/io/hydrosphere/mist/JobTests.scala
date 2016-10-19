@@ -48,7 +48,7 @@ class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll 
   test("get from InMapDbJobConfigurationRepository") {
     InMapDbJobConfigurationRepository.clear()
     InMapDbJobConfigurationRepository.add("1", jobConfiguration)
-    assert( InMapDbJobConfigurationRepository.get("1").name == jobConfiguration.name)
+    assert( InMapDbJobConfigurationRepository.get("1").namespace == jobConfiguration.namespace)
   }
 
   test("getAll from InMapDbJobConfigurationRepository") {
@@ -56,7 +56,7 @@ class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll 
     InMapDbJobConfigurationRepository.add("1", jobConfiguration)
     val _collection = InMapDbJobConfigurationRepository.getAll
     val getjobConfiguration = _collection.get("1")
-    assert( getjobConfiguration.get.name == jobConfiguration.name
+    assert( getjobConfiguration.get.namespace == jobConfiguration.namespace
             && _collection.size == InMapDbJobConfigurationRepository.size )
   }
 
@@ -90,7 +90,7 @@ class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll 
   test("get from InMemoryJobConfigurationRepository") {
     InMemoryJobConfigurationRepository.clear()
     InMemoryJobConfigurationRepository.add("1", jobConfiguration)
-    assert( InMemoryJobConfigurationRepository.get("1").name == jobConfiguration.name)
+    assert( InMemoryJobConfigurationRepository.get("1").namespace == jobConfiguration.namespace)
   }
 
   test("getAll from InMemoryJobConfigurationRepository") {
@@ -98,7 +98,7 @@ class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll 
     InMemoryJobConfigurationRepository.add("1", jobConfiguration)
     val _collection = InMemoryJobConfigurationRepository.getAll
     val getjobConfiguration = _collection.get("1")
-    assert( getjobConfiguration.get.name == jobConfiguration.name
+    assert( getjobConfiguration.get.namespace == jobConfiguration.namespace
       && _collection.size == InMemoryJobConfigurationRepository.size )
   }
 

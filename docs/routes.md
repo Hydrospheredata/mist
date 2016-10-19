@@ -8,7 +8,7 @@ Routes configuration is a separate file (`./configs/router.conf` by default, see
 forecast = {
     path = 'hdfs://hdfs-host/jobs/forecast-job.jar',
     className = 'FastForecast$',
-    name = 'production-namespace'
+    namespace = 'production-namespace'
 }
 ```
 
@@ -18,7 +18,7 @@ So instead of large incomprehensible request on `/job` endpoint
 {
     "path": "hdfs://hdfs-host/jobs/forecast-job.jar",
     "className": "FastForecast$",
-    "name": "production-namespace",
+    "namespace": "production-namespace",
     "paramters": {
         "param": 1
     }
