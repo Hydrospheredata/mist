@@ -1,6 +1,8 @@
 ## Mist RESTificated Routes
 
-By default Routes are described in `./configs/router.conf`. See [configuration docs](configuration.md) for more details. For example:
+By default Routes are described in `./configs/router.conf`. See [configuration docs](configuration.md) for more details. 
+
+Example route:
 
 ```hocon
 forecast = {
@@ -29,3 +31,7 @@ The same route could be used in asynchrounous mode, e.g. MQTT message will look 
     }
 }
 ```
+
+### How it works
+
+Router abstraction converts incoming request into [low level API](api-reference.md) call using alias described in router confuguration file. See low level API [documentation](api-reference.md) for details.
