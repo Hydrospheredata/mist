@@ -1,11 +1,10 @@
-import io.hydrosphere.mist.lib.MistJob
-import io.hydrosphere.mist.lib.Publisher
+import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
 
 import scala.collection.mutable.Queue
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._
 
-object SimpleSparkStreaming extends MistJob with Publisher {
+object SimpleSparkStreaming extends MistJob with MQTTPublisher {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *

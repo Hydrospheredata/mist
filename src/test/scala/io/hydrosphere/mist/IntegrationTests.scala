@@ -36,7 +36,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val threadMaster = {
     new Thread {
       override def run() = {
-        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyjar}" !
+        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
       }
     }
   }
@@ -54,7 +54,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
         .createOrOpen
 
-      val stringMessage = TestConfig.request_jar
+      val stringMessage = TestConfig.requestJar
       val json = stringMessage.parseJson
       val jobCreatingRequest = try {
         json.convertTo[FullJobConfiguration]
@@ -86,7 +86,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad request") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
     val future_response = clientHTTP.singleRequest(httpRequest)
 
     future_response onComplete {
@@ -110,7 +110,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -136,7 +136,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad JSON") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadJson))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -160,7 +160,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP Spark Context jar") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.http_url_it, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestJar))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {

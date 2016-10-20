@@ -2,26 +2,26 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.{JobRecovery, JsonFormatSupport, WorkerManager}
+import io.hydrosphere.mist.master.{JsonFormatSupport}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json.DefaultJsonProtocol
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
 import io.hydrosphere.mist.jobs.{InMemoryJobConfigurationRepository}
-import io.hydrosphere.mist.worker.{ContextNode, StartJob}
+import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import scala.concurrent.duration._
 
 
-class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol {
+class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol {
 
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
   val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
   val mqttActor = systemW.actorOf(Props(classOf[MQTTServiceActor]))
   mqttActor ! MqttSubscribe
-  infinityJobTestMqttActor.subscribe(systemW)
+  InfinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {
     Thread.sleep(5000)
@@ -29,7 +29,7 @@ class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   }
 
   override def afterAll() = {
-    infinityJobTestMqttActor.disconnect
+    InfinityJobTestMqttActor.disconnect
 
     TestKit.shutdownActorSystem(systemW)
     TestKit.shutdownActorSystem(systemS)
@@ -43,7 +43,7 @@ class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
       Thread.sleep(5000)
 
       MqttSuccessObj.success = false
-      systemS.actorOf(Props(new StartJob(TestConfig.examples_path, "SimpleSparkStreaming$", "streaming", "123456789", Map().empty)), name = "JobStarter")
+      systemS.actorOf(Props(new JobRunnerNode(TestConfig.examplesPath, "SimpleSparkStreaming$", "streaming", "123456789", Map().empty)), name = "JobStarter")
 
       eventually(timeout(30 seconds), interval(1 second)) {
         assert(MqttSuccessObj.success)
@@ -52,7 +52,7 @@ class infinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   }
 }
 
-object infinityJobTestMqttActor{
+object InfinityJobTestMqttActor{
 
   val persistence = new MemoryPersistence
   val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)

@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import io.hydrosphere.mist.master.JsonFormatSupport
-import io.hydrosphere.mist.worker.StartJob
+import io.hydrosphere.mist.worker.JobRunnerNode
 import spray.json.pimpString
 
 private[mist] object JobEntryPoint extends App with Logger with JsonFormatSupport{
@@ -17,8 +17,8 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
   val contextNode =
     if(args.length == 5) {
       val json = args(4).toString.parseJson
-      system.actorOf(Props(new StartJob(args(0), args(1), args(2), args(3), json.convertTo[Map[String, Any]])), name = "JobStarter")
+      system.actorOf(Props(new JobRunnerNode(args(0), args(1), args(2), args(3), json.convertTo[Map[String, Any]])), name = "JobStarter")
     }
     else
-      system.actorOf(Props(new StartJob(args(0), args(1), args(2), args(3), Map().empty)), name = "JobStarter")
+      system.actorOf(Props(new JobRunnerNode(args(0), args(1), args(2), args(3), Map().empty)), name = "JobStarter")
 }

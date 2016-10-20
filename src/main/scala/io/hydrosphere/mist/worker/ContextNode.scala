@@ -61,7 +61,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
 
-    case StartInfinityJob(jobConfiguration) =>
+    case RunJobConfiguration(jobConfiguration) =>
       log.info(s"[WORKER] received StreamJobRequest: $jobConfiguration")
       val originalSender = sender
 

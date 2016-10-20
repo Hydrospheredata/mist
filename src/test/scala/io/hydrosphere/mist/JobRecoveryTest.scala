@@ -37,7 +37,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
       .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
       .createOrOpen
 
-    val stringMessage = TestConfig.request_jar
+    val stringMessage = TestConfig.requestJar
     val json = stringMessage.parseJson
     val jobCreatingRequest = {
       try {

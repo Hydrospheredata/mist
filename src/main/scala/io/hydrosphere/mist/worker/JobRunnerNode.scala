@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{StartInfinityJob, WorkerDidStart}
+import io.hydrosphere.mist.Messages.{RunJobConfiguration, WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
@@ -13,7 +13,7 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.concurrent.{ExecutionContext}
 import scala.util.{Random}
 
-class StartJob(path:String, className: String, name: String, externalId: String, parameters: Map[String, Any]) extends Actor with ActorLogging {
+class JobRunnerNode(path:String, className: String, name: String, externalId: String, parameters: Map[String, Any]) extends Actor with ActorLogging {
 
   val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -40,7 +40,7 @@ class StartJob(path:String, className: String, name: String, externalId: String,
   override def receive: Receive = {
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
-        serverActor ! new StartInfinityJob(jobConfiguration)
+        serverActor ! new RunJobConfiguration(jobConfiguration)
         cluster.system.shutdown()
       }
 
@@ -56,6 +56,6 @@ class StartJob(path:String, className: String, name: String, externalId: String,
   }
 }
 
-object StartJob {
-  def props(name: String): Props = Props(classOf[StartJob], name)
+object JobRunnerNode {
+  def props(name: String): Props = Props(classOf[JobRunnerNode], name)
 }

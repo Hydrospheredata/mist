@@ -132,14 +132,14 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("FileNotFoundException") {
       intercept[java.lang.Exception] {
-        val json = TestConfig.request_badpatch.parseJson
+        val json = TestConfig.requestBadPatch.parseJson
         val jobConfiguration = json.convertTo[FullJobConfiguration]
         Runner(jobConfiguration, contextWrapper)
       }
   }
 
   test("Jar job") {
-    val json = TestConfig.request_jar.parseJson
+    val json = TestConfig.requestJar.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
@@ -150,7 +150,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Jar job sql") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_sparksql.parseJson
+    val json = TestConfig.requestSparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     eventually(timeout(20 seconds), interval(500 milliseconds)) {
@@ -160,10 +160,10 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("Jar job Hive") {
     val json = if(checkSparkSessionLogic) {
-      TestConfig.request_sparksession.parseJson
+      TestConfig.requestSparkSession.parseJson
     }
     else {
-      TestConfig.request_sparkhive.parseJson
+      TestConfig.requestSparkhive.parseJson
     }
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
@@ -175,7 +175,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Py job") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pyspark.parseJson
+    val json = TestConfig.requestPyspark.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
@@ -186,7 +186,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Py job sql") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pysparksql.parseJson
+    val json = TestConfig.requestPysparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
     eventually(timeout(30 seconds), interval(500 milliseconds)) {
@@ -196,10 +196,10 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("Py job hive") {
     val json = if(checkSparkSessionLogic) {
-      TestConfig.request_pysparksession.parseJson
+      TestConfig.requestPysparkSession.parseJson
     }
     else {
-      TestConfig.request_pysparkhive.parseJson
+      TestConfig.requestPysparkHive.parseJson
     }
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
@@ -211,7 +211,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Jar job run") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_jar.parseJson
+    val json = TestConfig.requestJar.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
@@ -223,7 +223,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Jar job sql run ") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_sparksql.parseJson
+    val json = TestConfig.requestSparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
@@ -234,10 +234,10 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("Jar job hive run ") {
     val json = if(checkSparkSessionLogic) {
-      TestConfig.request_sparksession.parseJson
+      TestConfig.requestSparkSession.parseJson
     }
     else {
-      TestConfig.request_sparkhive.parseJson
+      TestConfig.requestSparkhive.parseJson
     }
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
@@ -250,7 +250,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Py job run") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pyspark.parseJson
+    val json = TestConfig.requestPyspark.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
     somePyJob.run()
@@ -262,7 +262,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   test("Py job sql run") {
     if(checkSparkSessionLogic)
       cancel("Can't run in Spark 2.0.0")
-    val json = TestConfig.request_pysparksql.parseJson
+    val json = TestConfig.requestPysparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
     somePyJob.run()
@@ -273,10 +273,10 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("Py job hive run ") {
     val json = if(checkSparkSessionLogic) {
-      TestConfig.request_pysparksession.parseJson
+      TestConfig.requestPysparkSession.parseJson
     }
     else {
-      TestConfig.request_pysparkhive.parseJson
+      TestConfig.requestPysparkHive.parseJson
     }
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
@@ -287,7 +287,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Jar job testerror run") {
-    val json = TestConfig.request_testerror.parseJson
+    val json = TestConfig.requestTesterror.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val someJarJob = Runner(jobConfiguration, contextWrapper)
     someJarJob.run()
@@ -297,7 +297,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
   }
 
   test("Py job error ") {
-    val json = TestConfig.request_pyerror.parseJson
+    val json = TestConfig.requestPyError.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
     val somePyJob = Runner(jobConfiguration, contextWrapper)
     somePyJob.run()
