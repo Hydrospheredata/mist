@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{RunJobConfiguration, WorkerDidStart}
+import io.hydrosphere.mist.Messages.{WorkerDidStart}
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
@@ -26,8 +26,6 @@ class JobRunnerNode(path:String, className: String, name: String, externalId: St
 
   lazy val contextWrapper = ContextBuilder.namedSparkContext(name)
 
-  val jobConfiguration = new FullJobConfiguration(path, className, name, parameters, Option(externalId))
-
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
@@ -40,7 +38,7 @@ class JobRunnerNode(path:String, className: String, name: String, externalId: St
   override def receive: Receive = {
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
-        serverActor ! new RunJobConfiguration(jobConfiguration)
+        serverActor ! new FullJobConfiguration(path, className, name, parameters, Option(externalId))
         cluster.system.shutdown()
       }
 

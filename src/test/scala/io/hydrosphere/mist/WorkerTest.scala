@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import java.util.concurrent.Executors._
+import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.ask
@@ -14,7 +15,7 @@ import org.scalatest._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time._
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.{FiniteDuration, _}
 import akka.cluster._
 import akka.cluster.ClusterEvent._
 import akka.http.scaladsl.Http
@@ -159,23 +160,29 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
         val json = TestConfig.requestJar.parseJson
         val jobConfiguration = json.convertTo[FullJobConfiguration]
-        val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.namespace))
-        var success = false
-        future
-          .onSuccess {
-            case result: Either[Map[String, Any], String] =>
-              val jobResult: JobResult = result match {
-                case Left(jobResult: Map[String, Any]) =>
-                  JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
-                case Right(error: String) =>
-                  JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
-              }
-              success = jobResult.success
+        val timeDuration = MistConfig.Contexts.timeout(jobConfiguration.namespace)
+        if(timeDuration.isFinite()) {
+          val future = contextNode.ask(jobConfiguration)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
+          var success = false
+          future
+            .onSuccess {
+              case result: Either[Map[String, Any], String] =>
+                val jobResult: JobResult = result match {
+                  case Left(jobResult: Map[String, Any]) =>
+                    JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
+                  case Right(error: String) =>
+                    JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
+                }
+                success = jobResult.success
+            }
+
+          Await.result(future, 60.seconds)
+          eventually(timeout(60 seconds), interval(1 second)) {
+            assert(success)
           }
-        Await.result(future, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-         assert(success)
         }
+        else
+          cancel("Infinite timeout duration")
       }
 
       "http bad request" in {

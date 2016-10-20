@@ -136,8 +136,8 @@ private[mist] object MistConfig {
     }
 
     /** Waiting for job completion timeout */
-    def timeout(contextName: String): FiniteDuration = {
-      FiniteDuration(Duration(getContextOrDefault(contextName).getString("timeout")).toNanos, TimeUnit.NANOSECONDS)
+    def timeout(contextName: String): Duration = {
+      Duration(getContextOrDefault(contextName).getString("timeout"))
     }
 
     /** If true we'll stop context */

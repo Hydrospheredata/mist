@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
@@ -17,6 +19,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+
+import scala.concurrent.duration.FiniteDuration
 
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */
@@ -93,22 +97,29 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
 
       val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
 
-      val future = workerManagerActor.ask(jobRequest)(timeout = MistConfig.Contexts.timeout(jobRequest.namespace))
+      val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
+      if(timeDuration.isFinite()) {
+        val future = workerManagerActor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
 
-      future
-        .recover {
-          case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
-          case error: Throwable => Right(error.toString)
-        }
-        .map[ToResponseMarshallable] {
-        case result: Either[Map[String, Any], String] =>
-          val jobResult: JobResult = result match {
-            case Left(jobResults: Map[String, Any]) =>
-              JobResult(success = true, payload = jobResults, request = jobRequest, errors = List.empty)
-            case Right(error: String) =>
-              JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
+        future
+          .recover {
+            case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
+            case error: Throwable => Right(error.toString)
           }
-          HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+          .map[ToResponseMarshallable] {
+          case result: Either[Map[String, Any], String] =>
+            val jobResult: JobResult = result match {
+              case Left(jobResults: Map[String, Any]) =>
+                JobResult(success = true, payload = jobResults, request = jobRequest, errors = List.empty)
+              case Right(error: String) =>
+                JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
+            }
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+        }
+      }
+      else {
+        workerManagerActor ! jobRequest
+        JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
       }
     }
   }

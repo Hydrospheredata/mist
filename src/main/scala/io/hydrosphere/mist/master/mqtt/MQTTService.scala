@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.mqtt
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.{Actor, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
@@ -13,7 +15,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import io.hydrosphere.mist.Logger
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
 
@@ -68,21 +70,28 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
 
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
         // Run job asynchronously
-        val future = workerManagerActor.ask(jobCreatingRequest)(timeout = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)) recover {
-          case error: Throwable => Right(error.toString)
-        }
 
-        val result = Await.ready(future, Duration.Inf).value.get
-        val jobResultEither = result match {
-          case Success(r) => r
-          case Failure(r) => r
-        }
+        val timeDuration = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)
+        if(timeDuration.isFinite()) {
+          val future = workerManagerActor.ask(jobCreatingRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {
+            case error: Throwable => Right(error.toString)
+          }
+          val result = Await.ready(future, Duration.Inf).value.get
+          val jobResultEither = result match {
+            case Success(r) => r
+            case Failure(r) => r
+          }
 
-        jobResultEither match {
-          case Left(jobResult: Map[String, Any]) =>
-            JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
-          case Right(error: String) =>
-            wrapError(error, jobCreatingRequest)
+          jobResultEither match {
+            case Left(jobResult: Map[String, Any]) =>
+              JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
+            case Right(error: String) =>
+              wrapError(error, jobCreatingRequest)
+          }
+        }
+        else {
+          workerManagerActor ! jobCreatingRequest
+          JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobCreatingRequest, errors = List.empty)
         }
 
       } catch {
