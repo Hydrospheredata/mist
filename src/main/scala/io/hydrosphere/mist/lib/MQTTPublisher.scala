@@ -4,10 +4,6 @@ import io.hydrosphere.mist.MistConfig
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttMessage}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-trait Publisher {
-  def publish(message: String): Unit
-}
-
 trait MQTTPublisher extends Publisher{
   override def publish(message: String): Unit = {
     val persistence = new MemoryPersistence
