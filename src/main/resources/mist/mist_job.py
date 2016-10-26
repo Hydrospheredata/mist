@@ -15,12 +15,17 @@ class ContextSupport:
 class MistJob(ContextSupport):
     __metaclass__ = ABCMeta
 
+    publisher = None
+
     @abstractmethod
     def do_stuff(self, params):
         raise NotImplementedError()
 
     def setup(self, context_wrapper):
         super(MistJob, self).setup(context_wrapper)
+
+    def set_publisher(self, publisher):
+        self.publisher = publisher
 
 class WithSQLSupport(ContextSupport):
     __metaclass__ = ABCMeta

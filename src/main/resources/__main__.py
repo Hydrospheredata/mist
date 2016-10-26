@@ -16,6 +16,7 @@ from pyspark.accumulators import Accumulator, AccumulatorParam
 from pyspark.broadcast import Broadcast
 from pyspark.serializers import MarshalSerializer, PickleSerializer
 
+from mist.publisher import *
 from mist.mist_job import *
 from mist.context_wrapper import ContextWrapper
 
@@ -36,6 +37,9 @@ java_import(_gateway.jvm, 'java.util.*')
 
 context_wrapper = ContextWrapper()
 context_wrapper.set_context(_gateway)
+
+publisher = Publisher()
+publisher.set_gateway(_gateway)
 
 configuration_wrapper = _entry_point.configurationWrapper()
 error_wrapper = _entry_point.errorWrapper()
@@ -70,6 +74,7 @@ except ImportError:
 
 try:
     instance.setup(context_wrapper)
+    instance.set_publisher(publisher)
     result = instance.do_stuff(parameters)
     data_wrapper.set(result)
 except Exception:
