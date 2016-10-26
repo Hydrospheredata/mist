@@ -50,6 +50,21 @@ do
       JAR_FILE="$2"
       shift
       ;;
+    
+    --runner)
+      RUNNER="$2"
+      shift
+      ;;
+
+    --host)
+      HOST="$2"
+      shift
+      ;;
+
+    --port)
+      PORT="$2"
+      shift
+      ;;
   esac
 
 shift
@@ -92,7 +107,59 @@ then
             echo "You must specify --namespace to run Mist worker"
             exit 3
         fi
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE" ${NAMESPACE}
+        if [ "${RUNNER}" == 'local' ]
+        then 
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE" ${NAMESPACE}
+        elif [ "${RUNNER}" == 'docker' ]
+        then
+            if [ "${HOST}" == 'localhost' ] || [ "${HOST}" == '127.0.0.1' ]
+            then 
+                export parentContainer=`curl -X GET --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/$HOSTNAME/json`
+                export name=`echo $parentContainer | jq -r '.Name'`
+                export image=`echo $parentContainer | jq -r '.Config.Image'`
+                export links="[\"$name:/master\"]"
+                export labels=`echo $parentContainer | jq -r '.Config.Labels'`
+                export config=`base64 -w 0 configs/docker.conf` 
+                export request="{
+                    \"Image\":\"$image\",
+                    \"Cmd\": [
+                        \"worker\",
+                        \"$NAMESPACE\",
+                        \"$config\"
+                    ],
+                    \"Labels\": $labels,
+                    \"HostConfig\": {
+                        \"Links\": $links
+                    }
+                }"
+                export containerId=`curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/create -d "$request" | jq -r '.Id'`
+                curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/$containerId/start
+            else
+                export parentContainer=`curl -X GET -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/$HOSTNAME/json`
+                export name=`echo $parentContainer | jq -r '.Name'`
+                export image=`echo $parentContainer | jq -r '.Config.Image'`
+                export links="[\"$name:/master\"]"
+                export labels=`echo $parentContainer | jq -r '.Config.Labels'`
+                export config=`base64 -w 0 configs/docker.conf`
+                export request="{
+                    \"Image\":\"$image\",
+                    \"Cmd\": [
+                        \"worker\",
+                        \"${NAMESPACE}\",
+                        \"$config\"
+                    ],
+                    \"Labels\": $labels,
+                    \"HostConfig\": {
+                        \"Links\": $links
+                    }
+                }"
+                export containerId=`curl -X POST -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/create -d "$request" | jq -r '.Id'`
+                curl -X POST -H "Content-Type: application/json" http://${HOST}:${PORT}/containers/$containerId/start
+            fi
+        else
+            echo "mist.workers.run is wrong"
+            exit 3   
+        fi 
         exit 0
     fi
 
