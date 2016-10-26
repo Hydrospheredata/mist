@@ -7,7 +7,8 @@ before_install:
   - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
   - docker run --name hdfs-$SPARK_VERSION --volumes-from mist-$SPARK_VERSION -d hydrosphere/hdfs start
-
+install:
+  - pip install paho-mqtt
 script:
   - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests         
 
