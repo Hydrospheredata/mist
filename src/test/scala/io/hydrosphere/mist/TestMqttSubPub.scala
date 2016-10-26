@@ -6,8 +6,9 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 object MqttSuccessObj{
   var success: Boolean = false
-  var ready_pub: Boolean = false
-  var ready_sub: Boolean = false
+  var readyPub: Boolean = false
+  var readySub: Boolean = false
+  var successPythonMqttPub: Boolean = false
 }
 
 object MQTTTest{
@@ -37,6 +38,7 @@ object MQTTTest{
           case "false" => MqttSuccessObj.success = false
           case _ =>
         }
+        if ("test python publisher message" == stringMessage) MqttSuccessObj.successPythonMqttPub = true
       }
 
       override def connectionLost(cause: Throwable): Unit = {
