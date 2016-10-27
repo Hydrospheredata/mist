@@ -33,12 +33,16 @@ object MQTTTest{
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))
         val stringMessage = message.toString
+
+        if (stringMessage contains "test python publisher message")
+          MqttSuccessObj.successPythonMqttPub = true
+
         stringMessage.split(':').drop(1).head.split(',').headOption.getOrElse("false") match {
           case "true" => MqttSuccessObj.success = true
           case "false" => MqttSuccessObj.success = false
           case _ =>
         }
-        if ("test python publisher message" == stringMessage) MqttSuccessObj.successPythonMqttPub = true
+
       }
 
       override def connectionLost(cause: Throwable): Unit = {
