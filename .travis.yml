@@ -5,7 +5,6 @@ services:
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
   - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION
-  - docker exec -it mist-$SPARK_VERSION bash -c "pip install paho-mqtt"
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
   - docker run --name hdfs-$SPARK_VERSION --volumes-from mist-$SPARK_VERSION -d hydrosphere/hdfs start
 
