@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
-  "com.typesafe" % "config" % "1.3.0",
+  "com.typesafe" % "config" % "1.3.1",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
