@@ -2,6 +2,7 @@
 
     Support streaming contexts/jobs
     Reactive API
+    Run jobs via CLI
 
 2016-10-18 Mist v0.5.0
 
