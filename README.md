@@ -100,6 +100,7 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.6.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
@@ -110,8 +111,8 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 - [x] Super parallel mode: run Spark contexts in separate JVMs
 - [x] Powerful logging
 - [x] RESTification
-- [ ] Support streaming contexts/jobs
-- [ ] Reactive API
+- [x] Support streaming contexts/jobs
+- [x] Reactive API
 - [ ] Cluster mode and Mesos node framework
 - [ ] Apache Kafka support
 - [ ] AMQP support
@@ -122,6 +123,8 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 
 - [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
 - [REST API](/docs/routes.md)
+- [Reactive API](/docs/reactive.md)
+- [Streaming](/docs/streaming.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
 - [Low level API Reference](/docs/api-reference.md)
