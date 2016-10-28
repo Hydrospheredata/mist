@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-  "org.mapdb" % "mapdb" % "3.0.1",
+  "org.mapdb" % "mapdb" % "3.0.2",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
   "org.apache.hadoop" % "hadoop-client" % "1.2.1"
 )
