@@ -630,6 +630,14 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
+      "Python publisher in MQTT" in {
+        MqttSuccessObj.successPythonMqttPub = false
+        MQTTTest.publish(TestConfig.requestPyMqttPublisher)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.successPythonMqttPub)
+        }
+      }
+
       "stopped" in {
         new Thread {
           override def run() = {

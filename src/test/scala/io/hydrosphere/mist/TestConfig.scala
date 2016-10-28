@@ -35,6 +35,7 @@ object TestConfig {
   val requestHdfsJar = if(OldVersion) testConfig.getString("mist.test.request.hdfs_jar_2_10") else testConfig.getString("mist.test.request.hdfs_jar_2_11")
   val requestTesterror = if(OldVersion) testConfig.getString("mist.test.request.testerror_2_10") else testConfig.getString("mist.test.request.testerror_2_11")
   val requestPyspark = testConfig.getString("mist.test.request.pyspark")
+  val requestPyMqttPublisher = testConfig.getString("mist.test.request.py_mqtt_pub")
   val requestSparkSql = testConfig.getString("mist.test.request.sparksql")
   val requestSparkhive = testConfig.getString("mist.test.request.sparkhive")
   val requestPysparkSql = testConfig.getString("mist.test.request.pysparksql")

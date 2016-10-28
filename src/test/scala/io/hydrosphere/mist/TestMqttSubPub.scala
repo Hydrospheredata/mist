@@ -6,8 +6,9 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 object MqttSuccessObj{
   var success: Boolean = false
-  var ready_pub: Boolean = false
-  var ready_sub: Boolean = false
+  var readyPub: Boolean = false
+  var readySub: Boolean = false
+  var successPythonMqttPub: Boolean = false
 }
 
 object MQTTTest{
@@ -32,11 +33,16 @@ object MQTTTest{
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))
         val stringMessage = message.toString
+
+        if (stringMessage contains "test python publisher message")
+          MqttSuccessObj.successPythonMqttPub = true
+
         stringMessage.split(':').drop(1).head.split(',').headOption.getOrElse("false") match {
           case "true" => MqttSuccessObj.success = true
           case "false" => MqttSuccessObj.success = false
           case _ =>
         }
+
       }
 
       override def connectionLost(cause: Throwable): Unit = {
