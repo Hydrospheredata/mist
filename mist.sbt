@@ -71,7 +71,7 @@ def akkaDependencies(scalaVersion: String) = {
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "ch.qos.logback" % "logback-classic" % "1.1.3",  //logback, in order to log to file
+      "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
     )
