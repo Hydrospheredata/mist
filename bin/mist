@@ -6,13 +6,33 @@ read -d '' help <<- EOF
 MIST – is a thin service on top of Spark which makes it possible to execute Scala & Python Spark Jobs from application layers and get synchronous, asynchronous, and reactive results as well as provide an API to external clients.
 
 Usage:
-  ./mist start master [--config <config_file>] [--jar <mist_assembled_jar>]
+   Start Mist daemon:
+  ./mist start master
+      --config <path>                 path to Mist config
+      --jar <path>                    path to Mist compiled jar
+      --runner <runner>               "local" or "docker" start workers locally or in separate dockers accordingly
+      --docker-host <host>            docker daemon host (only for docker runner)
+      --docker-port <docker>          docker daemon port (only for docker runner)
+
+  Run single Mist job:
+  ./mist start job
+      --config <path>                 path to Mist config
+      --jar <path>                    path to Mist compiled jar
+      --path <path>                   path to Mist Job
+      --classname <class name>        Mist job class name
+      --external-id <id>               some id for external separation of jobs
+      --namespace <namespace>         Mist namespace
+      --parameters <json>             parameters for Mist job in JSON format
+
+  Stop Mist daemon:
   ./mist stop
 
 Report bugs to: https://github.com/hydrospheredata/mist/issues
 Up home page: http://hydrosphere.io
 EOF
 
+runner="local"
+external_id=""
 
 if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$2" == "--help" ] || [ "$2" == "-h" ]
 then
@@ -37,19 +57,55 @@ do
 
   case ${key} in
     --namespace)
-      NAMESPACE="$2"
+      namespace="$2"
       shift
       ;;
 
     --config)
-      CONFIG_FILE="$2"
+      config_file="$2"
       shift
       ;;
 
     --jar)
-      JAR_FILE="$2"
+      jar_file="$2"
       shift
       ;;
+    
+    --runner)
+      runner="$2"
+      shift
+      ;;
+
+    --docker-host)
+      docker_host="$2"
+      shift
+      ;;
+
+    --docker-port)
+      docker_port="$2"
+      shift
+      ;;
+
+    --path)
+       job_path="$2"
+       shift
+       ;;
+
+    --classname)
+      classname="$2"
+      shift
+      ;;
+
+    --external-id)
+      external_id="$2"
+      shift
+      ;;
+
+    --parameters)
+      parameters="$2"
+      shift
+      ;;
+
   esac
 
 shift
@@ -58,12 +114,12 @@ done
 if [ "${cmd}" == 'start' ]
 then
 
-    if [ "${CONFIG_FILE}" == '' ]
+    if [ "${config_file}" == '' ]
     then
-        CONFIG_FILE="${MIST_HOME}/configs/default.conf"
+        config_file="${MIST_HOME}/configs/default.conf"
     fi
 
-    if [ "${JAR_FILE}" == '' ]
+    if [ "${jar_file}" == '' ]
     then
         MAX_VERSION=0
         MAX_VERSION_FILE=""
@@ -76,10 +132,10 @@ then
                 MAX_VERSION_FILE=${jar}
             fi
         done
-        JAR_FILE=${MAX_VERSION_FILE}
+        jar_file=${MAX_VERSION_FILE}
     fi
 
-    if [ "${CONFIG_FILE}" == '' ] || [ "${JAR_FILE}" == '' ]
+    if [ "${config_file}" == '' ] || [ "${jar_file}" == '' ]
     then
         echo "${help}"
         exit 1
@@ -87,18 +143,75 @@ then
 
     if [ "${app}" == 'worker' ]
     then
-        if [ "${NAMESPACE}" == '' ]
+        if [ "${namespace}" == '' ]
         then
             echo "You must specify --namespace to run Mist worker"
             exit 3
         fi
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE" ${NAMESPACE}
+        if [ "${runner}" == 'local' ]
+        then 
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" ${namespace}
+        elif [ "${runner}" == 'docker' ]
+        then
+            name=`echo $parentContainer | jq -r '.Name'`
+            image=`echo $parentContainer | jq -r '.Config.Image'`
+            links="[\"$name:/master\"]"
+            labels=`echo $parentContainer | jq -r '.Config.Labels'`
+            config=`base64 -w 0 configs/docker.conf`
+            request="{
+                \"Image\":\"$image\",
+                \"Cmd\": [
+                    \"worker\",
+                    \"$namespace\",
+                    \"$config\"
+                ],
+                \"Labels\": $labels,
+                \"HostConfig\": {
+                    \"Links\": $links
+                }
+            }"
+            if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
+            then 
+                parentContainer=`curl -X GET --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json`
+                containerId=`curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "$request" | jq -r '.Id'`
+                curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
+            else
+                parentContainer=`curl -X GET -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json`
+                request="{
+                    \"Image\":\"$image\",
+                    \"Cmd\": [
+                        \"worker\",
+                        \"${namespace}\",
+                        \"$config\"
+                    ],
+                    \"Labels\": $labels,
+                    \"HostConfig\": {
+                        \"Links\": $links
+                    }
+                }"
+                export containerId=`curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "${request}" | jq -r '.Id'`
+                curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
+            fi
+        else
+            echo "mist.workers.run is wrong"
+            exit 3   
+        fi 
         exit 0
     fi
 
     if [ "${app}" == 'master' ]
     then
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${CONFIG_FILE}" "$JAR_FILE"
+        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${config_file}" "$jar_file"
+    fi
+
+    if [ "${app}" == 'job' ]
+    then
+        if [ "${JOB_NAME}" == '' ] || [ "${classname}" == '' ] || [ "${namespace}" == '' ]
+        then
+            echo "${help}"
+            exit 3
+        fi
+        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
     fi
 
 elif [ "${cmd}" == 'stop' ]

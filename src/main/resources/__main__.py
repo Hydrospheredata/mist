@@ -18,6 +18,7 @@ from pyspark.serializers import MarshalSerializer, PickleSerializer
 
 from mist.mist_job import *
 from mist.context_wrapper import ContextWrapper
+from mist.publisher_wrapper import PublisherWrapper
 
 # TODO: errors
 
@@ -36,6 +37,8 @@ java_import(_gateway.jvm, 'java.util.*')
 
 context_wrapper = ContextWrapper()
 context_wrapper.set_context(_gateway)
+
+publisher_wrapper = PublisherWrapper()
 
 configuration_wrapper = _entry_point.configurationWrapper()
 error_wrapper = _entry_point.errorWrapper()
@@ -68,8 +71,12 @@ except ImportError:
     if issubclass(class_, WithHiveSupport):
         context_wrapper.set_hive_context(_gateway)
 
+if issubclass(class_, WithMQTTPublisher):
+    publisher_wrapper.set_mqtt(_gateway)
+
 try:
     instance.setup(context_wrapper)
+    instance.set_publisher(publisher_wrapper)
     result = instance.do_stuff(parameters)
     data_wrapper.set(result)
 except Exception:

@@ -1,6 +1,7 @@
-package  io.hydrosphere.mist
+package io.hydrosphere.mist
 
 import java.util.concurrent.Executors._
+import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.ask
@@ -14,7 +15,7 @@ import org.scalatest._
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time._
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.{FiniteDuration, _}
 import akka.cluster._
 import akka.cluster.ClusterEvent._
 import akka.http.scaladsl.Http
@@ -53,6 +54,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 
   override def postStop(): Unit = {
     cluster.unsubscribe(self)
+    context.stop(self)
   }
 
   override def receive: Receive = {
@@ -75,6 +77,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 
     case WorkerIsRemoved =>
       sender ! workerRemowed
+
   }
 }
 
@@ -112,9 +115,13 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
   }
   override def afterAll() = {
+    clientHTTP.shutdownAllConnectionPools()
     Http().shutdownAllConnectionPools()
+
     TestKit.shutdownActorSystem(systemM)
     TestKit.shutdownActorSystem(systemW)
+    TestKit.shutdownActorSystem(system)
+
     Thread.sleep(5000)
   }
 
@@ -151,31 +158,37 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "message" in {
         val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
-        val json = TestConfig.request_jar.parseJson
+        val json = TestConfig.requestJar.parseJson
         val jobConfiguration = json.convertTo[FullJobConfiguration]
-        val future = contextNode.ask(jobConfiguration)(timeout = MistConfig.Contexts.timeout(jobConfiguration.namespace))
-        var success = false
-        future
-          .onSuccess {
-            case result: Either[Map[String, Any], String] =>
-              val jobResult: JobResult = result match {
-                case Left(jobResult: Map[String, Any]) =>
-                  JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
-                case Right(error: String) =>
-                  JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
-              }
-              success = jobResult.success
+        val timeDuration = MistConfig.Contexts.timeout(jobConfiguration.namespace)
+        if(timeDuration.isFinite()) {
+          val future = contextNode.ask(jobConfiguration)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
+          var success = false
+          future
+            .onSuccess {
+              case result: Either[Map[String, Any], String] =>
+                val jobResult: JobResult = result match {
+                  case Left(jobResult: Map[String, Any]) =>
+                    JobResult(success = true, payload = jobResult, request = jobConfiguration, errors = List.empty)
+                  case Right(error: String) =>
+                    JobResult(success = false, payload = Map.empty[String, Any], request = jobConfiguration, errors = List(error))
+                }
+                success = jobResult.success
+            }
+
+          Await.result(future, 60.seconds)
+          eventually(timeout(60 seconds), interval(1 second)) {
+            assert(success)
           }
-        Await.result(future, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-         assert(success)
         }
+        else
+          cancel("Infinite timeout duration")
       }
 
       "http bad request" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_bad))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
@@ -200,7 +213,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "http bad patch" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badpatch))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -227,7 +240,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "HTTP bad JSON" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_badjson))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadJson))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -252,7 +265,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "HTTP Spark Context jar" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_jar))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestJar))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -276,7 +289,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "HTTP Spark Context hdfs jar" in {
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_hdfs_jar))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestHdfsJar))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -301,7 +314,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "HTTP error in python" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyerror))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyError))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -326,7 +339,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "HTTP Pyspark Context" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyspark))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyspark))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -353,7 +366,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparksql))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestSparkSql))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -380,7 +393,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparksql))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPysparkSql))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -407,7 +420,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_sparkhive))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestSparkhive))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -434,7 +447,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pysparkhive))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPysparkHive))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -482,7 +495,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "HTTP Python hdfs" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.http_url, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.request_pyhdfs))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyHdfs))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -507,7 +520,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "mqtt jar" in {
 
         MqttSuccessObj.success = false
-        MQTTTest.publish(TestConfig.request_jar)
+        MQTTTest.publish(TestConfig.requestJar)
         Thread.sleep(5000)
 
         eventually(timeout(60 seconds), interval(1 second)) {
@@ -521,7 +534,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
         MqttSuccessObj.success = false
 
-        MQTTTest.publish(TestConfig.request_sparksql)
+        MQTTTest.publish(TestConfig.requestSparkSql)
         Thread.sleep(5000)
 
         eventually(timeout(60 seconds), interval(1 second)) {
@@ -532,7 +545,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "mqtt successful restificated request" in {
         MqttSuccessObj.success = false
 
-        MQTTTest.publish(TestConfig.async_restificated_request)
+        MQTTTest.publish(TestConfig.asyncRestificatedRequest)
         Thread.sleep(5000)
 
         eventually(timeout(60 seconds), interval(1 second)) {
@@ -555,7 +568,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         MqttSuccessObj.success = false
-        MQTTTest.publish(TestConfig.request_pyspark)
+        MQTTTest.publish(TestConfig.requestPyspark)
         Thread.sleep(5000)
 
         eventually(timeout(60 seconds), interval(1 second)) {
@@ -565,7 +578,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT bad JSON" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.request_badjson)
+        MQTTTest.publish(TestConfig.requestBadJson)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }
@@ -576,7 +589,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         MqttSuccessObj.success = false
-        MQTTTest.publish(TestConfig.request_sparkhive)
+        MQTTTest.publish(TestConfig.requestSparkhive)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(MqttSuccessObj.success)
         }
@@ -587,7 +600,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           cancel("Can't run in Spark 2.0.0")
 
         MqttSuccessObj.success = false
-        MQTTTest.publish(TestConfig.request_pysparkhive)
+        MQTTTest.publish(TestConfig.requestPysparkHive)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(MqttSuccessObj.success)
         }
@@ -595,7 +608,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT error in Python" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.request_pyerror)
+        MQTTTest.publish(TestConfig.requestPyError)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }
@@ -603,7 +616,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT bad path" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.request_badpatch)
+        MQTTTest.publish(TestConfig.requestBadPatch)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }
@@ -611,9 +624,17 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT bad extension in path" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.request_badextension)
+        MQTTTest.publish(TestConfig.requestBadExtension)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
+        }
+      }
+
+      "Python publisher in MQTT" in {
+        MqttSuccessObj.successPythonMqttPub = false
+        MQTTTest.publish(TestConfig.requestPyMqttPublisher)
+        eventually(timeout(60 seconds), interval(1 second)) {
+          assert(MqttSuccessObj.successPythonMqttPub)
         }
       }
 
@@ -649,6 +670,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
 }
+
+
 
 class MasterWorkerAppsTest extends WordSpecLike {
   "Must started" must { //TODO test started apps

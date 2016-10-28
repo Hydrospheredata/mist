@@ -1,14 +1,16 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
-import akka.actor.{AddressFromURIString, Actor}
+import akka.actor.{Actor, AddressFromURIString}
 import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Master, Messages, MistConfig, Worker, Logger}
+import akka.util.Timeout
+import io.hydrosphere.mist.{Logger, MistConfig, Worker}
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 
@@ -30,9 +32,15 @@ private[mist] class WorkerManager extends Actor with Logger{
       } else {
         new Thread {
           override def run() = {
-            val configFile = System.getProperty("config.file")
-            val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-            s"${sys.env("MIST_HOME")}/bin/mist start worker --namespace $name --config $configFile --jar $jarPath" !
+            if (MistConfig.Workers.run == "local") {
+              val configFile = System.getProperty("config.file")
+              val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+              s"${sys.env("MIST_HOME")}/bin/mist start worker --runner local --namespace $name --config $configFile --jar $jarPath" !
+            } else if (MistConfig.Workers.run == "docker") {
+              val configFile = System.getProperty("config.file")
+              val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+              s"${sys.env("MIST_HOME")}/bin/mist start worker --runner docker --host ${MistConfig.Workers.host} --port ${MistConfig.Workers.port}  --namespace $name --config $configFile --jar $jarPath" !
+            }
           }
         }.start()
       }
@@ -66,21 +74,25 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case jobRequest: FullJobConfiguration =>
+    case jobRequest: FullJobConfiguration=>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.namespace)
 
       workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(name, address) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-
-          val future = remoteActor.ask(jobRequest)(timeout = 248.days)
-          future.onSuccess {
-            case response: Any =>
-              if (MistConfig.Contexts.isDisposable(name)) {
-                removeWorkerByName(name)
-              }
-              originalSender ! response
+          if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+            val future = remoteActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+            future.onSuccess {
+              case response: Any =>
+                if (MistConfig.Contexts.isDisposable(name)) {
+                  removeWorkerByName(name)
+                }
+                originalSender ! response
+            }
+          }
+          else {
+            remoteActor ! jobRequest
           }
       })
 

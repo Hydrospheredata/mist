@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{AddJobToRecovery, RemoveJobFromRecovery, WorkerDidStart}
+import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
@@ -44,17 +44,19 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       lazy val runner = Runner(jobRequest, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+          serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
         runner.run()
       }(executionContext)
       future
         .recover {
-         case e: Throwable => originalSender ! Right(e.toString)
+          case e: Throwable => originalSender ! Right(e.toString)
         }(ExecutionContext.global)
         .andThen {
-        case _ =>
-          serverActor ! RemoveJobFromRecovery(runner.id)
+          case _ =>
+            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+              serverActor ! RemoveJobFromRecovery(runner.id)
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
