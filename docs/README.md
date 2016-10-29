@@ -3,6 +3,8 @@
 - [README](/README.md)
 - [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
 - [REST API](/docs/routes.md)
+- [Reactive API](/docs/reactive.md)
+- [Streaming](/docs/streaming.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
 - [Low level API Reference](/docs/api-reference.md)
