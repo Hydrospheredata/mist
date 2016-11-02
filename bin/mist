@@ -33,6 +33,7 @@ EOF
 
 runner="local"
 external_id=""
+run_options=""
 
 if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$2" == "--help" ] || [ "$2" == "-h" ]
 then
@@ -106,10 +107,17 @@ do
       shift
       ;;
 
+    --run-options)
+      run_options="$2"
+      shift
+      ;;
+
   esac
 
 shift
 done
+
+echo "RUN_OPTIONS " ${run_options}
 
 if [ "${cmd}" == 'start' ]
 then
@@ -149,8 +157,9 @@ then
             exit 3
         fi
         if [ "${runner}" == 'local' ]
-        then 
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" ${namespace}
+        then
+            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
             name=`echo $parentContainer | jq -r '.Name'`
@@ -163,7 +172,8 @@ then
                 \"Cmd\": [
                     \"worker\",
                     \"$namespace\",
-                    \"$config\"
+                    \"$config\",
+                    \"${run_options}\"
                 ],
                 \"Labels\": $labels,
                 \"HostConfig\": {
@@ -177,19 +187,7 @@ then
                 curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
             else
                 parentContainer=`curl -X GET -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json`
-                request="{
-                    \"Image\":\"$image\",
-                    \"Cmd\": [
-                        \"worker\",
-                        \"${namespace}\",
-                        \"$config\"
-                    ],
-                    \"Labels\": $labels,
-                    \"HostConfig\": {
-                        \"Links\": $links
-                    }
-                }"
-                export containerId=`curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "${request}" | jq -r '.Id'`
+                containerId=`curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "${request}" | jq -r '.Id'`
                 curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
             fi
         else

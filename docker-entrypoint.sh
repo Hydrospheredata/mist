@@ -20,7 +20,7 @@ elif [ "$1" = 'worker' ]; then
   fi  
   export IP=`getent hosts master | awk '{ print $1 }'`
   sed -i "s/leader/$IP/" configs/docker.conf
-  ./bin/mist start worker --runner local --namespace $2 --config configs/docker.conf --jar target/scala-*/mist-assembly-*.jar
+  ./bin/mist start worker --runner local --namespace $2 --config configs/docker.conf $4 --jar target/scala-*/mist-assembly-*.jars
 elif [ "$1" = 'dev' ]; then
   ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly
   ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package
