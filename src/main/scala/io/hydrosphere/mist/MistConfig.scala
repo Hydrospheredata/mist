@@ -164,6 +164,10 @@ private[mist] object MistConfig {
       }.toSet
     }
 
+    def runOptions(namespace: String): String = {
+      getContextOrDefault(namespace).getString("run-options")
+    }
+
   }
 
 

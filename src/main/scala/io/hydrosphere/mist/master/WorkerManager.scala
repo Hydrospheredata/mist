@@ -15,8 +15,8 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 
 import scala.language.postfixOps
+import scala.sys.process._
 import scala.concurrent.ExecutionContext.Implicits.global
-import sys.process._
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor with Logger{
@@ -32,14 +32,36 @@ private[mist] class WorkerManager extends Actor with Logger{
       } else {
         new Thread {
           override def run() = {
+            val runOptions = MistConfig.Contexts.runOptions(name)
             if (MistConfig.Workers.run == "local") {
               val configFile = System.getProperty("config.file")
               val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-              s"${sys.env("MIST_HOME")}/bin/mist start worker --runner local --namespace $name --config $configFile --jar $jarPath" !
+              print("STARTING WORKER: ")
+              val cmd: Seq[String] = Seq(
+                s"${sys.env("MIST_HOME")}/bin/mist",
+                "start",
+                "worker",
+                "--runner", "local",
+                "--namespace", name.toString,
+                "--config", configFile.toString,
+                "--jar", jarPath.toString,
+                "--run-options", runOptions)
+              cmd !
             } else if (MistConfig.Workers.run == "docker") {
               val configFile = System.getProperty("config.file")
               val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-              s"${sys.env("MIST_HOME")}/bin/mist start worker --runner docker --host ${MistConfig.Workers.host} --port ${MistConfig.Workers.port}  --namespace $name --config $configFile --jar $jarPath" !
+              val cmd: Seq[String] = Seq(
+                s"${sys.env("MIST_HOME")}/bin/mist",
+                "start",
+                "worker",
+                "--runner", "docker",
+                "--docker-host", MistConfig.Workers.host,
+                "--docker-port", MistConfig.Workers.port.toString,
+                "--namespace", name,
+                "--config", configFile.toString,
+                "--jar", jarPath.toString,
+                "--run-options", runOptions)
+              cmd !
             }
           }
         }.start()
