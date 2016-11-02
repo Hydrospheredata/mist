@@ -1,3 +1,7 @@
+2016-11-02 Mist v0.6.1
+
+    Configuration for spark-submit extra options
+
 2016-10-28 Mist v0.6.0
 
     Support streaming contexts/jobs
