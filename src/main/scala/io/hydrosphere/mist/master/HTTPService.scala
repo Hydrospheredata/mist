@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.stream.ActorMaterializer
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.scaladsl.Flow
-import io.hydrosphere.mist.{Constants, Logger, MistConfig}
+import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
 import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json

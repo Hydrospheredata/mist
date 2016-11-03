@@ -20,8 +20,9 @@ Usage:
       --jar <path>                    path to Mist compiled jar
       --path <path>                   path to Mist Job
       --classname <class name>        Mist job class name
-      --external-id <id>               some id for external separation of jobs
+      --external-id <id>              some id for external separation of jobs
       --namespace <namespace>         Mist namespace
+      --route <route>                 Mist route (see https://github.com/Hydrospheredata/mist/blob/master/docs/routes.md)
       --parameters <json>             parameters for Mist job in JSON format
 
   Stop Mist daemon:
@@ -112,6 +113,10 @@ do
       shift
       ;;
 
+    --route)
+      route="$2"
+      shift
+      ;;
   esac
 
 shift
@@ -204,10 +209,19 @@ then
     then
         if [ "${job_path}" == '' ] || [ "${classname}" == '' ] || [ "${namespace}" == '' ]
         then
-            echo "${help}"
-            exit 3
+            if [ "${route}" == '' ]
+            then
+                (>&2 echo "Path, class name, namespace or route are required for running jobs")
+                echo "${help}"
+                exit 3
+            fi
         fi
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
+        if [ "$router" == '' ]
+        then
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
+        else
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}"
+        fi
     fi
 
 elif [ "${cmd}" == 'stop' ]

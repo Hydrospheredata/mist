@@ -5,15 +5,13 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
-import io.hydrosphere.mist.master.{JsonFormatSupport, RouteConfig}
-import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import io.hydrosphere.mist.Logger
-
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}

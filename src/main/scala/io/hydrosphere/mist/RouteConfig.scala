@@ -1,11 +1,10 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist
 
 import java.io.File
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory}
-import io.hydrosphere.mist.MistConfig
 
-private[master] class RouteConfig(route: String, config: Config) {
+private[mist] class RouteConfig(route: String, config: Config) {
 
   lazy val routeConfig = try {
     config.getConfig(route)
@@ -28,7 +27,7 @@ private[master] class RouteConfig(route: String, config: Config) {
   def namespace: String = getString("namespace")
 }
 
-private[master] object RouteConfig {
+private[mist] object RouteConfig {
 
   class RouteNotFoundError(message: String) extends Exception
   class ConfigSettingsNotFoundError(message: String) extends Exception
