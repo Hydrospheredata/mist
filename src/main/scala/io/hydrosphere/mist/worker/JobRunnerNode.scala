@@ -39,12 +39,12 @@ class JobRunnerNode(path:String, className: String, name: String, externalId: St
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
         serverActor ! FullJobConfiguration(path, className, name, parameters, Option(externalId))
-        cluster.system.terminate()
+        cluster.system.shutdown()
       }
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
-        cluster.system.terminate()
+        cluster.system.shutdown()
       }
 
     case MemberRemoved(member, prevStatus) =>
