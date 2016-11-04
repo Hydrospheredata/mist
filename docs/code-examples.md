@@ -62,7 +62,7 @@ mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist
 
 ```
 
-To explore end-to-end Apache Spark, Mist and Node.js reference project check out [Mist Weather Demo](https://github.com/Hydrospheredata/mist-weather-demo) repository.
+To explore end-to-end Apache Spark, Mist and Node.js reference project check out [Demo](https://github.com/mkf-simpson/crimethory) repository.
 
 
 
