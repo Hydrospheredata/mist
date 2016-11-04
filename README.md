@@ -123,8 +123,7 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 
 - [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
 - [REST API](/docs/routes.md)
-- [Reactive API](/docs/reactive.md)
-- [Streaming](/docs/streaming.md)
+- [Streaming API](/docs/reactive.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
 - [Low level API Reference](/docs/api-reference.md)
