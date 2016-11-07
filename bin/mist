@@ -35,6 +35,7 @@ EOF
 runner="local"
 external_id=""
 run_options=""
+parameters="{}"
 
 if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$2" == "--help" ] || [ "$2" == "-h" ]
 then
