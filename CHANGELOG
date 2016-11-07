@@ -1,3 +1,9 @@
+2016-11-07 Mist v0.6.3
+
+    Auto serialisation in publish method
+    Default empty parameters for Mist  CLI
+    Fixing external id in async requests with routes
+
 2016-11-03 Mist v0.6.2
 
     Fix routes in CLI job running
