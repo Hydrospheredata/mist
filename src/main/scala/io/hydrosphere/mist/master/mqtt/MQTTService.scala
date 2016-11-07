@@ -63,7 +63,7 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
                 throw IncomingMessageIsJobRequest
             }
             val config = RouteConfig(restificatedRequest.route)
-            FullJobConfiguration(config.path, config.className, config.namespace, restificatedRequest.parameters)
+            FullJobConfiguration(config.path, config.className, config.namespace, restificatedRequest.parameters, restificatedRequest.externalId)
         }
 
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")

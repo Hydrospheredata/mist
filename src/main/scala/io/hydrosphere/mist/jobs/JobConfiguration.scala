@@ -8,12 +8,12 @@ sealed trait JobConfiguration
   * @param className    class in jar we must to use to run job
   * @param namespace         context namespace
   * @param parameters   parameters for user job
-  * @param external_id  optional external id used to differ async responses from mist
+  * @param externalId  optional external id used to differ async responses from mist
   */
 private[mist] case class FullJobConfiguration(path: String,
                                               className: String,
                                               namespace: String,
                                               parameters: Map[String, Any] = Map(),
-                                              external_id: Option[String] = None) extends JobConfiguration
+                                              externalId: Option[String] = None) extends JobConfiguration
 
-private[mist] case class RestificatedJobConfiguration(route: String, parameters: Map[String, Any] = Map()) extends JobConfiguration
+private[mist] case class RestificatedJobConfiguration(route: String, parameters: Map[String, Any] = Map(), externalId: Option[String] = None) extends JobConfiguration

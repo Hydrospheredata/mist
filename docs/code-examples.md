@@ -24,11 +24,11 @@ curl --header "Content-Type: application/json" -X POST http://mist_http_host:mis
 Then install MQTT client, e.g. Mosquito, and test MQTT endpoint:
 
 ```
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleContext$", "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "external_id": "12345678", "namespace": "foo"}'  -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleContext$", "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "externalId": "12345678", "namespace": "foo"}'  -t 'foo'
 
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleSQLContext$", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "external_id": "12345678", "namespace": "foo"}'  -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleSQLContext$", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "externalId": "12345678", "namespace": "foo"}'  -t 'foo'
 
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleHiveContext$", "parameters":{"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "external_id": "12345678", "namespace": "foo"}'  -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"path": "/path_to_jar/mist_examples.jar", "className": "SimpleHiveContext$", "parameters":{"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "externalId": "12345678", "namespace": "foo"}'  -t 'foo'
 
 ```
 
@@ -54,11 +54,11 @@ curl --header "Content-Type: application/json" -X POST http://mist_http_host:mis
 Then test MQTT requests:
 
 ```
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_context.py", "className": "SimpleContext", "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "external_id": "12345678", "namespace": "foo"}' -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_context.py", "className": "SimpleContext", "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "externalId": "12345678", "namespace": "foo"}' -t 'foo'
 
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_sql_context.py", "className": "SimpleSQLContext", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "external_id": "12345678", "namespace": "foo"}' -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_sql_context.py", "className": "SimpleSQLContext", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "externalId": "12345678", "namespace": "foo"}' -t 'foo'
 
-mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_sql_context.py", "className": "SimpleHiveContext", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "external_id": "12345678", "namespace": "foo"}' -t 'foo'
+mosquitto_pub -h mist_mqtt_host -p mist_mqtt_port -m '{"pyPath":"/usr/share/mist/examples/src/main/python/simple_sql_context.py", "className": "SimpleHiveContext", "parameters": {"file": "/path_to_mist/examples/resources/SimpleSQLContextData.json"}, "externalId": "12345678", "namespace": "foo"}' -t 'foo'
 
 ```
 

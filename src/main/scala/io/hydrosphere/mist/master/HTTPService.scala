@@ -47,7 +47,7 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
 
   // JSON to JobConfiguration mapper (6 fields)
   implicit val jobCreatingRequestFormat = jsonFormat5(FullJobConfiguration)
-  implicit val jobCreatingRestificatedFormat = jsonFormat2(RestificatedJobConfiguration)
+  implicit val jobCreatingRestificatedFormat = jsonFormat3(RestificatedJobConfiguration)
   implicit val jobResultFormat = jsonFormat4(JobResult)
 
   sealed trait JobConfigError
