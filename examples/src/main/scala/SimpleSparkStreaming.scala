@@ -1,8 +1,9 @@
 import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
 
-import scala.collection.mutable.Queue
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._
+
+import scala.collection.mutable
 
 object SimpleSparkStreaming extends MistJob with MQTTPublisher {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
@@ -11,11 +12,11 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
     * @param parameters user parameters
     * @return result of the job
     */
-    override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
 
     val ssc = new StreamingContext(context, Seconds(1))
 
-    val rddQueue = new Queue[RDD[Int]]()
+    val rddQueue = new mutable.Queue[RDD[Int]]()
 
     val inputStream = ssc.queueStream(rddQueue)
     val mappedStream = inputStream.map(x => (x % 10, 1))
@@ -23,16 +24,15 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
 
     reducedStream.print()
 
-    publish("test message from stream job")
-
     reducedStream.foreachRDD{ (rdd, time) =>
-      publish("time: " + time)
-      publish("lenght: " + rdd.collect().length)
-      publish("collection: " + (rdd.collect().toList).toString)
+      publish(Map(
+        "time" -> time,
+        "length" -> rdd.collect().length,
+        "collection" -> rdd.collect().toList.toString
+      ))
     }
 
     ssc.start()
-    val r = scala.util.Random
 
     for (i <- 1 to 30) {
       rddQueue.synchronized {
@@ -41,7 +41,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
       Thread.sleep(100)
     }
     ssc.stop()
-    Map("result" -> "success")
+    Map.empty[String, Any]
   }
 }
 
