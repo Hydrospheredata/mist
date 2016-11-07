@@ -2,17 +2,17 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.{JsonFormatSupport}
+import io.hydrosphere.mist.master.JsonFormatSupport
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import spray.json.DefaultJsonProtocol
+import spray.json._
+import DefaultJsonProtocol._
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
-import io.hydrosphere.mist.jobs.{InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import scala.concurrent.duration._
 
+import scala.concurrent.duration._
 
 class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol {
 
@@ -29,7 +29,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   }
 
   override def afterAll() = {
-    InfinityJobTestMqttActor.disconnect
+    InfinityJobTestMqttActor.disconnect()
 
     TestKit.shutdownActorSystem(systemW)
     TestKit.shutdownActorSystem(systemS)
@@ -52,7 +52,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   }
 }
 
-object InfinityJobTestMqttActor{
+object InfinityJobTestMqttActor {
 
   val persistence = new MemoryPersistence
   val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
@@ -66,8 +66,10 @@ object InfinityJobTestMqttActor{
         println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))
         val stringMessage = message.toString
 
-        if( stringMessage contains "test message from stream job" )
+        val response = stringMessage.parseJson.convertTo[Map[String, JsValue]]
+        if (response.contains("time") && response.contains("length") && response.contains("collection")) {
           MqttSuccessObj.success = true
+        }
       }
 
       override def connectionLost(cause: Throwable): Unit = {
@@ -80,7 +82,7 @@ object InfinityJobTestMqttActor{
     mqttClient.setCallback(callback)
   }
 
-  def disconnect: Unit = {
+  def disconnect(): Unit = {
     mqttClient.disconnect()
   }
 }
