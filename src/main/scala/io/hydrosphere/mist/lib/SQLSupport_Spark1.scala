@@ -4,7 +4,7 @@ import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.sql.SQLContext
 
 trait SQLSupport extends ContextSupport {
-  private var _sqlContext: SQLContext = null
+  private var _sqlContext: SQLContext = _
 
   protected def sqlContext: SQLContext = _sqlContext
 

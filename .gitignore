@@ -11,3 +11,4 @@ master.pid
 *.pyc
 *.~
 .DS_STORE
+scalastyle-config.xml

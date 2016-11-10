@@ -76,9 +76,9 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
           entity(as[Map[String, Any]]) { jobRequestParams =>
             fillJobRequestFromConfig(jobRequestParams, jobRoute) match {
               case Left(error: NoRouteError) =>
-                complete(HttpResponse(404, entity = "Job route config is not valid. Unknown resource!"))
+                complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
               case Left(error: ConfigError) =>
-                complete(HttpResponse(500, entity = error.reason))
+                complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
               case Right(jobRequest: FullJobConfiguration) =>
                 doComplete(jobRequest)
             }
