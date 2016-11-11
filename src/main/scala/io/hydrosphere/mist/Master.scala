@@ -42,12 +42,13 @@ private[mist] object Master extends App with HTTPService with Logger{
   // Job Recovery
   var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
 
-  if(MistConfig.Recovery.recoveryOn)
-  configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-    case "MapDb" => InMapDbJobConfigurationRepository
-    case _ => InMemoryJobConfigurationRepository
+  if(MistConfig.Recovery.recoveryOn) {
+    configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+      case "MapDb" => InMapDbJobConfigurationRepository
+      case _ => InMemoryJobConfigurationRepository
+    }
   }
-  
+
   lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
   if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
     recoveryActor ! StartRecovery

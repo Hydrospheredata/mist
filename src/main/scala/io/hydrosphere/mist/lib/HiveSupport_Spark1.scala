@@ -4,7 +4,7 @@ import io.hydrosphere.mist.contexts.ContextWrapper
 import org.apache.spark.sql.hive.HiveContext
 
 trait HiveSupport extends ContextSupport {
-  private var _hiveContext: HiveContext = null
+  private var _hiveContext: HiveContext = _
 
   protected def hiveContext: HiveContext = _hiveContext
 

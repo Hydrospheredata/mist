@@ -18,7 +18,13 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
   val errorWrapper = new ErrorWrapper
   val dataWrapper = new DataWrapper
   val sparkContextWrapper = contextWrapper
-  val configurationWrapper = new ConfigurationWrapper(FullJobConfiguration(jobFile.file.getPath, jobConfiguration.className, jobConfiguration.namespace, jobConfiguration.parameters, jobConfiguration.externalId))
+  val configurationWrapper = new ConfigurationWrapper(
+    FullJobConfiguration(
+      jobFile.file.getPath,
+      jobConfiguration.className,
+      jobConfiguration.namespace,
+      jobConfiguration.parameters,
+      jobConfiguration.externalId ))
   val mqttPublisher = new MqttPublisherWrapper
 
   override def run(): Either[Map[String, Any], String] = {

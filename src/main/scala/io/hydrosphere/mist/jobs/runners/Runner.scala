@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.Logger
+import io.hydrosphere.mist.{Constants, Logger}
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
@@ -35,6 +35,7 @@ private[mist] object Runner {
 
   def apply(configuration: FullJobConfiguration, contextWrapper: ContextWrapper): Runner = {
     val jobFile = JobFile(configuration.path)
+
     JobFile.fileType(configuration.path) match {
       case JobFile.FileType.Jar => new JarRunner(configuration, jobFile, contextWrapper)
       case JobFile.FileType.Python => new PythonRunner(configuration, jobFile, contextWrapper)

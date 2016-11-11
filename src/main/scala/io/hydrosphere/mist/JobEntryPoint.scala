@@ -11,10 +11,25 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
 
   val contextNode =
     if (args.length == 5) {
-      val json = args(4).toString.parseJson
-      system.actorOf(Props(new JobRunnerNode(args(0), args(1), args(2), args(3), json.convertTo[Map[String, Any]])), name = "JobStarter")
+      system.actorOf(
+        Props(
+          new JobRunnerNode(
+            args(0),
+            args(1),
+            args(2),
+            args(3),
+            args(4).toString.parseJson.convertTo[Map[String, Any]])),
+        name = "JobStarter")
     } else if (args.length == 4) {
-      system.actorOf(Props(new JobRunnerNode(args(0), args(1), args(2), args(3), Map().empty)), name = "JobStarter")
+      system.actorOf(
+        Props(
+          new JobRunnerNode(
+            args(0),
+            args(1),
+            args(2),
+            args(3),
+            Map().empty)),
+        name = "JobStarter")
     } else if (args.length == 1 || args.length == 2) {
       val jobRoute = args(0)
       val jobRequestParams = if (args.length == 2) {
@@ -24,7 +39,15 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
       }
       try {
         val config = RouteConfig(jobRoute)
-        system.actorOf(Props(new JobRunnerNode(config.path, config.className, config.namespace, "", jobRequestParams)), name = "JobStarter")
+        system.actorOf(
+          Props(
+            new JobRunnerNode(
+              config.path,
+              config.className,
+              config.namespace,
+              "",
+              jobRequestParams)),
+          name = "JobStarter")
       } catch {
         case exc: RouteConfig.RouteNotFoundError =>
           logger.error(s"Route $jobRoute not found")

@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 
 trait HiveSupport extends SessionSupport {
 
-  private var _session: SparkSession = null
+  private var _session: SparkSession = _
 
   override def session: SparkSession = _session
 

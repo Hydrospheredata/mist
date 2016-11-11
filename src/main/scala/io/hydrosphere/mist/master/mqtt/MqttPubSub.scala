@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.master.mqtt
 
-import akka.actor.{Props, Terminated, Actor, ActorRef}
-import io.hydrosphere.mist.{Constants, MistConfig, Logger}
+import akka.actor.{Actor, ActorRef, Props, Terminated}
+import io.hydrosphere.mist.{Constants, Logger, MistConfig}
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttActionListener, IMqttDeliveryToken, IMqttToken, MqttAsyncClient, MqttCallback, MqttConnectOptions, MqttMessage}
 
 import scala.collection.mutable.ListBuffer
@@ -17,7 +18,8 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
   }
 
   private[this] val client = {
-    val client = new MqttAsyncClient(connectionUrl, MqttAsyncClient.generateClientId(), null)
+    val persistence = new MemoryPersistence
+    val client = new MqttAsyncClient(connectionUrl, MqttAsyncClient.generateClientId(), persistence)
     client.setCallback(new MqttPubSub.Callback(self))
     client
   }
@@ -44,7 +46,7 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
 
     case x @ (_: MqttPubSub.Publish | _: MqttPubSub.Subscribe) =>
       if (msgBuffer.length > 1000) {
-        msgBuffer.remove(0, 500)
+        msgBuffer.remove(0, msgBuffer.length/2)
       }
       msgBuffer += Tuple2(Deadline.now + 1.day, x)
   }

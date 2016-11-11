@@ -26,7 +26,7 @@ private[mist] trait ContextWrapper {
      builder.getOrCreate()
   }
 
-  def withHive() = {
+  def withHive(): ContextWrapper = {
     isHive = true
     this
   }
