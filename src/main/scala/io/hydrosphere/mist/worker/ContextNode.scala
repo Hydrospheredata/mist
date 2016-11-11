@@ -7,7 +7,7 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
@@ -36,39 +36,32 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
-  private def startRunner(jobRequest: FullJobConfiguration, runner: Runner): Future[Either[Map[String, Any], String]] = Future {
-    if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-      serverActor ! AddJobToRecovery(runner.id, runner.configuration)
-    }
-    log.info(s"${jobRequest.namespace}#${runner.id} is running")
-    runner.run()
-  }(executionContext)
-
-  private def getRunnerResult(future: Future[Either[Map[String, Any], String]], originalSender: ActorRef, jobRequest: FullJobConfiguration, runner: Runner) = {
-    future
-      .recover {
-        case e: Throwable => originalSender ! Right(e.toString)
-      }(ExecutionContext.global)
-      .andThen {
-        case _ =>
-          if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-            serverActor ! RemoveJobFromRecovery(runner.id)
-          }
-      }(ExecutionContext.global)
-      .andThen {
-        case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-        case Failure(error: Throwable) => originalSender ! Right(error.toString)
-      }(ExecutionContext.global)
-  }
-
   override def receive: Receive = {
     case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
+      val originalSender = sender
 
       lazy val runner = Runner(jobRequest, contextWrapper)
 
-      val future = startRunner(jobRequest, runner)
-      getRunnerResult(future, sender, jobRequest, runner )
+      val future: Future[Either[Map[String, Any], String]] = Future {
+        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+          serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        log.info(s"${jobRequest.namespace}#${runner.id} is running")
+        runner.run()
+      }(executionContext)
+      future
+        .recover {
+          case e: Throwable => originalSender ! Right(e.toString)
+        }(ExecutionContext.global)
+        .andThen {
+          case _ =>
+            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+              serverActor ! RemoveJobFromRecovery(runner.id)
+        }(ExecutionContext.global)
+        .andThen {
+          case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+          case Failure(error: Throwable) => originalSender ! Right(error.toString)
+        }(ExecutionContext.global)
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
