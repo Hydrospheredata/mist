@@ -30,6 +30,10 @@ private[mist] object MistConfig {
     object Main extends AkkaSettings {
       override def settings: Config = super.settings.withFallback(config.getConfig("mist.main"))
     }
+
+    object CLI extends AkkaSettings {
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.cli"))
+    }
   }
 
   /** Common application settings */

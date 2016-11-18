@@ -37,6 +37,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   }
 
   override def receive: Receive = {
+
     case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
@@ -66,6 +67,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
         cluster.system.shutdown()
+      }
+
+    case MemberLeft(member) =>
+      if (member.address == cluster.selfAddress) {
+        cluster.down(nodeAddress)
       }
 
     case MemberRemoved(member, prevStatus) =>

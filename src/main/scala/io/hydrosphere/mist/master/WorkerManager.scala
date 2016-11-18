@@ -4,7 +4,6 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, AddressFromURIString}
-import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
 import akka.util.Timeout
@@ -70,6 +69,7 @@ private[mist] class WorkerManager extends Actor with Logger{
   }
 
   def removeWorkerByName(name: String): Unit = {
+
     if (workers.contains(name)) {
       val address = workers(name).address
       workers -= WorkerLink(name, address)
@@ -78,6 +78,13 @@ private[mist] class WorkerManager extends Actor with Logger{
   }
 
   override def receive: Receive = {
+
+    case ListWorkers => {
+      workers.foreach{
+        case WorkerLink(name, address) => sender() ! new StringMessage(s"Address: $address Name: $name")
+      }
+    }
+
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 
