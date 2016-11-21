@@ -45,8 +45,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       lazy val runner = Runner(jobRequest, contextWrapper)
 
       val future: Future[Either[Map[String, Any], String]] = Future {
-        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
         runner.run()
       }(executionContext)
@@ -56,8 +57,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
           case _ =>
-            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
+            }
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
