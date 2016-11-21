@@ -13,6 +13,9 @@ import akka.cluster.ClusterEvent.{MemberExited, MemberRemoved, MemberUp}
 
 import scala.concurrent.ExecutionContext
 import akka.cluster.ClusterEvent._
+import scala._
+import io._
+
 
 case class TestJob()
 
@@ -37,7 +40,7 @@ private[mist] object CLI extends App {
         argInput
       }
       else {
-        scala.io.StdIn.readLine()
+        readLine()
       }
 
     argInput = ""
@@ -70,7 +73,7 @@ private[mist] object CLI extends App {
           println(" ----------------------------------------------------------")
           println("list                              List all started workers")
           println("killAll                           Stop all workers")
-          println("kill <id>                         Stop worker by name")
+          println("kill <name>                       Stop worker by name")
           println("exit                              ")
           println("")
         }

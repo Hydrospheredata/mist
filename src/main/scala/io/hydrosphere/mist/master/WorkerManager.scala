@@ -73,7 +73,7 @@ private[mist] class WorkerManager extends Actor with Logger{
     if (workers.contains(name)) {
       val address = workers(name).address
       workers -= WorkerLink(name, address)
-      cluster.leave(AddressFromURIString(address))
+      cluster.down(AddressFromURIString(address))
     }
   }
 

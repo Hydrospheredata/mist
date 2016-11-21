@@ -69,11 +69,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         cluster.system.shutdown()
       }
 
-    case MemberLeft(member) =>
-      if (member.address == cluster.selfAddress) {
-        cluster.down(nodeAddress)
-      }
-
     case MemberRemoved(member, prevStatus) =>
       if (member.address == cluster.selfAddress) {
         sys.exit(0)
