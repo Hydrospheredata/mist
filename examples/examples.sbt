@@ -7,7 +7,7 @@ name := "mist_examples"
 version := "0.0.2"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("1.5.2")
+val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[2.0.0, )")
 
 scalaVersion := {
   sparkVersion match {
