@@ -1,3 +1,8 @@
+2016-11-22 Mist v0.6.4
+
+    Fix workers on docker
+    Fix examples package
+
 2016-11-07 Mist v0.6.3
 
     Auto serialisation in publish method

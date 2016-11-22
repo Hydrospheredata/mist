@@ -41,7 +41,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
 ######Run mist   
 
-        docker run -p 2003:2003 -d hydrosphere/mist:master-2.0.0 mist
+        docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.0.0 mist
         
 [more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
         
@@ -80,9 +80,9 @@ docker run --name mosquitto-${SPARK_VERSION} -d ansi/mosquitto
 docker run --name hdfs-${SPARK_VERSION} --volumes-from mist-${SPARK_VERSION} -d hydrosphere/hdfs start
 
 # run tests
-docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} tests
+docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} tests
 # or run mist
-docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
+docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
 ```
 
 ## What's next
@@ -100,7 +100,7 @@ docker run --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSI
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.6.3          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.6.4          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
