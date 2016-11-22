@@ -9,7 +9,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.6.3"
+version := "0.6.4"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
@@ -64,7 +64,7 @@ def akkaDependencies(scalaVersion: String) = {
     case Old() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
       "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
-      "org.slf4j" % "slf4j-api" % "1.7.21",
+      "org.slf4j" % "slf4j-api" % "1.7.5",
       "ch.qos.logback" % "logback-classic" % "1.0.3",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
