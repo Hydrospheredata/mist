@@ -166,6 +166,11 @@ then
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
+            if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
+            then
+                export socket="--unix-socket /var/run/docker.sock"
+            fi
+            parentContainer=`curl -X GET $socket -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json` 
             name=`echo $parentContainer | jq -r '.Name'`
             image=`echo $parentContainer | jq -r '.Config.Image'`
             links="[\"$name:/master\"]"
@@ -184,16 +189,8 @@ then
                     \"Links\": $links
                 }
             }"
-            if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
-            then 
-                parentContainer=`curl -X GET --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json`
-                containerId=`curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "$request" | jq -r '.Id'`
-                curl -X POST --unix-socket /var/run/docker.sock -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
-            else
-                parentContainer=`curl -X GET -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/$HOSTNAME/json`
-                containerId=`curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "${request}" | jq -r '.Id'`
-                curl -X POST -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
-            fi
+            containerId=`curl -X POST $socket -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "$request" | jq -r '.Id'`
+            curl -X POST $socket -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
         else
             echo "mist.workers.run is wrong"
             exit 3   
