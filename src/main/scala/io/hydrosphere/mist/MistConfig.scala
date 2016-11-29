@@ -106,13 +106,16 @@ private[mist] object MistConfig {
   object Workers {
     private val workers = config.getConfig("mist.workers")
 
-    /** Run workers (local,docker) */
-    val run: String = workers.getString("run")
+    /** Run workers (local, docker, manual) */
+    val runner: String = workers.getString("runner")
 
     /** Runner server host */
-    lazy val host: String = workers.getString("host")
+    lazy val dockerHost: String = workers.getString("docker-host")
     /** Runner server port */
-    lazy val port: Int = workers.getInt("port")
+    lazy val dockerPort: Int = workers.getInt("docker-port")
+
+    /** Shell command for manual running */
+    lazy val cmd: String = workers.getString("cmd")
   }
 
   /** Settings for all contexts generally and for each context particularly */

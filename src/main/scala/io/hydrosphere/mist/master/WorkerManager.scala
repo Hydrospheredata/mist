@@ -4,13 +4,11 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, AddressFromURIString}
-import akka.actor.{Actor, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
-import akka.util.Timeout
 import io.hydrosphere.mist.{Logger, MistConfig, Worker}
 
-import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 
@@ -33,35 +31,44 @@ private[mist] class WorkerManager extends Actor with Logger{
         new Thread {
           override def run() = {
             val runOptions = MistConfig.Contexts.runOptions(name)
-            if (MistConfig.Workers.run == "local") {
-              val configFile = System.getProperty("config.file")
-              val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-              print("STARTING WORKER: ")
-              val cmd: Seq[String] = Seq(
-                s"${sys.env("MIST_HOME")}/bin/mist",
-                "start",
-                "worker",
-                "--runner", "local",
-                "--namespace", name.toString,
-                "--config", configFile.toString,
-                "--jar", jarPath.toString,
-                "--run-options", runOptions)
-              cmd !
-            } else if (MistConfig.Workers.run == "docker") {
-              val configFile = System.getProperty("config.file")
-              val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-              val cmd: Seq[String] = Seq(
-                s"${sys.env("MIST_HOME")}/bin/mist",
-                "start",
-                "worker",
-                "--runner", "docker",
-                "--docker-host", MistConfig.Workers.host,
-                "--docker-port", MistConfig.Workers.port.toString,
-                "--namespace", name,
-                "--config", configFile.toString,
-                "--jar", jarPath.toString,
-                "--run-options", runOptions)
-              cmd !
+            val configFile = System.getProperty("config.file")
+            val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+
+            MistConfig.Workers.runner match {
+              case "local" =>
+                print("STARTING WORKER: ")
+                val cmd: Seq[String] = Seq(
+                  s"${sys.env("MIST_HOME")}/bin/mist",
+                  "start",
+                  "worker",
+                  "--runner", "local",
+                  "--namespace", name,
+                  "--config", configFile.toString,
+                  "--jar", jarPath.toString,
+                  "--run-options", runOptions)
+                cmd !
+              case "docker" =>
+                val cmd: Seq[String] = Seq(
+                  s"${sys.env("MIST_HOME")}/bin/mist",
+                  "start",
+                  "worker",
+                  "--runner", "docker",
+                  "--docker-host", MistConfig.Workers.dockerHost,
+                  "--docker-port", MistConfig.Workers.dockerPort.toString,
+                  "--namespace", name,
+                  "--config", configFile.toString,
+                  "--jar", jarPath.toString,
+                  "--run-options", runOptions)
+                cmd !
+              case "manual" =>
+                Process(
+                  Seq("bash", "-c", MistConfig.Workers.cmd),
+                  None,
+                    "MIST_WORKER_NAMESPACE" -> name,
+                    "MIST_WORKER_CONFIG" -> configFile.toString,
+                    "MIST_WORKER_JAR_PATH" -> jarPath.toString,
+                    "MIST_WORKER_RUN_OPTIONS" -> runOptions
+                ).!
             }
           }
         }.start()
