@@ -60,9 +60,9 @@ def akkaDependencies(scalaVersion: String) = {
 
   scalaVersion match {
     case Old() => Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.16",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.16",
-      "org.slf4j" % "slf4j-api" % "1.7.21",
+      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
+      "org.slf4j" % "slf4j-api" % "1.7.5",
       "ch.qos.logback" % "logback-classic" % "1.0.3",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
