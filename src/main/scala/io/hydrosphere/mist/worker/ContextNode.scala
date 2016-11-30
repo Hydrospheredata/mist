@@ -11,6 +11,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
@@ -36,6 +37,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
+  lazy val jobs_acc = ArrayBuffer.empty[JobDescription]
+
   override def receive: Receive = {
 
     case jobRequest: FullJobConfiguration =>
@@ -44,11 +47,14 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       lazy val runner = Runner(jobRequest, contextWrapper)
 
+
+      val jobDescription = new JobDescription(jobRequest.namespace, runner.id, jobRequest.externalId.getOrElse(""))
       val future: Future[Either[Map[String, Any], String]] = Future {
         if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
+        jobs_acc += jobDescription
         runner.run()
       }(executionContext)
       future
@@ -57,6 +63,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
           case _ =>
+            jobs_acc -= jobDescription
             if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
@@ -65,6 +72,13 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
+
+    case ListMessage =>
+      jobs_acc.foreach{
+        case jobDescription: JobDescription => {
+          sender() ! new StringMessage("[J] namespace:" + jobDescription.namespace + " id:" + jobDescription.id + " extId:" + jobDescription.externalId)
+        }
+      }
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {

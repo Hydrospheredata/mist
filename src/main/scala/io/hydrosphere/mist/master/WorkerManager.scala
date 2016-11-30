@@ -10,7 +10,7 @@ import akka.util.Timeout
 import io.hydrosphere.mist.{Logger, MistConfig, Worker}
 
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
-import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.Messages.{ListMessage, _}
 import io.hydrosphere.mist.jobs._
 
 import scala.language.postfixOps
@@ -77,11 +77,28 @@ private[mist] class WorkerManager extends Actor with Logger{
     }
   }
 
+  private var cliActorAddress: String = _
+
   override def receive: Receive = {
 
-    case ListWorkers => {
+    case StringMessage(message) =>
+      println(message)
+      if(message.contains("CLI")) {
+        cliActorAddress = message.substring(3)
+      }
+      else {
+        println(cliActorAddress + " " + message)
+        val cliActor = cluster.system.actorSelection(s"$cliActorAddress/user/CLI")
+        cliActor ! new StringMessage(message)
+      }
+
+    case ListMessage => {
       workers.foreach{
-        case WorkerLink(name, address) => sender() ! new StringMessage(s"Address: $address Name: $name")
+        case WorkerLink(name, address) => {
+          val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+          remoteActor ! ListMessage
+          sender() ! new StringMessage(s"[W] Address: $address Name: $name")
+        }
       }
     }
 

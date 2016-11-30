@@ -22,22 +22,30 @@ private[mist] object CLI extends App {
 
   println("Mist CLI")
   while(true) {
-    print("mist>")
 
     val input =
       if(argInput.nonEmpty) {
         argInput
       }
       else {
+        Thread.sleep(1000)
+        print("mist>")
         readLine()
       }
 
-    argInput = ""
+    argInput =
+        if(argInput.nonEmpty) {
+            "exit"
+        }
+        else
+        {
+            ""
+        }
 
     input match {
 
       case "list" => {
-        cliActor ! ListWorkers
+        cliActor ! ListMessage
       }
 
       case "killAll" => {
@@ -48,7 +56,7 @@ private[mist] object CLI extends App {
         sys.exit(0)
       }
       case _@msg => {
-        if(msg.contains("kill")) {
+        if(msg.contains("kill") || msg.contains("stop")) {
           cliActor ! new StringMessage(msg)
         }
         else {
@@ -58,6 +66,7 @@ private[mist] object CLI extends App {
           println("list                              List all started workers")
           println("killAll                           Stop all workers")
           println("kill <name>                       Stop worker by name")
+          println("stop <extId>                      Stop job by external id")
           println("exit                              ")
           println("")
         }
