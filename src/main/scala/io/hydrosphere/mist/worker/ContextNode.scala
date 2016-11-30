@@ -37,7 +37,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
-  lazy val jobs_acc = ArrayBuffer.empty[JobDescription]
+  lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
   override def receive: Receive = {
 
@@ -54,7 +54,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
-        jobs_acc += jobDescription
+        jobDescriptions += jobDescription
         runner.run()
       }(executionContext)
       future
@@ -63,7 +63,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
           case _ =>
-            jobs_acc -= jobDescription
+            jobDescriptions -= jobDescription
             if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
@@ -74,7 +74,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
 
     case ListMessage =>
-      jobs_acc.foreach{
+      jobDescriptions.foreach{
         case jobDescription: JobDescription => {
           sender() ! new StringMessage("[J] namespace:" + jobDescription.namespace + " id:" + jobDescription.id + " extId:" + jobDescription.externalId)
         }

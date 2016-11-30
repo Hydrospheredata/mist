@@ -13,6 +13,7 @@ import io.hydrosphere.mist.Messages._
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import io.hydrosphere.mist.Messages.{ListMessage, _}
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.Constants.CLI._
 
 import scala.language.postfixOps
 import scala.sys.process._
@@ -95,18 +96,31 @@ private[mist] class WorkerManager extends Actor with Logger{
       if(message.contains("CLI")) {
         cliActorAddress = message.substring(3)
       }
-      else {
-        println(cliActorAddress + " " + message)
+      else if(message.contains("[J]")) {
         val cliActor = cluster.system.actorSelection(s"$cliActorAddress/user/CLI")
-        cliActor ! new StringMessage(message)
+        cliActor ! new StringMessage(message.substring(3).trim)
+      }
+      else if(message.contains(stopJobMsg)) {
+        val externalId = message.substring(stopJobMsg.length).trim()
+        println(externalId)
+
       }
 
-    case ListMessage => {
-      workers.foreach{
-        case WorkerLink(name, address) => {
-          val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-          remoteActor ! ListMessage
-          sender() ! new StringMessage(s"[W] Address: $address Name: $name")
+    case ListMessage(message) => {
+      if(message.contains(listWorkersMsg)) {
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            sender() ! new StringMessage(s"Address: $address Name: $name")
+          }
+        }
+      }
+      else if(message.contains(listJobsMsg)) {
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            remoteActor ! ListMessage
+          }
         }
       }
     }

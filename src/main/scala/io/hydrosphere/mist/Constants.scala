@@ -13,4 +13,12 @@ object Constants {
     final val mqttServiceName = "MQTTService"
     final val contextNode = "ContextNode"
   }
+  object CLI {
+    final val stopWorkerMsg = "kill worker"
+    final val stopJobMsg = "kill job"
+    final val listWorkersMsg = "list workers"
+    final val listJobsMsg = "list jobs"
+    final val stopAllWorkersMsg = "kill all"
+    final val exitMsg = "exit"
+  }
 }

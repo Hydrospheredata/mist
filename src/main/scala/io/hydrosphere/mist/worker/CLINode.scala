@@ -8,6 +8,7 @@ import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{ListMessage, RemoveContext, StopAllContexts, StringMessage}
 import io.hydrosphere.mist.{Constants, MistConfig}
 import io.hydrosphere.mist.jobs.FullJobConfiguration
+import io.hydrosphere.mist.Constants.CLI._
 
 import scala.concurrent.ExecutionContext
 import scala.util.Random
@@ -35,12 +36,10 @@ class CLINode extends Actor {
 
   override def receive: Receive = {
     case StringMessage(message) =>
-      val killmsg = "kill"
-      val stopmsg = "stop"
-      if(message.contains(killmsg)) {
-        serverActor ! new RemoveContext(message.substring(killmsg.length + 1))
+      if(message.contains(stopWorkerMsg)) {
+        serverActor ! new RemoveContext(message.substring(stopWorkerMsg.length).trim)
       }
-      else if(message.contains(stopmsg)) {
+      else if(message.contains(stopJobMsg)) {
         serverActor ! new StringMessage(message)
       }
       else {
@@ -50,8 +49,8 @@ class CLINode extends Actor {
     case StopAllContexts =>
       serverActor ! StopAllContexts
 
-    case ListMessage =>
-      serverActor ! ListMessage
+    case ListMessage(message) =>
+      serverActor ! new ListMessage(message)
 
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
