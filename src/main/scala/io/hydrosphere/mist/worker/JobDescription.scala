@@ -1,3 +1,3 @@
 package io.hydrosphere.mist.worker
 
-class JobDescription(val namespace: String, val id: String, val externalId: String)
+class JobDescription(val namespace: String, val externalId: String)

@@ -48,7 +48,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       lazy val runner = Runner(jobRequest, contextWrapper)
 
 
-      val jobDescription = new JobDescription(jobRequest.namespace, runner.id, jobRequest.externalId.getOrElse(""))
+      val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
       val future: Future[Either[Map[String, Any], String]] = Future {
         if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
@@ -62,11 +62,12 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           case e: Throwable => originalSender ! Right(e.toString)
         }(ExecutionContext.global)
         .andThen {
-          case _ =>
+          case _ => {
             jobDescriptions -= jobDescription
-            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
+          }
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
@@ -77,7 +78,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       if(message.contains(Constants.CLI.listJobsMsg)) {
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            sender() ! new StringMessage(Constants.CLI.jobMsgMarker + " namespace:" + jobDescription.namespace + " id:" + jobDescription.id + " extId:" + jobDescription.externalId)
+            sender() ! new StringMessage(Constants.CLI.jobMsgMarker + " namespace:" + jobDescription.namespace + " extId:" + jobDescription.externalId)
           }
         }
       }
