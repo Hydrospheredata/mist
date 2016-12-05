@@ -49,7 +49,7 @@ object TestConfig {
 
   val requestJarOtherContext = if(OldVersion) testConfig.getString("mist.test.request.jarother_2_10") else testConfig.getString("mist.test.request.jarother_2_11")
   val requestPyError = testConfig.getString("mist.test.request.pyerror")
-  val requestBadPatch = testConfig.getString("mist.test.request.badpatch")
+  val requestBadPath = testConfig.getString("mist.test.request.badpath")
   val requestBadExtension = testConfig.getString("mist.test.request.badextension")
   val requestBad = testConfig.getString("mist.test.request.badrequest")
   val requestBadJson = testConfig.getString("mist.test.request.badjson")

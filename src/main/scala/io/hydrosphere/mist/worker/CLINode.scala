@@ -61,6 +61,7 @@ class CLINode extends Actor {
 
     case MemberRemoved(member, prevStatus) =>
       if (member.address == cluster.selfAddress) {
+        cluster.down(nodeAddress)
         sys.exit(0)
       }
   }

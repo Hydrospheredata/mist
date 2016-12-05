@@ -110,7 +110,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {

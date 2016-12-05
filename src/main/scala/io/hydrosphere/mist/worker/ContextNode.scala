@@ -74,9 +74,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
 
     case ListMessage(message) =>
-      jobDescriptions.foreach{
-        case jobDescription: JobDescription => {
-          sender() ! new StringMessage(Constants.CLI.jobMsgMarker + " namespace:" + jobDescription.namespace + " id:" + jobDescription.id + " extId:" + jobDescription.externalId)
+      if(message.contains(Constants.CLI.listJobsMsg)) {
+        jobDescriptions.foreach {
+          case jobDescription: JobDescription => {
+            sender() ! new StringMessage(Constants.CLI.jobMsgMarker + " namespace:" + jobDescription.namespace + " id:" + jobDescription.id + " extId:" + jobDescription.externalId)
+          }
         }
       }
 

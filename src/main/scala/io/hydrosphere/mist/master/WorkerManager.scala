@@ -8,7 +8,7 @@ import akka.pattern.ask
 import akka.cluster.Cluster
 import io.hydrosphere.mist.{Logger, MistConfig, Worker}
 
-import scala.concurrent.duration.{FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.Constants
@@ -81,7 +81,7 @@ private[mist] class WorkerManager extends Actor with Logger{
     if (workers.contains(name)) {
       val address = workers(name).address
       workers -= WorkerLink(name, address)
-      cluster.down(AddressFromURIString(address))
+      cluster.leave(AddressFromURIString(address))
     }
   }
 
@@ -101,7 +101,6 @@ private[mist] class WorkerManager extends Actor with Logger{
       else if(message.contains(Constants.CLI.stopJobMsg)) {
         val externalId = message.substring(Constants.CLI.stopJobMsg.length).trim()
         println(externalId)
-
       }
 
     case ListMessage(message) => {
@@ -117,7 +116,7 @@ private[mist] class WorkerManager extends Actor with Logger{
         workers.foreach {
           case WorkerLink(name, address) => {
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            remoteActor ! ListMessage
+            remoteActor ! new ListMessage(message)
           }
         }
       }
