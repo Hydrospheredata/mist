@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.jobs.FullJobConfiguration
-import io.hydrosphere.mist.Constants.CLI._
+import io.hydrosphere.mist.Constants
 
 import scala._
 import io._
@@ -13,7 +13,7 @@ private[mist] object CLI extends App {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
 
-  val cliActor = system.actorOf(Props[CLINode], name = "CLI" )
+  val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName )
 
   var argInput = ""
 
@@ -45,16 +45,16 @@ private[mist] object CLI extends App {
 
 
     input match {
-      case msg if(msg.contains(listWorkersMsg) || msg.contains(listJobsMsg)) => {
+      case msg if(msg.contains(Constants.CLI.listWorkersMsg) || msg.contains(Constants.CLI.listJobsMsg)) => {
         cliActor ! new ListMessage(msg)
       }
-      case msg if(msg.contains(stopWorkerMsg)|| msg.contains(stopJobMsg)) => {
+      case msg if(msg.contains(Constants.CLI.stopWorkerMsg)|| msg.contains(Constants.CLI.stopJobMsg)) => {
         cliActor ! new StringMessage(msg)
       }
-      case msg if(msg.contains(stopAllWorkersMsg)) => {
+      case msg if(msg.contains(Constants.CLI.stopAllWorkersMsg)) => {
         cliActor ! StopAllContexts
       }
-      case msg if(msg.contains(exitMsg)) => {
+      case msg if(msg.contains(Constants.CLI.exitMsg)) => {
         system.shutdown()
         sys.exit(0)
       }
@@ -62,12 +62,12 @@ private[mist] object CLI extends App {
         println(" ----------------------------------------------------------")
         println("|             Mist Command Line Interface                  |")
         println(" ----------------------------------------------------------")
-        println(listWorkersMsg + "\t List all started workers")
-        println(listJobsMsg + "\t List all started jobs")
-        println(stopAllWorkersMsg + "\t Stop all workers")
-        println(stopWorkerMsg + " <name>\t Stop worker by name")
-        println(stopJobMsg + " <extId>\t Stop job by external id")
-        println(exitMsg + "\t ")
+        println(Constants.CLI.listWorkersMsg + "\t List all started workers")
+        println(Constants.CLI.listJobsMsg + "\t List all started jobs")
+        println(Constants.CLI.stopAllWorkersMsg + "\t Stop all workers")
+        println(Constants.CLI.stopWorkerMsg + " <name>\t Stop worker by name")
+        println(Constants.CLI.stopJobMsg + " <extId>\t Stop job by external id")
+        println(Constants.CLI.exitMsg + "\t ")
         println("")
       }
     }

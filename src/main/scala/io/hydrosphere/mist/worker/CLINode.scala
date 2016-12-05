@@ -7,8 +7,6 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{ListMessage, RemoveContext, StopAllContexts, StringMessage}
 import io.hydrosphere.mist.{Constants, MistConfig}
-import io.hydrosphere.mist.jobs.FullJobConfiguration
-import io.hydrosphere.mist.Constants.CLI._
 
 import scala.concurrent.ExecutionContext
 import scala.util.Random
@@ -27,7 +25,7 @@ class CLINode extends Actor {
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
-    serverActor ! new StringMessage("CLI" + nodeAddress.toString)
+    serverActor ! new StringMessage(Constants.CLI.cliActorName + nodeAddress.toString)
   }
 
   override def postStop(): Unit = {
@@ -36,10 +34,10 @@ class CLINode extends Actor {
 
   override def receive: Receive = {
     case StringMessage(message) =>
-      if(message.contains(stopWorkerMsg)) {
-        serverActor ! new RemoveContext(message.substring(stopWorkerMsg.length).trim)
+      if(message.contains(Constants.CLI.stopWorkerMsg)) {
+        serverActor ! new RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
       }
-      else if(message.contains(stopJobMsg)) {
+      else if(message.contains(Constants.CLI.stopJobMsg)) {
         serverActor ! new StringMessage(message)
       }
       else {
