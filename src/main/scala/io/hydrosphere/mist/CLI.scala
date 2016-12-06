@@ -9,17 +9,20 @@ import io.hydrosphere.mist.Constants
 import scala._
 import io._
 
+import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 private[mist] object CLI extends App {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
 
   val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName )
 
-  var argInput = ""
-
-  if (args.length > 0) {
-    println(args.foreach(_.toString))
-  }
+  var argInput = args.mkString(" ")
 
   println("Mist CLI")
   while(true) {
@@ -29,7 +32,6 @@ private[mist] object CLI extends App {
         argInput
       }
       else {
-        Thread.sleep(1000)
         print("mist>")
         readLine()
       }
@@ -43,19 +45,30 @@ private[mist] object CLI extends App {
             ""
         }
 
-
     input match {
       case msg if(msg.contains(Constants.CLI.listWorkersMsg) || msg.contains(Constants.CLI.listJobsMsg)) => {
-        cliActor ! new ListMessage(msg)
+        //cliActor ! new ListMessage(msg)
+        implicit val timeout = Timeout(5 seconds)
+        val future = cliActor ? new ListMessage(msg)
+        val result = Await.result(future, timeout.duration).asInstanceOf[String]
+        println(result)
       }
       case msg if(msg.contains(Constants.CLI.stopWorkerMsg)|| msg.contains(Constants.CLI.stopJobMsg)) => {
         cliActor ! new StringMessage(msg)
+        implicit val timeout = Timeout(5 seconds)
+        val future = cliActor ? new ListMessage(msg)
+        val result = Await.result(future, timeout.duration).asInstanceOf[String]
+        println(result)
       }
       case msg if(msg.contains(Constants.CLI.stopAllWorkersMsg)) => {
         cliActor ! StopAllContexts
+        implicit val timeout = Timeout(5 seconds)
+        val future = cliActor ? new ListMessage(msg)
+        val result = Await.result(future, timeout.duration).asInstanceOf[String]
+        println(result)
       }
       case msg if(msg.contains(Constants.CLI.exitMsg)) => {
-        system.shutdown()
+        system.shutdown
         sys.exit(0)
       }
       case _ => {
@@ -71,6 +84,7 @@ private[mist] object CLI extends App {
         println("")
       }
     }
+
   }
 }
 

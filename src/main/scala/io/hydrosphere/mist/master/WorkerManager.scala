@@ -90,7 +90,6 @@ private[mist] class WorkerManager extends Actor with Logger{
   override def receive: Receive = {
 
     case StringMessage(message) =>
-      println(message)
       if(message.contains(Constants.CLI.cliActorName)) {
         cliActorAddress = message.substring(Constants.CLI.cliActorName.length)
       }
@@ -99,18 +98,17 @@ private[mist] class WorkerManager extends Actor with Logger{
         cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
       }
       else if(message.contains(Constants.CLI.stopJobMsg)) {
-        val externalId = message.substring(Constants.CLI.stopJobMsg.length).trim()
-        println(externalId)
-      }
-
-    case ListMessage(message) => {
-      if(message.contains(Constants.CLI.listWorkersMsg)) {
         workers.foreach {
           case WorkerLink(name, address) => {
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            sender() ! new StringMessage(s"Address: $address Name: $name")
+            remoteActor ! new StringMessage(message)
           }
         }
+      }
+
+    case ListMessage(message) => {
+      if(workers.empty) {
+        sender() ! new StringMessage("no workers")
       }
       else if(message.contains(Constants.CLI.listJobsMsg)) {
         workers.foreach {
@@ -119,6 +117,15 @@ private[mist] class WorkerManager extends Actor with Logger{
             remoteActor ! new ListMessage(message)
           }
         }
+      }
+      else {
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            sender() ! new StringMessage(s"address: $address Name: $name")
+          }
+        }
+        sender() ! new StringMessage(Constants.CLI.jobMsgMarker + "it is a all workers")
       }
     }
 

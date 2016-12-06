@@ -7,7 +7,7 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, Props, ActorRef}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
@@ -39,14 +39,19 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
+  //type NameSenderPair = (String, ActorRef)
+
+  //lazy val senders = ArrayBuffer.empty[NameSenderPair]
+
   override def receive: Receive = {
 
     case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
-      lazy val runner = Runner(jobRequest, contextWrapper)
+      //senders += ((jobRequest.externalId.getOrElse(""), originalSender))
 
+      lazy val runner = Runner(jobRequest, contextWrapper)
 
       val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
       val future: Future[Either[Map[String, Any], String]] = Future {
@@ -78,7 +83,20 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       if(message.contains(Constants.CLI.listJobsMsg)) {
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            sender() ! new StringMessage(Constants.CLI.jobMsgMarker + " namespace:" + jobDescription.namespace + " extId:" + jobDescription.externalId)
+            sender() ! new StringMessage(Constants.CLI.jobMsgMarker + "namespace:" + jobDescription.namespace + " extId:" + jobDescription.externalId)
+          }
+        }
+        sender() ! new StringMessage(Constants.CLI.jobMsgMarker + "it is a all job descriptions in "+ nodeAddress)
+      }
+
+    case StringMessage(message) =>
+      if(message.contains(Constants.CLI.stopJobMsg)){
+        jobDescriptions.foreach {
+          case jobDescription: JobDescription => {
+            if(0 == jobDescription.externalId.compare(message.substring(Constants.CLI.stopJobMsg.length).trim())) {
+              sender() ! new StringMessage(Constants.CLI.jobMsgMarker + "do`t worry, sometime it will stop")
+              //TODO stop job, but will not stop context
+            }
           }
         }
       }

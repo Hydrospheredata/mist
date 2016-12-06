@@ -68,8 +68,11 @@ class WorkerCollection {
       callbacks += (name -> callback)
     }
   }
-}
 
+  def empty: Boolean = {
+    workers.size == 0
+  }
+}
 
 object WorkerCollection {
   type Callback = (WorkerLink) => Unit
