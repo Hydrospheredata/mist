@@ -21,6 +21,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
   def this() = this(ActorSystem("JobRecoveryTestActorSystem"))
 
   override def afterAll(): Unit = {
+    Thread.sleep(5000)
     TestKit.shutdownActorSystem(system)
     TestKit.shutdownActorSystem(_system)
     Thread.sleep(5000)

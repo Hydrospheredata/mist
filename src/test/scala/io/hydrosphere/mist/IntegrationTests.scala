@@ -20,8 +20,8 @@ import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
+import scala.sys.process._
 import scala.util.{Failure, Success}
-import sys.process._
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -33,14 +33,14 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
   object StartMist {
-  val threadMaster = {
-    new Thread {
-      override def run() = {
-        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+    val threadMaster = {
+      new Thread {
+        override def run() = {
+          s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+        }
       }
     }
   }
-}
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
@@ -185,7 +185,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   override def afterAll(): Unit ={
 
     "./bin/mist stop" !
-    
+
     TestKit.shutdownActorSystem(system)
 
     StartMist.threadMaster.join()
