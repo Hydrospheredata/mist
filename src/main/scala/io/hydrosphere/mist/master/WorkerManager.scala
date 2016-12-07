@@ -108,7 +108,7 @@ private[mist] class WorkerManager extends Actor with Logger{
 
     case ListMessage(message) => {
       if(workers.empty) {
-        sender() ! new StringMessage("no workers")
+        sender() ! new StringMessage(Constants.CLI.noWorkersMsg)
       }
       else if(message.contains(Constants.CLI.listJobsMsg)) {
         workers.foreach {

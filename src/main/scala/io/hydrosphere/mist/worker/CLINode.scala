@@ -2,17 +2,17 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors._
 
-import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.actor.{Actor, ActorRef}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{ListMessage, RemoveContext, StopAllContexts, StringMessage}
 import io.hydrosphere.mist.{Constants, MistConfig}
 
-import scala.concurrent.ExecutionContext
-import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.util.Random
 
 
 class CLINode extends Actor {
@@ -25,7 +25,6 @@ class CLINode extends Actor {
   private val serverActor = cluster.system.actorSelection(serverAddress)
   private var senderCLI: ActorRef = _
   private val messageArray = ArrayBuffer.empty[String]
-
 
   val nodeAddress = cluster.selfAddress
 

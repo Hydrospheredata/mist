@@ -20,13 +20,13 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
 
   def this() = this(ActorSystem("JobRecoveryTestActorSystem"))
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
     TestKit.shutdownActorSystem(_system)
     Thread.sleep(5000)
   }
 
-  override def beforeAll() = {
+  override def beforeAll(): Unit = {
     Thread.sleep(5000)
     val db = DBMaker
       .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
