@@ -56,4 +56,6 @@ object TestConfig {
 
   val requestJarDisposableContext = if(OldVersion) testConfig.getString("mist.test.request.disposable_2_10") else testConfig.getString("mist.test.request.disposable_2_11")
   val disposableContextName = testConfig.getString("mist.test.disposable_context_name")
+
+  val cliConfig = if(OldVersion) testConfig.getString("mist.test.cli_conf_2_10") else testConfig.getString("mist.test.cli_conf_2_11")
 }
