@@ -4,18 +4,16 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorPath, AddressFromURIString}
-import akka.pattern.ask
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Logger, MistConfig, Worker}
-
-import scala.concurrent.duration.FiniteDuration
+import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.{Constants, Logger, MistConfig, Worker}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 import scala.sys.process._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor with Logger{
@@ -130,7 +128,7 @@ private[mist] class WorkerManager extends Actor with Logger{
             sender ! new StringMessage(s"address: $address Name: $name")
           }
         }
-        sender ! new StringMessage(Constants.CLI.jobMsgMarker + "it is a all workers")
+        sender ! new StringMessage(Constants.CLI.jobMsgMarker + "it's all workers")
       }
     }
 

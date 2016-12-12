@@ -3,24 +3,23 @@ package io.hydrosphere.mist.master
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
 import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
-import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
+import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.reflectiveCalls
-import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-
 import scala.concurrent.duration.FiniteDuration
+import scala.language.reflectiveCalls
 
 private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   /** We must implement json parse/serializer for [[Any]] type */

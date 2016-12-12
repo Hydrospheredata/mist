@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 
-import akka.actor.{Actor, ActorLogging, Props, ActorRef}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
@@ -40,7 +40,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
   type NamedActors = (String,  () => Unit)
-  lazy val senders = ArrayBuffer.empty[NamedActors]
+  lazy val namedJobCancellators = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
 
@@ -57,13 +57,13 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         val first = Future firstCompletedOf Seq(p.future, f)
         val cancellation: () => Unit = {
           () =>
-            first onFailure { case _ => originalSender ! Right("canceled")}
+            first onFailure { case _ => originalSender ! Right("Canceled")}
             p failure new Exception
         }
         (cancellation, first)
       }
 
-      val future: Future[Either[Map[String, Any], String]] = Future {
+      val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
         if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         }
@@ -72,7 +72,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         runner.run()
       }(executionContext)
 
-      val (cancel, future1) = cancellable(future) {
+      val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
         jobDescriptions -= jobDescription
         if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! RemoveJobFromRecovery(runner.id)
@@ -81,9 +81,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       jobDescriptions += jobDescription
 
-      senders += ((jobDescription.externalId, () => { cancel() }))
+      namedJobCancellators += ((jobDescription.externalId, () => { cancel() }))
 
-      future1
+      cancellableRunnerFuture
         .recover {
           case e: Throwable => originalSender ! Right(e.toString)
         }(ExecutionContext.global)
@@ -109,7 +109,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
             cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} namespace: ${jobDescription.namespace} extId: ${jobDescription.externalId}")
           }
         }
-        cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} it is a all job descriptions in $nodeAddress")
+        cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} it's all job descriptions from $nodeAddress")
       }
 
     case StringMessage(message) =>
@@ -118,10 +118,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
             if(message.contains(jobDescription.externalId)) {
-              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime it will stop")
-              senders.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
-              //jobDescriptions -= jobDescription
-              //cluster.down(cluster.selfAddress)
+              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime job ${jobDescription.externalId} will be stopped")
+              namedJobCancellators.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
             }
           }
         }

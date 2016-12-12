@@ -31,13 +31,13 @@ private[mist] object CLI extends App {
       }
 
     argInput =
-        if(argInput.nonEmpty) {
-            "exit"
-        }
-        else
-        {
-            ""
-        }
+      if(argInput.nonEmpty) {
+        "exit"
+      }
+      else
+      {
+        ""
+      }
 
     input match {
       case msg if msg.contains(Constants.CLI.listWorkersMsg) || msg.contains(Constants.CLI.listJobsMsg) => {

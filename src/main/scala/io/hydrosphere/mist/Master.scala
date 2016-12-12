@@ -3,12 +3,11 @@ package io.hydrosphere.mist
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import Messages.{CreateContext, StopAllContexts}
+import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, WorkerManager, JobRecovery, StartRecovery}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMemoryJobConfigurationRepository, InMapDbJobConfigurationRepository}
+import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, WorkerManager}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */

@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.mqtt
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import io.hydrosphere.mist.{Constants, Logger, MistConfig}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import org.eclipse.paho.client.mqttv3.{IMqttActionListener, IMqttDeliveryToken, IMqttToken, MqttAsyncClient, MqttCallback, MqttConnectOptions, MqttMessage}
+import org.eclipse.paho.client.mqttv3._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, DurationInt}
