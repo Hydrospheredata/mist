@@ -34,7 +34,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
 
     ssc.start()
 
-    for (i <- 1 to 30) {
+    for (i <- 1 to 50) {
       rddQueue.synchronized {
         rddQueue += ssc.sparkContext.makeRDD(1 to 1000, 10)
       }

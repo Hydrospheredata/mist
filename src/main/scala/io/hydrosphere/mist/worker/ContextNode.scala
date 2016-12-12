@@ -12,8 +12,9 @@ import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Random, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
@@ -39,9 +40,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
-  //type NameSenderPair = (String, ActorRef)
-
-  //lazy val senders = ArrayBuffer.empty[NameSenderPair]
+  lazy val senders = ArrayBuffer.empty[String]
 
   override def receive: Receive = {
 
@@ -49,53 +48,82 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
-      //senders += ((jobRequest.externalId.getOrElse(""), originalSender))
+      senders += jobRequest.externalId.getOrElse("")
 
       lazy val runner = Runner(jobRequest, contextWrapper)
 
       val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
+
+//      def cancellable[T](f: Future[T])(customCode: => Unit): (() => Unit, Future[T]) = {
+//        val p = Promise[T]
+//        val first = Future firstCompletedOf Seq(p.future, f)
+//        val cancellation: () => Unit = {
+//          () =>
+//            first onFailure { case _ => originalSender ! Right("canceled")}
+//            p failure new Exception
+//        }
+//        (cancellation, first)
+//      }
+
       val future: Future[Either[Map[String, Any], String]] = Future {
         if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
-        jobDescriptions += jobDescription
+
         runner.run()
       }(executionContext)
-      future
-        .recover {
-          case e: Throwable => originalSender ! Right(e.toString)
-        }(ExecutionContext.global)
-        .andThen {
-          case _ => {
-            jobDescriptions -= jobDescription
-            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-              serverActor ! RemoveJobFromRecovery(runner.id)
+
+//      val (cancel, future1) = cancellable(future) {
+//        jobDescriptions -= jobDescription
+//        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+//          serverActor ! RemoveJobFromRecovery(runner.id)
+//        }
+//      }
+
+        jobDescriptions += jobDescription
+
+//      if (!jobDescriptions.contains(jobDescription)) cancel() else {
+//        future1
+          future
+          .recover {
+            case e: Throwable => originalSender ! Right(e.toString)
+          }(ExecutionContext.global)
+          .andThen {
+            case _ => {
+              jobDescriptions -= jobDescription
+              if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+                serverActor ! RemoveJobFromRecovery(runner.id)
+              }
             }
-          }
-        }(ExecutionContext.global)
-        .andThen {
-          case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-          case Failure(error: Throwable) => originalSender ! Right(error.toString)
-        }(ExecutionContext.global)
+          }(ExecutionContext.global)
+          .andThen {
+            case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+            case Failure(error: Throwable) => originalSender ! Right(error.toString)
+          }(ExecutionContext.global)
+//      }
+
 
     case ListMessage(message) =>
+      val originalSender = sender
       if(message.contains(Constants.CLI.listJobsMsg)) {
+        val cliActor = cluster.system.actorSelection(message.substring(Constants.CLI.listJobsMsg.length))
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            sender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} namespace: ${jobDescription.namespace} extId: ${jobDescription.externalId}")
+            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} namespace: ${jobDescription.namespace} extId: ${jobDescription.externalId}")
           }
         }
-        sender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} it is a all job descriptions in $nodeAddress")
+        cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} it is a all job descriptions in $nodeAddress")
       }
 
     case StringMessage(message) =>
-      if(message.contains(Constants.CLI.stopJobMsg)){
-        jobDescriptions.foreach {
+      val originalSender = sender
+      if(message.contains(Constants.CLI.stopJobMsg)) {
+        jobDescriptions.map {
           case jobDescription: JobDescription => {
-            if(jobDescription.externalId.eq(message.substring(Constants.CLI.stopJobMsg.length).trim())) {
-              sender() ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime it will stop")
-              //TODO stop job, but will not stop context
+            if(jobDescription.externalId.eq(message.substring(Constants.CLI.stopJobMsg.length))) {
+              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime it will stop")
+              jobDescriptions -= jobDescription
             }
           }
         }

@@ -218,7 +218,7 @@ then
         then
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}"
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}" "${external_id}"
         fi
     fi
 

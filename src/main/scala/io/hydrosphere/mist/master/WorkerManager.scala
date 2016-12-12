@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, AddressFromURIString}
+import akka.actor.{Actor, ActorPath, AddressFromURIString}
 import akka.pattern.ask
 import akka.cluster.Cluster
 import io.hydrosphere.mist.{Logger, MistConfig, Worker}
@@ -85,16 +85,17 @@ private[mist] class WorkerManager extends Actor with Logger{
     }
   }
 
-  private var cliActorAddress: String = _
+  //private var cliActorAddress: String = _
+  private var cliActorPath: ActorPath = _
 
   override def receive: Receive = {
 
     case StringMessage(message) =>
       if(message.contains(Constants.CLI.cliActorName)) {
-        cliActorAddress = message.substring(Constants.CLI.cliActorName.length)
+        cliActorPath = sender.path
       }
       else if(message.contains(Constants.CLI.jobMsgMarker)) {
-        val cliActor = cluster.system.actorSelection(s"$cliActorAddress/user/${Constants.CLI.cliActorName}")
+        val cliActor = cluster.system.actorSelection(cliActorPath)
         cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
       }
       else if(message.contains(Constants.CLI.stopJobMsg)) {
@@ -108,13 +109,13 @@ private[mist] class WorkerManager extends Actor with Logger{
 
     case ListMessage(message) => {
       if(workers.empty) {
-        sender() ! new StringMessage(Constants.CLI.noWorkersMsg)
+        sender ! new StringMessage(Constants.CLI.noWorkersMsg)
       }
-      else if(message.contains(Constants.CLI.listJobsMsg)) {
+      else if(message.contains(Constants.CLI.listJobsMsg) || message.contains(Constants.CLI.stopJobMsg)) {
         workers.foreach {
           case WorkerLink(name, address) => {
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            remoteActor ! new ListMessage(message)
+            remoteActor ! new ListMessage(Constants.CLI.listJobsMsg + sender.path)
           }
         }
       }
@@ -122,10 +123,10 @@ private[mist] class WorkerManager extends Actor with Logger{
         workers.foreach {
           case WorkerLink(name, address) => {
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            sender() ! new StringMessage(s"address: $address Name: $name")
+            sender ! new StringMessage(s"address: $address Name: $name")
           }
         }
-        sender() ! new StringMessage(Constants.CLI.jobMsgMarker + "it is a all workers")
+        sender ! new StringMessage(Constants.CLI.jobMsgMarker + "it is a all workers")
       }
     }
 

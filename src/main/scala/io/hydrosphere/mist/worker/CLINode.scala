@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors._
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.Actor
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.{ListMessage, RemoveContext, StopAllContexts, StringMessage}
@@ -23,7 +23,6 @@ class CLINode extends Actor {
 
   private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
-  private var senderCLI: ActorRef = _
   private val messageArray = ArrayBuffer.empty[String]
 
   val nodeAddress = cluster.selfAddress
@@ -56,11 +55,11 @@ class CLINode extends Actor {
       serverActor ! StopAllContexts
 
     case ListMessage(message) =>
-      senderCLI = sender()
+      messageArray.clear()
+      val originalSender = sender
       serverActor ! new ListMessage(message)
-      context.system.scheduler.scheduleOnce(4000 millis) {
-        senderCLI ! messageArray.mkString("\r\n")
-        messageArray.clear()
+      context.system.scheduler.scheduleOnce(2000 millis) {
+        originalSender ! messageArray.mkString("\r\n")
       }
 
     case MemberUp(member) =>
