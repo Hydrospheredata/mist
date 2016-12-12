@@ -29,7 +29,7 @@ class CLINode extends Actor {
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
-    serverActor ! new StringMessage(Constants.CLI.cliActorName + nodeAddress.toString)
+    serverActor ! new StringMessage(Constants.CLI.cliActorName)
   }
 
   override def postStop(): Unit = {

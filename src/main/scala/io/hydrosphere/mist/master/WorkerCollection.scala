@@ -69,8 +69,8 @@ class WorkerCollection {
     }
   }
 
-  def empty: Boolean = {
-    workers.size == 0
+  def isEmpty: Boolean = {
+    workers.isEmpty
   }
 }
 

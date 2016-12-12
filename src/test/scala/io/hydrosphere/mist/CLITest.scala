@@ -124,18 +124,18 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
       cliActor ! new StringMessage(s"${Constants.CLI.stopJobMsg} job2")
 
       eventually(timeout(30 seconds), interval(10 seconds)) {
-        val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
-        assert(!resultTwoWorkers.contains(Constants.CLI.noWorkersMsg)
-          && resultTwoWorkers.contains("streaming2")
-          && resultTwoWorkers.contains("streaming3"))
-      }
-      eventually(timeout(30 seconds), interval(10 seconds)) {
         val futureOneJob = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
         val resultOneJob = Await.result(futureOneJob, timeout.duration).asInstanceOf[String]
         assert(!resultOneJob.contains("job2")
           && resultOneJob.contains("job3")
         )
+      }
+      eventually(timeout(30 seconds), interval(10 seconds)) {
+        val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
+        val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
+        assert(!resultTwoWorkers.contains(Constants.CLI.noWorkersMsg)
+          && resultTwoWorkers.contains("streaming2")
+          && resultTwoWorkers.contains("streaming3"))
       }
     }
 

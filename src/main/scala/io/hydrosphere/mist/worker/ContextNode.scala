@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, Props, ActorRef}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
@@ -14,11 +14,10 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Random, Success}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
-  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  implicit val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
   private val cluster = Cluster(context.system)
 
@@ -40,7 +39,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
-  lazy val senders = ArrayBuffer.empty[String]
+  type NamedActors = (String,  () => Unit)
+  lazy val senders = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
 
@@ -48,22 +48,20 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
-      senders += jobRequest.externalId.getOrElse("")
-
       lazy val runner = Runner(jobRequest, contextWrapper)
 
       val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
 
-//      def cancellable[T](f: Future[T])(customCode: => Unit): (() => Unit, Future[T]) = {
-//        val p = Promise[T]
-//        val first = Future firstCompletedOf Seq(p.future, f)
-//        val cancellation: () => Unit = {
-//          () =>
-//            first onFailure { case _ => originalSender ! Right("canceled")}
-//            p failure new Exception
-//        }
-//        (cancellation, first)
-//      }
+      def cancellable[T](f: Future[T])(customCode: => Unit): (() => Unit, Future[T]) = {
+        val p = Promise[T]
+        val first = Future firstCompletedOf Seq(p.future, f)
+        val cancellation: () => Unit = {
+          () =>
+            first onFailure { case _ => originalSender ! Right("canceled")}
+            p failure new Exception
+        }
+        (cancellation, first)
+      }
 
       val future: Future[Either[Map[String, Any], String]] = Future {
         if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
@@ -74,35 +72,33 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         runner.run()
       }(executionContext)
 
-//      val (cancel, future1) = cancellable(future) {
-//        jobDescriptions -= jobDescription
-//        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-//          serverActor ! RemoveJobFromRecovery(runner.id)
-//        }
-//      }
+      val (cancel, future1) = cancellable(future) {
+        jobDescriptions -= jobDescription
+        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+          serverActor ! RemoveJobFromRecovery(runner.id)
+        }
+      }
 
-        jobDescriptions += jobDescription
+      jobDescriptions += jobDescription
 
-//      if (!jobDescriptions.contains(jobDescription)) cancel() else {
-//        future1
-          future
-          .recover {
-            case e: Throwable => originalSender ! Right(e.toString)
-          }(ExecutionContext.global)
-          .andThen {
-            case _ => {
-              jobDescriptions -= jobDescription
-              if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-                serverActor ! RemoveJobFromRecovery(runner.id)
-              }
+      senders += ((jobDescription.externalId, () => { cancel() }))
+
+      future1
+        .recover {
+          case e: Throwable => originalSender ! Right(e.toString)
+        }(ExecutionContext.global)
+        .andThen {
+          case _ => {
+            jobDescriptions -= jobDescription
+            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+              serverActor ! RemoveJobFromRecovery(runner.id)
             }
-          }(ExecutionContext.global)
-          .andThen {
-            case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-            case Failure(error: Throwable) => originalSender ! Right(error.toString)
-          }(ExecutionContext.global)
-//      }
-
+          }
+        }(ExecutionContext.global)
+        .andThen {
+          case Success(result: Either[Map[String, Any], String]) => originalSender ! result
+          case Failure(error: Throwable) => originalSender ! Right(error.toString)
+        }(ExecutionContext.global)
 
     case ListMessage(message) =>
       val originalSender = sender
@@ -119,11 +115,13 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     case StringMessage(message) =>
       val originalSender = sender
       if(message.contains(Constants.CLI.stopJobMsg)) {
-        jobDescriptions.map {
+        jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            if(jobDescription.externalId.eq(message.substring(Constants.CLI.stopJobMsg.length))) {
+            if(message.contains(jobDescription.externalId)) {
               originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime it will stop")
-              jobDescriptions -= jobDescription
+              senders.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
+              //jobDescriptions -= jobDescription
+              //cluster.down(cluster.selfAddress)
             }
           }
         }

@@ -85,7 +85,6 @@ private[mist] class WorkerManager extends Actor with Logger{
     }
   }
 
-  //private var cliActorAddress: String = _
   private var cliActorPath: ActorPath = _
 
   override def receive: Receive = {
@@ -95,20 +94,25 @@ private[mist] class WorkerManager extends Actor with Logger{
         cliActorPath = sender.path
       }
       else if(message.contains(Constants.CLI.jobMsgMarker)) {
-        val cliActor = cluster.system.actorSelection(cliActorPath)
-        cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
+        try {
+          val cliActor = cluster.system.actorSelection(cliActorPath)
+          cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
+        }
       }
       else if(message.contains(Constants.CLI.stopJobMsg)) {
         workers.foreach {
           case WorkerLink(name, address) => {
-            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            remoteActor ! new StringMessage(message)
+            try {
+              val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+              remoteActor ! new StringMessage(message)
+            }
           }
         }
       }
 
     case ListMessage(message) => {
-      if(workers.empty) {
+      cliActorPath = sender.path
+      if(workers.isEmpty) {
         sender ! new StringMessage(Constants.CLI.noWorkersMsg)
       }
       else if(message.contains(Constants.CLI.listJobsMsg) || message.contains(Constants.CLI.stopJobMsg)) {
