@@ -80,7 +80,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
     StartMist.threadMaster.start()
 
-    Thread.sleep(10000)
+    Thread.sleep(15000)
   }
 
 
@@ -102,8 +102,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -128,8 +128,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 20.seconds)
-    eventually(timeout(20 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -152,8 +152,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         http_response_success = false
     }
 
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -176,8 +176,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
