@@ -8,14 +8,27 @@ This is where cli comes into play, cli makes mist job managing organized and eas
 
 
 Usage:
+
 ```
+Run single Mist job:
+./mist start job
+     --config <path>                 path to Mist config
+     --jar <path>                    path to Mist compiled jar
+     --path <path>                   path to Mist Job
+     --classname <class name>        Mist job class name
+     --external-id <id>              some id for external separation of jobs
+     --namespace <namespace>         Mist namespace
+     --route <route>                 Mist route (see https://github.com/Hydrospheredata/mist/blob/master/docs/routes.md)
+     --parameters <json>             parameters for Mist job in JSON format
+
+Manage job and workers:
 ./mist start cli
 
-    --list workers              list all started workers
-    --list jobs                 list all started jobs
-    --kill all                  kill all workers
-    --kill worker <namespace>   kill named worker
-    --kill job <external id>    kill named job
+    --list workers                   list all started workers
+    --list jobs                      list all started jobs
+    --kill all                       kill all workers
+    --kill worker <namespace>        kill named worker
+    --kill job <external id>         kill named job
 ```
 
 
@@ -29,18 +42,34 @@ Hello! This is Mist command-line interface. Enter your command please.
 mist>_
 mist>help (Enter)
 
-    list workers               list all started workers
-    list jobs                  list all started jobs
-    kill all                   kill all workers
-    kill worker <namespace>    kill named worker
-    kill job    <external id>  kill named job
-    exit
+ ---------------------------------------------------------- 
+|             Mist Command Line Interface                  | 
+---------------------------------------------------------- 
+start job <config> <router> <extId>     start job 
+list workers                            List all started workers 
+list jobs                               List all started jobs 
+kill all                                Stop all workers 
+kill worker <name>                      Stop worker by name 
+kill job <extId>                        Stop job by external id 
+exit 	 
+
 ```
 
 
 Also you can run command from shell, and make back in shell after running command
 
 ####Examples
+
+start jobs
+
+```
+./mist start cli
+
+mist>start job configs/myconf.conf streaming-1 job1
+mist>start job configs/myconf.conf streaming-2 job2
+mist>start job configs/myconf.conf streaming-3 job3
+
+```
 
 list all running workers
 
