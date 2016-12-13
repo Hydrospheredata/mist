@@ -18,11 +18,13 @@ private[mist] object CLI extends App {
   var argInput = args.mkString(" ")
   implicit val timeout = Timeout(5 seconds)
 
-  println("Mist CLI")
-  while(true) {
+  println("Hello! This is Mist command-line interface.")
+  if(argInput.isEmpty) println("Enter your command please.")
 
+  while(true) {
     val input =
       if(argInput.nonEmpty) {
+        println(argInput)
         argInput
       }
       else {
@@ -51,7 +53,7 @@ private[mist] object CLI extends App {
         val result = Await.result(future, timeout.duration).asInstanceOf[String]
         println(result)
       }
-      case msg@Constants.CLI.stopAllWorkersMsg => {
+      case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) => {
         cliActor ! StopAllContexts
         val future = cliActor ? new ListMessage(msg)
         val result = Await.result(future, timeout.duration).asInstanceOf[String]

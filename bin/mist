@@ -25,6 +25,15 @@ Usage:
       --route <route>                 Mist route (see https://github.com/Hydrospheredata/mist/blob/master/docs/routes.md)
       --parameters <json>             parameters for Mist job in JSON format
 
+  Mist command-line interface:
+  ./mist start cli
+
+      --list workers                  list all started workers
+             jobs                     list all started jobs
+      --kill all                      kill all workers
+             worker <namespace>       kill named worker
+             job <external id>        kill named job
+
   Stop Mist daemon:
   ./mist stop
 
@@ -118,6 +127,17 @@ do
       route="$2"
       shift
       ;;
+
+    --list)
+      list="$2 $3"
+      shift
+      ;;
+
+    --kill)
+      kill="$2 $3"
+      shift
+      ;;
+
   esac
 
 shift
@@ -219,6 +239,22 @@ then
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}" "${external_id}"
+        fi
+    fi
+
+    if [ "${app}" == 'cli' ] || [ "${app}" == 'CLI' ]
+    then
+        if [ "${kill}" == '' ]
+        then
+            if [ "${list}" == '' ]
+            then
+                ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file"
+            else
+                ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "list ${list}"
+                exit 0
+            fi
+        else
+           ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "kill ${kill}"
         fi
     fi
 
