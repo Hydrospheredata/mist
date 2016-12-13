@@ -100,7 +100,7 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 | 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
 | 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.6.5          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.6.6          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
@@ -121,17 +121,19 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 
 ## More docs
 
-- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
-- [REST API](/docs/routes.md)
-- [Streaming API](/docs/reactive.md)
+- [Changelog](/CHANGELOG)
+- [CLI](/docs/cli.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
+- [License](/LICENSE)
+- [Logging](/docs/logger.md)
 - [Low level API Reference](/docs/api-reference.md)
 - [Namespaces](/docs/context-namespaces.md)
-- [Logging](/docs/logger.md)
+- [Reactive API](/docs/reactive.md)
+- [REST API](/docs/routes.md)
+- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
+- [Streaming](/docs/streaming.md)
 - [Tests](/docs/tests.md)
-- [License](/LICENSE)
-- [Changelog](/CHANGELOG)
 
 ## Contact
 
