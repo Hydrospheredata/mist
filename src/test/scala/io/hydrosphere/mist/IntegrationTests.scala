@@ -20,8 +20,8 @@ import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
+import scala.sys.process._
 import scala.util.{Failure, Success}
-import sys.process._
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -80,11 +80,16 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
     StartMist.threadMaster.start()
 
-    Thread.sleep(15000)
+    Thread.sleep(30000)
   }
 
+  test("Hello mr.Jenkins") {
+    cancel("because")
+    assert(true)
+  }
 
   test("HTTP bad request") {
+
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
     val future_response = clientHTTP.singleRequest(httpRequest)
