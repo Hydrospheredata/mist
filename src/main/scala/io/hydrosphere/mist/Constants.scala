@@ -22,7 +22,7 @@ object Constants {
     final val exitMsg = "exit"
     final val jobMsgMarker = "[J]"
     final val cliActorName = "CLI"
-
+    final val startJob = "start job"
     final val noWorkersMsg = "no workers"
   }
 }

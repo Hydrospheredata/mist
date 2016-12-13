@@ -25,9 +25,8 @@ Usage:
       --route <route>                 Mist route (see https://github.com/Hydrospheredata/mist/blob/master/docs/routes.md)
       --parameters <json>             parameters for Mist job in JSON format
 
-  Mist command-line interface:
+  Manage job and workers:
   ./mist start cli
-
       --list workers                  list all started workers
              jobs                     list all started jobs
       --kill all                      kill all workers

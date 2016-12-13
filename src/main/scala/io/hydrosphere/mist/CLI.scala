@@ -9,6 +9,7 @@ import io.hydrosphere.mist.worker.CLINode
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.sys.process._
 
 private[mist] object CLI extends App {
 
@@ -59,6 +60,19 @@ private[mist] object CLI extends App {
         val result = Await.result(future, timeout.duration).asInstanceOf[String]
         println(result)
       }
+      case msg if msg.contains(Constants.CLI.startJob) => {
+        val listCmd = msg.substring(Constants.CLI.startJob.length).trim.split(' ')
+        if(listCmd.size == 3) {
+          val config = "--config " + listCmd(0)
+          val route = "--route " + listCmd(1)
+          val externalId = "--external-id " + listCmd(2)
+          s"bin/mist start job ${config} ${route} ${externalId}".!
+        }
+        else {
+          println(listCmd.mkString(" "))
+        }
+      }
+
       case msg@Constants.CLI.exitMsg => {
         system.shutdown
         sys.exit(0)
@@ -67,15 +81,15 @@ private[mist] object CLI extends App {
         println(s" ---------------------------------------------------------- \n" +
           s"|             Mist Command Line Interface                  | \n" +
           s"---------------------------------------------------------- \n" +
-          s"${Constants.CLI.listWorkersMsg} \t \t List all started workers \n" +
-          s"${Constants.CLI.listJobsMsg} \t \t List all started jobs \n" +
-          s"${Constants.CLI.stopAllWorkersMsg} \t \t Stop all workers \n" +
-          s"${Constants.CLI.stopWorkerMsg} <name> \t Stop worker by name \n" +
-          s"${Constants.CLI.stopJobMsg} <extId> \t Stop job by external id \n" +
+          s"${Constants.CLI.startJob} <config> <router> <extId> \t start job \n" +
+          s"${Constants.CLI.listWorkersMsg} \t \t \t \t List all started workers \n" +
+          s"${Constants.CLI.listJobsMsg} \t \t \t \t List all started jobs \n" +
+          s"${Constants.CLI.stopAllWorkersMsg} \t \t \t \t Stop all workers \n" +
+          s"${Constants.CLI.stopWorkerMsg} <name> \t \t \t Stop worker by name \n" +
+          s"${Constants.CLI.stopJobMsg} <extId> \t \t \t Stop job by external id \n" +
           s"${Constants.CLI.exitMsg} \t \n")
       }
     }
-
   }
 }
 
