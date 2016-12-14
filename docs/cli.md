@@ -4,7 +4,7 @@
 Mist CLI is a simple command-line interface to the Mist service.
 
 
-This is where cli comes into play, cli makes mist job managing organized and easy for make out!
+This is where cli comes into play, cli makes mist job managing organized and easy!
 
 
 Usage:
