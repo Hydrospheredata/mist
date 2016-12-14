@@ -77,6 +77,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! RemoveJobFromRecovery(runner.id)
         }
+        runner.stop()
       }
 
       jobDescriptions += jobDescription
@@ -106,10 +107,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         val cliActor = cluster.system.actorSelection(message.substring(Constants.CLI.listJobsMsg.length))
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} namespace: ${jobDescription.namespace} extId: ${jobDescription.externalId}")
+            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker}${jobDescription.namespace}\t${jobDescription.externalId}")
           }
         }
-        cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker} it's all job descriptions from $nodeAddress")
       }
 
     case StringMessage(message) =>
@@ -118,7 +118,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
             if(message.contains(jobDescription.externalId)) {
-              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} do`t worry, sometime job ${jobDescription.externalId} will be stopped")
+              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId} is scheduled for shutdown. It may take a while.")
               namedJobCancellators.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
             }
           }

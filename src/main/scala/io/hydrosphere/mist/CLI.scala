@@ -19,8 +19,10 @@ private[mist] object CLI extends App {
   var argInput = args.mkString(" ")
   implicit val timeout = Timeout(5 seconds)
 
-  println("Hello! This is Mist command-line interface.")
-  if(argInput.isEmpty) println("Enter your command please.")
+  if(argInput.isEmpty) {
+    println("Hello! This is a Mist command-line interface.")
+    println("Enter your command please.")
+  }
 
   while(true) {
     val input =

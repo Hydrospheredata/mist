@@ -24,6 +24,9 @@ private[mist] trait Runner extends Logger {
 
   def run(): Either[Map[String, Any], String]
 
+  def stop(): Unit = {
+    _status = Runner.Status.Stopped
+  }
 }
 
 private[mist] object Runner {
