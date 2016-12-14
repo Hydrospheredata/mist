@@ -83,11 +83,6 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
     Thread.sleep(30000)
   }
 
-  test("Hello mr.Jenkins") {
-    cancel("because")
-    assert(true)
-  }
-
   test("HTTP bad request") {
 
     var http_response_success = false
