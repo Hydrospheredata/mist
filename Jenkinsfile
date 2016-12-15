@@ -56,14 +56,10 @@ def test_mist(sparkVersion) {
     def hdfs = docker.image('hydrosphere/hdfs:latest').run("--volumes-from ${mistVolume.id}", "start")
     echo 'Testing Mist with Spark version: ' + sparkVersion
     def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
-      sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist; echo $? > status"
-      def r = readFile('status').trim()
-      sh "docker start ${mistId}; echo $? > status2"
-      def r = readFile('status2').trim()
-      sh "docker logs -f ${mistId}; echo $? > status3"
-      def r = readFile('status3').trim()
-      sh "docker rm -f ${mistId}; echo $? > status4"
-      def r = readFile('status4').trim()
+    def mistCp = sh(returnStdout: true, returnStatus: true, script: "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist")
+    def mistStart = sh(returnStdout: true, returnStatus: true, script: "docker start ${mistId}")
+    def mistLogs = sh(returnStdout: true, returnStatus: true, script: "docker logs -f ${mistId}")
+    def mistRmRf = sh(returnStdout: true, returnStatus: true, script: sh "docker rm -f ${mistId}")
 
     echo 'remove containers'
     mosquitto.stop()
