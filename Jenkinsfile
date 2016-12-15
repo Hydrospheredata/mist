@@ -59,7 +59,7 @@ def test_mist(sparkVersion) {
     def mistCp = sh(returnStdout: true, returnStatus: true, script: "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist")
     def mistStart = sh(returnStdout: true, returnStatus: true, script: "docker start ${mistId}")
     def mistLogs = sh(returnStdout: true, returnStatus: true, script: "docker logs -f ${mistId}")
-    def mistRmRf = sh(returnStdout: true, returnStatus: true, script: sh "docker rm -f ${mistId}")
+    def mistRmRf = sh(returnStdout: true, returnStatus: true, script: "docker rm -f ${mistId}")
 
     echo 'remove containers'
     mosquitto.stop()
