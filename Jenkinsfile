@@ -57,9 +57,13 @@ def test_mist(sparkVersion) {
     echo 'Testing Mist with Spark version: ' + sparkVersion
     def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
       sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
+      sh "echo exit_status: $?"
       sh "docker start ${mistId}"
+      sh "echo exit_status: $?"
       sh "docker logs -f ${mistId}"
+      sh "echo exit_status: $?"
       sh "docker rm -f ${mistId}"
+      sh "echo exit_status: $?
 
     echo 'remove containers'
     mosquitto.stop()
