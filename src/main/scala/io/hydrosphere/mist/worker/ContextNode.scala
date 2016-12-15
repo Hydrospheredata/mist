@@ -52,12 +52,15 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
 
-      def cancellable[T](f: Future[T])(customCode: => Unit): (() => Unit, Future[T]) = {
+      def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
         val p = Promise[T]
         val first = Future firstCompletedOf Seq(p.future, f)
         val cancellation: () => Unit = {
           () =>
-            first onFailure { case _ => originalSender ! Right("Canceled")}
+            first onFailure { case _ => {
+              cancellationCode
+              originalSender ! Right("Canceled")
+            }}
             p failure new Exception
         }
         (cancellation, first)
