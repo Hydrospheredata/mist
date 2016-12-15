@@ -29,7 +29,7 @@ private[mist] class WorkerManager extends Actor with Logger{
         Worker.main(Array(name))
       } else {
         new Thread {
-          override def run() = {
+          override def run(): Unit = {
             val runOptions = MistConfig.Contexts.runOptions(name)
             val configFile = System.getProperty("config.file")
             val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -91,7 +91,7 @@ private[mist] class WorkerManager extends Actor with Logger{
     // surprise: stops all contexts
     case StopAllContexts =>
       workers.foreach {
-        case WorkerLink(name, address) =>
+        case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
 

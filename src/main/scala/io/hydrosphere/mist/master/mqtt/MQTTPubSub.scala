@@ -9,9 +9,9 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, DurationInt}
 
 
-private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
+private[mist] class MQTTPubSub(connectionUrl: String) extends Actor with Logger{
 
-  lazy val connectionOptions = {
+  lazy val connectionOptions: MqttConnectOptions = {
     val opt = new MqttConnectOptions
     opt.setCleanSession(true)
     opt
@@ -20,31 +20,31 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
   private[this] val client = {
     val persistence = new MemoryPersistence
     val client = new MqttAsyncClient(connectionUrl, MqttAsyncClient.generateClientId(), persistence)
-    client.setCallback(new MqttPubSub.Callback(self))
+    client.setCallback(new MQTTPubSub.Callback(self))
     client
   }
 
-  private[this] val connectionListener = new MqttPubSub.ConnectionListener(self)
+  private[this] val connectionListener = new MQTTPubSub.ConnectionListener(self)
 
   private[this] val msgBuffer = ListBuffer.empty[(Deadline, Any)]
 
   def receive: Receive = {
-    case MqttPubSub.Connect =>
+    case MQTTPubSub.Connect =>
       logger.info(s"connecting to $connectionUrl..")
       try {
         client.connect(connectionOptions, None, connectionListener)
       } catch {
-        case e: Exception => logger.error(s"can't connect to $connectionUrl")
+        case _: Exception => logger.error(s"can't connect to $connectionUrl")
       }
 
-    case MqttPubSub.Connected =>
+    case MQTTPubSub.Connected =>
       for ((deadline, x) <- msgBuffer if deadline.hasTimeLeft()) {
         self ! x
       }
       msgBuffer.clear()
       context become ready
 
-    case x @ (_: MqttPubSub.Publish | _: MqttPubSub.Subscribe) =>
+    case x @ (_: MQTTPubSub.Publish | _: MQTTPubSub.Subscribe) =>
       if (msgBuffer.length > 1000) {
         msgBuffer.remove(0, msgBuffer.length/2)
       }
@@ -53,29 +53,29 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
 
   def ready: Receive = {
 
-    case p: MqttPubSub.Publish =>
+    case p: MQTTPubSub.Publish =>
       try {
         client.publish(MistConfig.MQTT.publishTopic, p.message())
       } catch {
-        case e: Exception => logger.error(s"can't publish to ${MistConfig.MQTT.publishTopic}")
+        case _: Exception => logger.error(s"can't publish to ${MistConfig.MQTT.publishTopic}")
       }
 
-    case msg@MqttPubSub.Subscribe(ref) =>
+    case msg@MQTTPubSub.Subscribe(_) =>
 
       context.child(Constants.Actors.mqttServiceName) match {
         case Some(t) => t ! msg
         case None =>
-          val t = context.actorOf(Props[MqttPubSub.Subscribers], name = Constants.Actors.mqttServiceName)
+          val t = context.actorOf(Props[MQTTPubSub.Subscribers], name = Constants.Actors.mqttServiceName)
           t ! msg
           context watch t
           try {
-            client.subscribe(MistConfig.MQTT.publishTopic, 0, None, MqttPubSub.SubscribeListener)
+            client.subscribe(MistConfig.MQTT.publishTopic, 0, None, MQTTPubSub.SubscribeListener)
           } catch {
             case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.publishTopic}", e)
           }
       }
 
-    case msg: MqttPubSub.Message => context.child(Constants.Actors.mqttServiceName) foreach (_ ! msg)
+    case msg: MQTTPubSub.Message => context.child(Constants.Actors.mqttServiceName) foreach (_ ! msg)
 
     case Terminated(topicRef) =>
       try {
@@ -84,15 +84,15 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
         case e: Exception => logger.error(s"can't unsubscribe from ${topicRef.path.name}", e)
       }
 
-    case MqttPubSub.Disconnected =>
+    case MQTTPubSub.Disconnected =>
       context become receive
-      self ! MqttPubSub.Connect
+      self ! MQTTPubSub.Connect
   }
 
-  self ! MqttPubSub.Connect
+  self ! MQTTPubSub.Connect
 }
 
-private[mist] object MqttPubSub {
+private[mist] object MQTTPubSub {
 
   class Publish(payload: Array[Byte]) {
     def message(): MqttMessage = {

@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, JsonFormatSupport, WorkerManager}
+import io.hydrosphere.mist.master.{HTTPService, JobRecovery, WorkerManager}
 import io.hydrosphere.mist.worker.ContextNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,7 +25,8 @@ import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTyp
 import akka.stream.ActorMaterializer
 import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.utils.JsonFormatSupport
 import spray.json.{DefaultJsonProtocol, pimpString}
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -93,7 +94,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   val clientHTTP = Http(systemM)
 
   val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
-  mqttActor ! MqttSubscribe
+  mqttActor ! MQTTSubscribe
   MQTTTest.subscribe(systemM)
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r

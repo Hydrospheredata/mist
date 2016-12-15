@@ -9,7 +9,7 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.6.4"
+version := "0.6.6"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
@@ -38,6 +38,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.1",
@@ -51,7 +52,10 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.2",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive()
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
+  "io.circe" %% "circe-core" % "0.6.1",
+  "io.circe" %% "circe-generic" % "0.6.1",
+  "io.circe" %% "circe-parser" % "0.6.1"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"

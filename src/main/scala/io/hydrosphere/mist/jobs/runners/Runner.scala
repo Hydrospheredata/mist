@@ -10,7 +10,7 @@ import io.hydrosphere.mist.jobs.runners.python.PythonRunner
 
 private[mist] trait Runner extends Logger {
 
-  final val id = java.util.UUID.randomUUID.toString
+  final val id: String = java.util.UUID.randomUUID.toString
 
   protected var _status = Runner.Status.Initialized
 

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.utils.JsonFormatSupport
 import io.hydrosphere.mist.worker.JobRunnerNode
 import spray.json.pimpString
 

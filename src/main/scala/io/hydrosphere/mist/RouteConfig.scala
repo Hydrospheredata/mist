@@ -6,7 +6,7 @@ import com.typesafe.config.{Config, ConfigException, ConfigFactory}
 
 private[mist] class RouteConfig(route: String, config: Config) {
 
-  lazy val routeConfig = try {
+  lazy val routeConfig: Config = try {
     config.getConfig(route)
   } catch {
     case _: ConfigException.Missing => throw new RouteConfig.RouteNotFoundError(s"Route configuration /$route not found")

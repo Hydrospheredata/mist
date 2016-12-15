@@ -3,7 +3,7 @@ package io.hydrosphere.mist.jobs.runners.python
 import java.io.File
 
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile, MistJobConfiguration}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
 import py4j.GatewayServer
@@ -15,17 +15,17 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
 
   _status = Runner.Status.Initialized
 
-  val errorWrapper = new ErrorWrapper
-  val dataWrapper = new DataWrapper
-  val sparkContextWrapper = contextWrapper
-  val configurationWrapper = new ConfigurationWrapper(
-    FullJobConfiguration(
+  val errorWrapper: ErrorWrapper = new ErrorWrapper
+  val dataWrapper: DataWrapper = new DataWrapper
+  val sparkContextWrapper: ContextWrapper = contextWrapper
+  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(
+    MistJobConfiguration(
       jobFile.file.getPath,
       jobConfiguration.className,
       jobConfiguration.namespace,
       jobConfiguration.parameters,
       jobConfiguration.externalId ))
-  val mqttPublisher = new MqttPublisherWrapper
+  val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running

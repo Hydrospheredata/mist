@@ -2,12 +2,12 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.JsonFormatSupport
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json._
 import DefaultJsonProtocol._
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.utils.JsonFormatSupport
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
@@ -20,7 +20,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
   val mqttActor = systemW.actorOf(Props(classOf[MQTTServiceActor]))
-  mqttActor ! MqttSubscribe
+  mqttActor ! MQTTSubscribe
   InfinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {

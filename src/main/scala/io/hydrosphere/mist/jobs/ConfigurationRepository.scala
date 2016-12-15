@@ -4,6 +4,8 @@ import io.hydrosphere.mist.MistConfig
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import io.hydrosphere.mist.Logger
+import io.hydrosphere.mist.utils.JsonFormatSupport
+import spray.json._
 
 private[mist] trait ConfigurationRepository extends Logger{
   def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit
@@ -39,7 +41,7 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
   }
 }
 
-private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository {
+private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository with JsonFormatSupport {
   // Db
   private lazy val db  =  DBMaker
     .fileDB(MistConfig.Recovery.recoveryDbFileName)
@@ -57,7 +59,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
 
   override def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit = {
     try {
-      val w_job = SerializationUtils.serialize(jobConfiguration)
+      val w_job = jobConfiguration.toJson.compactPrint.getBytes
       map.put(jobId, w_job)
       logger.info(s"$jobId saved in MapDb")
     } catch {
@@ -80,7 +82,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
       val keys = map.getKeys.toArray()
 
       for(key <- keys){
-        _collection put (key.toString, SerializationUtils.deserialize(map.get(key.toString)).asInstanceOf[FullJobConfiguration])
+        _collection put(key.toString, map.get(key.toString).toString.parseJson.convertTo[FullJobConfiguration])
       }
       logger.info(s"${_collection.size} get from MapDb")
     }
@@ -93,12 +95,12 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
 
   override def get(jobId: String): FullJobConfiguration = {
     try {
-      SerializationUtils.deserialize(map.get(jobId)).asInstanceOf[FullJobConfiguration]
+      map.get(jobId).toString.parseJson.convertTo[FullJobConfiguration]
     }
     catch {
       case e: Exception =>
         logger.error(e.getMessage, e)
-        new FullJobConfiguration("", "", "")
+        new MistJobConfiguration("", "", "")
     }
   }
 
