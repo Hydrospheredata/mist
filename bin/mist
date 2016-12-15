@@ -26,12 +26,14 @@ Usage:
       --parameters <json>             parameters for Mist job in JSON format
 
   Manage job and workers:
-  ./mist start cli
-      --list workers                  list all started workers
-             jobs                     list all started jobs
-      --kill all                      kill all workers
-             worker <namespace>       kill named worker
-             job <external id>        kill named job
+  ./mist cli
+             list 
+                  workers                  list all started workers
+                  jobs                     list all started jobs
+             kill 
+                  all                      kill all workers
+                  worker <namespace>       kill named worker
+                  job <external id>        kill named job
 
   Stop Mist daemon:
   ./mist stop
@@ -241,25 +243,23 @@ then
         fi
     fi
 
-    if [ "${app}" == 'cli' ] || [ "${app}" == 'CLI' ]
-    then
-        if [ "${kill}" == '' ]
-        then
-            if [ "${list}" == '' ]
-            then
-                ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file"
-            else
-                ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "list ${list}"
-                exit 0
-            fi
-        else
-           ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "kill ${kill}"
-        fi
-    fi
-
 elif [ "${cmd}" == 'stop' ]
 then
     ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
+elif [ "${cmd}" == 'cli' ]
+then
+    if [ "${kill}" == '' ]
+    then
+        if [ "${list}" == '' ]
+        then
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file"
+        else
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "list ${list}"
+            exit 0
+        fi
+    else
+       ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.CLI "$jar_file" "kill ${kill}"
+    fi
 else
     echo "${help}"
 fi
