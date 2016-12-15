@@ -22,13 +22,13 @@ Run single Mist job:
      --parameters <json>             parameters for Mist job in JSON format
 
 Manage job and workers:
-./mist start cli
+./mist cli
 
-    --list workers                   list all started workers
-    --list jobs                      list all started jobs
-    --kill all                       kill all workers
-    --kill worker <namespace>        kill named worker
-    --kill job <external id>         kill named job
+    list workers                   list all started workers
+    list jobs                      list all started jobs
+    kill all                       kill all workers
+    kill worker <namespace>        kill named worker
+    kill job <external id>         kill named job
 ```
 
 
@@ -64,7 +64,7 @@ Also you can run CLI commands from shell
 start jobs
 
 ```
-./mist start cli
+./mist cli
 
 mist>start job configs/myconf.conf streaming-1 job1
 mist>start job configs/myconf.conf streaming-2 job2
@@ -75,7 +75,7 @@ list all running workers
 
 
 ```
-./mist start cli --list workers
+./mist cli list workers
 
 list workers
 NAMESPACE	ADDRESS
@@ -91,7 +91,7 @@ list all running jobs
 
 
 ```
-./mist start cli --list jobs
+./mist cli list jobs
 
 list jobs
 NAMESPACE	EXTERNAL ID
@@ -106,7 +106,7 @@ kill worker “streaming1”
 
 
 ```
-./mist start cli --kill worker streaming1
+./mist cli kill worker streaming1
 
 kill worker streaming1
 NAMESPACE	ADDRESS
@@ -121,7 +121,7 @@ kill job “job2”
 
 
 ```
-./mist start cli --kill job job3
+./mist cli kill job job3
 
 kill job job3
 NAMESPACE	EXTERNAL ID
@@ -130,7 +130,7 @@ Job job3 is scheduled for shutdown. It may take a while.
 streaming3	job3
 exit
 
-./mist start cli --list jobs         
+./mist cli list jobs         
 list jobs 
 NAMESPACE	EXTERNAL ID
 streaming2	job2
