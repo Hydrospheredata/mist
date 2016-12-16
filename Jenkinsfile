@@ -58,13 +58,13 @@ def test_mist(sparkVersion) {
       sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
       sh "docker start ${mistId}"
       sh "docker logs -f ${mistId}"
-      sh "docker rm -f ${mistId}"
 
     def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true)
     echo "Build flag: ${checkExitCode}"
     if ( checkExitCode == '1' ) {
       throw new RuntimeException("1")
     }
+      sh "docker rm -f ${mistId}"
 
     echo 'remove containers'
     mosquitto.stop()
