@@ -62,7 +62,7 @@ def test_mist(sparkVersion) {
     def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true)
     echo "Build flag: ${checkExitCode}"
     if ( checkExitCode == 1 ) {
-      currentBuild.result = "FAILURE"
+      error("Tests failed")
     }
       sh "docker rm -f ${mistId}"
 
