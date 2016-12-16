@@ -56,19 +56,22 @@ def test_mist(sparkVersion) {
     def hdfs = docker.image('hydrosphere/hdfs:latest').run("--volumes-from ${mistVolume.id}", "start")
     echo 'Testing Mist with Spark version: ' + sparkVersion
     def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
-    def mistCp = sh(returnStatus: true, script: "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist") == 0
-    echo "Build flag: ${mistCp}"
-    def mistStart = sh(returnStatus: true, script: "docker start ${mistId}") == 0
-    echo "Build flag2: ${mistStart}"
-    def mistLogs = sh(returnStatus: true, script: "docker logs -f ${mistId}") == 0
-    echo "Build flag3: ${mistLogs}"
-    def mistRmRf = sh(returnStatus: true, script: "docker rm -f ${mistId}") == 0
-    echo "Build flag4: ${mistRmRf}"
+      sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
+      sh "docker start ${mistId}"
+      sh "docker logs -f ${mistId}"
+      sh "docker rm -f ${mistId}"
 
     echo 'remove containers'
     mosquitto.stop()
     mistVolume.stop()
     hdfs.stop()
+
+    def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStatus: true)
+    echo "Build flag: ${checkExitCode}"
+    if ( checkExitCode == '1' ) {
+      throw new RuntimeException("1")
+    }
+
 }
 
 def build_image(sparkVersion) {
