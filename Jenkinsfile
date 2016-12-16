@@ -49,6 +49,7 @@ node {
 }
 
 def test_mist(sparkVersion) {
+    error("Tests failed")
     echo 'prepare for Mist with Spark version - ' + sparkVersion
     def mosquitto = docker.image('ansi/mosquitto:latest').run()
     def mistVolume = docker.image("hydrosphere/mist:tests-${sparkVersion}").run("-v /usr/share/mist")
@@ -61,9 +62,9 @@ def test_mist(sparkVersion) {
 
     def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true)
     echo "Build flag: ${checkExitCode}"
-    if ( checkExitCode == 1 ) {
-      error("Tests failed")
-    }
+    // if ( checkExitCode == 1 ) {
+    //       error("Tests failed")
+    // }
       sh "docker rm -f ${mistId}"
 
     echo 'remove containers'
