@@ -1,7 +1,6 @@
 node {
   wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
 
-    currentBuild.result = "SUCCESS"
     try {
       stage('clone project') {
         checkout scm
@@ -61,16 +60,16 @@ def test_mist(sparkVersion) {
       sh "docker logs -f ${mistId}"
       sh "docker rm -f ${mistId}"
 
-    echo 'remove containers'
-    mosquitto.stop()
-    mistVolume.stop()
-    hdfs.stop()
-
-    def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStatus: true)
+    def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true)
     echo "Build flag: ${checkExitCode}"
     if ( checkExitCode == '1' ) {
       throw new RuntimeException("1")
     }
+
+    echo 'remove containers'
+    mosquitto.stop()
+    mistVolume.stop()
+    hdfs.stop()
 
 }
 
