@@ -70,7 +70,6 @@ def test_mist(sparkVersion) {
     mosquitto.stop()
     mistVolume.stop()
     hdfs.stop()
-
 }
 
 def build_image(sparkVersion) {
