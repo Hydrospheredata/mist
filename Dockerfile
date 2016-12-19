@@ -16,8 +16,8 @@ RUN apk update && \
     mv spark-${SPARK_VERSION}-bin-hadoop2.6 ${SPARK_HOME} && \
     rm spark-${SPARK_VERSION}-bin-hadoop2.6.tgz && \
     cd ${MIST_HOME} && \
-    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly && \
-    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package && \
+    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly </dev/null && \
+    ./sbt/sbt -DsparkVersion=${SPARK_VERSION} "project examples" package </dev/null && \
     chmod +x /docker-entrypoint.sh 
 
 EXPOSE 2003
