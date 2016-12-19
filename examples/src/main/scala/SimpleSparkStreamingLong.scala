@@ -1,11 +1,10 @@
 import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
-
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._
 
 import scala.collection.mutable
 
-object SimpleSparkStreaming extends MistJob with MQTTPublisher {
+object SimpleSparkStreamingLong extends MistJob with MQTTPublisher {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
@@ -34,7 +33,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
 
     ssc.start()
 
-    for (i <- 1 to 50) {
+    for (i <- 1 to 3000) {
       rddQueue.synchronized {
         rddQueue += ssc.sparkContext.makeRDD(1 to 1000, 10)
       }

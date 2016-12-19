@@ -4,7 +4,6 @@ import java.util.concurrent.Executors.newFixedThreadPool
 
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.WorkerDidStart
-import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
@@ -23,8 +22,6 @@ class JobRunnerNode(path:String, className: String, namespace: String, externalI
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress = cluster.selfAddress
-
-  lazy val contextWrapper = ContextBuilder.namedSparkContext(namespace)
 
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)

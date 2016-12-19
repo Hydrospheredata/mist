@@ -33,14 +33,14 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
   object StartMist {
-  val threadMaster = {
-    new Thread {
-      override def run() = {
-        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+    val threadMaster = {
+      new Thread {
+        override def run() = {
+          s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+        }
       }
     }
   }
-}
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
@@ -114,7 +114,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {

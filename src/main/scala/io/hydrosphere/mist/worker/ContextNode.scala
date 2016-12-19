@@ -2,21 +2,22 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 
+import akka.actor.{Actor, ActorLogging, Props}
+import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
-import akka.cluster.Cluster
-import akka.actor.{Actor, ActorLogging, Props}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Random, Success}
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
-  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  implicit val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
   private val cluster = Cluster(context.system)
 
@@ -36,32 +37,96 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
+  lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
+
+  type NamedActors = (String,  () => Unit)
+  lazy val namedJobCancellators = ArrayBuffer.empty[NamedActors]
+
   override def receive: Receive = {
+
     case jobRequest: FullJobConfiguration =>
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
       lazy val runner = Runner(jobRequest, contextWrapper)
 
-      val future: Future[Either[Map[String, Any], String]] = Future {
-        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+      val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
+
+      def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
+        val p = Promise[T]
+        val first = Future firstCompletedOf Seq(p.future, f)
+        val cancellation: () => Unit = {
+          () =>
+            first onFailure { case _ => {
+              cancellationCode
+              originalSender ! Right("Canceled")
+            }}
+            p failure new Exception
+        }
+        (cancellation, first)
+      }
+
+      val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
+        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
+        }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
+
         runner.run()
       }(executionContext)
-      future
+
+      val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
+        jobDescriptions -= jobDescription
+        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+          serverActor ! RemoveJobFromRecovery(runner.id)
+        }
+        runner.stop()
+      }
+
+      jobDescriptions += jobDescription
+
+      namedJobCancellators += ((jobDescription.externalId, () => { cancel() }))
+
+      cancellableRunnerFuture
         .recover {
           case e: Throwable => originalSender ! Right(e.toString)
         }(ExecutionContext.global)
         .andThen {
-          case _ =>
-            if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite())
+          case _ => {
+            jobDescriptions -= jobDescription
+            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
+            }
+          }
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
+
+    case ListMessage(message) =>
+      val originalSender = sender
+      if(message.contains(Constants.CLI.listJobsMsg)) {
+        val cliActor = cluster.system.actorSelection(message.substring(Constants.CLI.listJobsMsg.length))
+        jobDescriptions.foreach {
+          case jobDescription: JobDescription => {
+            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker}${jobDescription.namespace}\t${jobDescription.externalId}")
+          }
+        }
+      }
+
+    case StringMessage(message) =>
+      val originalSender = sender
+      if(message.contains(Constants.CLI.stopJobMsg)) {
+        jobDescriptions.foreach {
+          case jobDescription: JobDescription => {
+            if(message.contains(jobDescription.externalId)) {
+              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId} is scheduled for shutdown. It may take a while.")
+              namedJobCancellators.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
+            }
+          }
+        }
+      }
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {

@@ -208,7 +208,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "http bad patch" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -611,7 +611,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT bad path" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.requestBadPatch)
+        MQTTTest.publish(TestConfig.requestBadPath)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }
