@@ -8,8 +8,8 @@ object SimpleTextSearch extends MistJob {
 
     var data = context.textFile(path)
 
-    filters.foreach { curr_filter =>
-      data = data.filter(line => line.toUpperCase.contains(curr_filter.toUpperCase))
+    filters.foreach { currentFilter =>
+      data = data.filter(line => line.toUpperCase.contains(currentFilter.toUpperCase))
     }
 
     Map("result" -> data.collect())
