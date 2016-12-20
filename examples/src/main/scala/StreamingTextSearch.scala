@@ -1,4 +1,3 @@
-import SimpleSparkStreaming.{context, publish}
 import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._

@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.{MistJob}
+import io.hydrosphere.mist.lib.MistJob
 
 object SimpleTextSearch extends MistJob {
 
