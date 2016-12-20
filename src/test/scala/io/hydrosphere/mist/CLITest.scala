@@ -66,7 +66,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
   "CLI Workers" must {
     "list no workers" in {
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val future = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val result = Await.result(future, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg == result)
@@ -75,7 +75,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
     "start streaming and list workers" in {
       StartJobs.start()
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureThreWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val resultThreWorkers = Await.result(futureThreWorkers, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg != resultThreWorkers
@@ -86,7 +86,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     }
 
     "list thre jobs" in {
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureTwoJobs = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
         val resultTwoJobs = Await.result(futureTwoJobs, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg != resultTwoJobs
@@ -99,7 +99,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     "list two workers after kill first" in {
       cliActor ! new StringMessage(s"${Constants.CLI.stopWorkerMsg} streaming1")
 
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
         assert( Constants.CLI.noWorkersMsg != resultTwoWorkers
@@ -110,7 +110,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     }
 
     "list two jobs" in {
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureTwoJobs = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
         val resultTwoJobs = Await.result(futureTwoJobs, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg != resultTwoJobs
@@ -123,14 +123,14 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     "list two workers and one job after kill job" in {
       cliActor ! new StringMessage(s"${Constants.CLI.stopJobMsg} job2")
 
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureOneJob = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
         val resultOneJob = Await.result(futureOneJob, timeout.duration).asInstanceOf[String]
         assert(!resultOneJob.contains("job2")
           && resultOneJob.contains("job3")
         )
       }
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
         assert(!resultTwoWorkers.contains(Constants.CLI.noWorkersMsg)
@@ -145,7 +145,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
       assert(Constants.CLI.noWorkersMsg  != resultTwoWorkers)
 
       cliActor ! StopAllContexts
-      eventually(timeout(30 seconds), interval(10 seconds)) {
+      eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureNoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val resultNoWorkers = Await.result(futureNoWorkers, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg == resultNoWorkers)
