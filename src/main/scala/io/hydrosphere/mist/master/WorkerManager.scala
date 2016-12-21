@@ -114,7 +114,7 @@ private[mist] class WorkerManager extends Actor with Logger{
         sender ! new StringMessage(Constants.CLI.noWorkersMsg)
       }
       else if(message.contains(Constants.CLI.listJobsMsg) || message.contains(Constants.CLI.stopJobMsg)) {
-        sender ! new StringMessage("NAMESPACE\tEXTERNAL ID")
+        sender ! new StringMessage("TIME\tNAMESPACE\tUID\tEXTERNAL ID\tROUTER")
         workers.foreach {
           case WorkerLink(name, address) => {
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")

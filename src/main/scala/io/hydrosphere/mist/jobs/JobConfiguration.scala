@@ -9,12 +9,14 @@ sealed trait JobConfiguration
   * @param namespace         context namespace
   * @param parameters   parameters for user job
   * @param externalId  optional external id used to differ async responses from mist
+  * @param router      routerName
   */
 private[mist] case class FullJobConfiguration(path: String,
                                               className: String,
                                               namespace: String,
                                               parameters: Map[String, Any] = Map(),
-                                              externalId: Option[String] = None) extends JobConfiguration
+                                              externalId: Option[String] = None,
+                                              router: Option[String] = None) extends JobConfiguration
 
 private[mist] case class RestificatedJobConfiguration(route: String,
                                                       parameters: Map[String, Any] = Map(),

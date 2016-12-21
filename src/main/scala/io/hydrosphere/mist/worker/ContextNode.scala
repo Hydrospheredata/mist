@@ -14,6 +14,8 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Random, Success}
+import org.joda.time.DateTime
+import java.util.Date
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
@@ -39,7 +41,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
 
-  type NamedActors = (String,  () => Unit)
+  type NamedActors = (JobDescription,  () => Unit)
   lazy val namedJobCancellators = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
@@ -50,17 +52,21 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       lazy val runner = Runner(jobRequest, contextWrapper)
 
-      val jobDescription = new JobDescription(jobRequest.namespace, jobRequest.externalId.getOrElse(""))
+      def getUID: () => String = { () => {runner.id} }
+
+      val jobDescription = new JobDescription( getUID,
+        new DateTime().toString,
+        jobRequest.namespace,
+        jobRequest.externalId,
+        jobRequest.router
+      )
 
       def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
         val p = Promise[T]
         val first = Future firstCompletedOf Seq(p.future, f)
         val cancellation: () => Unit = {
           () =>
-            first onFailure { case _ => {
-              cancellationCode
-              originalSender ! Right("Canceled")
-            }}
+            first onFailure { case _ => cancellationCode }
             p failure new Exception
         }
         (cancellation, first)
@@ -81,11 +87,12 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           serverActor ! RemoveJobFromRecovery(runner.id)
         }
         runner.stop()
+        originalSender ! Right("Canceled")
       }
 
       jobDescriptions += jobDescription
 
-      namedJobCancellators += ((jobDescription.externalId, () => { cancel() }))
+      namedJobCancellators += ((jobDescription, cancel))
 
       cancellableRunnerFuture
         .recover {
@@ -110,7 +117,12 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         val cliActor = cluster.system.actorSelection(message.substring(Constants.CLI.listJobsMsg.length))
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker}${jobDescription.namespace}\t${jobDescription.externalId}")
+            cliActor ! new StringMessage(s"${Constants.CLI.jobMsgMarker}" +
+              s"${jobDescription.Time}\t" +
+              s"${jobDescription.namespace}\t" +
+              s"${jobDescription.UID()}\t" +
+              s"${jobDescription.externalId.getOrElse("None")}\t" +
+              s"${jobDescription.router.getOrElse("None")}")
           }
         }
       }
@@ -120,9 +132,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       if(message.contains(Constants.CLI.stopJobMsg)) {
         jobDescriptions.foreach {
           case jobDescription: JobDescription => {
-            if(message.contains(jobDescription.externalId)) {
-              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId} is scheduled for shutdown. It may take a while.")
-              namedJobCancellators.filter(x => x._1 == jobDescription.externalId).foreach(f => f._2())
+            if(message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
+              || message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.UID())) {
+              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.UID()}" +
+                s" is scheduled for shutdown. It may take a while.")
+              namedJobCancellators.filter(x => x._1.UID() == jobDescription.UID()).foreach(f => f._2())
             }
           }
         }

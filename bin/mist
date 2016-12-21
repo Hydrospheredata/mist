@@ -33,7 +33,7 @@ Usage:
              kill
                   all                      kill all workers
                   worker <namespace>       kill named worker
-                  job <external id>        kill named job
+                  job <external id|UID>    kill named job
 
   Stop Mist daemon:
   ./mist stop

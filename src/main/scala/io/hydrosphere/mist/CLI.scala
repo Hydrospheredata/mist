@@ -80,15 +80,15 @@ private[mist] object CLI extends App {
         sys.exit(0)
       }
       case _ => {
-        println(s" ---------------------------------------------------------- \n" +
+        println(s" ----------------------------------------------------------------- \n" +
           s"|             Mist Command Line Interface                  | \n" +
-          s"---------------------------------------------------------- \n" +
+          s" ----------------------------------------------------------------- \n" +
           s"${Constants.CLI.startJob} <config> <router> <extId> \t start job \n" +
           s"${Constants.CLI.listWorkersMsg} \t \t \t \t List all started workers \n" +
           s"${Constants.CLI.listJobsMsg} \t \t \t \t List all started jobs \n" +
           s"${Constants.CLI.stopAllWorkersMsg} \t \t \t \t Stop all workers \n" +
-          s"${Constants.CLI.stopWorkerMsg} <name> \t \t \t Stop worker by name \n" +
-          s"${Constants.CLI.stopJobMsg} <extId> \t \t \t Stop job by external id \n" +
+          s"${Constants.CLI.stopWorkerMsg} <namespace> \t \t \t Stop worker by namespace \n" +
+          s"${Constants.CLI.stopJobMsg} <extId|UID> \t \t \t Stop job by external id or UID\n" +
           s"${Constants.CLI.exitMsg} \t \n")
       }
     }

@@ -52,7 +52,8 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
               config.className,
               config.namespace,
               externalId,
-              jobRequestParams)),
+              jobRequestParams,
+              Option(jobRoute))),
           name = "JobStarter")
       } catch {
         case exc: RouteConfig.RouteNotFoundError =>

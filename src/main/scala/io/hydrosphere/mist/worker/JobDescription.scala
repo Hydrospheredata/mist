@@ -1,3 +1,7 @@
 package io.hydrosphere.mist.worker
 
-class JobDescription(val namespace: String, val externalId: String)
+private[mist] class JobDescription(val UID: () => String,
+                                   val Time: String,
+                                   val namespace: String,
+                                   val externalId: Option[String] = None,
+                                   val router: Option[String] = None)

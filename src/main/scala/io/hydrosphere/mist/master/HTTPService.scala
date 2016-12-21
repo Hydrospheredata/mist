@@ -45,7 +45,7 @@ private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
   }
 
   // JSON to JobConfiguration mapper (6 fields)
-  implicit val jobCreatingRequestFormat = jsonFormat5(FullJobConfiguration)
+  implicit val jobCreatingRequestFormat = jsonFormat6(FullJobConfiguration)
   implicit val jobCreatingRestificatedFormat = jsonFormat3(RestificatedJobConfiguration)
   implicit val jobResultFormat = jsonFormat4(JobResult)
 
@@ -126,7 +126,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
   def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, FullJobConfiguration] = {
     try {
       val config = RouteConfig(jobRoute)
-      Right(FullJobConfiguration(config.path, config.className, config.namespace, jobRequestParams))
+      Right(FullJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Option(jobRoute)))
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
       case exc: Throwable => Left(ConfigError(exc.toString))
