@@ -75,7 +75,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
     "start streaming and list workers" in {
       StartJobs.start()
-      eventually(timeout(90 seconds), interval(10 seconds)) {
+      eventually(timeout(180 seconds), interval(10 seconds)) {
         val futureThreWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
         val resultThreWorkers = Await.result(futureThreWorkers, timeout.duration).asInstanceOf[String]
         assert(Constants.CLI.noWorkersMsg != resultThreWorkers
