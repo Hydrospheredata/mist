@@ -69,9 +69,9 @@ private[mist] class MqttPubSub(connectionUrl: String) extends Actor with Logger{
           t ! msg
           context watch t
           try {
-            client.subscribe(MistConfig.MQTT.publishTopic, 0, None, MqttPubSub.SubscribeListener)
+            client.subscribe(MistConfig.MQTT.subscribeTopic, 0, None, MqttPubSub.SubscribeListener)
           } catch {
-            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.publishTopic}", e)
+            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.subscribeTopic}", e)
           }
       }
 
