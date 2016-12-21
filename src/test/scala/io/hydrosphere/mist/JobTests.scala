@@ -132,7 +132,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with Json
 
   test("FileNotFoundException") {
       intercept[java.lang.Exception] {
-        val json = TestConfig.requestBadPatch.parseJson
+        val json = TestConfig.requestBadPath.parseJson
         val jobConfiguration = json.convertTo[FullJobConfiguration]
         Runner(jobConfiguration, contextWrapper)
       }

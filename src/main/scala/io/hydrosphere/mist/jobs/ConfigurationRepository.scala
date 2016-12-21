@@ -1,9 +1,8 @@
 package io.hydrosphere.mist.jobs
 
-import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.{Logger, MistConfig}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
-import io.hydrosphere.mist.Logger
 
 private[mist] trait ConfigurationRepository extends Logger{
   def add(jobId: String, jobConfiguration: FullJobConfiguration): Unit

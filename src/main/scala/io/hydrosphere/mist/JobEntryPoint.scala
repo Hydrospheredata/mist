@@ -30,13 +30,19 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
             args(3),
             Map().empty)),
         name = "JobStarter")
-    } else if (args.length == 1 || args.length == 2) {
+    } else if (args.length == 1 || args.length == 2 || args.length == 3) {
       val jobRoute = args(0)
       val jobRequestParams = if (args.length == 2) {
         args(1).toString.parseJson.convertTo[Map[String, Any]]
       } else {
         Map.empty[String, Any]
       }
+      val externalId = if (args.length == 3) {
+        args(2).toString
+      } else {
+        ""
+      }
+
       try {
         val config = RouteConfig(jobRoute)
         system.actorOf(
@@ -45,8 +51,9 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
               config.path,
               config.className,
               config.namespace,
-              "",
-              jobRequestParams)),
+              externalId,
+              jobRequestParams,
+              Option(jobRoute))),
           name = "JobStarter")
       } catch {
         case exc: RouteConfig.RouteNotFoundError =>

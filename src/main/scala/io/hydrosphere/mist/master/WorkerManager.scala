@@ -3,18 +3,17 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, AddressFromURIString}
-import akka.pattern.ask
+import akka.actor.{Actor, ActorPath, AddressFromURIString}
 import akka.cluster.Cluster
-import io.hydrosphere.mist.{Logger, MistConfig, Worker}
-
-import scala.concurrent.duration.FiniteDuration
+import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.{Constants, Logger, MistConfig, Worker}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 import scala.sys.process._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor with Logger{
@@ -80,11 +79,61 @@ private[mist] class WorkerManager extends Actor with Logger{
     if (workers.contains(name)) {
       val address = workers(name).address
       workers -= WorkerLink(name, address)
-      cluster.leave(AddressFromURIString(address))
+      cluster.down(AddressFromURIString(address))
     }
   }
 
+  private var cliActorPath: ActorPath = _
+
   override def receive: Receive = {
+
+    case StringMessage(message) =>
+      if(message.contains(Constants.CLI.cliActorName)) {
+        cliActorPath = sender.path
+      }
+      else if(message.contains(Constants.CLI.jobMsgMarker)) {
+        try {
+          val cliActor = cluster.system.actorSelection(cliActorPath)
+          cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
+        }
+      }
+      else if(message.contains(Constants.CLI.stopJobMsg)) {
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            try {
+              val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+              remoteActor ! new StringMessage(message)
+            }
+          }
+        }
+      }
+
+    case ListMessage(message) => {
+      cliActorPath = sender.path
+      if(workers.isEmpty) {
+        sender ! new StringMessage(Constants.CLI.noWorkersMsg)
+      }
+      else if(message.contains(Constants.CLI.listJobsMsg) || message.contains(Constants.CLI.stopJobMsg)) {
+        sender ! new StringMessage("TIME\tNAMESPACE\tUID\tEXTERNAL ID\tROUTER")
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            remoteActor ! new ListMessage(Constants.CLI.listJobsMsg + sender.path)
+          }
+        }
+      }
+      else {
+        sender ! new StringMessage("NAMESPACE\tADDRESS")
+        workers.foreach {
+          case WorkerLink(name, address) => {
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            sender ! new StringMessage(s"$name\t$address")
+          }
+        }
+        sender ! new StringMessage(Constants.CLI.jobMsgMarker + "it's all workers")
+      }
+    }
+
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 

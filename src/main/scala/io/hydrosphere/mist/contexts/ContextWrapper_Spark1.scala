@@ -3,11 +3,11 @@ package io.hydrosphere.mist.contexts
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.sql._
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.hive.test.TestHiveContext
-import org.apache.spark.sql._
+import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
 

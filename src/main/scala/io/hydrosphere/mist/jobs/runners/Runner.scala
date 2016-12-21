@@ -1,11 +1,11 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.{Constants, Logger}
+import io.hydrosphere.mist.Logger
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
 
 
 private[mist] trait Runner extends Logger {
@@ -24,6 +24,9 @@ private[mist] trait Runner extends Logger {
 
   def run(): Either[Map[String, Any], String]
 
+  def stop(): Unit = {
+    _status = Runner.Status.Stopped
+  }
 }
 
 private[mist] object Runner {

@@ -2,10 +2,10 @@ package io.hydrosphere.mist.master
 
 
 import akka.actor.Actor
-import io.hydrosphere.mist.master.mqtt.{MqttPubSub, MqttPubSubActor}
-import MqttPubSub.Publish
-import io.hydrosphere.mist.{MistConfig,Logger}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
+import io.hydrosphere.mist.master.mqtt.MqttPubSub.Publish
+import io.hydrosphere.mist.master.mqtt.MqttPubSubActor
+import io.hydrosphere.mist.{Logger, MistConfig}
 import org.json4s.jackson.Serialization
 
 case object StartRecovery

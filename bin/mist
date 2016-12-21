@@ -25,6 +25,16 @@ Usage:
       --route <route>                 Mist route (see https://github.com/Hydrospheredata/mist/blob/master/docs/routes.md)
       --parameters <json>             parameters for Mist job in JSON format
 
+  Manage job and workers:
+  ./mist cli
+             list
+                  workers                  list all started workers
+                  jobs                     list all started jobs
+             kill
+                  all                      kill all workers
+                  worker <namespace>       kill named worker
+                  job <external id|UID>    kill named job
+
   Stop Mist daemon:
   ./mist stop
 
@@ -51,6 +61,11 @@ fi
 
 cmd=$1
 app=$2
+
+if [ "${app}" == 'list' ] || [ "${app}" == 'kill' ]
+then
+    app="$2 $3 $4"
+fi
 
 shift
 shift
@@ -118,10 +133,27 @@ do
       route="$2"
       shift
       ;;
+
   esac
 
 shift
 done
+
+if [ "${jar_file}" == '' ]
+then
+    MAX_VERSION=0
+    MAX_VERSION_FILE=""
+    for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
+    do
+        a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
+        if [[ ${a} > ${MAX_VERSION} ]]
+        then
+            MAX_VERSION=${a}
+            MAX_VERSION_FILE=${jar}
+        fi
+    done
+    jar_file=${MAX_VERSION_FILE}
+fi
 
 if [ "${cmd}" == 'start' ]
 then
@@ -131,21 +163,7 @@ then
         config_file="${MIST_HOME}/configs/default.conf"
     fi
 
-    if [ "${jar_file}" == '' ]
-    then
-        MAX_VERSION=0
-        MAX_VERSION_FILE=""
-        for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
-        do
-            a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
-            if [[ ${a} > ${MAX_VERSION} ]]
-            then
-                MAX_VERSION=${a}
-                MAX_VERSION_FILE=${jar}
-            fi
-        done
-        jar_file=${MAX_VERSION_FILE}
-    fi
+
 
     if [ "${config_file}" == '' ] || [ "${jar_file}" == '' ]
     then
@@ -218,13 +236,16 @@ then
         then
             ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}"
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}" "${external_id}"
         fi
     fi
 
 elif [ "${cmd}" == 'stop' ]
 then
     ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
+elif [ "${cmd}" == 'cli' ]
+then
+    java -cp "$jar_file" io.hydrosphere.mist.CLI "${app}"
 else
     echo "${help}"
 fi
