@@ -1,3 +1,4 @@
+[![Build Status](https://jenkins.hydrosphere.io/buildStatus/icon?job=hydrosphere/mist/master)](https://jenkins.hydrosphere.io/job/hydrosphere/job/mist/job/master/)
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg)](https://travis-ci.org/Hydrospheredata)
 [![Coverage Status](https://coveralls.io/repos/github/Hydrospheredata/mist/badge.svg?branch=master)](https://coveralls.io/github/Hydrospheredata/mist?branch=master)
 [![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/)
@@ -101,6 +102,7 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 | 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.6.5          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.7.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
@@ -121,17 +123,19 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 
 ## More docs
 
-- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
-- [REST API](/docs/routes.md)
-- [Streaming API](/docs/reactive.md)
+- [Changelog](/CHANGELOG)
+- [CLI](/docs/cli.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
+- [License](/LICENSE)
+- [Logging](/docs/logger.md)
 - [Low level API Reference](/docs/api-reference.md)
 - [Namespaces](/docs/context-namespaces.md)
-- [Logging](/docs/logger.md)
+- [Reactive API](/docs/reactive.md)
+- [REST API](/docs/routes.md)
+- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
+- [Streaming](/docs/streaming.md)
 - [Tests](/docs/tests.md)
-- [License](/LICENSE)
-- [Changelog](/CHANGELOG)
 
 ## Contact
 
