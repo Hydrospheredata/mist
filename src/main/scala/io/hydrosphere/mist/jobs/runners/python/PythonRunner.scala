@@ -8,7 +8,7 @@ import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
 import py4j.GatewayServer
 
-import sys.process._
+import scala.sys.process._
 
 class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
   override val configuration: FullJobConfiguration = jobConfiguration

@@ -16,4 +16,8 @@ private[mist] object Messages {
 
   case class RemoveJobFromRecovery(jobId: String)
 
+  case class ListMessage(message: String)
+
+  case class StringMessage(workers: String)
+
 }

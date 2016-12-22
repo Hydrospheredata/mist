@@ -141,8 +141,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         systemW.actorOf(ContextNode.props("foo"), name = "foo")
         Thread.sleep(5000)
 
-       // val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
-
         val future = workerTestActor.ask(WorkerIsUp)(timeout = 1.day)
         var success = false
         future
@@ -206,7 +204,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             http_response_success = false
         }
         Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -214,7 +212,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       "http bad patch" in {
 
         var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
+        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
         val future_response = clientHTTP.singleRequest(httpRequest)
         future_response onComplete {
           case Success(msg) => msg match {
@@ -257,8 +255,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             http_response_success = false
         }
 
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -282,8 +280,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -306,8 +304,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -356,8 +354,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -383,8 +381,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -410,8 +408,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -512,8 +510,8 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
             println(e)
             http_response_success = false
         }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(10 seconds), interval(1 second)) {
+        Await.result(future_response, 30.seconds)
+        eventually(timeout(30 seconds), interval(1 second)) {
           assert(http_response_success)
         }
       }
@@ -617,7 +615,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
       "MQTT bad path" in {
         MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.requestBadPatch)
+        MQTTTest.publish(TestConfig.requestBadPath)
         eventually(timeout(60 seconds), interval(1 second)) {
           assert(!MqttSuccessObj.success)
         }

@@ -20,8 +20,8 @@ import spray.json.{DefaultJsonProtocol, DeserializationException, pimpString}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
+import scala.sys.process._
 import scala.util.{Failure, Success}
-import sys.process._
 
 class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
 
@@ -33,14 +33,14 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
 
   object StartMist {
-  val threadMaster = {
-    new Thread {
-      override def run() = {
-        s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+    val threadMaster = {
+      new Thread {
+        override def run() = {
+          s"./bin/mist start master --config configs/integration.conf --jar ${TestConfig.assemblyJar}" !
+        }
       }
     }
   }
-}
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
@@ -80,11 +80,15 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
     StartMist.threadMaster.start()
 
-    Thread.sleep(10000)
+    Thread.sleep(30000)
   }
 
+ // test("Hello mr.Jenkins") {
+ //   assert(false)
+ // }
 
   test("HTTP bad request") {
+
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
     val future_response = clientHTTP.singleRequest(httpRequest)
@@ -102,15 +106,15 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
 
   test("HTTP bad patch") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPatch))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -128,8 +132,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 20.seconds)
-    eventually(timeout(20 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -152,8 +156,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         http_response_success = false
     }
 
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -176,8 +180,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
         println(e)
         http_response_success = false
     }
-    Await.result(future_response, 10.seconds)
-    eventually(timeout(10 seconds), interval(1 second)) {
+    Await.result(future_response, 30.seconds)
+    eventually(timeout(30 seconds), interval(1 second)) {
       assert(http_response_success)
     }
   }
@@ -185,7 +189,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   override def afterAll(): Unit ={
 
     "./bin/mist stop" !
-    
+
     TestKit.shutdownActorSystem(system)
 
     StartMist.threadMaster.join()

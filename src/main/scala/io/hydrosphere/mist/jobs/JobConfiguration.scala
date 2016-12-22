@@ -27,6 +27,7 @@ abstract class RestificatedJobConfiguration extends JobConfiguration {
 private[mist] case class MistJobConfiguration(path: String,
                                               className: String,
                                               namespace: String,
+                                              router: Option[String] = None) extends JobConfiguration
                                               override val parameters: Map[String, Any] = Map(),
                                               override val externalId: Option[String] = None) extends FullJobConfiguration
 

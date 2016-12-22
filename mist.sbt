@@ -9,8 +9,6 @@ name := "mist"
 
 organization := "io.hydrosphere"
 
-version := "0.6.6"
-
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
@@ -46,16 +44,13 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
-  "org.scalactic" %% "scalactic" % "2.2.6",
-  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
+  "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.2",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
-  "io.circe" %% "circe-core" % "0.6.1",
-  "io.circe" %% "circe-generic" % "0.6.1",
-  "io.circe" %% "circe-parser" % "0.6.1"
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive()
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"

@@ -1,3 +1,12 @@
+2016-12-21 Mist v0.7.0
+
+    Managing workers and jobs via CLI
+    Jenkins
+
+2016-11-29 Mist v0.6.5
+
+    Manual worker runner
+
 2016-11-22 Mist v0.6.4
 
     Fix workers on docker

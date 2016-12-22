@@ -40,15 +40,6 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
         case _: ServingJobConfiguration =>
           Left(objectRef.asInstanceOf[MLMistJob].serve(configuration.parameters))
       }
-//      val result = objectRef match {
-//        case objectRef: MistJob =>
-//          objectRef.setup(contextWrapper)
-//          Left(objectRef.doStuff(configuration.parameters))
-//        case objectRef: MLMistJob =>
-//          objectRef.setup(contextWrapper)
-//          Left(objectRef.train(configuration.parameters))
-//        case _ => Right(Constants.Errors.notJobSubclass)
-//      }
 
       _status = Runner.Status.Stopped
 

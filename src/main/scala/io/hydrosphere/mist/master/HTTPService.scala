@@ -3,12 +3,15 @@ package io.hydrosphere.mist.master
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.stream.ActorMaterializer
+import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
+import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
 import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
@@ -22,6 +25,7 @@ import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration.FiniteDuration
+import scala.language.reflectiveCalls
 
 
 /** HTTP interface */

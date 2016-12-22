@@ -6,6 +6,7 @@ import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages.WorkerDidStart
 import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
 import io.hydrosphere.mist.jobs.MistJobConfiguration
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Address, Props}
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -13,7 +14,12 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.util.Random
 
-class JobRunnerNode(path:String, className: String, namespace: String, externalId: String, parameters: Map[String, Any]) extends Actor with ActorLogging {
+class JobRunnerNode(path:String,
+                    className: String,
+                    namespace: String,
+                    externalId: String,
+                    parameters: Map[String, Any],
+                    router: Option[String] = None) extends Actor with ActorLogging {
 
   val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 

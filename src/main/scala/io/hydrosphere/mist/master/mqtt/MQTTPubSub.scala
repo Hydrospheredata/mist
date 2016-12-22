@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.mqtt
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import io.hydrosphere.mist.{Constants, Logger, MistConfig}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import org.eclipse.paho.client.mqttv3.{IMqttActionListener, IMqttDeliveryToken, IMqttToken, MqttAsyncClient, MqttCallback, MqttConnectOptions, MqttMessage}
+import org.eclipse.paho.client.mqttv3._
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, DurationInt}
@@ -69,9 +69,9 @@ private[mist] class MQTTPubSub(connectionUrl: String) extends Actor with Logger{
           t ! msg
           context watch t
           try {
-            client.subscribe(MistConfig.MQTT.publishTopic, 0, None, MQTTPubSub.SubscribeListener)
+            client.subscribe(MistConfig.MQTT.subscribeTopic, 0, None, MQTTPubSub.SubscribeListener)
           } catch {
-            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.publishTopic}", e)
+            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.subscribeTopic}", e)
           }
       }
 

@@ -11,8 +11,8 @@ import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
