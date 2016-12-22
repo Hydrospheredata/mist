@@ -36,6 +36,7 @@ class JobRunnerNode(path:String, className: String, namespace: String, externalI
   }
 
   override def receive: Receive = {
+    // TODO: train|serve
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
         serverActor ! MistJobConfiguration(path, className, namespace, parameters, Option(externalId))

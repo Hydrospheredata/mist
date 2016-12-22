@@ -1,11 +1,11 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
-import io.hydrosphere.mist.utils.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.JobRunnerNode
 import spray.json.pimpString
 
-private[mist] object JobEntryPoint extends App with Logger with JsonFormatSupport{
+private[mist] object JobEntryPoint extends App with Logger with JobConfigurationJsonSerialization{
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
@@ -41,6 +41,7 @@ private[mist] object JobEntryPoint extends App with Logger with JsonFormatSuppor
         val config = RouteConfig(jobRoute)
         system.actorOf(
           Props(
+            // TODO: train/serve
             new JobRunnerNode(
               config.path,
               config.className,

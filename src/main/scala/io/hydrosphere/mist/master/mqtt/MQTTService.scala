@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.utils.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
@@ -23,7 +23,7 @@ private[mist] trait MQTTPubSubActor { this: Actor =>
   val pubsub: ActorRef = context.actorOf(Props(classOf[MQTTPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
 }
 
-private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JsonFormatSupport with Logger{
+private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JobConfigurationJsonSerialization with Logger{
 
   private object IncomingMessageIsJobRequest extends Exception
 
@@ -49,6 +49,7 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Jso
       val jobResult = try {
         val json = stringMessage.parseJson
         // map request into JobConfiguration
+        // TODO: training/serve 
         val jobCreatingRequest = try {
           json.convertTo[MistJobConfiguration]
         } catch {

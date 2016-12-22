@@ -26,7 +26,7 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
-import io.hydrosphere.mist.utils.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DefaultJsonProtocol, pimpString}
 
 import scala.concurrent.{Await, ExecutionContext}
@@ -82,7 +82,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   }
 }
 
-class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol with HTTPService{
+class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService{
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)

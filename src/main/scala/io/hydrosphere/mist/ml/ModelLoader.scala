@@ -1,20 +1,22 @@
 package io.hydrosphere.mist.ml
 
-import org.apache.spark.ml.Transformer
+import io.hydrosphere.mist.utils.json.ModelMetadataJsonSerialization
+import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.ml.classification.MultilayerPerceptronClassificationModel
-import org.apache.spark.ml.linalg.{Vector, Vectors}
 
-import scala.collection.immutable.HashMap
 import scala.io.Source
+//import io.circe._
+//import io.circe.parser._
+//import io.circe.generic.semiauto._
+//import cats.syntax.either._
+import io.hydrosphere.mist.Logger
+import io.hydrosphere.mist.ml.transformers.TransformerFactory
 
-import io.circe._
-import io.circe.parser._
-import io.circe.generic.semiauto._
-import cats.syntax.either._
+import spray.json.{DeserializationException, pimpString}
 
-object ModelLoader {
+object ModelLoader extends Logger with ModelMetadataJsonSerialization {
 
-  case class PipelineParameters(className: String, timestamp: Long, sparkVersion: String, uid: String, paramMap: Map[String, List[String]])
+  
 
   //  {
   //    "class":"org.apache.spark.ml.PipelineModel",
@@ -25,8 +27,8 @@ object ModelLoader {
   //      "stageUids":["mlpc_c6d88c0182d5"]
   //    }
   //  }
-
-  case class StageParameters(className: String, timestamp: Long, sparkVersion: String, uid: String, paramMap: Map[String, String])
+  
+  
 
   //  {
   //    "class": "org.apache.spark.ml.classification.MultilayerPerceptronClassificationModel",
@@ -40,51 +42,71 @@ object ModelLoader {
   //    }
   //  }
 
+//  {
+//    "class": "org.apache.spark.ml.feature.HashingTF",
+//    "timestamp": 1482134164986,
+//    "sparkVersion": "2.0.0",
+//    "uid": "hashingTF_faa5eaa6dcbb",
+//    "paramMap": {
+//      "inputCol": "words",
+//      "binary": false,
+//      "numFeatures": 1000,
+//      "outputCol": "features"
+//    }
+//  }
 
-  implicit val pipelineParametersDecoder: Decoder[PipelineParameters] = deriveDecoder
-  implicit val stageParametersDecoder: Decoder[StageParameters] = deriveDecoder
+//  implicit val pipelineParametersDecoder: Decoder[PipelineParameters] = deriveDecoder
+//  implicit val stageParametersDecoder: Decoder[StageParameters] = deriveDecoder
+  
+  def get(path: String): PipelineModel = {
 
-  def get(path: String): Array[Transformer] = {
-    ModelCache.get[MultilayerPerceptronClassificationModel](path) match {
-      case Some(model) => Array(model)
-      case None =>
-        val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString.replace("class", "className")
-        println(s"$path/metadata/part-00000")
-        println(metadata)
-        val parsed = parse(metadata).getOrElse(Json.Null).as[PipelineParameters]
-        parsed match {
-          case Left(failure) =>
-            println(s"FAILURE while parsing pipeline metadata json: $failure")
-            null
-          case Right(pipelineParameters: PipelineParameters) =>
-            pipelineParameters.paramMap("stageUids").zipWithIndex.toArray.map {
-              case (uid: String, index: Int) =>
-                println(s"reading $uid stage")
-                println(s"$path/stages/${index}_$uid/metadata/part-00000")
-                val modelMetadata = Source.fromFile(s"$path/stages/${index}_$uid/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
-                println(modelMetadata)
-                val parsedModel = parse(modelMetadata).getOrElse(Json.Null).as[StageParameters]
-                parsedModel match {
-                  case Left(failure) =>
-                    println(s"FAILURE while parsing stage $uid metadata json: $failure")
-                    null
-                  case Right(stageParameters: StageParameters) =>
-                    println(s"Stage class: ${stageParameters.className}")
-                    val data = ModelDataReader.parse(s"$path/stages/${index}_$uid/data/")
+    // TODO: fix replacing 
+    val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
+    logger.debug(s"parsing $path/metadata/part-00000")
+    logger.debug(metadata)
 
-                    val cls = Class.forName(stageParameters.className)
-                    val constructor = cls.getDeclaredConstructor(classOf[String], classOf[Array[Int]], classOf[Vector])
-
-                    constructor.setAccessible(true)
-                    val now = System.currentTimeMillis
-                    val res = constructor.newInstance(uid, data("layers").asInstanceOf[List[Int]].to[Array], Vectors.dense(data("weights").asInstanceOf[HashMap[String, Any]]("values").asInstanceOf[List[Double]].toArray)).asInstanceOf[MultilayerPerceptronClassificationModel]
-                    println(s"instantiating: ${System.currentTimeMillis - now}ms")
-                    ModelCache.add[MultilayerPerceptronClassificationModel](path, res)
-                    res
-                }
-            }
-        }
+    try {
+      val pipelineParameters = metadata.parseJson.convertTo[Metadata]
+      ModelCache.get[PipelineModel](pipelineParameters.uid) match {
+        case Some(model) => model
+        case None =>
+          val stages: Array[Transformer] = getStages(pipelineParameters, path)
+          val pipeline = TransformerFactory(pipelineParameters, Map("stages" -> stages.toList)).asInstanceOf[PipelineModel]
+          ModelCache.add[PipelineModel](pipeline)
+          pipeline
+      }
+    } catch {
+      case e: DeserializationException =>
+        logger.error(s"Deserialization error while parsing pipeline metadata: $e")
+        // TODO: null! 
+        null
     }
   }
-
+  
+  def getStages(pipelineParameters: Metadata, path: String): Array[Transformer] = pipelineParameters.paramMap("stageUids").asInstanceOf[List[String]].zipWithIndex.toArray.map {
+    case (uid: String, index: Int) =>
+      logger.debug(s"reading $uid stage")
+      logger.debug(s"$path/stages/${index}_$uid/metadata/part-00000")
+      val modelMetadata = Source.fromFile(s"$path/stages/${index}_$uid/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
+      logger.debug(modelMetadata)
+      try {
+        val stageParameters = modelMetadata.parseJson.convertTo[Metadata]
+        logger.debug(s"Stage class: ${stageParameters.className}")
+        ModelCache.get(stageParameters.uid) match {
+          case Some(model) => model
+          case None =>
+            val data = ModelDataReader.parse(s"$path/stages/${index}_$uid/data/")
+            val model = TransformerFactory(stageParameters, data)
+            // TODO: check if files were changed 
+            ModelCache.add(model)
+            model
+        }
+      } catch {
+        case e: DeserializationException =>
+          logger.error(s"Deserialization error while parsing stage metadata: $e")
+          // TODO: null!
+          null
+      }
+  }
+  
 }

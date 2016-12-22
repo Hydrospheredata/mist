@@ -19,13 +19,13 @@ import scala.language.reflectiveCalls
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
-import io.hydrosphere.mist.utils.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration.FiniteDuration
 
 
 /** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport with Logger{
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger{
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -62,6 +62,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
                   complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
                 case Right(jobRequest: ServingJobConfiguration) =>
                   complete {
+                    // TODO: separate local running
                     val runner = new JarRunner(jobRequest, JobFile(jobRequest.path), null)
                     val result = runner.run()
                     HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(result)))

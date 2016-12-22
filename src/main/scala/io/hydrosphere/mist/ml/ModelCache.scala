@@ -1,10 +1,16 @@
 package io.hydrosphere.mist.ml
 
+import org.apache.spark.ml.Transformer
+
 import scala.collection.mutable
 
 object ModelCache {
   
   private val cache: mutable.HashMap[String, Any] = new mutable.HashMap[String, Any] 
+  
+  def add[T](model: T): Unit = {
+    add(model.asInstanceOf[Transformer].uid, model)
+  }
 
   def add[T](key: String, model: T): Unit = {
     if (!cache.contains(key)) {

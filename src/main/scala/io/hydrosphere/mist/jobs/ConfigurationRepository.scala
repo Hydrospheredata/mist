@@ -4,7 +4,7 @@ import io.hydrosphere.mist.MistConfig
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import io.hydrosphere.mist.Logger
-import io.hydrosphere.mist.utils.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json._
 
 private[mist] trait ConfigurationRepository extends Logger{
@@ -41,7 +41,7 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
   }
 }
 
-private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository with JsonFormatSupport {
+private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository with JobConfigurationJsonSerialization {
   // Db
   private lazy val db  =  DBMaker
     .fileDB(MistConfig.Recovery.recoveryDbFileName)
