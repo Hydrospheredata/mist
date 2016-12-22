@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import akka.util.Timeout
-import io.hydrosphere.mist.Messages.{ListMessage, StopAllContexts, StringMessage}
+import io.hydrosphere.mist.Messages.{ListMessage, StopAllContexts, StopMessage, StringMessage}
 import io.hydrosphere.mist.worker.CLINode
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
@@ -97,7 +97,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     }
 
     "list two workers after kill first" in {
-      cliActor ! new StringMessage(s"${Constants.CLI.stopWorkerMsg} streaming1")
+      cliActor ! new StopMessage(s"${Constants.CLI.stopWorkerMsg} streaming1")
 
       eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
@@ -121,7 +121,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     }
 
     "list two workers and one job after kill job" in {
-      cliActor ! new StringMessage(s"${Constants.CLI.stopJobMsg} job2")
+      cliActor ! new StopMessage(s"${Constants.CLI.stopJobMsg} job2")
 
       eventually(timeout(90 seconds), interval(10 seconds)) {
         val futureOneJob = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)

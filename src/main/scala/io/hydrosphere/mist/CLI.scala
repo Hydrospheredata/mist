@@ -51,14 +51,12 @@ private[mist] object CLI extends App {
         println(result)
       }
       case msg if msg.contains(Constants.CLI.stopWorkerMsg) || msg.contains(Constants.CLI.stopJobMsg) => {
-        cliActor ! new StringMessage(msg)
-        val future = cliActor ? new ListMessage(msg)
+        val future = cliActor ? new StopMessage(msg)
         val result = Await.result(future, timeout.duration).asInstanceOf[String]
         println(result)
       }
       case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) => {
-        cliActor ! StopAllContexts
-        val future = cliActor ? new ListMessage(msg)
+        val future = cliActor ? StopAllContexts
         val result = Await.result(future, timeout.duration).asInstanceOf[String]
         println(result)
       }

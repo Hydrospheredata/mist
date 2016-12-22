@@ -5,7 +5,7 @@ import java.util.concurrent.Executors._
 import akka.actor.Actor
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.{ListMessage, RemoveContext, StopAllContexts, StringMessage}
+import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.collection.mutable.ArrayBuffer
@@ -37,14 +37,23 @@ class CLINode extends Actor {
   }
 
   override def receive: Receive = {
-    case StringMessage(message) =>
+    case StopMessage(message) => {
       if(message.contains(Constants.CLI.stopWorkerMsg)) {
         serverActor ! new RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
+        sender ! s"${message} is scheduled for shutdown."
       }
       else if(message.contains(Constants.CLI.stopJobMsg)) {
-        serverActor ! new StringMessage(message)
+        messageArray.clear()
+        val originalSender = sender
+        serverActor ! new StopMessage(message)
+        context.system.scheduler.scheduleOnce(2000 millis) {
+          originalSender ! messageArray.mkString("\r\n")
+        }
       }
-      else if(message.contains(Constants.CLI.jobMsgMarker)) {
+    }
+
+    case StringMessage(message) =>
+      if(message.contains(Constants.CLI.jobMsgMarker)) {
         messageArray += message.substring(Constants.CLI.jobMsgMarker.length)
       }
       else {
@@ -53,6 +62,7 @@ class CLINode extends Actor {
 
     case StopAllContexts =>
       serverActor ! StopAllContexts
+      sender ! "All Context is scheduled for shutdown."
 
     case ListMessage(message) =>
       messageArray.clear()

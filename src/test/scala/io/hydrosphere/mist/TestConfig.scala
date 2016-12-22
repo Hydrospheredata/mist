@@ -28,6 +28,7 @@ object TestConfig {
   val httpUrl = testConfig.getString("mist.test.http.url")
   val httpUrlIt = testConfig.getString("mist.test.http.url_it")
   val restificatedUrl = testConfig.getString("mist.test.http.restificated_url")
+  val restUIUrl = testConfig.getString("mist.test.http.rest_ui_url")
 
   val requestTestTimeout = if(OldVersion) testConfig.getString("mist.test.request.testtimeout_2_10") else testConfig.getString("mist.test.request.testtimeout_2_11")
 
@@ -47,6 +48,12 @@ object TestConfig {
   val asyncRestificatedRequest = testConfig.getString("mist.test.request.async-restificated")
   val restificatedRequest = testConfig.getString("mist.test.request.restificated")
 
+  val requestUIListWorkers = testConfig.getString("mist.test.request.rest_ui_request.list_workers")
+  val requestUIListJobs = testConfig.getString("mist.test.request.rest_ui_request.list_jobs")
+  val requestUIKillWorker = testConfig.getString("mist.test.request.rest_ui_request.kill_worker")
+  val requestUIKillJob = testConfig.getString("mist.test.request.rest_ui_request.kill_job")
+  val requestUIKillAll = testConfig.getString("mist.test.request.rest_ui_request.kill_all")
+
   val requestJarOtherContext = if(OldVersion) testConfig.getString("mist.test.request.jarother_2_10") else testConfig.getString("mist.test.request.jarother_2_11")
   val requestPyError = testConfig.getString("mist.test.request.pyerror")
   val requestBadPath = testConfig.getString("mist.test.request.badpath")
@@ -57,5 +64,7 @@ object TestConfig {
   val requestJarDisposableContext = if(OldVersion) testConfig.getString("mist.test.request.disposable_2_10") else testConfig.getString("mist.test.request.disposable_2_11")
   val disposableContextName = testConfig.getString("mist.test.disposable_context_name")
 
+  val integrationConf = testConfig.getString("mist.test.integration_conf")
   val cliConfig = if(OldVersion) testConfig.getString("mist.test.cli_conf_2_10") else testConfig.getString("mist.test.cli_conf_2_11")
+  val restUIConfig = if(OldVersion) testConfig.getString("mist.test.rest_ui_2_10") else testConfig.getString("mist.test.rest_ui_2_11")
 }
