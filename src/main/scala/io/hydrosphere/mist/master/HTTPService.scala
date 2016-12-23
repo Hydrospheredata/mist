@@ -11,7 +11,7 @@ import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
-import io.hydrosphere.mist.Messages.{ListMessage, _}
+import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
 import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
@@ -90,7 +90,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     path("internal") {
       post {
         entity(as[Map[String, String]]) { cmd =>
-          internalUI(cmd)
+          doUserInterfaceComplete(cmd)
         }
       }
     }
@@ -142,32 +142,32 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     }
   }
 
-  lazy val RestUIActor = system.actorOf(Props[CLINode], name = "InternalUIActor")
+  lazy val internalUserInterfaceActor = system.actorOf(Props[CLINode], name = Constants.CLI.internalUserInterfaceActorName)
 
-  def internalUI(cmd: Map[String, Any]): akka.http.scaladsl.server.Route  = {
+  def doUserInterfaceComplete(cmd: Map[String, Any]): akka.http.scaladsl.server.Route  = {
     respondWithHeader(RawHeader("Content-Type", "application/json"))
 
-    var com: Any = ""
-    def command: () => Any = { () => {com} }
-    lazy val future = RestUIActor.ask(command())(timeout = FiniteDuration(1, TimeUnit.MINUTES))
+    var command: Any = ""
+    def getCommand: () => Any = { () => {command} }
+    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = FiniteDuration(1, TimeUnit.MINUTES))
 
     complete {
 
       cmd("cmd") match {
         case Constants.CLI.listJobsMsg => {
-          com = new ListMessage(Constants.CLI.listJobsMsg)
+          command = new ListMessage(Constants.CLI.listJobsMsg)
         }
         case Constants.CLI.listWorkersMsg => {
-          com = new ListMessage(Constants.CLI.listWorkersMsg)
+          command = new ListMessage(Constants.CLI.listWorkersMsg)
         }
         case Constants.CLI.stopJobMsg => {
-          com = new StopMessage(s"${Constants.CLI.stopJobMsg} ${cmd("job")}")
+          command = new StopMessage(s"${Constants.CLI.stopJobMsg} ${cmd("job")}")
         }
         case Constants.CLI.stopWorkerMsg => {
-          com = new StopMessage(s"${Constants.CLI.stopWorkerMsg} ${cmd("worker")}")
+          command = new StopMessage(s"${Constants.CLI.stopWorkerMsg} ${cmd("worker")}")
         }
         case Constants.CLI.stopAllWorkersMsg => {
-          com = StopAllContexts
+          command = StopAllContexts
         }
         case _ => throw new Exception("Unknow command")
       }

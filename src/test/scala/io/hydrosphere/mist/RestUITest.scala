@@ -168,7 +168,7 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              if(msg.entity.toString.contains("kill worker streaming1 is scheduled for shutdown.")) {
+              if(msg.entity.toString.contains("Worker streaming1 is scheduled for shutdown.")) {
                 http_response_success = true
               }
             case _ =>

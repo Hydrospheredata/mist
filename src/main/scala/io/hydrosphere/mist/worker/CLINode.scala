@@ -40,7 +40,7 @@ class CLINode extends Actor {
     case StopMessage(message) => {
       if(message.contains(Constants.CLI.stopWorkerMsg)) {
         serverActor ! new RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
-        sender ! s"${message} is scheduled for shutdown."
+        sender ! s"Worker ${message.substring(Constants.CLI.stopWorkerMsg.length).trim} is scheduled for shutdown."
       }
       else if(message.contains(Constants.CLI.stopJobMsg)) {
         messageArray.clear()
