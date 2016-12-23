@@ -44,7 +44,7 @@ It implements Spark as a Service and creates a unified API layer for building en
 
         docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.0.0 mist
         
-[more about docker image](https://hub.docker.com/r/hydrosphere/mist/)
+[More about docker image](https://hub.docker.com/r/hydrosphere/mist/)
         
 ######Run example
 
@@ -54,7 +54,7 @@ sbt "project examples" package
 curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
 ```
 
-[learn more examples here](/docs/code-examples.md)
+[Complete Getting Started Guide](/docs/getting-started/README.md)
 
 ## Building from source
 
@@ -124,18 +124,22 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 
 ## More docs
 
-- [Changelog](/CHANGELOG)
+- [Getting Started](/docs/getting-started/README.md)
+- [Use Cases & Tutorials](/docs/use-cases/README.md)
+    - [Enterprise Analytics Applications](/docs/use-cases/enterprise-analytics.md)
+    - [Reactive Applications](/docs/use-cases/reactive.md)
+    - [Realtime Machine Learning Applications](/docs/use-cases/ml-realtime.md)
 - [CLI](/docs/cli.md)
+- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
+- [REST API](/docs/routes.md)
+- [Streaming API](/docs/reactive.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
 - [License](/LICENSE)
 - [Logging](/docs/logger.md)
 - [Low level API Reference](/docs/api-reference.md)
 - [Namespaces](/docs/context-namespaces.md)
-- [Reactive API](/docs/reactive.md)
-- [REST API](/docs/routes.md)
-- [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
-- [Streaming](/docs/streaming.md)
+- [Changelog](/CHANGELOG)
 - [Tests](/docs/tests.md)
 
 ## Contact
