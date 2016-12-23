@@ -660,24 +660,6 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }.start()
       }
 
-
-
   }
   override implicit def patienceConfig: PatienceConfig = PatienceConfig(Span(60, Seconds), Span(1, Second))
-}
-
-
-
-class MasterWorkerAppsTest extends WordSpecLike {
-  "Must started" must { //TODO test started apps
-    "Master App" in {
-      Master.main(Array(""))
-      Thread.sleep(20000)
-    }
-    "Worker App" in {
-      Worker.main(Array("foo"))
-
-      Thread.sleep(20000)
-    }
-  }
 }
