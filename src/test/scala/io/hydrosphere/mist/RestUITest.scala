@@ -1,7 +1,5 @@
 package io.hydrosphere.mist
 
-import java.util.concurrent.Executors.newFixedThreadPool
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
@@ -9,34 +7,29 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.{HTTPService, JsonFormatSupport}
+import io.hydrosphere.mist.master.JsonFormatSupport
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike, _}
 import spray.json.DefaultJsonProtocol
 
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 import scala.sys.process._
 import scala.util.{Failure, Success}
 
+class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually with JsonFormatSupport with DefaultJsonProtocol with ScalaFutures with Matchers {
 
-class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually with HTTPService with JsonFormatSupport with DefaultJsonProtocol with ScalaFutures with Matchers {
+  implicit val system = ActorSystem("test-mist")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  implicit val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
-
-  val systemR = ActorSystem("mist", MistConfig.Akka.CLI.settings)
-
-  override implicit val system = systemR
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()
-
-  Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
   val clientHTTP = Http(system)
 
   object StartMist {
     val threadMaster = {
       new Thread {
         override def run(): Unit = {
-          Process(s"./bin/mist start master --config ${TestConfig.restUIConfig}") !
+          s"./bin/mist start master --config ${TestConfig.restUIConfig}" !
         }
       }
     }
@@ -46,7 +39,7 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
     val threadMaster = {
       new Thread {
         override def run(): Unit = {
-          Process(s"bin/mist start job --config ${TestConfig.restUIConfig} --route ${route} --external-id ${externalId}") !
+          s"bin/mist start job --config ${TestConfig.restUIConfig} --route ${route} --external-id ${externalId}" !
         }
       }.start()
     }
@@ -54,7 +47,7 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
 
   object StartJobs {
     val routers = List(("streaming-1", "job1"), ("streaming-2", "job2"), ("streaming-3", "job3"))
-    def start() = {
+    def start(): Unit = {
       routers.foreach {
         router =>
           new StartJob(router._1, router._2)
@@ -72,10 +65,9 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   override def afterAll(): Unit = {
     clientHTTP.shutdownAllConnectionPools() andThen { case _ => {
       TestKit.shutdownActorSystem(system)
-      TestKit.shutdownActorSystem(systemR)
     }}
 
-    Process("./bin/mist stop") !
+    "./bin/mist stop" !
 
     StartMist.threadMaster.join()
   }

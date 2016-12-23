@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.master.{JsonFormatSupport, WorkerManager}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json._
@@ -16,6 +16,7 @@ import scala.concurrent.duration._
 
 class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol {
 
+  val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
   val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
@@ -24,8 +25,8 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   InfinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {
+    systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
     Thread.sleep(5000)
-
   }
 
   override def afterAll() = {
@@ -33,6 +34,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
 
     TestKit.shutdownActorSystem(systemW)
     TestKit.shutdownActorSystem(systemS)
+    TestKit.shutdownActorSystem(systemM)
     Thread.sleep(5000)
   }
 
