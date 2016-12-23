@@ -1,6 +1,10 @@
 **Table of Contents**
 
-- [README](/README.md)
+- [Getting Started](/docs/getting-started/README.md)
+- [Use Cases & Tutorials](/docs/use-cases/README.md)
+    - [Enterprise Analytics Applications](/docs/use-cases/enterprise-analytics.md)
+    - [Reactive Applications](/docs/use-cases/reactive.md)
+    - [Realtime Machine Learning Applications](/docs/use-cases/ml-realtime.md)
 - [Scala & Python Mist DSL](/docs/spark-job-at-mist.md)
 - [REST API](/docs/routes.md)
 - [Reactive API](/docs/reactive.md)
@@ -13,3 +17,4 @@
 - [Tests](/docs/tests.md)
 - [License](/LICENSE)
 - [Changelog](/CHANGELOG)
+- [README root](/README.md)
