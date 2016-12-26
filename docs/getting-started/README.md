@@ -58,7 +58,7 @@ mist.context-defaults.spark-conf = {
 #### (3/3) Running Mist docker container with mounted config file
 
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/docker.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs/docker.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
 ```
 
 ### (Optional) Installing Sample Applications 
