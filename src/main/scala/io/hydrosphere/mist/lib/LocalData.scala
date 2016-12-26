@@ -33,8 +33,14 @@ class LocalData(private val columnData: List[LocalDataColumn[_]]) {
     stringParts :+= rowFormat(columns, sizes)
     stringParts :+= rowSeparator(sizes)
     for (rowNumber <- List.range(0, rowCount)) {
-      // TODO: OutOfBoundsException
-      val row = for (column <- columnData) yield column.data(rowNumber).toString
+      val row = columnData.map { (column) =>
+        if (column.data.length <= rowNumber) {
+          "–"
+        } else {
+          column.data(rowNumber).toString
+        }
+      }
+
       stringParts :+= rowFormat(row, sizes)
     }
     stringParts :+= rowSeparator(sizes)
