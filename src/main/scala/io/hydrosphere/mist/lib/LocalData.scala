@@ -1,5 +1,4 @@
 package io.hydrosphere.mist.lib
-import scala.collection.immutable.Seq
 
 case class LocalDataColumn[T](name: String, data: List[T])
 

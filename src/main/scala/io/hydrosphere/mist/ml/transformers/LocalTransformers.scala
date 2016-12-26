@@ -1,27 +1,23 @@
-package io.hydrosphere.mist.ml
+package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
-import org.apache.spark.mllib.feature.{HashingTF => HTF}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
+import org.apache.spark.ml.{PipelineModel, Transformer}
+import org.apache.spark.mllib.feature.{HashingTF => HTF}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 
-import scala.collection.mutable
 import scala.language.implicitConversions
 
-object HackedSpark {
+import scala.collection.mutable
 
-  implicit class HackedTransformer(val transformer: Transformer) {
-    def transform(localData: LocalData): LocalData = {
-      println(s"transform: ${getClass.getCanonicalName}")
-      localData
-    }
-  }
+object LocalTransformers {
   
-  implicit class HackedPipeline(val pipeline: PipelineModel) {
-    
+  // TODO: perceptron
+
+  implicit class LocalPipeline(val pipeline: PipelineModel) {
+
     def transform(localData: LocalData): LocalData = {
       pipeline.stages.foldLeft(localData)((x: LocalData, y: Transformer) => y match {
         case tokenizer: Tokenizer => tokenizer.transform(x)
@@ -30,11 +26,12 @@ object HackedSpark {
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
-    
+
   }
 
-  implicit class HackedTokenizer(val tokenizer: Tokenizer) {
+  implicit class LocalTokenizer(val tokenizer: Tokenizer) {
     def transform(localData: LocalData): LocalData = {
+      // TODO: logger
       println(s"Tokenizer")
       println(localData)
       localData.column(tokenizer.getInputCol) match {
@@ -48,9 +45,10 @@ object HackedSpark {
       }
     }
   }
-  
-  implicit class HackedHashingTF(val hashingTF: HashingTF) {
+
+  implicit class LocalHashingTF(val hashingTF: HashingTF) {
     def transform(localData: LocalData): LocalData = {
+      // TODO: logger
       println(s"HashingTF")
       println(localData)
       localData.column(hashingTF.getInputCol) match {
@@ -62,12 +60,13 @@ object HackedSpark {
       }
     }
   }
-  
-  implicit class HackedLogisticRegression(val logisticRegression: LogisticRegressionModel) {
+
+  implicit class LocalLogisticRegression(val logisticRegression: LogisticRegressionModel) {
 
     implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
-    
+
     def transform(localData: LocalData): LocalData = {
+      // TODO: logger
       println("LogisticRegression")
       println(localData)
       localData.column(logisticRegression.getFeaturesCol) match {
