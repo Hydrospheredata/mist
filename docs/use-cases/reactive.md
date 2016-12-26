@@ -12,7 +12,7 @@ How Hydrosphere Mist helps
  - Application can not modify running streaming jobs on the fly. Like apply new alert rule to existing log stream.
  - [Experimental] Hydrosphere Mist will provide a bi-directional API. So, application will be able to parametrize streaming jobs on the fly.
 
-![Reactive Architecture Scheme](http://)
+![Reactive Architecture Scheme](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-scheme.png)
 
 ## Tutorial
 Let’s take a use case from [Enterprise Analytics Section](/docs/use-cases/enterprise-analytics.md) and extend it to support streaming architecture. Original batch Mist job was designed to receive filter parameters from user application, process log entries and return a result. Now let’s imagine we would like to setup a realtime alert when error captured in logs. It’s a canonical use case of Apache Spark and other streaming engines. Follow the steps below to build an end-to-end solution.
