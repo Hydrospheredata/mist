@@ -51,8 +51,7 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
   def get(path: String): PipelineModel = {
 
     // TODO: HDFS support
-    // TODO: fix replacing 
-    val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
+    val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString
     logger.debug(s"parsing $path/metadata/part-00000")
     logger.debug(metadata)
     try {
@@ -76,7 +75,7 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
     case (uid: String, index: Int) =>
       logger.debug(s"reading $uid stage")
       logger.debug(s"$path/stages/${index}_$uid/metadata/part-00000")
-      val modelMetadata = Source.fromFile(s"$path/stages/${index}_$uid/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
+      val modelMetadata = Source.fromFile(s"$path/stages/${index}_$uid/metadata/part-00000").mkString
       logger.debug(modelMetadata)
       try {
         val stageParameters = modelMetadata.parseJson.convertTo[Metadata]

@@ -4,10 +4,11 @@ import java.io.File
 import java.net.URI
 
 import io.hydrosphere.mist.jobs.JobFile.FileType.FileType
+import io.hydrosphere.mist.logs.Logger
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 
-trait JobFile {
+trait JobFile extends Logger {
   def exists: Boolean
   def file: File
 }
@@ -48,6 +49,7 @@ class LocalJobFile(path: String) extends JobFile {
 
   override def file: File = {
     if (!exists) {
+      logger.error(s"file $path not found")
       throw new JobFile.NotFoundException(s"file $path not found")
     }
 

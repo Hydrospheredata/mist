@@ -5,6 +5,6 @@ import spray.json.RootJsonFormat
 
 private[mist] trait ModelMetadataJsonSerialization extends JsonFormatSupport {
 
-  implicit val stageMetadataSerialization: RootJsonFormat[Metadata] = jsonFormat5(Metadata)
+  implicit val stageMetadataSerialization: RootJsonFormat[Metadata] = jsonFormat(Metadata.apply, "class", "timestamp", "sparkVersion", "uid", "paramMap")
   
 }
