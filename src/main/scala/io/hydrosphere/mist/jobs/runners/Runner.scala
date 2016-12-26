@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.Logger
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner

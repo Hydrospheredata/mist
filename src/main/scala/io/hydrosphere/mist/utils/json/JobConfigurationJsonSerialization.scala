@@ -14,11 +14,11 @@ private[mist] trait JobConfigurationJsonSerialization extends JsonFormatSupport 
     def read(v: JsValue): FullJobConfiguration = v.convertTo[MistJobConfiguration]
   }
 
-  implicit val mistJobConfigurationFormat: RootJsonFormat[MistJobConfiguration] = jsonFormat5(MistJobConfiguration)
+  implicit val mistJobConfigurationFormat: RootJsonFormat[MistJobConfiguration] = jsonFormat6(MistJobConfiguration)
   implicit val mistJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedMistJobConfiguration] = jsonFormat3(RestificatedMistJobConfiguration)
-  implicit val trainingJobConfigurationFormat: RootJsonFormat[TrainingJobConfiguration] = jsonFormat5(TrainingJobConfiguration)
+  implicit val trainingJobConfigurationFormat: RootJsonFormat[TrainingJobConfiguration] = jsonFormat6(TrainingJobConfiguration)
   implicit val trainingJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedTrainingJobConfiguration] = jsonFormat3(RestificatedTrainingJobConfiguration)
-  implicit val servingJobConfigurationFormat: RootJsonFormat[ServingJobConfiguration] = jsonFormat5(ServingJobConfiguration)
+  implicit val servingJobConfigurationFormat: RootJsonFormat[ServingJobConfiguration] = jsonFormat6(ServingJobConfiguration)
   implicit val servingJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedServingJobConfiguration] = jsonFormat3(RestificatedServingJobConfiguration)
 
   implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult)

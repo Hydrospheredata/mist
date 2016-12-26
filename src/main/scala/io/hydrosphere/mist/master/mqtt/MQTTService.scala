@@ -5,8 +5,9 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
+import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
@@ -16,14 +17,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
-
 private[mist] case object MQTTSubscribe
 
 private[mist] trait MQTTPubSubActor { this: Actor =>
   val pubsub: ActorRef = context.actorOf(Props(classOf[MQTTPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
 }
 
-private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JobConfigurationJsonSerialization with Logger{
+private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JobConfigurationJsonSerialization with Logger {
 
   private object IncomingMessageIsJobRequest extends Exception
 

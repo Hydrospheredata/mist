@@ -8,6 +8,7 @@ abstract class FullJobConfiguration extends JobConfiguration {
   def namespace: String
   def parameters: Map[String, Any] = Map()
   def externalId: Option[String] = None
+  def route: Option[String] = None
 }
 
 abstract class RestificatedJobConfiguration extends JobConfiguration {
@@ -16,20 +17,12 @@ abstract class RestificatedJobConfiguration extends JobConfiguration {
   def externalId: Option[String] = None
 }
 
-/** Configuration for jobs
-  *
-  * @param path         user file with implemented spark jobs (.py or .jar)
-  * @param className    class in jar we must to use to run job
-  * @param namespace    context namespace
-  * @param parameters   parameters for user job
-  * @param externalId   optional external id used to differ async responses from mist
-  */
 private[mist] case class MistJobConfiguration(path: String,
                                               className: String,
                                               namespace: String,
-                                              router: Option[String] = None) extends JobConfiguration
                                               override val parameters: Map[String, Any] = Map(),
-                                              override val externalId: Option[String] = None) extends FullJobConfiguration
+                                              override val externalId: Option[String] = None,
+                                              override val route: Option[String] = None) extends FullJobConfiguration
 
 private[mist] case class RestificatedMistJobConfiguration(route: String,
                                                           override val parameters: Map[String, Any] = Map(),
@@ -39,13 +32,15 @@ private[mist] case class TrainingJobConfiguration(path: String,
                                                   className: String,
                                                   namespace: String,
                                                   override val parameters: Map[String, Any] = Map(),
-                                                  override val externalId: Option[String] = None) extends FullJobConfiguration
+                                                  override val externalId: Option[String] = None,
+                                                  override val route: Option[String] = None) extends FullJobConfiguration
 
 private[mist] case class ServingJobConfiguration(path: String,
                                                   className: String,
                                                   namespace: String = null,
                                                   override val parameters: Map[String, Any] = Map(),
-                                                  override val externalId: Option[String] = None) extends FullJobConfiguration
+                                                  override val externalId: Option[String] = None,
+                                                  override val route: Option[String] = None) extends FullJobConfiguration
 
 
 private[mist] case class RestificatedTrainingJobConfiguration(route: String,

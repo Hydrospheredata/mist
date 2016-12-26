@@ -2,7 +2,6 @@ package io.hydrosphere.mist.jobs.runners.jar
 
 import java.net.{URL, URLClassLoader}
 
-import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner

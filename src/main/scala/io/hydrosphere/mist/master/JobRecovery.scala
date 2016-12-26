@@ -3,18 +3,17 @@ package io.hydrosphere.mist.master
 
 import akka.actor.Actor
 import io.hydrosphere.mist.master.mqtt.{MQTTPubSub, MQTTPubSubActor}
-import MQTTPubSub.Publish
-import io.hydrosphere.mist.{MistConfig,Logger}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
-import io.hydrosphere.mist.master.mqtt.MqttPubSub.Publish
-import io.hydrosphere.mist.master.mqtt.MqttPubSubActor
-import io.hydrosphere.mist.{Logger, MistConfig}
+import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.logs.Logger
 import org.json4s.jackson.Serialization
+
+import scala.collection.mutable
 
 case object StartRecovery
 
-case object TryRecoveyNext{
- var _collection = scala.collection.mutable.Map[String, FullJobConfiguration]()
+case object TryRecoveryNext{
+ var _collection: mutable.Map[String, FullJobConfiguration] = scala.collection.mutable.Map[String, FullJobConfiguration]()
 }
 case object JobStarted{
   var jobStartedCount = 0
@@ -29,33 +28,33 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
   override def receive: Receive = {
 
     case StartRecovery =>
-      TryRecoveyNext._collection = configurationRepository.getAll
-      logger.info(s"${TryRecoveyNext._collection.size} loaded from MapDb ")
+      TryRecoveryNext._collection = configurationRepository.getAll
+      logger.info(s"${TryRecoveryNext._collection.size} loaded from MapDb ")
       configurationRepository.clear()
-      this.self ! TryRecoveyNext
+      this.self ! TryRecoveryNext
 
-    case TryRecoveyNext =>
+    case TryRecoveryNext =>
 
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        if (TryRecoveyNext._collection.nonEmpty) {
-          val job_configuration = TryRecoveyNext._collection.last
+        if (TryRecoveryNext._collection.nonEmpty) {
+          val job_configuration = TryRecoveryNext._collection.last
           val json = Serialization.write(job_configuration._2)
           logger.info(s"send $json")
-          TryRecoveyNext._collection.remove(TryRecoveyNext._collection.last._1)
-          pubsub ! new Publish(json.getBytes("utf-8"))
+          TryRecoveryNext._collection.remove(TryRecoveryNext._collection.last._1)
+          pubsub ! new MQTTPubSub.Publish(json.getBytes("utf-8"))
         }
       }
 
     case JobStarted =>
       JobStarted.jobStartedCount += 1
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveyNext
+        this.self ! TryRecoveryNext
       }
 
     case JobCompleted =>
       JobStarted.jobStartedCount -= 1
       if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveyNext
+        this.self ! TryRecoveryNext
       }
   }
 }

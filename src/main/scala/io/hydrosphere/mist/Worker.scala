@@ -1,9 +1,10 @@
 package io.hydrosphere.mist
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.worker.ContextNode
 
-private[mist] object Worker extends App with Logger{
+private[mist] object Worker extends App with Logger {
 
   if (args.length == 0) {
     logger.error("`name` argument is required")

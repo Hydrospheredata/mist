@@ -5,13 +5,14 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, WorkerManager}
 
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Master extends App with HTTPService with Logger{
+private[mist] object Master extends App with HTTPService with Logger {
   override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 

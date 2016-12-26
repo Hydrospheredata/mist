@@ -12,7 +12,7 @@ import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
-import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
+import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import io.hydrosphere.mist.jobs._
@@ -22,6 +22,7 @@ import scala.language.reflectiveCalls
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration.FiniteDuration
@@ -29,7 +30,7 @@ import scala.language.reflectiveCalls
 
 
 /** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger{
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -121,11 +122,11 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     try {
       val config = RouteConfig(jobRoute)
       if (isTraining) {
-        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams))
+        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute)))
       } else if (isServing) {
-        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams))
+        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute)))
       } else {
-        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams)) 
+        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute))) 
       }
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))

@@ -2,14 +2,9 @@ package io.hydrosphere.mist.ml
 
 import io.hydrosphere.mist.utils.json.ModelMetadataJsonSerialization
 import org.apache.spark.ml.{PipelineModel, Transformer}
-import org.apache.spark.ml.classification.MultilayerPerceptronClassificationModel
 
 import scala.io.Source
-//import io.circe._
-//import io.circe.parser._
-//import io.circe.generic.semiauto._
-//import cats.syntax.either._
-import io.hydrosphere.mist.Logger
+import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.ml.transformers.TransformerFactory
 
 import spray.json.{DeserializationException, pimpString}
