@@ -6,7 +6,7 @@ import org.apache.spark.ml.{PipelineModel, Transformer}
 import scala.io.Source
 import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.ml.loaders.TransformerFactory
-
+import org.apache.spark.ml.classification.LogisticRegression
 import spray.json.{DeserializationException, pimpString}
 
 object ModelLoader extends Logger with ModelMetadataJsonSerialization {
@@ -85,7 +85,6 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
           case None =>
             val data = ModelDataReader.parse(s"$path/stages/${index}_$uid/data/")
             val model = TransformerFactory(stageParameters, data)
-            // TODO: check if files were changed 
             ModelCache.add(model)
             model
         }

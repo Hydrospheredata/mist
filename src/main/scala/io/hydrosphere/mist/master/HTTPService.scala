@@ -70,6 +70,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
                     // TODO: separate local running
                     val runner = new JarRunner(jobRequest, JobFile(jobRequest.path), null)
                     val result = runner.run()
+                    // TODO: wrap with JobResult
                     HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
                   }
                 case Right(jobRequest: FullJobConfiguration) =>
