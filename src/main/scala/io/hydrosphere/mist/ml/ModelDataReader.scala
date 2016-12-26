@@ -25,8 +25,6 @@ object ModelDataReader {
         try {
           var value = reader.read()
           while (value != null) {
-            // TODO: logger
-            println(s"new value: ${value.values.length} rows")
             value.prettyPrint(schema)
             result ++= value.struct(HashMap.empty[String, Any], schema)
             value = reader.read()

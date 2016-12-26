@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
+import io.hydrosphere.mist.logs.Logger
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
@@ -9,10 +10,9 @@ import org.apache.spark.mllib.feature.{HashingTF => HTF}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 
 import scala.language.implicitConversions
-
 import scala.collection.mutable
 
-object LocalTransformers {
+object LocalTransformers extends Logger {
   
   // TODO: perceptron
 
@@ -31,9 +31,8 @@ object LocalTransformers {
 
   implicit class LocalTokenizer(val tokenizer: Tokenizer) {
     def transform(localData: LocalData): LocalData = {
-      // TODO: logger
-      println(s"Tokenizer")
-      println(localData)
+      logger.debug(s"Local Tokenizer")
+      logger.debug(localData.toString)
       localData.column(tokenizer.getInputCol) match {
         case Some(column) =>
           val method = classOf[Tokenizer].getMethod("createTransformFunc")
@@ -48,9 +47,8 @@ object LocalTransformers {
 
   implicit class LocalHashingTF(val hashingTF: HashingTF) {
     def transform(localData: LocalData): LocalData = {
-      // TODO: logger
-      println(s"HashingTF")
-      println(localData)
+      logger.debug(s"Local HashingTF")
+      logger.debug(localData.toString)
       localData.column(hashingTF.getInputCol) match {
         case Some(column) =>
           val htf = new HTF(hashingTF.getNumFeatures).setBinary(hashingTF.getBinary)
@@ -66,9 +64,8 @@ object LocalTransformers {
     implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
 
     def transform(localData: LocalData): LocalData = {
-      // TODO: logger
-      println("LogisticRegression")
-      println(localData)
+      logger.debug("Local LogisticRegression")
+      logger.debug(localData.toString)
       localData.column(logisticRegression.getFeaturesCol) match {
         case Some(column) =>
           var newData = localData
