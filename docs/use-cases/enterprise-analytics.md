@@ -50,7 +50,7 @@ It takes 3 lines of code to Mistify the program.
 ````
 import io.hydrosphere.mist.lib.{MistJob}
 
-object SimpleTextSearch extends MistJob {
+object LogSearchJob extends MistJob {
 
   override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
     val path: String = parameters("filePath").asInstanceOf[String]

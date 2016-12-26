@@ -72,6 +72,11 @@ mist.mqtt.subscribe-topic = "foo"
 mist.mqtt.publish-topic = "foo"
 ```
 
+If you need infinite Job, need to be added on context settings timeout in Mist config.
+```
+mist.context.production-namespace.timeout = Inf
+```
+
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.
 
 ```
