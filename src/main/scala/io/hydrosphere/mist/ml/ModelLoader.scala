@@ -55,7 +55,6 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
     val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString.replace(""""class"""", """"className"""")
     logger.debug(s"parsing $path/metadata/part-00000")
     logger.debug(metadata)
-
     try {
       val pipelineParameters = metadata.parseJson.convertTo[Metadata]
       ModelCache.get[PipelineModel](pipelineParameters.uid) match {
@@ -67,10 +66,9 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
           pipeline
       }
     } catch {
-      case e: DeserializationException =>
-        logger.error(s"Deserialization error while parsing pipeline metadata: $e")
-        // TODO: null!
-        null
+      case exc: DeserializationException =>
+        logger.error(s"Deserialization error while parsing pipeline metadata: $exc")
+        throw exc
     }
   }
   
@@ -93,10 +91,9 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
             model
         }
       } catch {
-        case e: DeserializationException =>
-          logger.error(s"Deserialization error while parsing stage metadata: $e")
-          // TODO: null!
-          null
+        case exc: DeserializationException =>
+          logger.error(s"Deserialization error while parsing stage metadata: $exc")
+          throw exc
       }
   }
   

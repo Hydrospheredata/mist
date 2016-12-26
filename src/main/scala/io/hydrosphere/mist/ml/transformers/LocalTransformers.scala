@@ -28,7 +28,7 @@ object LocalTransformers extends Logger {
     }
 
   }
-
+  
   implicit class LocalTokenizer(val tokenizer: Tokenizer) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local Tokenizer")
