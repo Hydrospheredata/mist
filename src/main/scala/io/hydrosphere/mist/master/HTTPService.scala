@@ -15,9 +15,9 @@ import io.hydrosphere.mist.jobs._
 import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directive1, Directives}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import io.hydrosphere.mist.jobs.runners.jar.JarRunner
+import akka.http.scaladsl.server.util.ConstructFromTuple
 import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
@@ -56,6 +56,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
         post {
           parameters('train.?, 'serve.?) { (train, serve) =>
             entity(as[Map[String, Any]]) { jobRequestParams =>
+              // TODO: use FullJobConfigurationBuilder
               fillJobRequestFromConfig(jobRequestParams, jobRoute, train.nonEmpty, serve.nonEmpty) match {
                 case Left(_: NoRouteError) =>
                   complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))

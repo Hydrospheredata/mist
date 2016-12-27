@@ -7,7 +7,7 @@ import akka.pattern.ask
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
+import io.hydrosphere.mist.{Constants, MistConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
@@ -49,22 +49,29 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Job
       val jobResult = try {
         val json = stringMessage.parseJson
         // map request into JobConfiguration
-        // TODO: training/serve 
+        // TODO: build configuration with builder
         val jobCreatingRequest = try {
           json.convertTo[MistJobConfiguration]
         } catch {
           case _: DeserializationException =>
             logger.debug(s"Try to parse restificated request")
             val restificatedRequest = try {
-              json.convertTo[RestificatedMistJobConfiguration]
+              json.convertTo[RestificatedMistJobConfiguration] match {
+                case r if r.route.endsWith("?train") => RestificatedTrainingJobConfiguration(r.route.replace("?train", ""), r.parameters, r.externalId)
+                case r if r.route.endsWith("?serve") => RestificatedServingJobConfiguration(r.route.replace("?serve", ""), r.parameters, r.externalId)
+                case r: RestificatedMistJobConfiguration => r
+              }
             } catch {
               case _: DeserializationException =>
                 logger.debug(s"Try to parse job result")
                 json.convertTo[JobResult]
                 throw IncomingMessageIsJobRequest
             }
-            val config = RouteConfig(restificatedRequest.route)
-            MistJobConfiguration(config.path, config.className, config.namespace, restificatedRequest.parameters, restificatedRequest.externalId)
+            FullJobConfigurationBuilder()
+              .fromRouter(restificatedRequest.route, restificatedRequest.parameters, restificatedRequest.externalId)
+              .setTraining(restificatedRequest.isInstanceOf[RestificatedTrainingJobConfiguration])
+              .setServing(restificatedRequest.isInstanceOf[RestificatedServingJobConfiguration])
+              .build()
         }
 
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
@@ -96,15 +103,16 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Job
       } catch {
         case _: spray.json.JsonParser.ParsingException =>
           logger.error(s"Bad JSON: $stringMessage")
-          wrapError("Bad JSON", jobCreatingRequest = MistJobConfiguration("", "", "", Map.empty))
+          null
         case _: DeserializationException =>
           logger.error(s"DeserializationException: Bad type in Json: $stringMessage")
-          wrapError("DeserializationException: Bad type in Json", jobCreatingRequest = MistJobConfiguration("", "", "", Map.empty))
+          null
         case IncomingMessageIsJobRequest =>
           logger.debug("Received job result as incoming message")
           null
         case e: Throwable =>
-          wrapError(e.toString, jobCreatingRequest = MistJobConfiguration("", "", "", Map.empty))
+          logger.error(e.toString)
+          null
       }
 
       if (jobResult != null) {

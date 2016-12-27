@@ -4,7 +4,7 @@ import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, Js
 
 import scala.language.reflectiveCalls
 
-private[mist] trait JsonFormatSupport extends DefaultJsonProtocol {
+private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
 
   /** We must implement json parse/serializer for [[Any]] type */
   implicit object AnyJsonFormat extends JsonFormat[Any] {

@@ -14,12 +14,7 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.util.Random
 
-class JobRunnerNode(path:String,
-                    className: String,
-                    namespace: String,
-                    externalId: String,
-                    parameters: Map[String, Any],
-                    router: Option[String] = None) extends Actor with ActorLogging {
+class JobRunnerNode(jobRequest: FullJobConfiguration) extends Actor with ActorLogging {
 
   val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -30,7 +25,7 @@ class JobRunnerNode(path:String,
 
   val nodeAddress: Address = cluster.selfAddress
 
-  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
+  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(jobRequest.namespace)
 
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)
@@ -45,7 +40,7 @@ class JobRunnerNode(path:String,
     // TODO: train|serve
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
-        serverActor ! MistJobConfiguration(path, className, namespace, parameters, Option(externalId))
+        serverActor ! jobRequest
         cluster.system.shutdown()
       }
 
@@ -62,5 +57,5 @@ class JobRunnerNode(path:String,
 }
 
 object JobRunnerNode {
-  def props(name: String): Props = Props(classOf[JobRunnerNode], name)
+  def props(jobConfiguration: FullJobConfiguration): Props = Props(classOf[JobRunnerNode], jobConfiguration)
 }

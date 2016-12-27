@@ -1,12 +1,12 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.utils.json.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.AnyJsonFormatSupport
 import org.scalatest.FunSuite
 import spray.json._
 
 import scala.language.postfixOps
 
-class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSupport {
+class AnyJsonTest extends FunSuite with DefaultJsonProtocol with AnyJsonFormatSupport {
 
   test("AnyJsonFormat read") {
     assert(

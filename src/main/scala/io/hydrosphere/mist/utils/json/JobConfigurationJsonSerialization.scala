@@ -3,7 +3,7 @@ package io.hydrosphere.mist.utils.json
 import io.hydrosphere.mist.jobs._
 import spray.json.{JsValue, RootJsonFormat}
 
-private[mist] trait JobConfigurationJsonSerialization extends JsonFormatSupport {
+private[mist] trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
 
   implicit object FullJobConfigurationFormat extends RootJsonFormat[FullJobConfiguration] {
     def write(x: FullJobConfiguration): JsValue = x match {

@@ -221,7 +221,7 @@ then
         ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${config_file}" "$jar_file"
     fi
 
-    if [ "${app}" == 'job' ]
+    if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
     then
         if [ "${job_path}" == '' ] || [ "${classname}" == '' ] || [ "${namespace}" == '' ]
         then
@@ -234,9 +234,9 @@ then
         fi
         if [ "$route" == '' ]
         then
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${route}" "${parameters}" "${external_id}"
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${route}" "${parameters}" "${external_id}"
         fi
     fi
 
