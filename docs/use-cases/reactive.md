@@ -56,7 +56,7 @@ Create or edit file `./configs/router.conf` to add a router for our log search a
 log-streaming = {
     path = 'hdfs://hdfs-host/jobs/log-streaming.jar', // local or HDFS file path
     className = StreamingTextSearch$',
-    namespace = 'production-namespace'
+    namespace = 'streaming-namespace'
 }
 ````
 Please note that Router config could be edited after Mist start, so you could adjust it later in case of any issues.
@@ -70,11 +70,8 @@ mist.mqtt.host = "localhost"
 mist.mqtt.port = 1883
 mist.mqtt.subscribe-topic = "foo"
 mist.mqtt.publish-topic = "foo"
-```
-
-If you need infinite Job, need to be added on context settings timeout in Mist config.
-```
-mist.context.production-namespace.timeout = Inf
+# Inifinity timeout for Streaming context
+mist.context.streaming-namespace.timeout = Inf
 ```
 
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.
