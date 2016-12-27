@@ -1,6 +1,6 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JsonFormatSupport
 import org.scalatest.FunSuite
 import spray.json._
 
@@ -50,7 +50,7 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSuppo
 
       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "WorkerManager"
+      && Constants.Actors.workerManagerName == "ClusterManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
 }

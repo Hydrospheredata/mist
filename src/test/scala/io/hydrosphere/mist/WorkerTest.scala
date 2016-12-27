@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, WorkerManager}
+import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
 import io.hydrosphere.mist.worker.ContextNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -30,6 +30,7 @@ import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DefaultJsonProtocol, pimpString}
 
 import scala.concurrent.{Await, ExecutionContext}
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object AddressAndSuccessForWorkerTest {
@@ -98,7 +99,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   MQTTTest.subscribe(systemM)
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+  val ßsparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
   val checkSparkSessionLogic = {
     sparkVersion match {
@@ -128,7 +129,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
     "ContextNode" must {
       "started" in {
-        systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
         Thread.sleep(5000)
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository

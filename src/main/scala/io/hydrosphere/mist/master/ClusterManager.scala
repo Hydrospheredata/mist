@@ -3,13 +3,14 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, ActorPath, AddressFromURIString}
+import akka.actor.{Actor, ActorPath, AddressFromURIString, Props}
 import akka.cluster.Cluster
 import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.worker.LocalNode
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -17,7 +18,7 @@ import scala.language.postfixOps
 import scala.sys.process._
 
 /** Manages context repository */
-private[mist] class WorkerManager extends Actor with Logger {
+private[mist] class ClusterManager extends Actor with Logger {
 
   private val cluster = Cluster(context.system)
 
@@ -129,14 +130,12 @@ private[mist] class WorkerManager extends Actor with Logger {
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 
-    // surprise: stops all contexts
     case StopAllContexts =>
       workers.foreach {
         case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
 
-    // removes context
     case RemoveContext(name) =>
       removeWorkerByName(name)
 
@@ -144,7 +143,16 @@ private[mist] class WorkerManager extends Actor with Logger {
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case jobRequest: FullJobConfiguration=>
+    case jobRequest: ServingJobConfiguration =>
+      val originalSender = sender
+      val localNodeActor = context.system.actorOf(Props(classOf[LocalNode]))
+      val future = localNodeActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+      future onSuccess {
+        case response => originalSender ! response
+      }
+      
+
+    case jobRequest: FullJobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.namespace)
 

@@ -7,7 +7,7 @@ import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, WorkerManager}
+import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, ClusterManager}
 
 import scala.language.reflectiveCalls
 
@@ -20,7 +20,7 @@ private[mist] object Master extends App with HTTPService with Logger {
   logger.info(MistConfig.Akka.Main.port.toString)
 
   // Context creator actor
-  val workerManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
 
     // Creating contexts which are specified in config as `onstart`
   MistConfig.Contexts.precreated foreach { contextName =>

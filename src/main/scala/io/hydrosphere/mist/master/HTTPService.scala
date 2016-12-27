@@ -61,17 +61,6 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
                   complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
                 case Left(error: ConfigError) =>
                   complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
-                case Right(jobRequest: ServingJobConfiguration) =>
-                  complete {
-                    // TODO: separate local running
-                    val runner = new JarRunner(jobRequest, JobFile(jobRequest.path), null)
-                    val resultEither = runner.run()
-                    val jobResult: JobResult = resultEither match {
-                      case Left(result) => JobResult(success = true, result, List.empty[String], jobRequest)
-                      case Right(error) => JobResult(success = false, Map.empty[String, Any], List(error), jobRequest)
-                    }
-                    HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.prettyPrint))
-                  }
                 case Right(jobRequest: FullJobConfiguration) =>
                   doComplete(jobRequest)
               }
