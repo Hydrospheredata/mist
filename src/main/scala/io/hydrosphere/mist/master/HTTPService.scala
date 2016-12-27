@@ -3,22 +3,18 @@ package io.hydrosphere.mist.master
 import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult}
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
 import io.hydrosphere.mist.jobs._
+import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.language.reflectiveCalls
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
@@ -69,9 +65,12 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
                   complete {
                     // TODO: separate local running
                     val runner = new JarRunner(jobRequest, JobFile(jobRequest.path), null)
-                    val result = runner.run()
-                    // TODO: wrap with JobResult
-                    HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+                    val resultEither = runner.run()
+                    val jobResult: JobResult = resultEither match {
+                      case Left(result) => JobResult(success = true, result, List.empty[String], jobRequest)
+                      case Right(error) => JobResult(success = false, Map.empty[String, Any], List(error), jobRequest)
+                    }
+                    HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.prettyPrint))
                   }
                 case Right(jobRequest: FullJobConfiguration) =>
                   doComplete(jobRequest)
@@ -109,7 +108,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
               case Right(error: String) =>
                 JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
             }
-            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.prettyPrint))
         }
       }
       else {
@@ -123,11 +122,11 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     try {
       val config = RouteConfig(jobRoute)
       if (isTraining) {
-        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute)))
+        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
       } else if (isServing) {
-        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute)))
+        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
       } else {
-        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, Some(jobRoute))) 
+        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute))) 
       }
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))

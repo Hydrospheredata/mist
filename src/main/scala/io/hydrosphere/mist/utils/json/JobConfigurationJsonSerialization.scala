@@ -9,6 +9,7 @@ private[mist] trait JobConfigurationJsonSerialization extends JsonFormatSupport 
     def write(x: FullJobConfiguration): JsValue = x match {
       case mistJobConfiguration: MistJobConfiguration => mistJobConfigurationFormat.write(mistJobConfiguration)
       case trainingJobConfiguration: TrainingJobConfiguration => trainingJobConfigurationFormat.write(trainingJobConfiguration)
+      case servingJobConfiguration: ServingJobConfiguration => servingJobConfigurationFormat.write(servingJobConfiguration)
     }
 
     def read(v: JsValue): FullJobConfiguration = v.convertTo[MistJobConfiguration]
