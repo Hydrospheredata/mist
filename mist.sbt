@@ -93,10 +93,10 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 val exludes = new FileFilter {
-  def accept(f: File) = {
+  def accept(f: File): Boolean = {
     sparkVersion match {
       case versionRegex(major, minor) if major.toInt < 2 =>
-        f.getPath.containsSlice("_Spark2.scala")
+        f.getPath.containsSlice("_Spark2.scala") || f.getPath.containsSlice("mist/ml")
 
       case _ =>
         f.getPath.containsSlice("_Spark1.scala")
