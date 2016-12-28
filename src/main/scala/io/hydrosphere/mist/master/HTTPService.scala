@@ -23,6 +23,7 @@ import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 
 
 /** HTTP interface */
