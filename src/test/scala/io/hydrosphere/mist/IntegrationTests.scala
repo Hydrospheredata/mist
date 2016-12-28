@@ -9,8 +9,8 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import io.hydrosphere.mist.jobs.FullJobConfiguration
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration}
+import io.hydrosphere.mist.utils.json.{AnyJsonFormatSupport, JobConfigurationJsonSerialization}
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.Eventually
@@ -23,7 +23,7 @@ import scala.concurrent.duration.DurationInt
 import scala.sys.process._
 import scala.util.{Failure, Success}
 
-class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol{
+class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with AnyJsonFormatSupport with JobConfigurationJsonSerialization with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -57,7 +57,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       val stringMessage = TestConfig.requestJar
       val json = stringMessage.parseJson
       val jobCreatingRequest = try {
-        json.convertTo[FullJobConfiguration]
+        json.convertTo[MistJobConfiguration]
       } catch {
         case _: DeserializationException => None
       }

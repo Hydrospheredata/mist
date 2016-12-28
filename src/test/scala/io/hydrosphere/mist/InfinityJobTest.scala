@@ -6,6 +6,7 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json._
 import DefaultJsonProtocol._
+import io.hydrosphere.mist.jobs.MistJobConfiguration
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
@@ -43,7 +44,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
       Thread.sleep(5000)
 
       MqttSuccessObj.success = false
-      systemS.actorOf(Props(new JobRunnerNode(TestConfig.examplesPath, "SimpleSparkStreaming$", "streaming", "123456789", Map().empty)), name = "JobStarter")
+      systemS.actorOf(JobRunnerNode.props(MistJobConfiguration(TestConfig.examplesPath, "SimpleSparkStreaming$", "streaming", Map().empty, Some("123456789"))))
 
       eventually(timeout(30 seconds), interval(1 second)) {
         assert(MqttSuccessObj.success)

@@ -99,7 +99,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   MQTTTest.subscribe(systemM)
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val ßsparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
+  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
 
   val checkSparkSessionLogic = {
     sparkVersion match {
