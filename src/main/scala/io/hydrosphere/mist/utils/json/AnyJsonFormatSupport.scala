@@ -1,8 +1,11 @@
 package io.hydrosphere.mist.utils.json
 
+import java.util
+
 import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, RootJsonFormat, deserializationError, serializationError}
 
 import scala.language.reflectiveCalls
+import scala.collection.JavaConversions._
 
 private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
 
@@ -12,10 +15,12 @@ private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
       case number: Int => JsNumber(number)
       case string: String => JsString(string)
       case sequence: Seq[_] => seqFormat[Any].write(sequence)
+      case javaList: util.ArrayList[_] => seqFormat[Any].write(javaList.toList)
+      case array: Array[_] => seqFormat[Any].write(array.toList)
       case map: Map[String, _] => mapFormat[String, Any] write map
       case boolean: Boolean if boolean => JsTrue
       case boolean: Boolean if !boolean => JsFalse
-      case unknown: Any => serializationError("Do not understand object of type " + unknown.getClass.getName)
+      case unknown: Any => serializationError("Do not understand object of type " + unknown.getClass.getCanonicalName)
     }
 
     def read(value: JsValue): Any = value match {
