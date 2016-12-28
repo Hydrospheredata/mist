@@ -219,7 +219,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               if (json == "false") {
                 http_response_success = true
               }
@@ -271,7 +271,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -295,7 +295,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -320,7 +320,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "false"
             case _ =>
               println(msg)
@@ -345,7 +345,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -372,7 +372,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -399,7 +399,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -426,7 +426,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -453,7 +453,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -477,7 +477,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -501,7 +501,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)

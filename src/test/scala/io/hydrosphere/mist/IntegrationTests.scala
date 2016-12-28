@@ -112,7 +112,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
     }
   }
 
-  test("HTTP bad patch") {
+  test("HTTP bad path") {
     var http_response_success = false
     val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
     val future_response = clientHTTP.singleRequest(httpRequest)
@@ -120,7 +120,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       case Success(msg) => msg match {
         case HttpResponse(OK, _, _, _) =>
           println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
           if (json == "false") {
             http_response_success = true
           }
@@ -170,7 +170,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       case Success(msg) => msg match {
         case HttpResponse(OK, _, _, _) =>
           println(msg)
-          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+          val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
           http_response_success = json == "true"
         case _ =>
           println(msg)
