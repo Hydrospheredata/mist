@@ -5,9 +5,9 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
-import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, ClusterManager}
+import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery, StartRecovery}
+import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
 

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}

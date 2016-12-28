@@ -8,8 +8,8 @@ import akka.cluster.Cluster
 import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
-import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.worker.LocalNode
 
 import scala.concurrent.ExecutionContext.Implicits.global

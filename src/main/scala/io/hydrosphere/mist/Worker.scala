@@ -1,7 +1,7 @@
 package io.hydrosphere.mist
 
 import akka.actor.ActorSystem
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.ContextNode
 
 private[mist] object Worker extends App with Logger {

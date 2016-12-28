@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import akka.http.scaladsl.server.{Directive1, Directives}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.server.util.ConstructFromTuple
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration.FiniteDuration

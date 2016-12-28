@@ -1,9 +1,9 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.utils.Logger
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
-import io.hydrosphere.mist.logs.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json._
 

@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.{Constants, MistConfig}
 import org.json4s.DefaultFormats

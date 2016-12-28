@@ -3,7 +3,7 @@ package io.hydrosphere.mist
 import java.io.File
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory}
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 
 private[mist] class RouteConfig(route: String, config: Config) {
 

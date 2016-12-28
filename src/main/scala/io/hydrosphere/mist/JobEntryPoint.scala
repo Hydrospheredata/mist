@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import akka.actor.ActorSystem
 import io.hydrosphere.mist.jobs.FullJobConfigurationBuilder
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.JobRunnerNode
 import spray.json.pimpString

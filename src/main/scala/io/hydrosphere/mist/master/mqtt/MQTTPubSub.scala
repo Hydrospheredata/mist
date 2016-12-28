@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.mqtt
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
-import io.hydrosphere.mist.logs.Logger
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3._
