@@ -95,7 +95,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
 
   override def get(jobId: String): FullJobConfiguration = {
     try {
-      map.get(jobId).toString.parseJson.convertTo[FullJobConfiguration]
+      new String(map.get(jobId)).parseJson.convertTo[FullJobConfiguration]
     }
     catch {
       case e: Exception =>
