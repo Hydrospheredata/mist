@@ -575,15 +575,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           assert(MqttSuccessObj.success)
         }
       }
-
-      "MQTT bad JSON" in {
-        MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.requestBadJson)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(!MqttSuccessObj.success)
-        }
-      }
-
+      
       "MQTT Spark HIVE" in {
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")
