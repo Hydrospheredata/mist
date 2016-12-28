@@ -82,7 +82,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
       val keys = map.getKeys.toArray()
 
       for(key <- keys){
-        _collection put(key.toString, map.get(key.toString).toString.parseJson.convertTo[FullJobConfiguration])
+        _collection put(key.toString, new String(map.get(key.toString)).parseJson.convertTo[FullJobConfiguration])
       }
       logger.info(s"${_collection.size} get from MapDb")
     }
@@ -100,7 +100,7 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     catch {
       case e: Exception =>
         logger.error(e.getMessage, e)
-        new MistJobConfiguration("", "", "")
+        MistJobConfiguration("", "", "")
     }
   }
 
