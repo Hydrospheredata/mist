@@ -55,7 +55,7 @@ fi
 
 if [ "${SPARK_HOME}" == '' ] || [ ! -d "${SPARK_HOME}" ]
 then
-    echo "SPARK_HOME is not set"
+    (>&2 echo "SPARK_HOME is not set")
     exit 1
 fi
 
@@ -165,8 +165,16 @@ then
 
 
 
-    if [ "${config_file}" == '' ] || [ "${jar_file}" == '' ]
+    if [ "${config_file}" == '' ]
     then
+        (>&2 echo "config file is not set")
+        echo "${help}"
+        exit 1
+    fi
+    
+    if [ "${jar_file}" == '' ]
+    then
+        (>&2 echo "mist jar file is not set")
         echo "${help}"
         exit 1
     fi
@@ -175,7 +183,7 @@ then
     then
         if [ "${namespace}" == '' ]
         then
-            echo "You must specify --namespace to run Mist worker"
+            (>&2 echo "You must specify --namespace to run Mist worker")
             exit 3
         fi
         if [ "${runner}" == 'local' ]
@@ -210,7 +218,7 @@ then
             containerId=`curl -X POST $socket -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/create -d "$request" | jq -r '.Id'`
             curl -X POST $socket -H "Content-Type: application/json" http://${docker_host}:${docker_port}/containers/${containerId}/start
         else
-            echo "mist.workers.run is wrong"
+            (>&2 echo "mist.workers.run is wrong")
             exit 3   
         fi 
         exit 0
