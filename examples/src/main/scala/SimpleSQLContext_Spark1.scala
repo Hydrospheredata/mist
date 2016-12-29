@@ -10,7 +10,6 @@ object SimpleSQLContext extends MistJob with SQLSupport {
   override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
     val df = sqlContext.read.json(parameters("file").asInstanceOf[String])
     df.registerTempTable("people")
-    val result = sqlContext.sql("SELECT AVG(age) AS avg_age FROM people").collect().map(_.toSeq)
-    Map("result" -> result)
+    Map("result" -> sqlContext.sql("SELECT AVG(age) AS avg_age FROM people").collect())
   }
 }

@@ -1,5 +1,4 @@
 import io.hydrosphere.mist.lib.{HiveSupport, MistJob, SQLSupport}
-import org.apache.spark.sql.Row
 
 object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
   /** Contains implementation of spark job with [[org.apache.spark.sql.HiveContext]]
@@ -13,8 +12,7 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
     val df = hiveContext.read.json(parameters("file").asInstanceOf[String])
     df.printSchema()
     df.registerTempTable("people")
-    val result = hiveContext.sql("SELECT AVG(age) AS avg_age FROM people").collect().map(_.toSeq)
-    Map("result" -> result)
+    Map("result" -> hiveContext.sql("SELECT AVG(age) AS avg_age FROM people").collect())
 
   }
 }

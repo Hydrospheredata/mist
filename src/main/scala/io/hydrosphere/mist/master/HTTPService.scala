@@ -24,6 +24,8 @@ import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 
 
 /** HTTP interface */
@@ -99,7 +101,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
               case Right(error: String) =>
                 JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
             }
-            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.prettyPrint))
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
         }
       }
       else {
