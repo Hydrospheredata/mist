@@ -13,6 +13,13 @@ class LocalData(private val columnData: List[LocalDataColumn[_]]) {
   }
   
   def columns: List[String] = columnData.map(_.name)
+  
+  def toMapList: List[Map[String, _]] = {
+    val rowCount = (for (column <- columnData) yield column.data.length).max
+
+    for (rowNumber <- List.range(0, rowCount)) 
+      yield (for (column <- columnData) yield column.name -> column.data(rowNumber)).toMap
+  }
 
   override def toString: String = {
     
