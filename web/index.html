@@ -54,6 +54,15 @@
       </main>
     </div>
 
+    <dialog class="mdl-dialog">
+      <div class="mdl-dialog__content">
+        <pre id="popup-content"></pre>
+      </div>
+      <div class="mdl-dialog__actions">
+        <button type="button" class="mdl-button close">Close</button>
+      </div>
+    </dialog>
+
     <script id="routers" type="x-tmpl-mustache">
       <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
@@ -67,7 +76,7 @@
             </td>
             <td>
               <button id="demo-menu-lower-right-{{.}}"
-                      class="mdl-button mdl-js-button mdl-button--icon">
+                      class="mist-action-button mdl-button mdl-js-button mdl-button--icon">
                 <i class="material-icons">more_vert</i>
               </button>
               
@@ -93,7 +102,7 @@
               {{uid}}
             </td>
             <td>
-              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{uid}}" data-callback="{{callback}}">
+              <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{uid}}" data-callback="{{callback}}">
                 Kill
               </button>
             </td>

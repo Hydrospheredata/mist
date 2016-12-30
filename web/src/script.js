@@ -116,7 +116,6 @@ window.Mist = {
 
 window.WebMist = {
   init: function() {
-    this.interval = null;
     this.initEvents();
     this.loadRouters();
   },
@@ -158,13 +157,14 @@ window.WebMist = {
     var params = document.getElementById("config-" + uid).value;
     Mist.runRouter(uid, mode, params, function(res) {
       this.hideLoader();
-      this.showNotice(uid + " Job Started");
+      try {
+        this.showPopup(JSON.stringify(res, null, "\t"));
+      } catch (err) {}
     }.bind(this));
   },
 
   // JOBS
   loadJobs: function() {
-    clearInterval(this.interval);
     this.__title("Jobs");
     this.showLoader();
     Mist.jobs(function(data) {
@@ -172,7 +172,6 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, callback: "killJob"});
     }.bind(this));
-//    this.interval = setInterval(this.loadJobs.bind(this), 2000);
   },
 
   killJob: function(uid) {
@@ -187,7 +186,6 @@ window.WebMist = {
 
   // WORKERS
   loadWorkers: function(e) {
-    clearInterval(this.interval);
     this.__title("Workers");
     this.showLoader();
     Mist.workers(function(data) {
@@ -195,7 +193,6 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, "uid": function() {return this.namespace}, callback: "killWorker" });
     }.bind(this));
-//    this.interval = setInterval(this.loadWorkers.bind(this), 2000);
   },
 
   killWorker: function(uid) {
@@ -227,6 +224,25 @@ window.WebMist = {
     }, 4000);
   },
 
+  showPopup: function(text) {
+    var content = document.getElementById("popup-content");
+    var dialog = document.querySelector('dialog');
+    var showDialogButton = document.querySelector('#show-dialog');
+    content.innerHTML = text;
+
+    if (! dialog.showModal) {
+      dialogPolyfill.registerDialog(dialog);
+    }
+    dialog.showModal();
+
+    dialog.querySelector('.close').addEventListener('click', this.closePopup);
+  },
+
+  closePopup: function() {
+    document.getElementById("popup-content").innerHTML = "";
+    document.querySelector('dialog').close();
+  },
+
   showLoader: function() {
     var loader = document.getElementById('loader');
     loader.classList.remove('hide');
@@ -244,7 +260,7 @@ window.WebMist = {
 
   __processEvent: function(e) {
     var target = e.target;
-    if (target.tagName === "BUTTON" || target.className.match("action-item") !== null) {
+    if (target.className.match("mist-action-button") == true || target.className.match("action-item") !== null) {
       e.stopPropagation();
       e.preventDefault();
       uid = target.getAttribute('data-uid');
