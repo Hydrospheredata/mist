@@ -60,11 +60,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
       val stringMessage = TestConfig.requestJar
       val json = stringMessage.parseJson
-      val jobCreatingRequest = try {
-        json.convertTo[MistJobConfiguration]
-      } catch {
-        case _: DeserializationException => None
-      }
+      val jobCreatingRequest = json.convertTo[MistJobConfiguration]
       val w_job = jobCreatingRequest.toJson.compactPrint.getBytes
       map.clear()
       for (i <- 1 to 3) {
