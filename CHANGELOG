@@ -1,3 +1,8 @@
+2016-12-30 Mist v0.8.0
+
+    Web Interface
+    Fast local ML serving (experimental)
+
 2016-12-21 Mist v0.7.0
 
     Managing workers and jobs via CLI
