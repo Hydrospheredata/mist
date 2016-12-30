@@ -7,6 +7,7 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json._
 import DefaultJsonProtocol._
 import io.hydrosphere.mist.jobs.MistJobConfiguration
+import io.hydrosphere.mist.master.ClusterManager
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
@@ -26,7 +27,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   InfinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {
-    systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+    systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
     Thread.sleep(5000)
   }
 

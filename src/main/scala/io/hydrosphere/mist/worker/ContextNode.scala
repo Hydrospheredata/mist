@@ -110,6 +110,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
 
     case ListMessage(message) =>
+      val originalSender = sender
       if(message.contains(Constants.CLI.listJobsMsg)) {
         jobDescriptions.foreach {
           jobDescription: JobDescription => {
