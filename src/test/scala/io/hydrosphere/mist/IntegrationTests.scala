@@ -22,8 +22,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
 import scala.sys.process._
 import scala.util.{Failure, Success}
+import spray.json._
 
-class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with AnyJsonFormatSupport with JobConfigurationJsonSerialization with DefaultJsonProtocol{
+import scala.language.postfixOps
+
+class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll with AnyJsonFormatSupport
+  with JobConfigurationJsonSerialization with DefaultJsonProtocol{
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -61,7 +65,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       } catch {
         case _: DeserializationException => None
       }
-      val w_job = SerializationUtils.serialize(jobCreatingRequest)
+      val w_job = jobCreatingRequest.toJson.compactPrint.getBytes
       map.clear()
       for (i <- 1 to 3) {
         map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
@@ -86,7 +90,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
   test("HTTP bad request") {
 
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt,
+      entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
     val future_response = clientHTTP.singleRequest(httpRequest)
 
     future_response onComplete {
@@ -110,7 +115,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad path") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt,
+      entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -136,7 +142,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP bad JSON") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadJson))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt,
+      entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadJson))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
@@ -160,7 +167,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   test("HTTP Spark Context jar") {
     var http_response_success = false
-    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestJar))
+    val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrlIt,
+      entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestJar))
     val future_response = clientHTTP.singleRequest(httpRequest)
     future_response onComplete {
       case Success(msg) => msg match {
