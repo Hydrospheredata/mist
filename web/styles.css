@@ -236,3 +236,9 @@ _:-ms-input-placeholder, :root .mist-graph {
 @keyframes fadeinout {
   50% { opacity: 1; }
 }
+.mist-dialog {
+  width: 680px;
+}
+.mist-dialog__content {
+  overflow: scroll;
+}
