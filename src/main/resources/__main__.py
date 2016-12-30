@@ -77,6 +77,7 @@ if issubclass(class_, WithMQTTPublisher):
 try:
     instance.setup(context_wrapper)
     instance.set_publisher(publisher_wrapper)
+    # TODO: train/serve
     result = instance.do_stuff(parameters)
     data_wrapper.set(result)
 except Exception:

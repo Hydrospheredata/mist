@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.master.mqtt._
-import io.hydrosphere.mist.master.mqtt.MqttPubSub._
+import io.hydrosphere.mist.master.mqtt.MQTTPubSub._
 import io.hydrosphere.mist.SubsActor.Report
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Second, Seconds, Span}
@@ -58,7 +58,7 @@ private object SubsActor {
   case object Report
 }
 
-private class SubsActor(reporTo: ActorRef, count: Int) extends Actor with MqttPubSubActor {
+private class SubsActor(reporTo: ActorRef, count: Int) extends Actor with MQTTPubSubActor {
   import SubsActor._
   def receive = {
     case SubscribeTest => pubsub ! Subscribe(self)

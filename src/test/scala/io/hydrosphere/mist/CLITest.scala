@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import akka.util.Timeout
-import io.hydrosphere.mist.Messages.{ListMessage, StopAllContexts, StopMessage, StringMessage}
+import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.worker.CLINode
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
@@ -18,7 +18,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
   lazy val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName)
 
-  implicit val timeout = Timeout(5 seconds)
+  val timeoutAssert = timeout(90 seconds)
 
   object StartMist {
     val threadMaster = {
@@ -46,7 +46,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
       routers.foreach {
         router =>
           new StartJob(router._1, router._2)
-          Thread.sleep(5000)
+          Thread.sleep(3000)
       }
     }
   }
@@ -64,91 +64,74 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     StartMist.threadMaster.start()
   }
 
+  def equal(a: List[Any])(b: List[Any]): Boolean = {
+    a.map(f => b.toString.contains(f.toString)).forall(_ == true)
+  }
+
+  def mockEqual(b: List[Any]): Boolean = true
+
+  def cliAsserter[A](msg: A, out: (List[Any]) => Boolean): Boolean = {
+    implicit def anyToListAny(a: Any): List[Any] = if(a.isInstanceOf[List[Any]]) a.asInstanceOf[List[Any]] else List[Any](a)
+    val future = cliActor.ask(msg)(timeout = Constants.CLI.timeoutDuration)
+    val result = Await.result(future, Constants.CLI.timeoutDuration)
+    out(result)
+  }
+
   "CLI Workers" must {
     "list no workers" in {
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val future = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val result = Await.result(future, timeout.duration).asInstanceOf[String]
-        assert(Constants.CLI.noWorkersMsg == result)
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListWorkers, equal(List[Any]())))
+      }
+    }
+
+    "list routers" in {
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListRouters, equal(List[Any]("streaming-1", "streaming-2", "streaming-3"))))
       }
     }
 
     "start streaming and list workers" in {
       StartJobs.start()
-      eventually(timeout(180 seconds), interval(10 seconds)) {
-        val futureThreWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val resultThreWorkers = Await.result(futureThreWorkers, timeout.duration).asInstanceOf[String]
-        assert(Constants.CLI.noWorkersMsg != resultThreWorkers
-          && resultThreWorkers.contains("streaming1")
-          && resultThreWorkers.contains("streaming2")
-          && resultThreWorkers.contains("streaming3"))
+
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListWorkers, equal(List[Any]("streaming1", "streaming2", "streaming3"))))
       }
     }
 
     "list thre jobs" in {
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureTwoJobs = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
-        val resultTwoJobs = Await.result(futureTwoJobs, timeout.duration).asInstanceOf[String]
-        assert(Constants.CLI.noWorkersMsg != resultTwoJobs
-          && resultTwoJobs.contains("job1")
-          && resultTwoJobs.contains("job2")
-          && resultTwoJobs.contains("job3"))
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListJobs, equal(List[Any]("job1", "job2", "job3"))))
       }
     }
 
     "list two workers after kill first" in {
-      cliActor ! new StopMessage(s"${Constants.CLI.stopWorkerMsg} streaming1")
+      cliAsserter(new StopWorker(s"${Constants.CLI.stopWorkerMsg} streaming1"), mockEqual)
 
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
-        assert( Constants.CLI.noWorkersMsg != resultTwoWorkers
-          && !resultTwoWorkers.contains("streaming1")
-          && resultTwoWorkers.contains("streaming2")
-          && resultTwoWorkers.contains("streaming3"))
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListWorkers, equal(List[Any]("streaming2", "streaming3"))) && !cliAsserter(ListWorkers, equal(List[Any]("streaming1"))))
       }
     }
 
     "list two jobs" in {
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureTwoJobs = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
-        val resultTwoJobs = Await.result(futureTwoJobs, timeout.duration).asInstanceOf[String]
-        assert(Constants.CLI.noWorkersMsg != resultTwoJobs
-          && !resultTwoJobs.contains("job1")
-          && resultTwoJobs.contains("job2")
-          && resultTwoJobs.contains("job3"))
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListJobs, equal(List[Any]("job2", "job3"))) && !cliAsserter(ListJobs, equal(List[Any]("job1"))))
       }
     }
 
     "list two workers and one job after kill job" in {
-      cliActor ! new StopMessage(s"${Constants.CLI.stopJobMsg} job2")
+      cliAsserter(new StopJob(s"${Constants.CLI.stopJobMsg} job2"), mockEqual)
 
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureOneJob = cliActor ? new ListMessage(Constants.CLI.listJobsMsg)
-        val resultOneJob = Await.result(futureOneJob, timeout.duration).asInstanceOf[String]
-        assert(!resultOneJob.contains("job2")
-          && resultOneJob.contains("job3")
-        )
-      }
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
-        assert(!resultTwoWorkers.contains(Constants.CLI.noWorkersMsg)
-          && resultTwoWorkers.contains("streaming2")
-          && resultTwoWorkers.contains("streaming3"))
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert( cliAsserter(ListWorkers, equal(List[Any]("streaming2", "streaming3")))
+          && cliAsserter(ListJobs, equal(List[Any]("job3")))
+          && !cliAsserter(ListJobs, equal(List[Any]("job2"))))
       }
     }
 
     "list no workers after kill all" in {
-      val futureTwoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-      val resultTwoWorkers = Await.result(futureTwoWorkers, timeout.duration).asInstanceOf[String]
-      assert(Constants.CLI.noWorkersMsg  != resultTwoWorkers)
-
-      cliActor ! StopAllContexts
-      eventually(timeout(90 seconds), interval(10 seconds)) {
-        val futureNoWorkers = cliActor ? new ListMessage(Constants.CLI.listWorkersMsg)
-        val resultNoWorkers = Await.result(futureNoWorkers, timeout.duration).asInstanceOf[String]
-        assert(Constants.CLI.noWorkersMsg == resultNoWorkers)
+      cliAsserter(StopAllContexts, mockEqual)
+      eventually(timeoutAssert, interval(10 seconds)) {
+        assert(cliAsserter(ListWorkers, equal(List[Any]())))
       }
     }
   }

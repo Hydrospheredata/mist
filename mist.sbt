@@ -36,6 +36,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
   "org.json4s" %% "json4s-native" % "3.2.10",
   "org.json4s" %% "json4s-jackson" % "3.2.10",
   "com.typesafe" % "config" % "1.3.1",
@@ -92,10 +93,10 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 }
 
 val exludes = new FileFilter {
-  def accept(f: File) = {
+  def accept(f: File): Boolean = {
     sparkVersion match {
       case versionRegex(major, minor) if major.toInt < 2 =>
-        f.getPath.containsSlice("_Spark2.scala")
+        f.getPath.containsSlice("_Spark2.scala") || f.getPath.containsSlice("mist/ml")
 
       case _ =>
         f.getPath.containsSlice("_Spark1.scala")

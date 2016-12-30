@@ -28,7 +28,9 @@ object TestConfig {
   val httpUrl = testConfig.getString("mist.test.http.url")
   val httpUrlIt = testConfig.getString("mist.test.http.url_it")
   val restificatedUrl = testConfig.getString("mist.test.http.restificated_url")
-  val restUIUrl = testConfig.getString("mist.test.http.rest_ui_url")
+  val restUIUrlListWorkers = testConfig.getString("mist.test.http.rest_ui_url_workers")
+  val restUIUrlListJobs = testConfig.getString("mist.test.http.rest_ui_url_jobs")
+  val restUIUrlListRouters = testConfig.getString("mist.test.http.rest_ui_url_routers")
 
   val requestTestTimeout = if(OldVersion) testConfig.getString("mist.test.request.testtimeout_2_10") else testConfig.getString("mist.test.request.testtimeout_2_11")
 
@@ -47,12 +49,6 @@ object TestConfig {
 
   val asyncRestificatedRequest = testConfig.getString("mist.test.request.async-restificated")
   val restificatedRequest = testConfig.getString("mist.test.request.restificated")
-
-  val requestUIListWorkers = testConfig.getString("mist.test.request.rest_ui_request.list_workers")
-  val requestUIListJobs = testConfig.getString("mist.test.request.rest_ui_request.list_jobs")
-  val requestUIKillWorker = testConfig.getString("mist.test.request.rest_ui_request.kill_worker")
-  val requestUIKillJob = testConfig.getString("mist.test.request.rest_ui_request.kill_job")
-  val requestUIKillAll = testConfig.getString("mist.test.request.rest_ui_request.kill_all")
 
   val requestJarOtherContext = if(OldVersion) testConfig.getString("mist.test.request.jarother_2_10") else testConfig.getString("mist.test.request.jarother_2_11")
   val requestPyError = testConfig.getString("mist.test.request.pyerror")

@@ -1,12 +1,12 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.AnyJsonFormatSupport
 import org.scalatest.FunSuite
 import spray.json._
 
 import scala.language.postfixOps
 
-class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSupport {
+class AnyJsonTest extends FunSuite with DefaultJsonProtocol with AnyJsonFormatSupport {
 
   test("AnyJsonFormat read") {
     assert(
@@ -50,7 +50,7 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with JsonFormatSuppo
 
       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "WorkerManager"
+      && Constants.Actors.workerManagerName == "ClusterManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
 }

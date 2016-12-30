@@ -8,9 +8,8 @@ object SimpleContext extends MistJob {
     * @return result of the job
     */
   override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
-    val numbers: List[BigInt] = parameters("digits").asInstanceOf[List[BigInt]]
+    val numbers: List[Int] = parameters("digits").asInstanceOf[List[Int]]
     val rdd = context.parallelize(numbers)
     Map("result" -> rdd.map(x => x * 2).collect())
   }
 }
-
