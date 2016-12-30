@@ -260,7 +260,7 @@ window.WebMist = {
 
   __processEvent: function(e) {
     var target = e.target;
-    if (target.className.match("mist-action-button") == true || target.className.match("action-item") !== null) {
+    if (target.className.match("mist-action-button") !== null || target.className.match("action-item") !== null) {
       e.stopPropagation();
       e.preventDefault();
       uid = target.getAttribute('data-uid');
