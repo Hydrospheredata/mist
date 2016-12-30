@@ -1,8 +1,16 @@
-var gulp = require("gulp");
-var browserify = require('gulp-browserify');
+const gulp = require("gulp");
+const browserify = require('gulp-browserify');
 
-gulp.task("default", function () {
+const destination = "../src/main/resources/web"
+
+gulp.task("scripts", () => {
   return gulp.src("./src/script.js")
   .pipe(browserify())
-  .pipe(gulp.dest("./"));
+  .pipe(gulp.dest(destination));
 });
+
+gulp.task("move", () => {
+    return gulp.src(["./index.html", "./styles.css", "./images/**/*.*"], { base: "./" }).pipe(gulp.dest(destination))
+});
+
+gulp.task("default", ["scripts", "move"])
