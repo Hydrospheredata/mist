@@ -7,6 +7,7 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -21,7 +22,6 @@ import org.json4s.native.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
-
 
 /** HTTP interface */
 private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
