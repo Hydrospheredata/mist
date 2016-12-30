@@ -2,14 +2,16 @@ package io.hydrosphere.mist.master
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Props}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult}
+import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import io.hydrosphere.mist.jobs._
 import spray.json._
@@ -72,6 +74,13 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
           }
         }
       }
+    } ~
+    path("internal") {
+      post {
+        entity(as[Map[String, String]]) { cmd =>
+          doUserInterfaceComplete(cmd)
+        }
+      }
     }
   }
 
@@ -125,6 +134,48 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
       case exc: Throwable => Left(ConfigError(exc.toString))
     }
+  }
+
+  lazy val internalUserInterfaceActor = system.actorOf(Props[CLINode], name = Constants.CLI.internalUserInterfaceActorName)
+
+  def doUserInterfaceComplete(cmd: Map[String, Any]): akka.http.scaladsl.server.Route  = {
+    respondWithHeader(RawHeader("Content-Type", "application/json"))
+
+    var command: Any = ""
+    def getCommand: () => Any = { () => {command} }
+    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = FiniteDuration(1, TimeUnit.MINUTES))
+
+    complete {
+
+      cmd("cmd") match {
+        case Constants.CLI.listJobsMsg => {
+          command = new ListMessage(Constants.CLI.listJobsMsg)
+        }
+        case Constants.CLI.listWorkersMsg => {
+          command = new ListMessage(Constants.CLI.listWorkersMsg)
+        }
+        case Constants.CLI.stopJobMsg => {
+          command = new StopMessage(s"${Constants.CLI.stopJobMsg} ${cmd("job")}")
+        }
+        case Constants.CLI.stopWorkerMsg => {
+          command = new StopMessage(s"${Constants.CLI.stopWorkerMsg} ${cmd("worker")}")
+        }
+        case Constants.CLI.stopAllWorkersMsg => {
+          command = StopAllContexts
+        }
+        case _ => throw new Exception("Unknow command")
+      }
+
+      future
+        .recover{
+          case error: Throwable =>  HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
+        }
+        .map[ToResponseMarshallable] {
+        case result: String => result
+          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result))
+      }
+    }
+
   }
 
 }

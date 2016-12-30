@@ -1,11 +1,8 @@
 ### Mist command-line interface
 
-
 Mist CLI is a simple command-line interface to the Mist service.
 
-
 This is where CLI comes into play, CLI simplify mist job management!
-
 
 Usage:
 
@@ -31,9 +28,7 @@ Manage job and workers:
     kill job <external id|UID>     kill named job
 ```
 
-
 You can easily run CLI and this will let you enter REPL mode.
-
 
 ```
 ./mist start cli
@@ -56,7 +51,6 @@ exit
 
 ```
 
-
 Also you can run CLI commands from shell
 
 ####Examples
@@ -73,7 +67,6 @@ mist>start job configs/myconf.conf streaming-3 job3
 
 list all running workers
 
-
 ```
 ./mist cli list workers
 
@@ -86,9 +79,7 @@ it's all workers
 exit
 ```
 
-
 list all running jobs
-
 
 ```
 ./mist cli list jobs
@@ -102,14 +93,18 @@ TIME	NAMESPACE	UID	EXTERNAL ID	ROUTER
 exit
 ```
 
-
 kill worker “streaming1”
-
 
 ```
 ./mist cli kill worker streaming1
 
 kill worker streaming1
+Worker streaming1 is scheduled for shutdown.
+exit
+
+./mist cli list workers
+
+list workers
 NAMESPACE	ADDRESS
 streaming3	akka.tcp://mist@127.0.0.1:40809
 streaming2	akka.tcp://mist@127.0.0.1:40451
@@ -117,9 +112,7 @@ it's all workers
 exit
 ```
 
-
 kill job “job2”
-
 
 ```
 ./mist cli kill job job3
@@ -127,10 +120,7 @@ or
 ./mist cli kill job b86bc102-9e90-4870-a380-1edf5d9915b1
 
 kill job job3
-TIME	NAMESPACE	UID	EXTERNAL ID	ROUTER
-2016-12-21T17:54:37.402+04:00	streaming2	7ce11ddb-04a6-449f-b5c6-f1510a5011a1	job2	streaming-2
 Job job3 b86bc102-9e90-4870-a380-1edf5d9915b1 is scheduled for shutdown. It may take a while.
-2016-12-21T17:54:19.593+04:00	streaming3	b86bc102-9e90-4870-a380-1edf5d9915b1	job3	streaming-3
 exit
 
 ./mist cli list jobs         
@@ -139,5 +129,3 @@ TIME	NAMESPACE	UID	EXTERNAL ID	ROUTER
 2016-12-21T17:54:37.402+04:00	streaming2	7ce11ddb-04a6-449f-b5c6-f1510a5011a1	job2	streaming-2
 exit
 ```
-
-

@@ -41,7 +41,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   lazy val jobDescriptions: ArrayBuffer[JobDescription] = ArrayBuffer.empty[JobDescription]
 
   type NamedActors = (JobDescription,  () => Unit)
-  lazy val namedJobCancellators: ArrayBuffer[(JobDescription, () => Unit)] = ArrayBuffer.empty[NamedActors]
+  lazy val namedJobCancellations = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
 
@@ -91,7 +91,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       jobDescriptions += jobDescription
 
-      namedJobCancellators += ((jobDescription, cancel))
+      namedJobCancellations += ((jobDescription, cancel))
 
       cancellableRunnerFuture
         .recover {
@@ -111,10 +111,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
     case ListMessage(message) =>
       if(message.contains(Constants.CLI.listJobsMsg)) {
-        val cliActor = cluster.system.actorSelection(message.substring(Constants.CLI.listJobsMsg.length))
         jobDescriptions.foreach {
           jobDescription: JobDescription => {
-            cliActor ! StringMessage(s"${Constants.CLI.jobMsgMarker}" +
+            originalSender ! StringMessage(s"${Constants.CLI.jobMsgMarker}" +
               s"${jobDescription.Time}\t" +
               s"${jobDescription.namespace}\t" +
               s"${jobDescription.UID()}\t" +
@@ -124,7 +123,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }
       }
 
-    case StringMessage(message) =>
+    case StopMessage(message) =>
       val originalSender = sender
       if(message.contains(Constants.CLI.stopJobMsg)) {
         jobDescriptions.foreach {
@@ -133,7 +132,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
               | message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.UID())) {
               originalSender ! StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.UID()}" +
                 s" is scheduled for shutdown. It may take a while.")
-              namedJobCancellators.filter(x => x._1.UID() == jobDescription.UID()).foreach(f => f._2())
+              namedJobCancellations
+                .filter(namedJobCancellation => namedJobCancellation._1.UID() == jobDescription.UID())
+                .foreach(namedJobCancellation => namedJobCancellation._2())
             }
           }
         }

@@ -24,5 +24,6 @@ object Constants {
     final val cliActorName = "CLI"
     final val startJob = "start job"
     final val noWorkersMsg = "no workers"
+    final val internalUserInterfaceActorName = "InternalUIActor"
   }
 }

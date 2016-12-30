@@ -18,6 +18,8 @@ private[mist] object Messages {
 
   case class ListMessage(message: String)
 
-  case class StringMessage(workers: String)
+  case class StringMessage(message: String)
+
+  case class StopMessage(message: String)
 
 }
