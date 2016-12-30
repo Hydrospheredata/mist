@@ -42,8 +42,8 @@ window.Mist = {
   //    "router": "streaming-2"
   //  }
   //}
-  runRouter: function(name, params, callback) {
-    this.__request("POST", location.origin + "/api/" + name, params, callback);
+  runRouter: function(name, mode, params, callback) {
+    this.__request("POST", location.origin + "/api/" + name + mode, params, callback);
   },
 
   //[
@@ -136,14 +136,26 @@ window.WebMist = {
     Mist.routers(function(data) {
       this.hideLoader();
       var template = document.getElementById('routers').innerHTML;
-      this.render(template, {"routers": Object.keys(data), callback: "runRouter"});
+      this.render(template, {"routers": Object.keys(data), runCallback: "runRoute", trainCallback: "trainRoute", serveCallback: "serveRoute"});
     }.bind(this));
   },
+  
+  runRoute: function(uid) {
+    this.__runJob(uid, "")
+  },
+  
+  trainRoute: function(uid) {
+    this.__runJob(uid, "?train")
+  },
+  
+  serveRoute: function () {
+    this.__runJob(uid, "?serve")
+  },
 
-  runRouter: function(uid) {
+  __runJob: function(uid, mode) {
     this.showLoader();
     var params = document.getElementById("config-" + uid).value;
-    Mist.runRouter(uid, params, function(res) {
+    Mist.runRouter(uid, mode, params, function(res) {
       var container = document.getElementById("row-" + uid);
       container.remove();
       this.hideLoader();
@@ -222,7 +234,7 @@ window.WebMist = {
 
   __processEvent: function(e) {
     var target = e.target;
-    if (target.tagName === "BUTTON") {
+    if (target.tagName === "BUTTON" || target.className.match("action-item") !== null) {
       e.stopPropagation();
       e.preventDefault();
       uid = target.getAttribute('data-uid');
