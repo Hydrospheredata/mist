@@ -13,7 +13,7 @@
         </layout>
     </appender>
 
-    <root level="INFO">
+    <root level="ERROR">
         <appender-ref ref="sout" />
         <appender-ref ref="log4j" />
     </root>
