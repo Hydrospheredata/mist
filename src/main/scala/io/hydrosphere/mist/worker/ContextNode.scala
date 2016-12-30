@@ -2,33 +2,32 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, Address, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.contexts.ContextBuilder
+import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future, Promise}
 import scala.util.{Failure, Random, Success}
 import org.joda.time.DateTime
-import java.util.Date
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
-  implicit val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  implicit val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
   private val cluster = Cluster(context.system)
 
   private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
-  val nodeAddress = cluster.selfAddress
+  val nodeAddress: Address = cluster.selfAddress
 
-  lazy val contextWrapper = ContextBuilder.namedSparkContext(namespace)
+  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
 
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart(namespace, cluster.selfAddress.toString)
@@ -39,7 +38,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
     cluster.unsubscribe(self)
   }
 
-  lazy val jobDescriptions = ArrayBuffer.empty[JobDescription]
+  lazy val jobDescriptions: ArrayBuffer[JobDescription] = ArrayBuffer.empty[JobDescription]
 
   type NamedActors = (JobDescription,  () => Unit)
   lazy val namedJobCancellations = ArrayBuffer.empty[NamedActors]
@@ -58,7 +57,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         new DateTime().toString,
         jobRequest.namespace,
         jobRequest.externalId,
-        jobRequest.router
+        jobRequest.route
       )
 
       def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
@@ -99,12 +98,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           case e: Throwable => originalSender ! Right(e.toString)
         }(ExecutionContext.global)
         .andThen {
-          case _ => {
+          case _ =>
             jobDescriptions -= jobDescription
             if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
-          }
         }(ExecutionContext.global)
         .andThen {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
@@ -115,8 +113,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       val originalSender = sender
       if(message.contains(Constants.CLI.listJobsMsg)) {
         jobDescriptions.foreach {
-          case jobDescription: JobDescription => {
-            originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker}" +
+          jobDescription: JobDescription => {
+            originalSender ! StringMessage(s"${Constants.CLI.jobMsgMarker}" +
               s"${jobDescription.Time}\t" +
               s"${jobDescription.namespace}\t" +
               s"${jobDescription.UID()}\t" +
@@ -130,10 +128,10 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
       val originalSender = sender
       if(message.contains(Constants.CLI.stopJobMsg)) {
         jobDescriptions.foreach {
-          case jobDescription: JobDescription => {
-            if(message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
-              || message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.UID())) {
-              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.UID()}" +
+          jobDescription: JobDescription => {
+            if (message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
+              | message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.UID())) {
+              originalSender ! StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.UID()}" +
                 s" is scheduled for shutdown. It may take a while.")
               namedJobCancellations
                 .filter(namedJobCancellation => namedJobCancellation._1.UID() == jobDescription.UID())
@@ -145,10 +143,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
+        //noinspection ScalaDeprecation
         cluster.system.shutdown()
       }
 
-    case MemberRemoved(member, prevStatus) =>
+    case MemberRemoved(member, _) =>
       if (member.address == cluster.selfAddress) {
         sys.exit(0)
       }

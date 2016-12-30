@@ -7,81 +7,69 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
 import io.hydrosphere.mist.worker.CLINode
-import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
-import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, deserializationError, serializationError}
+import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
+import io.hydrosphere.mist.jobs._
+import spray.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import akka.http.scaladsl.server.{Directive1, Directives}
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.server.util.ConstructFromTuple
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 
-private[mist] trait JsonFormatSupport extends DefaultJsonProtocol{
-  /** We must implement json parse/serializer for [[Any]] type */
-  implicit object AnyJsonFormat extends JsonFormat[Any] {
-    def write(x: Any): JsValue = x match {
-      case number: Int => JsNumber(number)
-      case string: String => JsString(string)
-      case sequence: Seq[_] => seqFormat[Any].write(sequence)
-      case map: Map[String, _] => mapFormat[String, Any] write map
-      case boolean: Boolean if boolean => JsTrue
-      case boolean: Boolean if !boolean => JsFalse
-      case unknown: Any => serializationError("Do not understand object of type " + unknown.getClass.getName)
-    }
-    def read(value: JsValue): Any = value match {
-      case JsNumber(number) => number.toBigInt()
-      case JsString(string) => string
-      case array: JsArray => listFormat[Any].read(value)
-      case jsObject: JsObject => mapFormat[String, Any].read(value)
-      case JsTrue => true
-      case JsFalse => false
-      case unknown: Any => deserializationError("Do not understand how to deserialize " + unknown)
-    }
-  }
 
-  // JSON to JobConfiguration mapper (6 fields)
-  implicit val jobCreatingRequestFormat = jsonFormat6(FullJobConfiguration)
-  implicit val jobCreatingRestificatedFormat = jsonFormat3(RestificatedJobConfiguration)
-  implicit val jobResultFormat = jsonFormat4(JobResult)
-
-  sealed trait JobConfigError
-  case class NoRouteError(reason: String) extends JobConfigError
-  case class ConfigError(reason: String) extends JobConfigError
-}
 /** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with JsonFormatSupport with Logger{
+private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
 
   // /jobs
-  def route: Flow[HttpRequest, HttpResponse, Unit] =  {
+  def route: Flow[HttpRequest, HttpResponse, Unit] = {
     path("jobs") {
       // POST /jobs
       post {
-        entity(as[FullJobConfiguration]) { jobCreatingRequest =>
-          doComplete(jobCreatingRequest)
+        parameters('train.?, 'serve.?) { (train, serve) =>
+          val requestBody = train match {
+            case Some(_) => as[TrainingJobConfiguration]
+            case None => serve match {
+              case Some(_) => as[ServingJobConfiguration]
+              case None => as[MistJobConfiguration]
+            }
+          }
+
+          entity(requestBody) { jobCreatingRequest =>
+            doComplete(jobCreatingRequest)
+          }
         }
       }
     } ~
     pathPrefix("api" / Segment ) { jobRoute =>
       pathEnd {
         post {
-          entity(as[Map[String, Any]]) { jobRequestParams =>
-            fillJobRequestFromConfig(jobRequestParams, jobRoute) match {
-              case Left(error: NoRouteError) =>
-                complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
-              case Left(error: ConfigError) =>
-                complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
-              case Right(jobRequest: FullJobConfiguration) =>
-                doComplete(jobRequest)
+          parameters('train.?, 'serve.?) { (train, serve) =>
+            entity(as[Map[String, Any]]) { jobRequestParams =>
+              // TODO: use FullJobConfigurationBuilder
+              fillJobRequestFromConfig(jobRequestParams, jobRoute, train.nonEmpty, serve.nonEmpty) match {
+                case Left(_: NoRouteError) =>
+                  complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
+                case Left(error: ConfigError) =>
+                  complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
+                case Right(jobRequest: FullJobConfiguration) =>
+                  doComplete(jobRequest)
+              }
             }
           }
         }
@@ -111,7 +99,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
 
         future
           .recover {
-            case error: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
+            case _: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
             case error: Throwable => Right(error.toString)
           }
           .map[ToResponseMarshallable] {
@@ -132,10 +120,16 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Js
     }
   }
 
-  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String): Either[JobConfigError, FullJobConfiguration] = {
+  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String, isTraining: Boolean = false, isServing: Boolean = false): Either[JobConfigError, FullJobConfiguration] = {
     try {
       val config = RouteConfig(jobRoute)
-      Right(FullJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Option(jobRoute)))
+      if (isTraining) {
+        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
+      } else if (isServing) {
+        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
+      } else {
+        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute))) 
+      }
     } catch {
       case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
       case exc: Throwable => Left(ConfigError(exc.toString))

@@ -5,13 +5,14 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, StartRecovery, WorkerManager}
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery, StartRecovery}
+import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Master extends App with HTTPService with Logger{
+private[mist] object Master extends App with HTTPService with Logger {
   override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -19,7 +20,7 @@ private[mist] object Master extends App with HTTPService with Logger{
   logger.info(MistConfig.Akka.Main.port.toString)
 
   // Context creator actor
-  val workerManager = system.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
 
     // Creating contexts which are specified in config as `onstart`
   MistConfig.Contexts.precreated foreach { contextName =>
@@ -35,7 +36,7 @@ private[mist] object Master extends App with HTTPService with Logger{
   // Start MQTT subscriber if it is on in config
   if (MistConfig.MQTT.isOn) {
     val mqttActor = system.actorOf(Props(classOf[MQTTServiceActor]))
-    mqttActor ! MqttSubscribe
+    mqttActor ! MQTTSubscribe
   }
 
   // Job Recovery

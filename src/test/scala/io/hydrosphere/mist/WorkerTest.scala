@@ -4,28 +4,33 @@ import java.util.concurrent.Executors._
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.cluster.ClusterEvent._
+import akka.pattern.ask
+import akka.testkit.TestKit
+import io.hydrosphere.mist.Messages.StopAllContexts
+import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
+import io.hydrosphere.mist.worker.ContextNode
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import org.scalatest._
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
+import org.scalatest.time._
+
+import scala.concurrent.duration.{FiniteDuration, _}
 import akka.cluster._
+import akka.cluster.ClusterEvent._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
-import akka.pattern.ask
 import akka.stream.ActorMaterializer
-import akka.testkit.TestKit
-import io.hydrosphere.mist.Messages.StopAllContexts
+import com.typesafe.config.{ConfigValue, ConfigValueFactory}
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MqttSubscribe}
-import io.hydrosphere.mist.master.{HTTPService, JobRecovery, JsonFormatSupport, WorkerManager}
-import io.hydrosphere.mist.worker.ContextNode
-import org.scalatest._
-import org.scalatest.concurrent.{Eventually, ScalaFutures}
-import org.scalatest.time._
+import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DefaultJsonProtocol, pimpString}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{Await, ExecutionContext}
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 object AddressAndSuccessForWorkerTest {
@@ -78,7 +83,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   }
 }
 
-class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JsonFormatSupport with DefaultJsonProtocol with HTTPService{
+class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService{
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
@@ -90,7 +95,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   val clientHTTP = Http(systemM)
 
   val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
-  mqttActor ! MqttSubscribe
+  mqttActor ! MQTTSubscribe
   MQTTTest.subscribe(systemM)
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r
@@ -124,7 +129,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
     "ContextNode" must {
       "started" in {
-        systemM.actorOf(Props[WorkerManager], name = Constants.Actors.workerManagerName)
+        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
         Thread.sleep(5000)
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
@@ -214,7 +219,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               if (json == "false") {
                 http_response_success = true
               }
@@ -266,7 +271,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -290,7 +295,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -315,7 +320,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "false"
             case _ =>
               println(msg)
@@ -340,7 +345,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -367,7 +372,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -394,7 +399,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -421,7 +426,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -448,7 +453,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -472,7 +477,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -496,7 +501,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false")
+              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
               http_response_success = json == "true"
             case _ =>
               println(msg)
@@ -570,15 +575,7 @@ class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
           assert(MqttSuccessObj.success)
         }
       }
-
-      "MQTT bad JSON" in {
-        MqttSuccessObj.success = true
-        MQTTTest.publish(TestConfig.requestBadJson)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(!MqttSuccessObj.success)
-        }
-      }
-
+      
       "MQTT Spark HIVE" in {
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")

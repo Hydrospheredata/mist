@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.JsonFormatSupport
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike, _}
 import spray.json.DefaultJsonProtocol
@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.sys.process._
 import scala.util.{Failure, Success}
 
-class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually with JsonFormatSupport with DefaultJsonProtocol with ScalaFutures with Matchers {
+class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually with JobConfigurationJsonSerialization with DefaultJsonProtocol with ScalaFutures with Matchers {
 
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
