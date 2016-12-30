@@ -105,8 +105,7 @@ window.Mist = {
         var response = JSON.parse(xhr.responseText);
         return callback(response);
       } else {
-        // TODO
-        return alert(xhr.responseText);
+        return WebMist.showNotice(xhr.responseText);
       }
     };
 
@@ -116,6 +115,7 @@ window.Mist = {
 
 window.WebMist = {
   init: function() {
+    this.interval = null;
     this.initEvents();
     this.loadRouters();
   },
@@ -131,6 +131,7 @@ window.WebMist = {
 
   // ROUTERS
   loadRouters: function() {
+    clearInterval(this.interval);
     this.__title("Routers");
     this.showLoader();
     Mist.routers(function(data) {
@@ -138,6 +139,7 @@ window.WebMist = {
       var template = document.getElementById('routers').innerHTML;
       this.render(template, {"routers": Object.keys(data), runCallback: "runRoute", trainCallback: "trainRoute", serveCallback: "serveRoute"});
     }.bind(this));
+    this.interval = setInterval(this.loadRouters.bind(this), 2000);
   },
   
   runRoute: function(uid) {
@@ -163,6 +165,7 @@ window.WebMist = {
 
   // JOBS
   loadJobs: function() {
+    clearInterval(this.interval);
     this.__title("Jobs");
     this.showLoader();
     Mist.jobs(function(data) {
@@ -170,6 +173,7 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, callback: "killJob"});
     }.bind(this));
+    this.interval = setInterval(this.loadJobs.bind(this), 2000);
   },
 
   killJob: function(uid) {
@@ -184,6 +188,7 @@ window.WebMist = {
 
   // WORKERS
   loadWorkers: function(e) {
+    clearInterval(this.interval);
     this.__title("Workers");
     this.showLoader();
     Mist.workers(function(data) {
@@ -191,6 +196,7 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, "uid": function() {return this.namespace}, callback: "killWorker" });
     }.bind(this));
+    this.interval = setInterval(this.loadWorkers.bind(this), 2000);
   },
 
   killWorker: function(uid) {
@@ -211,8 +217,15 @@ window.WebMist = {
 
   // HELPERS
   showNotice: function (text) {
-    // TODO
-    //console.log(text);
+    var notice = document.getElementById("notice");
+    notice.innerHTML = text;
+    notice.classList.add('elementToFadeInAndOut');
+    notice.classList.remove('hide');
+    setTimeout(function() {
+      notice.classList.add('hide');
+      notice.classList.remove('elementToFadeInAndOut');
+      notice.innerHTML = "";
+    }, 4000);
   },
 
   showLoader: function() {

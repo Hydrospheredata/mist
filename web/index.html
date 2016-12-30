@@ -30,6 +30,7 @@
       <header class="mist-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
         <div class="mdl-layout__header-row">
           <span id="title" class="mdl-layout-title"></span>
+          <span id="notice" class="mist-components__notice hide"></span>
         </div>
       </header>
       <div class="mist-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
@@ -61,8 +62,7 @@
             <td class="mdl-data-table__cell--non-numeric">
               <div>{{.}}</div>
               <div class="mist-textfield mdl-textfield mdl-js-textfield">
-                <textarea class="mist-textfield mdl-textfield__input" rows="6" type="text" id="config-{{.}}"></textarea>
-                <label class="mdl-textfield__label" for="sample5">Parameters...</label>
+                <textarea class="mist-textfield mdl-textfield__input" rows="6" type="text" placeholder="Parameters..." id="config-{{.}}"></textarea>
               </div>
             </td>
             <td>

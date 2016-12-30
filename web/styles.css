@@ -212,6 +212,27 @@ _:-ms-input-placeholder, :root .mist-graph {
 .mist-textfield {
   width: 100%;
 }
+.mist-components__notice {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: #FFF9C4;
+  padding: 16px;
+  border-radius: 2px;
+  color: #212121;
+  text-align: center;
+}
 .hide {
   display: none;
+}
+.elementToFadeInAndOut {
+  -webkit-animation: fadeinout 4s linear forwards;
+  animation: fadeinout 4s linear forwards;
+  opacity: 0;
+}
+@-webkit-keyframes fadeinout {
+  50% { opacity: 1; }
+}
+@keyframes fadeinout {
+  50% { opacity: 1; }
 }
