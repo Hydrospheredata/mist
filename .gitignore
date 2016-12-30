@@ -14,3 +14,4 @@ master.pid
 scalastyle-config.xml
 /Vagrantfile
 web/node_modules
+web/script.js

@@ -156,8 +156,6 @@ window.WebMist = {
     this.showLoader();
     var params = document.getElementById("config-" + uid).value;
     Mist.runRouter(uid, mode, params, function(res) {
-      var container = document.getElementById("row-" + uid);
-      container.remove();
       this.hideLoader();
       this.showNotice(res.payload.result);
     }.bind(this));
