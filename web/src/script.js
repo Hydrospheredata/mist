@@ -139,7 +139,7 @@ window.WebMist = {
       var template = document.getElementById('routers').innerHTML;
       this.render(template, {"routers": Object.keys(data), runCallback: "runRoute", trainCallback: "trainRoute", serveCallback: "serveRoute"});
     }.bind(this));
-    this.interval = setInterval(this.loadRouters.bind(this), 2000);
+//    this.interval = setInterval(this.loadRouters.bind(this), 2000);
   },
   
   runRoute: function(uid) {
@@ -173,7 +173,7 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, callback: "killJob"});
     }.bind(this));
-    this.interval = setInterval(this.loadJobs.bind(this), 2000);
+//    this.interval = setInterval(this.loadJobs.bind(this), 2000);
   },
 
   killJob: function(uid) {
@@ -196,7 +196,7 @@ window.WebMist = {
       var template = document.getElementById('jobs').innerHTML;
       this.render(template, {"jobs": data, "uid": function() {return this.namespace}, callback: "killWorker" });
     }.bind(this));
-    this.interval = setInterval(this.loadWorkers.bind(this), 2000);
+//    this.interval = setInterval(this.loadWorkers.bind(this), 2000);
   },
 
   killWorker: function(uid) {
