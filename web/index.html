@@ -38,8 +38,8 @@
         </header>
         <nav class="mist-navigation mdl-navigation mdl-color--blue-grey-800">
           <a class="mdl-navigation__link" href="#" id="menu_routers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">view_list</i>Routers</a>
-          <a class="mdl-navigation__link" href="#" id="menu_workers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">work</i>Workers</a>
           <a class="mdl-navigation__link" href="#" id="menu_jobs"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">work</i>Jobs</a>
+          <a class="mdl-navigation__link" href="#" id="menu_workers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">work</i>Workers</a>
           <a class="mdl-navigation__link" href="#" id="menu_settings"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">settings</i>Settings</a>
         </nav>
       </div>
@@ -57,15 +57,18 @@
       <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
           {{#routers}}
-          <tr id="router-{{name}}">
-            <td class="mdl-data-table__cell--non-numeric">{{name}}</td>
+          <tr id="row-{{.}}">
+            <td class="mdl-data-table__cell--non-numeric">
+              <div>{{.}}</div>
+              <div class="mist-textfield mdl-textfield mdl-js-textfield">
+                <textarea class="mist-textfield mdl-textfield__input" rows="6" type="text" id="config-{{.}}"></textarea>
+                <label class="mdl-textfield__label" for="sample5">Config...</label>
+              </div>
+            </td>
             <td>
-              <form>
-                <input hidden=true value="router-{{name}}">
-                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" type="submit">
-                  Run
-                </button>
-              </form>
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{.}}" data-callback="{{callback}}">
+                Run
+              </button>
             </td>
           </tr>
           {{/routers}}
@@ -77,15 +80,14 @@
       <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
           {{#jobs}}
-          <tr id="job-{{name}}">
-            <td class="mdl-data-table__cell--non-numeric">{{name}}</td>
+          <tr id="row-{{uid}}">
+            <td class="mdl-data-table__cell--non-numeric">
+              {{uid}}
+            </td>
             <td>
-              <form>
-                <input hidden=true value="job-{{name}}">
-                <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" type="submit">
-                  Kill
-                </button>
-              </form>
+              <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{uid}}" data-callback="{{callback}}">
+                Kill
+              </button>
             </td>
           </tr>
           {{/jobs}}

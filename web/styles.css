@@ -209,6 +209,9 @@ _:-ms-input-placeholder, :root .mist-graph {
   opacity: 0.7;
   z-index: 1000;
 }
+.mist-textfield {
+  width: 100%;
+}
 .hide {
   display: none;
 }
