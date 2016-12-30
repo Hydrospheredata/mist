@@ -275,7 +275,12 @@ window.WebMist = {
 
   __render: function(content) {
     document.getElementById('content').innerHTML = content;
+    [].forEach.call(document.querySelectorAll(".updateme, .mist-textfield"), function (el) {
+        componentHandler.upgradeElement(el);
+    });
   }
 };
 
-WebMist.init();
+window.addEventListener("load", function () {
+    WebMist.init();
+})
