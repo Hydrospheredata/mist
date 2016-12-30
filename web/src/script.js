@@ -105,6 +105,7 @@ window.Mist = {
         var response = JSON.parse(xhr.responseText);
         return callback(response);
       } else {
+        WebMist.hideLoader();
         return WebMist.showNotice(xhr.responseText);
       }
     };
@@ -131,7 +132,6 @@ window.WebMist = {
 
   // ROUTERS
   loadRouters: function() {
-    clearInterval(this.interval);
     this.__title("Routers");
     this.showLoader();
     Mist.routers(function(data) {
@@ -139,17 +139,16 @@ window.WebMist = {
       var template = document.getElementById('routers').innerHTML;
       this.render(template, {"routers": Object.keys(data), runCallback: "runRoute", trainCallback: "trainRoute", serveCallback: "serveRoute"});
     }.bind(this));
-//    this.interval = setInterval(this.loadRouters.bind(this), 2000);
   },
-  
+
   runRoute: function(uid) {
     this.__runJob(uid, "")
   },
-  
+
   trainRoute: function(uid) {
     this.__runJob(uid, "?train")
   },
-  
+
   serveRoute: function () {
     this.__runJob(uid, "?serve")
   },
@@ -159,7 +158,7 @@ window.WebMist = {
     var params = document.getElementById("config-" + uid).value;
     Mist.runRouter(uid, mode, params, function(res) {
       this.hideLoader();
-      this.showNotice(res.payload.result);
+      this.showNotice(uid + " Job Started");
     }.bind(this));
   },
 
