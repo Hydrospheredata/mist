@@ -95,7 +95,13 @@ private[mist] class ClusterManager extends Actor with Logger {
 
     case ListRouters =>
       val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
-      sender ! Json(DefaultFormats).read[Map[String,Any]](config.toString.replaceAll("Config\\(SimpleConfigObject\\(", "").replaceAll("\\)\\)", "")) //TODO
+      val javaMap: java.util.Map[String, Object] = config.root().unwrapped()
+
+      import scala.collection.JavaConverters._
+      import scala.collection.JavaConversions._
+      val scalaMap: Map[String, Any] = javaMap.toMap.map { case (k, v) => (k, v.toString)}
+
+      sender ! scalaMap //Json(DefaultFormats).read[Map[String,Any]](config.toString.replaceAll("Config\\(SimpleConfigObject\\(", "").replaceAll("\\)\\)", "")) //TODO
 
     case StopJob(message) => {
       val originalSender = sender
