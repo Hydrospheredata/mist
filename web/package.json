@@ -1,0 +1,25 @@
+{
+  "name": "mist-webform",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "./node_modules/.bin/gulp",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hydrospheredata/mist"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Hydrospheredata/mist/issues"
+  },
+  "homepage": "https://github.com/Hydrospheredata/mist#readme",
+  "dependencies": {
+    "mustache": "*"
+  },
+  "devDependencies": {
+    "gulp": "*",
+    "gulp-cli": "*",
+    "gulp-browserify": "*"
+  }
+}

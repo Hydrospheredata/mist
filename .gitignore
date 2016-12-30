@@ -13,3 +13,5 @@ master.pid
 .DS_STORE
 scalastyle-config.xml
 /Vagrantfile
+web/node_modules
+web/script.js

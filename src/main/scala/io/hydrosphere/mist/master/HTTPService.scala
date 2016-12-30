@@ -79,6 +79,17 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
         }
       }
     } ~
+    pathPrefix("ui") {
+      get {
+        pathEnd {
+          redirect("/ui/", StatusCodes.PermanentRedirect)
+        } ~
+        pathSingleSlash {
+          getFromResource("web/index.html")
+        } ~
+        getFromResourceDirectory("web")
+      }
+    } ~
     path("internal" / "jobs" / Segment) { cmd =>
       pathEnd {
         delete {
