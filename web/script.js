@@ -652,25 +652,7 @@ window.Mist = {
   //  }
   //}
   routers: function(callback) {
-    var data = {
-      "streaming-1": {
-        "className": "SimpleSparkStreamingLong$",
-        "namespace": "streaming1",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-      },
-      "streaming-2": {
-        "className": "SimpleSparkStreamingLong$",
-        "namespace": "streaming2",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-      },
-      "streaming-3": {
-        "className": "SimpleSparkStreamingLong$",
-        "namespace": "streaming3",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-      }
-    };
-    callback(data);
-    //this.__request("GET", location.origin + "/internal/routers", {}, callback);
+    this.__request("GET", location.origin + "/internal/routers", {}, callback);
   },
 
   //{
@@ -794,7 +776,7 @@ window.WebMist = {
   runRouter: function(uid) {
     this.showLoader();
     var params = document.getElementById("config-" + uid).value;
-    Mist.killJob(uid, params, function(res) {
+    Mist.runRouter(uid, params, function(res) {
       var container = document.getElementById("row-" + uid);
       container.remove();
       this.hideLoader();

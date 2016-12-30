@@ -143,7 +143,7 @@ window.WebMist = {
   runRouter: function(uid) {
     this.showLoader();
     var params = document.getElementById("config-" + uid).value;
-    Mist.killJob(uid, params, function(res) {
+    Mist.runRouter(uid, params, function(res) {
       var container = document.getElementById("row-" + uid);
       container.remove();
       this.hideLoader();
