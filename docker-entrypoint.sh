@@ -4,8 +4,7 @@ export PYTHONPATH=${MIST_HOME}/src/main/python:${SPARK_HOME}/python/:`readlink -
 cd ${MIST_HOME}
 
 if [ "$1" = 'tests' ]; then
-  ./sbt/sbt -DsparkVersion=${SPARK_VERSION} assembly
-  ./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=src/test/resources/tests-${SPARK_VERSION}.conf "project examples" package "project mist" test
+  ./sbt/sbt -DsparkVersion=${SPARK_VERSION} -Dconfig.file=src/test/resources/tests-${SPARK_VERSION}.conf "project examples" clean package "project mist" clean assembly test
 elif [ "$1" = 'mist' ]; then
   if [ -e "configs/user.conf" ]; then
     cp -f configs/user.conf configs/docker.conf

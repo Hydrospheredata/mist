@@ -2,11 +2,12 @@ package io.hydrosphere.mist.master.mqtt
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobResult, RestificatedJobConfiguration}
-import io.hydrosphere.mist.master.JsonFormatSupport
-import io.hydrosphere.mist.{Constants, Logger, MistConfig, RouteConfig}
+import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import io.hydrosphere.mist.{Constants, MistConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import spray.json.{DeserializationException, pimpString}
@@ -16,14 +17,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
+private[mist] case object MQTTSubscribe
 
-private[mist] case object MqttSubscribe
-
-private[mist] trait MqttPubSubActor { this: Actor =>
-  val pubsub = context.actorOf(Props(classOf[MqttPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
+private[mist] trait MQTTPubSubActor { this: Actor =>
+  val pubsub: ActorRef = context.actorOf(Props(classOf[MQTTPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
 }
 
-private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with JsonFormatSupport with Logger{
+private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JobConfigurationJsonSerialization with Logger {
 
   private object IncomingMessageIsJobRequest extends Exception
 
@@ -33,14 +33,14 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
 
   def receive: Receive = {
 
-    case MqttSubscribe => pubsub ! MqttPubSub.Subscribe(self)
+    case MQTTSubscribe => pubsub ! MQTTPubSub.Subscribe(self)
 
-    case msg @ MqttPubSub.SubscribeAck(MqttPubSub.Subscribe(`self`)) => context become ready
+    case _ @ MQTTPubSub.SubscribeAck(MQTTPubSub.Subscribe(`self`)) => context become ready
   }
 
   def ready: Receive = {
 
-    case msg: MqttPubSub.Message =>
+    case msg: MQTTPubSub.Message =>
 
       val stringMessage = new String(msg.payload, "utf-8")
 
@@ -49,21 +49,29 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
       val jobResult = try {
         val json = stringMessage.parseJson
         // map request into JobConfiguration
+        // TODO: build configuration with builder
         val jobCreatingRequest = try {
-          json.convertTo[FullJobConfiguration]
+          json.convertTo[MistJobConfiguration]
         } catch {
           case _: DeserializationException =>
             logger.debug(s"Try to parse restificated request")
             val restificatedRequest = try {
-              json.convertTo[RestificatedJobConfiguration]
+              json.convertTo[RestificatedMistJobConfiguration] match {
+                case r if r.route.endsWith("?train") => RestificatedTrainingJobConfiguration(r.route.replace("?train", ""), r.parameters, r.externalId)
+                case r if r.route.endsWith("?serve") => RestificatedServingJobConfiguration(r.route.replace("?serve", ""), r.parameters, r.externalId)
+                case r: RestificatedMistJobConfiguration => r
+              }
             } catch {
               case _: DeserializationException =>
                 logger.debug(s"Try to parse job result")
                 json.convertTo[JobResult]
                 throw IncomingMessageIsJobRequest
             }
-            val config = RouteConfig(restificatedRequest.route)
-            FullJobConfiguration(config.path, config.className, config.namespace, restificatedRequest.parameters, restificatedRequest.externalId)
+            FullJobConfigurationBuilder()
+              .fromRouter(restificatedRequest.route, restificatedRequest.parameters, restificatedRequest.externalId)
+              .setTraining(restificatedRequest.isInstanceOf[RestificatedTrainingJobConfiguration])
+              .setServing(restificatedRequest.isInstanceOf[RestificatedServingJobConfiguration])
+              .build()
         }
 
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
@@ -95,20 +103,21 @@ private[mist] class MQTTServiceActor extends Actor with MqttPubSubActor with Jso
       } catch {
         case _: spray.json.JsonParser.ParsingException =>
           logger.error(s"Bad JSON: $stringMessage")
-          wrapError("Bad JSON", jobCreatingRequest = FullJobConfiguration("", "", "", Map.empty))
+          null
         case _: DeserializationException =>
           logger.error(s"DeserializationException: Bad type in Json: $stringMessage")
-          wrapError("DeserializationException: Bad type in Json", jobCreatingRequest = FullJobConfiguration("", "", "", Map.empty))
+          null
         case IncomingMessageIsJobRequest =>
           logger.debug("Received job result as incoming message")
           null
         case e: Throwable =>
-          wrapError(e.toString, jobCreatingRequest = FullJobConfiguration("", "", "", Map.empty))
+          logger.error(e.toString)
+          null
       }
 
       if (jobResult != null) {
         val jsonString = Json(DefaultFormats).write(jobResult)
-        pubsub ! new MqttPubSub.Publish(jsonString.getBytes("utf-8"))
+        pubsub ! new MQTTPubSub.Publish(jsonString.getBytes("utf-8"))
       }
 
   }

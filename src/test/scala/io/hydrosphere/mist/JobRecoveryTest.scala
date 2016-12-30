@@ -4,19 +4,19 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository, FullJobConfiguration}
+import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.master._
-import scala.concurrent.duration._
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Second, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import spray.json.{DefaultJsonProtocol, DeserializationException}
-import org.apache.commons.lang.SerializationUtils
-import org.mapdb.{DBMaker, Serializer}
-import spray.json._
+import spray.json.{DefaultJsonProtocol, _}
+
+import scala.concurrent.duration._
 
 class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
-  with BeforeAndAfterAll with ScalaFutures with JsonFormatSupport with DefaultJsonProtocol with Eventually {
+  with BeforeAndAfterAll with ScalaFutures with JobConfigurationJsonSerialization with DefaultJsonProtocol with Eventually {
 
   def this() = this(ActorSystem("JobRecoveryTestActorSystem"))
 
@@ -40,14 +40,8 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
 
     val stringMessage = TestConfig.requestJar
     val json = stringMessage.parseJson
-    val jobCreatingRequest = {
-      try {
-        json.convertTo[FullJobConfiguration]
-      } catch {
-        case _: DeserializationException => None
-      }
-    }
-    val w_job = SerializationUtils.serialize(jobCreatingRequest)
+    val jobCreatingRequest = json.convertTo[FullJobConfiguration]
+    val w_job = jobCreatingRequest.toJson.compactPrint.getBytes
     map.clear()
     for (i <- 1 to 3) {
       map.put("3e72eaa8-682a-45aa-b0a5-655ae8854c" + i.toString, w_job)
@@ -80,7 +74,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
       eventually (timeout(10 seconds), interval(1 second)) {
         recoveryActor ! JobStarted
         recoveryActor ! JobCompleted
-        assert(TryRecoveyNext._collection.isEmpty && configurationRepository.size == 0)
+        assert(TryRecoveryNext._collection.isEmpty && configurationRepository.size == 0)
       }
     }
   }

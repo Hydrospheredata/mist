@@ -3,16 +3,16 @@ package  io.hydrosphere.mist
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import org.scalatest._
 import org.scalatest.concurrent.Eventually
+import spray.json.{DefaultJsonProtocol, pimpString}
 
 import scala.concurrent.duration._
-import spray.json.{DefaultJsonProtocol, pimpString}
-import org.scalatest._
 
-class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol {
+class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll with JobConfigurationJsonSerialization with DefaultJsonProtocol {
 
-  val jobConfiguration = new FullJobConfiguration("", "", "Test Jobconfiguration")
+  val jobConfiguration = MistJobConfiguration("", "", "Test Jobconfiguration")
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
@@ -108,12 +108,12 @@ class JobRepositoryTest extends FunSuite with Eventually with BeforeAndAfterAll 
   }
 }
 
-class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JsonFormatSupport with DefaultJsonProtocol {
+class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobConfigurationJsonSerialization with DefaultJsonProtocol {
 
 
-  val jobConfiguration_Empty = new FullJobConfiguration("", "", "Empty Test Jobconfiguration", Map().empty, Option("1"))
-  val jobConfiguration_Python = new FullJobConfiguration("some.py", "", "Python Test Jobconfiguration", Map().empty, Option("2"))
-  val jobConfiguration_Jar = new FullJobConfiguration("some.jar", "", "Jar Test Jobconfiguration", Map().empty, Option("3"))
+  val jobConfiguration_Empty = MistJobConfiguration("", "", "Empty Test Jobconfiguration", Map().empty, Option("1"))
+  val jobConfiguration_Python = MistJobConfiguration("some.py", "", "Python Test Jobconfiguration", Map().empty, Option("2"))
+  val jobConfiguration_Jar = MistJobConfiguration("some.jar", "", "Jar Test Jobconfiguration", Map().empty, Option("3"))
   val contextWrapper = ContextBuilder.namedSparkContext("foo")
 
   val versionRegex = "(\\d+)\\.(\\d+).*".r

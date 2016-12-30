@@ -12,7 +12,7 @@ object Constants {
   object Actors {
     final val syncJobRunnerName = "SyncJobRunner"
     final val asyncJobRunnerName = "AsyncJobRunner"
-    final val workerManagerName = "WorkerManager"
+    final val workerManagerName = "ClusterManager"
     final val mqttServiceName = "MQTTService"
     final val contextNode = "ContextNode"
   }

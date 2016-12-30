@@ -1,16 +1,16 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.Logger
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
+import io.hydrosphere.mist.utils.Logger
 
 
 private[mist] trait Runner extends Logger {
 
-  final val id = java.util.UUID.randomUUID.toString
+  final val id: String = java.util.UUID.randomUUID.toString
 
   protected var _status = Runner.Status.Initialized
 

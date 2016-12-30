@@ -3,14 +3,15 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, AddressFromURIString}
+import akka.actor.{Actor, AddressFromURIString, Props}
 import akka.cluster.Cluster
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.worker.{JobDescriptionSerializable, WorkerDescription}
-import io.hydrosphere.mist.{Constants, Logger, MistConfig, Worker}
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
+import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 
@@ -23,7 +24,7 @@ import scala.sys.process._
 import scala.util.{Failure, Success}
 
 /** Manages context repository */
-private[mist] class WorkerManager extends Actor with Logger{
+private[mist] class ClusterManager extends Actor with Logger {
 
   private val cluster = Cluster(context.system)
 
@@ -35,7 +36,7 @@ private[mist] class WorkerManager extends Actor with Logger{
         Worker.main(Array(name))
       } else {
         new Thread {
-          override def run() = {
+          override def run(): Unit = {
             val runOptions = MistConfig.Contexts.runOptions(name)
             val configFile = System.getProperty("config.file")
             val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -70,10 +71,10 @@ private[mist] class WorkerManager extends Actor with Logger{
                 Process(
                   Seq("bash", "-c", MistConfig.Workers.cmd),
                   None,
-                  "MIST_WORKER_NAMESPACE" -> name,
-                  "MIST_WORKER_CONFIG" -> configFile.toString,
-                  "MIST_WORKER_JAR_PATH" -> jarPath.toString,
-                  "MIST_WORKER_RUN_OPTIONS" -> runOptions
+                    "MIST_WORKER_NAMESPACE" -> name,
+                    "MIST_WORKER_CONFIG" -> configFile.toString,
+                    "MIST_WORKER_JAR_PATH" -> jarPath.toString,
+                    "MIST_WORKER_RUN_OPTIONS" -> runOptions
                 ).!
             }
           }
@@ -154,14 +155,12 @@ private[mist] class WorkerManager extends Actor with Logger{
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 
-    // surprise: stops all contexts
     case StopAllContexts =>
       workers.foreach {
-        case WorkerLink(name, address) =>
+        case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
 
-    // removes context
     case RemoveContext(name) =>
       removeWorkerByName(name)
 
@@ -169,7 +168,16 @@ private[mist] class WorkerManager extends Actor with Logger{
       logger.info(s"Worker `$name` did start on $address")
       workers += WorkerLink(name, address)
 
-    case jobRequest: FullJobConfiguration=>
+    case jobRequest: ServingJobConfiguration =>
+      val originalSender = sender
+      val localNodeActor = context.system.actorOf(Props(classOf[LocalNode]))
+      val future = localNodeActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+      future onSuccess {
+        case response => originalSender ! response
+      }
+
+
+    case jobRequest: FullJobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.namespace)
 

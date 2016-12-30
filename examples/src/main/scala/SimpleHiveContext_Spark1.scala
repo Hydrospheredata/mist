@@ -12,8 +12,6 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
     val df = hiveContext.read.json(parameters("file").asInstanceOf[String])
     df.printSchema()
     df.registerTempTable("people")
-
     Map("result" -> hiveContext.sql("SELECT AVG(age) AS avg_age FROM people").collect())
-
   }
 }
