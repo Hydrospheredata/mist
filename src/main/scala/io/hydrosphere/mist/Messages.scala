@@ -16,10 +16,14 @@ private[mist] object Messages {
 
   case class RemoveJobFromRecovery(jobId: String)
 
-  case class ListMessage(message: String)
+  case class StopJob(message: String)
 
-  case class StringMessage(message: String)
+  case class StopWorker(message: String)
 
-  case class StopMessage(message: String)
+  case class ListWorkers()
+
+  case class ListRouters()
+
+  case class ListJobs()
 
 }

@@ -44,6 +44,7 @@ mist>help (Enter)
 start job <config> <router> <extId>     start job 
 list workers                            List all started workers 
 list jobs                               List all started jobs 
+list routers                            List routers
 kill all                                Stop all workers 
 kill worker <name>                      Stop worker by name 
 kill job <extId|UID>                    Stop job by external id 
@@ -75,7 +76,6 @@ NAMESPACE	ADDRESS
 streaming1	akka.tcp://mist@127.0.0.1:34997
 streaming3	akka.tcp://mist@127.0.0.1:40809
 streaming2	akka.tcp://mist@127.0.0.1:40451
-it's all workers
 exit
 ```
 
@@ -86,10 +86,10 @@ list all running jobs
 
 list jobs
 mist>list jobs
-TIME	NAMESPACE	UID	EXTERNAL ID	ROUTER
-2016-12-21T17:54:10.192+04:00	streaming1	f56bc1h4-8e30-4770-c3e0-312f5d9916a2	job1	streaming-1
-2016-12-21T17:54:19.593+04:00	streaming3	b86bc102-9e90-4870-a380-1edf5d9915b1	job3	streaming-3
-2016-12-21T17:54:37.402+04:00	streaming2	7ce11ddb-04a6-449f-b5c6-f1510a5011a1	job2	streaming-2
+TIME                            NAMESPACE	UID	                                    EXTERNAL ID	  ROUTER
+2016-12-21T17:54:10.192+04:00	streaming1	f56bc1h4-8e30-4770-c3e0-312f5d9916a2	job1	      streaming-1
+2016-12-21T17:54:19.593+04:00	streaming3	b86bc102-9e90-4870-a380-1edf5d9915b1	job3	      streaming-3
+2016-12-21T17:54:37.402+04:00	streaming2	7ce11ddb-04a6-449f-b5c6-f1510a5011a1	job2	      streaming-2
 exit
 ```
 
@@ -108,7 +108,6 @@ list workers
 NAMESPACE	ADDRESS
 streaming3	akka.tcp://mist@127.0.0.1:40809
 streaming2	akka.tcp://mist@127.0.0.1:40451
-it's all workers
 exit
 ```
 
@@ -125,7 +124,7 @@ exit
 
 ./mist cli list jobs         
 list jobs 
-TIME	NAMESPACE	UID	EXTERNAL ID	ROUTER
-2016-12-21T17:54:37.402+04:00	streaming2	7ce11ddb-04a6-449f-b5c6-f1510a5011a1	job2	streaming-2
+TIME                            NAMESPACE   UID                                     EXTERNAL ID  ROUTER
+2016-12-21T17:54:37.402+04:00   streaming2  7ce11ddb-04a6-449f-b5c6-f1510a5011a1    job2         streaming-2
 exit
 ```

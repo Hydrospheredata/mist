@@ -1,14 +1,11 @@
 package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
-
-import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.WorkerDidStart
-import io.hydrosphere.mist.jobs.FullJobConfiguration
-import akka.cluster.Cluster
 import akka.actor.{Actor, ActorLogging, Props}
+import akka.cluster.Cluster
+import akka.cluster.ClusterEvent._
+import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.{Constants, MistConfig}
-
 import scala.concurrent.ExecutionContext
 import scala.util.Random
 
@@ -29,7 +26,6 @@ class JobRunnerNode(path:String,
   val nodeAddress = cluster.selfAddress
 
   override def preStart(): Unit = {
-    serverActor ! WorkerDidStart("JobStarter", cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 

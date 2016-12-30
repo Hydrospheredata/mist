@@ -10,12 +10,11 @@ import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
+import org.joda.time.DateTime
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Random, Success}
-import org.joda.time.DateTime
-import java.util.Date
 
 class ContextNode(namespace: String) extends Actor with ActorLogging{
 
@@ -111,37 +110,41 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
 
-    case ListMessage(message) =>
-      val originalSender = sender
-      if(message.contains(Constants.CLI.listJobsMsg)) {
-        jobDescriptions.foreach {
-          case jobDescription: JobDescription => {
-            originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker}" +
-              s"${jobDescription.Time}\t" +
-              s"${jobDescription.namespace}\t" +
-              s"${jobDescription.UID()}\t" +
-              s"${jobDescription.externalId.getOrElse("None")}\t" +
-              s"${jobDescription.router.getOrElse("None")}")
-          }
-        }
-      }
+    case ListJobs =>
+      val jobDescriptionsSerializable = jobDescriptions.map(
+        job => new JobDescriptionSerializable(job.uid(),
+          job.time, job.namespace,
+          job.externalId,
+          job.router)).toList
 
-    case StopMessage(message) =>
+      sender ! jobDescriptionsSerializable
+
+    case StopJob(message) =>
       val originalSender = sender
-      if(message.contains(Constants.CLI.stopJobMsg)) {
-        jobDescriptions.foreach {
-          case jobDescription: JobDescription => {
-            if(message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
-              || message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.UID())) {
-              originalSender ! new StringMessage(s"${Constants.CLI.jobMsgMarker} Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.UID()}" +
-                s" is scheduled for shutdown. It may take a while.")
-              namedJobCancellations
-                .filter(namedJobCancellation => namedJobCancellation._1.UID() == jobDescription.UID())
-                .foreach(namedJobCancellation => namedJobCancellation._2())
+      val future: Future[List[String]] = Future {
+        val stopResponse = ArrayBuffer.empty[String]
+        if(message.contains(Constants.CLI.stopJobMsg)) {
+          jobDescriptions.foreach {
+            case jobDescription: JobDescription => {
+              if(message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
+                || message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.uid())) {
+                stopResponse += s"Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.uid()}" +
+                  s" is scheduled for shutdown. It may take a while."
+                namedJobCancellations
+                  .filter(namedJobCancellation => namedJobCancellation._1.uid() == jobDescription.uid())
+                  .foreach(namedJobCancellation => namedJobCancellation._2())
+              }
             }
           }
         }
+        stopResponse.toList
       }
+
+      future onComplete {
+        case Success(result: List[String]) => originalSender ! result
+        case Failure(error: Throwable) => originalSender ! error
+      }
+
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {

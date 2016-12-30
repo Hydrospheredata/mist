@@ -20,14 +20,13 @@ private[mist] class JarRunner(jobConfiguration: FullJobConfiguration, jobFile: J
   // Scala `object` reference of user job
   val objectRef = cls.getField("MODULE$").get(None)
 
-  // We must add user jar into spark context
+  // We must add user`s jar into spark context
   contextWrapper.addJar(jobFile.file.getPath)
 
   _status = Runner.Status.Initialized
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
-    new Thread().run()
     try {
       val result = objectRef match {
         case objectRef: MistJob =>

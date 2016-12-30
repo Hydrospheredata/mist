@@ -3,17 +3,24 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, ActorPath, AddressFromURIString}
+import akka.actor.{Actor, AddressFromURIString}
 import akka.cluster.Cluster
 import akka.pattern.ask
+import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.worker.{JobDescriptionSerializable, WorkerDescription}
 import io.hydrosphere.mist.{Constants, Logger, MistConfig, Worker}
+import org.json4s.DefaultFormats
+import org.json4s.native.Json
 
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 import scala.sys.process._
+import scala.util.{Failure, Success}
 
 /** Manages context repository */
 private[mist] class WorkerManager extends Actor with Logger{
@@ -63,10 +70,10 @@ private[mist] class WorkerManager extends Actor with Logger{
                 Process(
                   Seq("bash", "-c", MistConfig.Workers.cmd),
                   None,
-                    "MIST_WORKER_NAMESPACE" -> name,
-                    "MIST_WORKER_CONFIG" -> configFile.toString,
-                    "MIST_WORKER_JAR_PATH" -> jarPath.toString,
-                    "MIST_WORKER_RUN_OPTIONS" -> runOptions
+                  "MIST_WORKER_NAMESPACE" -> name,
+                  "MIST_WORKER_CONFIG" -> configFile.toString,
+                  "MIST_WORKER_JAR_PATH" -> jarPath.toString,
+                  "MIST_WORKER_RUN_OPTIONS" -> runOptions
                 ).!
             }
           }
@@ -83,59 +90,66 @@ private[mist] class WorkerManager extends Actor with Logger{
     }
   }
 
-  private var cliActorPath: ActorPath = _
-
   override def receive: Receive = {
 
-    case StopMessage(message) => {
-      if(message.contains(Constants.CLI.stopJobMsg)) {
-        workers.foreach {
-          case WorkerLink(name, address) => {
-            try {
+    case ListRouters =>
+      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
+      sender ! Json(DefaultFormats).read[Map[String,Any]](config.toString.replaceAll("Config\\(SimpleConfigObject\\(", "").replaceAll("\\)\\)", "")) //TODO
+
+    case StopJob(message) => {
+      val originalSender = sender
+      val future: Future[List[String]] = Future {
+        val stopResponse = ArrayBuffer.empty[String]
+        if (message.contains(Constants.CLI.stopJobMsg)) {
+          workers.foreach {
+            case WorkerLink(name, address) => {
               val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-              remoteActor ! new StopMessage(message)
+              val futureListJobs = remoteActor.ask(new StopJob(message))(timeout = Constants.CLI.timeoutDuration)
+              val result = Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[String]]
+              result.map(jobStopResponse => stopResponse += jobStopResponse)
             }
           }
         }
+        stopResponse.toList
+      }
+
+      future onComplete {
+        case Success(result: List[String]) => originalSender ! result
+        case Failure(error: Throwable) => originalSender ! error
       }
     }
 
-    case StringMessage(message) =>
-      if(message.contains(Constants.CLI.cliActorName)) {
-        cliActorPath = sender.path
-      }
-      else if(message.contains(Constants.CLI.jobMsgMarker)) {
-        try {
-          val cliActor = cluster.system.actorSelection(cliActorPath)
-          cliActor ! new StringMessage(message.substring(Constants.CLI.jobMsgMarker.length).trim)
+    case ListWorkers =>
+      val workerDescriptions = ArrayBuffer.empty[WorkerDescription]
+      workers
+        .foreach {
+          case WorkerLink(name, address) => {
+            workerDescriptions += new WorkerDescription(name, address)
+          }
         }
+      sender ! workerDescriptions.toList
+
+    case ListJobs =>
+      val originalSender = sender
+
+      val future: Future[List[JobDescriptionSerializable]] = Future {
+        val jobDescriptionsSerializable = ArrayBuffer.empty[JobDescriptionSerializable]
+        workers
+          .foreach {
+            case WorkerLink(name, address) => {
+              val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+              val futureListJobs = remoteActor.ask(ListJobs)(timeout = Constants.CLI.timeoutDuration)
+              val result = Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[JobDescriptionSerializable]]
+              result.map(job => jobDescriptionsSerializable += job)
+            }
+          }
+        jobDescriptionsSerializable.toList
       }
 
-    case ListMessage(message) => {
-      cliActorPath = sender.path
-      if(workers.isEmpty) {
-        sender ! new StringMessage(Constants.CLI.noWorkersMsg)
+      future onComplete {
+        case Success(result: List[JobDescriptionSerializable]) => originalSender ! result
+        case Failure(error: Throwable) => originalSender ! error
       }
-      else if(message.contains(Constants.CLI.listJobsMsg) || message.contains(Constants.CLI.stopJobMsg)) {
-        sender ! new StringMessage("TIME\tNAMESPACE\tUID\tEXTERNAL ID\tROUTER")
-        workers.foreach {
-          case WorkerLink(name, address) => {
-            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            remoteActor ! new ListMessage(Constants.CLI.listJobsMsg + sender.path)
-          }
-        }
-      }
-      else {
-        sender ! new StringMessage("NAMESPACE\tADDRESS")
-        workers.foreach {
-          case WorkerLink(name, address) => {
-            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-            sender ! new StringMessage(s"$name\t$address")
-          }
-        }
-        sender ! new StringMessage(Constants.CLI.jobMsgMarker + "it's all workers")
-      }
-    }
 
     case CreateContext(name) =>
       startNewWorkerWithName(name)

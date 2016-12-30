@@ -23,6 +23,8 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
+  val timeoutAssert = timeout(90 seconds)
+
   val clientHTTP = Http(system)
 
   object StartMist {
@@ -60,6 +62,7 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
     StartMist.threadMaster.start()
     Thread.sleep(5000)
     StartJobs.start()
+    Thread.sleep(5000)
   }
 
   override def afterAll(): Unit = {
@@ -75,8 +78,8 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   "UI REST Test" must {
     "list workers" in {
       var http_response_success = false
-      eventually(timeout(180 seconds), interval(10 second)) {
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restUIUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestUIListWorkers))
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListWorkers)
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
@@ -103,8 +106,8 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
 
     "list jobs" in {
       var http_response_success = false
-      eventually(timeout(60 seconds), interval(10 second)) {
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restUIUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestUIListJobs))
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListJobs)
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
@@ -129,10 +132,38 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
       }
     }
 
+    "list routers" in {
+      var http_response_success = false
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListRouters)
+        val future_response = clientHTTP.singleRequest(httpRequest)
+
+        future_response onComplete {
+          case Success(msg) => msg match {
+            case HttpResponse(OK, _, _, _) =>
+              println(msg)
+              if(msg.entity.toString.contains("streaming-1") &&
+                msg.entity.toString.contains("streaming-2") &&
+                msg.entity.toString.contains("streaming-3")) {
+                http_response_success = true
+              }
+            case _ =>
+              println(msg)
+              http_response_success = false
+          }
+          case Failure(e) =>
+            println(e)
+            http_response_success = false
+        }
+        Await.result(future_response, 10.seconds)
+        assert(http_response_success)
+      }
+    }
+
     "kill job" in {
       var http_response_success = false
-      eventually(timeout(60 seconds), interval(10 second)) {
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restUIUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestUIKillJob))
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListJobs+"/job2")
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
@@ -160,8 +191,8 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
 
     "kill worker" in {
       var http_response_success = false
-      eventually(timeout(60 seconds), interval(10 second)) {
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restUIUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestUIKillWorker))
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListWorkers + "/streaming1")
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
@@ -184,10 +215,10 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
       }
     }
 
-    "kill all" in {
+    "kill all workers" in {
       var http_response_success = false
-      eventually(timeout(60 seconds), interval(10 second)) {
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restUIUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestUIKillAll))
+      eventually(timeoutAssert, interval(10 second)) {
+        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListWorkers)
         val future_response = clientHTTP.singleRequest(httpRequest)
 
         future_response onComplete {
