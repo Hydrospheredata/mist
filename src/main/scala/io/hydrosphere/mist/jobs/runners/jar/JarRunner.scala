@@ -17,7 +17,7 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
   // Scala `object` reference of user job
   val objectRef: AnyRef = cls.getField("MODULE$").get(None)
 
-  // TODO: remove nullable contextWrapper 
+  // TODO: remove nullable contextWrapper
   if (contextWrapper != null) {
     // We must add user jar into spark context
     contextWrapper.addJar(jobFile.file.getPath)
@@ -27,7 +27,6 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
-    new Thread().run()
     try {
       val result = configuration match {
         case _: MistJobConfiguration =>

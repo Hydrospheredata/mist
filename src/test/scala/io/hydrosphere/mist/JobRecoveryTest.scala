@@ -6,16 +6,14 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.master._
-import io.hydrosphere.mist.utils.json.{AnyJsonFormatSupport, JobConfigurationJsonSerialization}
-
-import scala.concurrent.duration._
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import org.mapdb.{DBMaker, Serializer}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.time.{Second, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import spray.json.{DefaultJsonProtocol, DeserializationException}
-import org.apache.commons.lang.SerializationUtils
-import org.mapdb.{DBMaker, Serializer}
-import spray.json._
+import spray.json.{DefaultJsonProtocol, _}
+
+import scala.concurrent.duration._
 
 class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with ImplicitSender with WordSpecLike with Matchers
   with BeforeAndAfterAll with ScalaFutures with JobConfigurationJsonSerialization with DefaultJsonProtocol with Eventually {

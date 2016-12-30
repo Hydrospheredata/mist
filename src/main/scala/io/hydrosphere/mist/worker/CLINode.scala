@@ -5,15 +5,13 @@ import java.util.concurrent.Executors._
 import akka.actor.Actor
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
+import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.util.Random
-
+import scala.util.{Failure, Random, Success}
 
 class CLINode extends Actor {
 
@@ -29,52 +27,44 @@ class CLINode extends Actor {
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
-    serverActor ! new StringMessage(Constants.CLI.cliActorName)
   }
 
   override def postStop(): Unit = {
     cluster.unsubscribe(self)
   }
 
+  def cliResponder[A](el: A, originalSender: akka.actor.ActorRef): Unit = {
+    val future = serverActor.ask(el)(timeout = Constants.CLI.timeoutDuration)
+    future.andThen {
+      case Success(result: Map[String, Any]) => originalSender ! result
+      case Success(result: String) => originalSender ! result
+      case Success(result: List[Any]) => originalSender ! result
+      case Failure(error: Throwable) => originalSender ! error
+    }(ExecutionContext.global)
+  }
+
   override def receive: Receive = {
-    case StopMessage(message) => {
-      if(message.contains(Constants.CLI.stopWorkerMsg)) {
-        serverActor ! new RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
-        sender ! s"Worker ${message.substring(Constants.CLI.stopWorkerMsg.length).trim} is scheduled for shutdown."
-      }
-      else if(message.contains(Constants.CLI.stopJobMsg)) {
-        messageArray.clear()
-        val originalSender = sender
-        serverActor ! new StopMessage(message)
-        context.system.scheduler.scheduleOnce(2000 millis) {
-          originalSender ! messageArray.mkString("\r\n")
-        }
-      }
+    case StopWorker(message) => {
+      serverActor ! new RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
+      sender ! s"Worker ${message.substring(Constants.CLI.stopWorkerMsg.length).trim} is scheduled for shutdown."
     }
 
-    case StringMessage(message) =>
-      if(message.contains(Constants.CLI.jobMsgMarker)) {
-        messageArray += message.substring(Constants.CLI.jobMsgMarker.length)
-      }
-      else {
-        messageArray += message
-      }
+    case StopJob(message) => {
+      cliResponder(new StopJob(message), sender)
+    }
 
     case StopAllContexts =>
       serverActor ! StopAllContexts
       sender ! "All Context is scheduled for shutdown."
 
-    case ListMessage(message) =>
-      messageArray.clear()
-      val originalSender = sender
-      serverActor ! new ListMessage(message)
-      context.system.scheduler.scheduleOnce(2000 millis) {
-        originalSender ! messageArray.mkString("\r\n")
-      }
+    case ListJobs =>
+      cliResponder(ListJobs, sender)
 
-    case MemberUp(member) =>
-      if (member.address == cluster.selfAddress) {
-      }
+    case ListWorkers =>
+      cliResponder(ListWorkers, sender)
+
+    case ListRouters =>
+      cliResponder(ListRouters, sender)
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {

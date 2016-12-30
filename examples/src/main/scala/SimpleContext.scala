@@ -13,4 +13,3 @@ object SimpleContext extends MistJob {
     Map("result" -> rdd.map(x => x * 2).collect())
   }
 }
-

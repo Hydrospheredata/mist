@@ -1,34 +1,27 @@
 package io.hydrosphere.mist.master
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.worker.CLINode
-import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import io.hydrosphere.mist.jobs._
-import spray.json._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import akka.http.scaladsl.server.{Directive1, Directives}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.server.util.ConstructFromTuple
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-
-import scala.concurrent.duration.FiniteDuration
-import scala.language.reflectiveCalls
-import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import io.hydrosphere.mist.worker.CLINode
+import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
-
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
+import scala.language.reflectiveCalls
 
 /** HTTP interface */
 private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
@@ -75,11 +68,34 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
         }
       }
     } ~
-    path("internal") {
-      post {
-        entity(as[Map[String, String]]) { cmd =>
-          doUserInterfaceComplete(cmd)
+    path("internal" / Segment) { cmd =>
+      pathEnd {
+        get {
+          cmd match {
+            case "jobs" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listJobsMsg))
+            case "workers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listWorkersMsg))
+            case "routers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listRoutersMsg))
+          }
         }
+      }
+    } ~
+    path("internal" / "jobs" / Segment) { cmd =>
+      pathEnd {
+        delete {
+          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopJobMsg + cmd)))
+        }
+      }
+    } ~
+    path("internal" / "workers" / Segment) { cmd =>
+      pathEnd {
+        delete {
+          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopWorkerMsg + cmd)))
+        }
+      }
+    } ~
+    path("internal" / "workers" ) {
+      delete {
+        doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopAllWorkersMsg)))
       }
     }
   }
@@ -115,7 +131,8 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       }
       else {
         workerManagerActor ! jobRequest
-        JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
+        val jobResult = JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
+        HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
       }
     }
   }
@@ -143,26 +160,17 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
 
     var command: Any = ""
     def getCommand: () => Any = { () => {command} }
-    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = FiniteDuration(1, TimeUnit.MINUTES))
+    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = Constants.CLI.timeoutDuration)
 
     complete {
 
-      cmd("cmd") match {
-        case Constants.CLI.listJobsMsg => {
-          command = new ListMessage(Constants.CLI.listJobsMsg)
-        }
-        case Constants.CLI.listWorkersMsg => {
-          command = new ListMessage(Constants.CLI.listWorkersMsg)
-        }
-        case Constants.CLI.stopJobMsg => {
-          command = new StopMessage(s"${Constants.CLI.stopJobMsg} ${cmd("job")}")
-        }
-        case Constants.CLI.stopWorkerMsg => {
-          command = new StopMessage(s"${Constants.CLI.stopWorkerMsg} ${cmd("worker")}")
-        }
-        case Constants.CLI.stopAllWorkersMsg => {
-          command = StopAllContexts
-        }
+      command = cmd("cmd") match {
+        case Constants.CLI.listJobsMsg => ListJobs
+        case Constants.CLI.listWorkersMsg => ListWorkers
+        case Constants.CLI.listRoutersMsg => ListRouters
+        case msg if msg.toString.contains(Constants.CLI.stopJobMsg) =>  new StopJob(msg.toString)
+        case msg if msg.toString.contains(Constants.CLI.stopWorkerMsg) =>  new StopWorker(msg.toString)
+        case Constants.CLI.stopAllWorkersMsg => StopAllContexts
         case _ => throw new Exception("Unknow command")
       }
 
@@ -171,11 +179,13 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
           case error: Throwable =>  HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
         }
         .map[ToResponseMarshallable] {
-        case result: String => result
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result))
+        case result: Map[String, Any] =>
+          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+        case result: List[Any] =>
+          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+        case result: String =>
+          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
       }
     }
-
   }
-
 }

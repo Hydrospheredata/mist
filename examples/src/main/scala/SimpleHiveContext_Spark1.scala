@@ -13,6 +13,5 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
     df.printSchema()
     df.registerTempTable("people")
     Map("result" -> hiveContext.sql("SELECT AVG(age) AS avg_age FROM people").collect())
-
   }
 }
