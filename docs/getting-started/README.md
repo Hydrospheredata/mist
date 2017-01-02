@@ -32,7 +32,7 @@ Hydrosphere helps
 
 ## Installing Hydrosphere Mist 
 ### Quick Start
-Hydrosphere Mist is a Scala/Akka application distributed as a Docker container. Apache Spark binaries are already packaged into Mist docker container for a quick start.
+Hydrosphere Mist is a Scala/Akka application distributed as a Docker container. Apache Spark binaries, all the default configs and sample jobs are already packaged into Mist docker container for a quick start.
 
 ```
 docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.0.0 mist
@@ -40,12 +40,23 @@ docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosph
 
 ### (Optional) Checking Web UI
 
+Mist UI is available at `http://localhost:2003/ui`
+
+![Hydrosphere Mist UI](http://dv9c7babquml0.cloudfront.net/docs-images/hydrisphere-mist-ui.png)
+
+You could check running workers and jobs as well as execute/debug API routes right from the web console.
+
 ### (Optional) Connecting to your existing Apache Spark cluster
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation please follow high level scheme and detailed steps below. 
 
 ![Mist Spark Master config](http://dv9c7babquml0.cloudfront.net/docs-images/mist-spark-master.png)
 
-#### (1/3) Creating or cloning Mist config file and saving it in current directory  
+#### (1/3) Creating or copying Mist config file and saving it in `./configs` directory  
+
+```
+mkdir configs
+curl -o ./configs/mist.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
+```
 
 #### (2/3) Editing a config and specifying an address of your existing Apache Spark master
 
@@ -58,17 +69,7 @@ mist.context-defaults.spark-conf = {
 #### (3/3) Running Mist docker container with mounted config file
 
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs/docker.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
-```
-
-### (Optional) Installing Sample Applications 
-
-```
-git clone https://github.com/Hydrospheredata/mist.git
-cd mist
-sbt "project examples" package
-
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
+docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs/mist.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
 ```
 
 ## What's next
