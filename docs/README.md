@@ -11,8 +11,6 @@
 - [Reactive API](/docs/reactive.md)
 - [Code Examples](/docs/code-examples.md)
 - [Configuration](/docs/configuration.md)
-- [License](/LICENSE)
-- [Logging](/docs/logger.md)
 - [Low level API Reference](/docs/api-reference.md)
 - [Namespaces](/docs/context-namespaces.md)
 - [Tests](/docs/tests.md)
