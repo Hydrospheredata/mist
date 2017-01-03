@@ -4,7 +4,7 @@ Apache Spark is a great engine to train machine learning models at big data scal
 On the other hand the line between offline batch predictions, streaming jobs and online low latency queries is very blur. Meaning that the same models could be used in different contexts, and it would be great to use the same machine learning and linear algebra codebase for these use cases. Also for web developers all these internals of batch, streaming and realtime processing should be hidden behind “analytics services” API layer.
 With Hydrosphere Mist you are able to train the model in Apache Spark and then expose it through the low latency REST API without making it compatible with PMML or exporting it to other production scoring/serving engine.
 
-![Mist Realtime ML serving (scoring)](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-realtime-ml-serving-scoring.png)
+![Mist Realtime ML serving (scoring)](http://dv9c7babquml0.cloudfront.net/docs-images/mist-realtime-ml-serving-scoring.png)
 
 Apache Spark 2.0 has introduced a concept of ML pipelines and added an ability to serialize fitted model for later use. It is naturally to use saved models for single row predictions.
 There is work in progress in Apache Spark community to separate MLLib from Apache Spark context and distributed computing. Hydrosphere Mist serving layer is aligned with future MLLib local release and will use it eventually.
@@ -83,7 +83,7 @@ For the demo purposes it is convenient to train the model right from the Mist we
 
 Go to `http://localhost:2003/ui/#`, select `classification` route and send `train` action.
 
-![Mist UI train the model](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-ui-train-ml-model.png)
+![Mist UI train the model](http://dv9c7babquml0.cloudfront.net/docs-images/mist-ui-train-ml-model.png)
 
 ### (6/6) Serving/Scoring the model
 
