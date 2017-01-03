@@ -12,22 +12,22 @@ How Hydrosphere Mist helps
  - Application can not modify running streaming jobs on the fly. Like apply new alert rule to existing log stream.
  - [Experimental] Hydrosphere Mist will provide a bi-directional API. So, application will be able to parametrize streaming jobs on the fly.
 
-![Reactive Architecture Scheme](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-scheme.png)
+![Reactive Architecture Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-scheme.png)
 
 ### Old reporting architecture vs. Mistified design
 In addition to advance streaming use cases Hydrosphere Mist facilitates the right and innovative approach for data warehouse architectures which existed for decades. 
 
 A "classical" reporting use case for Apache Spark or Hadoop is to have reporting job scheduled by cron which saves result into Hive, HBase, Cassandra or other storage. Then reporting application or BI tool uses SQL on Hadoop or other solutions to fetch reports from that storage.
 
-![Old school reporting architecture](http://http://dv9c7babquml0.cloudfront.net/docs-images/classical-reporting-architecture.png)
+![Old school reporting architecture](http://dv9c7babquml0.cloudfront.net/docs-images/classical-reporting-architecture.png)
 
 In fact it's not a responsibility of Apache Spark even to think where to store the report. Reporting app/service knows better where to store it since it's responsible for reading and managing it later. Maybe it will decide to store it in Redshift or index it in Elasticsearch - Apache Spark should not care about that.
 
-![Mist enabled reporting architecture](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-reporting-architecture.png)
+![Mist enabled reporting architecture](http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-reporting-architecture.png)
 
 Hydrosphere Mist and Apache Kafka are used to decouple offline reporting job from other applications. Going further you could add more services subscribed to the reporting topic: notification, audit and others.
 
-![Mist enable reporting architecture extended](http://http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-reporting-architecture-ext.png)
+![Mist enable reporting architecture extended](http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-reporting-architecture-ext.png)
 
 ## Tutorial
 Let’s take a use case from [Enterprise Analytics Section](/docs/use-cases/enterprise-analytics.md) and extend it to support streaming architecture. Original batch Mist job was designed to receive filter parameters from user application, process log entries and return a result. Now let’s imagine we would like to setup a realtime alert when error captured in logs. It’s a canonical use case of Apache Spark and other streaming engines. Follow the steps below to build an end-to-end solution.
