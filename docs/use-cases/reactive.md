@@ -68,10 +68,10 @@ Mist provides a Router abstraction which maps incoming HTTP/Messaging requests a
 
 Create or edit file `./configs/router.conf` to add a router for our log search application:
 ````
-log-streaming = {
-    path = 'hdfs://hdfs-host/jobs/log-streaming.jar', // local or HDFS file path
+streaming-log-search = {
+    path = '/jobs/log-streaming.jar', // local or HDFS file path
     className = StreamingTextSearch$',
-    namespace = 'streaming-namespace'
+    namespace = 'streaming'
 }
 ````
 Please note that Router config could be edited after Mist start, so you could adjust it later in case of any issues.
@@ -86,24 +86,36 @@ mist.mqtt.port = 1883
 mist.mqtt.subscribe-topic = "foo"
 mist.mqtt.publish-topic = "foo"
 # Inifinity timeout for Streaming context
-mist.context.streaming-namespace.timeout = Inf
+mist.context.streaming.timeout = Inf
 ```
 
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.
 
 ```
 docker run --name mosquitto--2.0.0 -d ansi/mosquitto
-docker run -p 2003:2003 --link mosquitto-2.0.0:mosquitto -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/docker.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
+#create jobs directory and mount it to Mist. So, you'll be able to copy new jobs there
+mkdir jobs
+docker run -p 2003:2003 --link mosquitto-2.0.0:mosquitto --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
 ```
 
 ### (4/6) Deploying a job
 Compile and copy the job binary file into local directory mounted to the Mist docker container or HDFS.
 
-It is possible to start any Mist job using REST endpoint but it makes more sense to start infinity streaming jobs from CLI. 
+```
+sbt clean package
+cp ./target/scala-2.11/log-streaming.jar ./jobs/
+```
+
+It is possible to start any Mist job using REST endpoint. For the testing and demo purposes it makes more sense to start infinity streaming jobs from web console. 
+
+![Mist start job from UI](http://dv9c7babquml0.cloudfront.net/docs-images/mist-ui-run-streaming-job.png)
+
+Also it is very useful to start system streaming jobs from CLI:
 
 ```
-./mist start job --route log-streaming 
+./mist start job --route streaming-log-search --parameters "{}"
 ```
+
 The resulting configuration & deployment scheme looks as following:
 
 ![Mist Configuration Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-config-scheme.png)
@@ -114,7 +126,7 @@ Please note that Mist is a service, so it is not required to be restarted every 
 Use MQTT client like MQTTLens Chrome extension to connect to MQTT topic specified in Mist config.
 If everything goes well you’ll be able to see incoming messages from Hydrosphere Mist.
 
-![MQTT Client Screenshot](http://)
+![MQTT Client Screenshot](http://dv9c7babquml0.cloudfront.net/docs-images/mist-streaming-mqtt-screenshot.png)
 
 ### (6/6) Applying a new filter on the fly
 Now imagine a real application when user can define error filters and apply those in realtime. Also error filters might be much more complex than simple regular expression, it might be a machine learning model for anomaly detection and noise filtering. And this is also could be defined, switched on and off from the client application. These use cases seem pretty basic but currently there no straightforward way to implement those. We are working on bi-directional API which will enable such type of interactions between Apache Spark streaming applications and other microservices. 

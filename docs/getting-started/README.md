@@ -34,17 +34,20 @@ Hydrosphere helps
 ### Quick Start
 Hydrosphere Mist is a Scala/Akka application distributed as a Docker container. Apache Spark binaries, all the default configs and sample jobs are already packaged into Mist docker container for a quick start.
 
+It is recommended to mount `./config` `./jobs` volumes to Mist docker container in advance, so we'll be able to customise configs and deploy new jobs as we go along. 
+
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.0.0 mist
+mkdir configs
+curl -o ./configs/mist.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
+mkdir jobs
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
 ```
 
-### (Optional) Checking Web UI
-
-Mist UI is available at `http://localhost:2003/ui`
+Go to Mist UI at `http://localhost:2003/ui`
 
 ![Hydrosphere Mist UI](http://dv9c7babquml0.cloudfront.net/docs-images/hydrisphere-mist-ui.png)
 
-You could check running workers and jobs as well as execute/debug API routes right from the web console.
+You could check running workers and jobs as well as execute/debug API routes right from the web browser.
 
 ### (Optional) Connecting to your existing Apache Spark cluster
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation please follow high level scheme and detailed steps below. 
@@ -69,7 +72,7 @@ mist.context-defaults.spark-conf = {
 #### (3/3) Running Mist docker container with mounted config file
 
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs/mist.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
 ```
 
 ## What's next

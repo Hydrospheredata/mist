@@ -78,7 +78,7 @@ Create or edit file `./configs/router.conf` to add a router for the log search a
 
 ````
 log-search = {
-    path = 'hdfs://hdfs-host/jobs/search-job.jar', // local or HDFS file path
+    path = '/jobs/search-job.jar', // local or HDFS file path
     className = LogSearchJob$',
     namespace = 'production-namespace'
 }
@@ -93,10 +93,11 @@ POST /api/log-search
 ````
 
 ### (4/5) Starting Mist 
-Start Mist and make sure that Router config you have created in step [3/5] and directory with search-job.jar has been mounted to the Docker container.  
+Start Mist and make sure that Router config you have created in step (3/5) and directory with search-job.jar has been mounted to the Docker container.  
 
 ````
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/docker.conf:/usr/share/mist/configs/user.conf -d hydrosphere/mist:master-2.0.0 mist
+mkdir jobs
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
 ````
 
 ### (5/6) Deploying a job
@@ -105,7 +106,7 @@ Use `sbt package` or your own favourite build pipeline to package Scala programs
 
 ```
 sbt package
-cp ./target/scala-2.11/search-job.jar 
+cp ./target/scala-2.11/search-job.jar ./jobs
 ```
 
 That’s it - all that you need to deploy a job is to copy it to the local or HDFS directory Mist has access to. The resulting configuration & deployment scheme looks as following:
