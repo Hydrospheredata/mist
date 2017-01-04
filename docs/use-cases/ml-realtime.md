@@ -44,8 +44,9 @@ object MLClassification extends MLMistJob with SQLSupport {
   }
 }
 ````
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/MLClassification_Spark2.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/MLClassification_Spark2.scala)
 
-Obviously the code above could be generalised to serve any model from the model repository. So, you'll not need to write a single line of code to make the mode "servable". We are going to add this abstract entry point in future releases. 
+Obviously the code above could be generalised to serve any model from the model repository. So, you'll not need to write a single line of code to make the model "servable". We are going to add this abstract entry point in future releases. 
 
 ### (3/6) Starting Mist
 

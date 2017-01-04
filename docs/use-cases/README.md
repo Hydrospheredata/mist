@@ -39,7 +39,7 @@ Please check out detailed overview and coding tutorial for [Realtime Machine Lea
 
 ## (3) Reactive Applications
 ### Technical nature
-Apache Spark streaming or long running batch job push insights to applications. Applications could parametrize/adjust streaming jobs on the fly.
+Apache Spark streaming or long running batch job pushes insights to applications. Applications could parametrize/adjust streaming jobs on the fly.
 ### Examples
 Fraud detection
 
@@ -54,3 +54,9 @@ Search (building search index from the filtered stream)
 ### Read More
 Please check out detailed overview and coding tutorial for [Reactive Applications](/docs/use-cases/reactive.md).
 
+## What's next
+
+Learn from use cases and tutorials here:
+ - [Enterprise Analytics Applications](/docs/use-cases/enterprise-analytics.md)
+ - [Reactive Applications](/docs/use-cases/reactive.md)
+ - [Realtime Machine Learning Applications](/docs/use-cases/ml-realtime.md)

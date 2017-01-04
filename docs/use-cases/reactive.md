@@ -6,18 +6,18 @@ Streaming architectures usually use MQTT or Kafka to publish streaming results t
 
 General architecture is clear but when it comes to actual implementation there are following common gaps:
  - No DSL to define an API between Apache Spark program and upstream application. Kafka and MQTT are just transport layers. 
- - Any Mist job (long running batch or streaming) could publish results asynchronously and continuously using the same API.
-
+ - Application can not modify running streaming jobs on the fly. Like apply new alerting rule to existing log stream analytics job.
+ 
 How Hydrosphere Mist helps
- - Application can not modify running streaming jobs on the fly. Like apply new alert rule to existing log stream.
+ - Any Mist job (long running batch or streaming) could publish results asynchronously and continuously using the same API.
  - [Experimental] Hydrosphere Mist will provide a bi-directional API. So, application will be able to parametrize streaming jobs on the fly.
 
 ![Reactive Architecture Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-reactive-scheme.png)
 
 ### Old reporting architecture vs. Mistified design
-In addition to advance streaming use cases Hydrosphere Mist facilitates the right and innovative approach for data warehouse architectures which existed for decades. 
+In addition to advance streaming use cases Hydrosphere Mist facilitates the right and innovative approach for data warehouse architectures existed for decades. 
 
-A "classical" reporting use case for Apache Spark or Hadoop is to have reporting job scheduled by cron which saves result into Hive, HBase, Cassandra or other storage. Then reporting application or BI tool uses SQL on Hadoop or other solutions to fetch reports from that storage.
+A "classical" reporting use case for Apache Spark or Hadoop is to have reporting job scheduled by cron and save results into Hive, HBase, Cassandra or other storage. Then reporting application or BI tool uses SQL on Hadoop or other solutions to fetch reports from that storage.
 
 ![Old school reporting architecture](http://dv9c7babquml0.cloudfront.net/docs-images/classical-reporting-architecture.png)
 
@@ -62,6 +62,8 @@ object StreamingTextSearch extends MistJob with MQTTPublisher {
   }
 }
 ````
+
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/StreamingTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/StreamingTextSearch.scala)
 
 ### (2/6) Checking Router config
 Mist provides a Router abstraction which maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints a by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
@@ -129,7 +131,7 @@ If everything goes well you’ll be able to see incoming messages from Hydrosphe
 ![MQTT Client Screenshot](http://dv9c7babquml0.cloudfront.net/docs-images/mist-streaming-mqtt-screenshot.png)
 
 ### (6/6) Applying a new filter on the fly
-Now imagine a real application when user can define error filters and apply those in realtime. Also error filters might be much more complex than simple regular expression, it might be a machine learning model for anomaly detection and noise filtering. And this is also could be defined, switched on and off from the client application. These use cases seem pretty basic but currently there no straightforward way to implement those. We are working on bi-directional API which will enable such type of interactions between Apache Spark streaming applications and other microservices. 
+Now imagine a real application when user can define error filters and apply those in realtime. Also error filters might be much more complex than simple regular expression, it might be a machine learning model for anomaly detection and noise filtering. And this could be defined, switched on and off from the client application. These use cases seem pretty basic but currently there no straightforward way to implement those. We are working on bi-directional API which will enable such type of interactions between Apache Spark streaming applications and other microservices. 
 
 
 ### What’s next? 

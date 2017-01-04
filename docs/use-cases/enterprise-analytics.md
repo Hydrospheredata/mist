@@ -19,7 +19,7 @@ How Hydrosphere Mist helps
 By solving these challenges Hydrosphere Mist enables more advanced and interactive enterprise analytics applications to be built on top of Apache Spark.
 
 Please note in this use case we are not talking about low latency job execution. Obviously the main purpose of using Apache Spark is to process large data sets. Large data sets processing could not be low latency. Hydrosphere Mist garanties instant job start by managing SparkContexts and provides API layer on top of that. 
-For realtime applications with low latency and high throughput built on top of machine learning models trained in by Apache Spark please refer to the use case “Realtime ML applications”.
+For realtime applications with low latency and high throughput built on top of machine learning models trained in by Apache Spark please refer to the use case [Realtime Machine Learning Applications](/docs/use-cases/ml-realtime.md).
 
 ## Tutorial
 In this tutorial we will take the basic Apache Spark example, extend it to more realistic use case and deploy it as a service using Hydrosphere Mist.
@@ -66,13 +66,13 @@ object LogSearchJob extends MistJob {
   }
 }
 ````
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/SimpleTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/SimpleTextSearch.scala)
 
-
-Mist job accepts user parameters map, in our case we expect filter names and then passes those to the regular Spark program we had before.
+Mist job accepts user parameters map, in our case we expect path to the log file and filter names. Then we pass those to the regular Spark program we had before.
 
 ### (3/6) Configuring Router
 
-Mist provides a Router abstraction which maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints a by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
+Mist provides a Router abstraction that maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
 
 Create or edit file `./configs/router.conf` to add a router for the log search application:
 
@@ -111,20 +111,29 @@ cp ./target/scala-2.11/search-job.jar ./jobs
 
 That’s it - all that you need to deploy a job is to copy it to the local or HDFS directory Mist has access to. The resulting configuration & deployment scheme looks as following:
 
-Please note that Mist is a service, so it is not required to be restarted every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
-
 ![Mist Configuration Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-config-scheme.png)
+
+Please note that Mist is a service, so it is not required to be restarted every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
 
 ### (6/6) Testing
 
-Here we go. Now you can try your API endpoints using cURL:
+Here we go. Let's create a test log file and try your API endpoints using cURL:
 
 ```
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/log-search --data '{"filter": "ERROR", “filePath”: “/path/production.log”}'
+cat >> ./jobs/text_search.log << EOF
+error error mysql
+exception
+error mongodb
+hydrosphere mist no errors
+EOF
+
+curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/log-search --data '{"filters": ["ERROR", "MySQL"], "filePath": "/jobs/text_search.log"}'
 ```
+
+Also you could use Mist web console to test/debug routes.
 
 ### Summary
 This relatively basic tutorial could be easily extended to support various of enterprise analytics applications such as reporting, simulation (pricing, bank stress testing, taxi rides), forecasting (ad campaign, energy savings, others), ad-hoc analytics tools for business users (hosted notebooks - smart web apps for business users), and others. The technical similarity of these application is Hydrosphere Mist / Apache Spark job exposed as an API to the client application.
 
 ### What’s next?
-Consider one more use case - what if you would like to process logs in Apache Streaming and alert web application in reactive way. Learn how to build such kind of applications with Hydrosphere Mist at the [next section](/docs/use-cases/reactive.md).
+Consider one more use case - what if you would like to process logs in Apache Streaming and alert web application in reactive way. Learn how to build such kind of applications with Hydrosphere Mist in the [next section](/docs/use-cases/reactive.md).

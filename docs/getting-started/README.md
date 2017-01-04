@@ -5,10 +5,10 @@
 Hydrosphere Mist is an open-source service for exposing analytics jobs and machine learning models as web services.
 
 With Hydrosphere Mist you can quickly connect Apache Spark programs and machine learning models trained by Apache Spark with end user applications:
-Serve (or score) machine learning models from the REST API with low latency and high throughput
-Run parametrized Apache Spark jobs from REST API and receive synchronous or asynchronous results
-Subscribe to streaming jobs and receive reactive stream of results
-Modify (parametrize) streaming jobs on the fly from the application layer
+ - Serve (or score) machine learning models from the REST API with low latency and high throughput
+ - Run parametrized Apache Spark jobs from REST API and receive synchronous or asynchronous results
+ - Subscribe to streaming jobs and receive reactive stream of results
+ - Modify (parametrize) streaming jobs on the fly from the application layer
 
 Our goal is to simplify and facilitate delivery of smart end-to-end solutions on top of machine learning stack.
 
@@ -21,7 +21,7 @@ Hydrosphere Mist is:
 Hydrosphere helps
  - Data Scientists and Big Data Engineers to deploy analytics jobs and machine learning models as web services
  - Web developers to tap into analytics using familiar REST or messaging API
- - Managers facilitate delivery of end-to-end analytics solutions that include data science, data engineering, middleware and application components nicely decoupled and aligned to each other
+ - Managers to facilitate delivery of end-to-end analytics solutions that include data science, data engineering, middleware and application components nicely decoupled and aligned with each other
 
 ## Hydrosphere Mist is not:
  - Hydrosphere Mist does not a fork Apache Spark, does not stick with its particular version, does not force using custom DataFrames or SparkContexts and does not customise machine learning model serialisation format. Mist wraps, executes and manages Apache Spark programs, so they could be accessed by REST API. 
