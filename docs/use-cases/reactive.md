@@ -115,7 +115,7 @@ It is possible to start any Mist job using REST endpoint. For the testing and de
 Also it is very useful to start system streaming jobs from CLI:
 
 ```
-./mist start job --route streaming-log-search --parameters "{}"
+docker exec -i mist bash -c "/usr/share/mist/bin/mist start job --config /usr/share/mist/configs/docker.conf --route streaming-log-search —-parameters """{\“filter\”:[\”error\”]}""“
 ```
 
 The resulting configuration & deployment scheme looks as following:
