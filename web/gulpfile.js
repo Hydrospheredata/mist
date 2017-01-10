@@ -10,7 +10,8 @@ gulp.task("scripts", () => {
 });
 
 gulp.task("move", () => {
-    return gulp.src(["./index.html", "./styles.css", "./images/**/*.*"], { base: "./" }).pipe(gulp.dest(destination))
+  return gulp.src(["./index.html", "./styles.css", "./images/**/*.*"], { base: "./" })
+  .pipe(gulp.dest(destination))
 });
 
 gulp.task("default", ["scripts", "move"])

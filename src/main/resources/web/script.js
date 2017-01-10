@@ -632,123 +632,14 @@
 
 },{}],2:[function(require,module,exports){
 var Mustache = require('mustache');
-
-window.Mist = {
-  //{
-  //  "streaming-1": {
-  //    "className": "SimpleSparkStreamingLong$",
-  //    "namespace": "streaming1",
-  //    "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-  //  },
-  //  "streaming-2": {
-  //    "className": "SimpleSparkStreamingLong$",
-  //    "namespace": "streaming2",
-  //    "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-  //  },
-  //  "streaming-3": {
-  //    "className": "SimpleSparkStreamingLong$",
-  //    "namespace": "streaming3",
-  //    "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
-  //  }
-  //}
-  routers: function(callback) {
-    this.__request("GET", location.origin + "/internal/routers", {}, callback);
-  },
-
-  //{
-  //  "success": true,
-  //  "payload": {
-  //    "result": "Infinity Job Started"
-  //  },
-  //  "errors": [],
-  //  "request": {
-  //    "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar",
-  //    "className": "SimpleSparkStreamingLong$",
-  //    "namespace": "streaming2",
-  //    "parameters": {
-  //      "path": "/home/lblokhin/lymph/mist/examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar",
-  //      "externalId": "job3",
-  //      "className": "SimpleSparkStreamingLong$",
-  //      "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0 ]},
-  //      "namespace": "streaming3"
-  //    },
-  //    "router": "streaming-2"
-  //  }
-  //}
-  runRouter: function(name, mode, params, callback) {
-    this.__request("POST", location.origin + "/api/" + name + mode, params, callback);
-  },
-
-  //[
-  //  {
-  //    "uid": "83c77efc-d19e-4aec-9ef2-57313a08be4b",
-  //    "time": "2016-12-30T09:57:22.099+04:00",
-  //    "namespace": "streaming3",
-  //    "router": "streaming-3"
-  //  },
-  //  {
-  //    "uid": "af716bbe-1017-4a48-a59a-696b12164751",
-  //    "time": "2016-12-30T09:57:27.394+04:00",
-  //    "namespace": "streaming2",
-  //    "router": "streaming-2"
-  //  }
-  //]
-  jobs: function(callback) {
-    this.__request("GET", location.origin + "/internal/jobs", {}, callback);
-  },
-
-  //["Job  83c77efc-d19e-4aec-9ef2-57313a08be4b is scheduled for shutdown. It may take a while."]
-  killJob: function(uid, callback) {
-    this.__request("DELETE", location.origin + "/internal/jobs/" + uid, {}, callback);
-  },
-
-  //[
-  //  {
-  //    "namespace": "streaming3",
-  //    "address": "akka.tcp://mist@127.0.0.1:44161"
-  //  },
-  //  {
-  //    "namespace": "streaming2",
-  //    "address": "akka.tcp://mist@127.0.0.1:38365"
-  //  }
-  //]
-  workers: function(callback) {
-    this.__request("GET", location.origin + "/internal/workers", {}, callback);
-  },
-
-  //{"result":"Worker streaming3 is scheduled for shutdown."}
-  killWorker: function(namespase, callback) {
-    this.__request("DELETE", location.origin + "/internal/workers/" + namespase, {}, callback);
-  },
-
-  //{"result":"All Context is scheduled for shutdown."}
-  killWorkers: function(callback) {
-    this.__request("DELETE", location.origin + "/internal/workers", {}, callback);
-  },
-
-  __request: function(verb, path, body, callback) {
-    var xhr = new XMLHttpRequest();
-
-    xhr.open(verb, path, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState != 4) return;
-      if (xhr.status == 200) {
-        var response = JSON.parse(xhr.responseText);
-        return callback(response);
-      } else {
-        WebMist.hideLoader();
-        return WebMist.showNotice(xhr.responseText);
-      }
-    };
-
-    xhr.send(body);
-  }
-};
+var Mist = require('./request');
+//var Mist = require('./request_stub');
+var MistStorage = require('./storage');
 
 window.WebMist = {
   init: function() {
+    this.routersStorage = new MistStorage("routers");
+
     this.initEvents();
     this.loadRouters();
   },
@@ -764,12 +655,21 @@ window.WebMist = {
 
   // ROUTERS
   loadRouters: function() {
+    var routersStorage = this.routersStorage;
     this.__title("Routers");
     this.showLoader();
     Mist.routers(function(data) {
+      routersStorage.reset(data);
       this.hideLoader();
       var template = document.getElementById('routers').innerHTML;
-      this.render(template, {"routers": Object.keys(data), runCallback: "runRoute", trainCallback: "trainRoute", serveCallback: "serveRoute"});
+      var renderParams = {
+        routers: Object.keys(data),
+        routerParams: function() {return routersStorage.get(this)},
+        runCallback: "runRoute",
+        trainCallback: "trainRoute",
+        serveCallback: "serveRoute"
+      };
+      this.render(template, renderParams);
     }.bind(this));
   },
 
@@ -788,6 +688,7 @@ window.WebMist = {
   __runJob: function(uid, mode) {
     this.showLoader();
     var params = document.getElementById("config-" + uid).value;
+    this.routersStorage.set(uid, params);
     Mist.runRouter(uid, mode, params, function(res) {
       this.hideLoader();
       try {
@@ -909,13 +810,102 @@ window.WebMist = {
   __render: function(content) {
     document.getElementById('content').innerHTML = content;
     [].forEach.call(document.querySelectorAll(".updateme, .mist-textfield"), function (el) {
-        componentHandler.upgradeElement(el);
+      componentHandler.upgradeElement(el);
     });
   }
 };
 
 window.addEventListener("load", function () {
-    WebMist.init();
+  WebMist.init();
 })
 
-},{"mustache":1}]},{},[2])
+},{"./request":3,"./storage":4,"mustache":1}],3:[function(require,module,exports){
+function MistRequest() {
+  this.routers = function(callback) {
+    __request("GET", location.origin + "/internal/routers", {}, callback);
+  };
+
+  this.runRouter = function(name, mode, params, callback) {
+    __request("POST", location.origin + "/api/" + name + mode, params, callback);
+  };
+
+  this.jobs = function(callback) {
+    __request("GET", location.origin + "/internal/jobs", {}, callback);
+  };
+
+  this.killJob = function(uid, callback) {
+    __request("DELETE", location.origin + "/internal/jobs/" + uid, {}, callback);
+  };
+
+  this.workers = function(callback) {
+    __request("GET", location.origin + "/internal/workers", {}, callback);
+  };
+
+  this.killWorker = function(namespase, callback) {
+    __request("DELETE", location.origin + "/internal/workers/" + namespase, {}, callback);
+  };
+
+  this.killWorkers = function(callback) {
+    __request("DELETE", location.origin + "/internal/workers", {}, callback);
+  };
+
+  function __request(verb, path, body, callback) {
+    var xhr = new XMLHttpRequest();
+
+    xhr.open(verb, path, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState != 4) return;
+      if (xhr.status == 200) {
+        var response = JSON.parse(xhr.responseText);
+        return callback(response);
+      } else {
+        // TODO
+        WebMist.hideLoader();
+        return WebMist.showNotice(xhr.responseText);
+      }
+    };
+
+    xhr.send(body);
+  }
+};
+module.exports = new MistRequest;
+
+},{}],4:[function(require,module,exports){
+function MistStorage(prefix) {
+  var self = this;
+  this.prefix = prefix || 'default';
+
+  this.set = function(key, data) {
+    localStorage.setItem(storageKey(key), data);
+  };
+
+  this.get = function(key) {
+    return localStorage.getItem(storageKey(key)) || "";
+  };
+
+  this.remove = function(key) {
+    localStorage.removeItem(storageKey(key));
+  };
+
+  this.reset = function(obj) {
+    var localStorageCopy = Object.assign({}, localStorage);
+    var keys = Object.keys(obj);
+    var sKey, data;
+
+    localStorage.clear();
+    keys.forEach(function(key) {
+      sKey = storageKey(key);
+      data = localStorageCopy[sKey];
+      if (data) { localStorage.setItem(sKey, data) }
+    });
+  };
+
+  function storageKey(name) {
+    return self.prefix + "." + name;
+  }
+};
+module.exports = MistStorage;
+
+},{}]},{},[2])

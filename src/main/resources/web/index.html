@@ -24,7 +24,6 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.cyan-light_blue.min.css">
     <link rel="stylesheet" href="styles.css">
-    
   </head>
   <body>
     <div class="mist-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
@@ -72,7 +71,7 @@
             <td class="mdl-data-table__cell--non-numeric">
               <div>{{.}}</div>
               <div class="mist-textfield mdl-textfield mdl-js-textfield">
-                <textarea class="updateme mist-textfield mdl-textfield__input" rows="6" type="text" placeholder="Parameters..." id="config-{{.}}"></textarea>
+                <textarea class="updateme mist-textfield mdl-textfield__input" rows="6" type="text" placeholder="Parameters..." id="config-{{.}}">{{routerParams}}</textarea>
               </div>
             </td>
             <td>
@@ -80,7 +79,7 @@
                       class="updateme mdl-button mdl-js-button mdl-button--icon">
                 <i class="material-icons">more_vert</i>
               </button>
-              
+
               <ul class="updateme mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect"
                   for="demo-menu-lower-right-{{.}}">
                 <li class="action-item mdl-menu__item" data-uid="{{.}}" data-callback="{{runCallback}}">Run</li>
