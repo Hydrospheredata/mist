@@ -14,4 +14,9 @@ gulp.task("move", () => {
   .pipe(gulp.dest(destination))
 });
 
-gulp.task("default", ["scripts", "move"])
+gulp.task("codemirror", () => {
+  return gulp.src(["./node_modules/codemirror/lib/codemirror.css"])
+  .pipe(gulp.dest(destination))
+});
+
+gulp.task("default", ["scripts", "move", "codemirror"])

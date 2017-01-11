@@ -243,3 +243,9 @@ _:-ms-input-placeholder, :root .mist-graph {
 .mist-dialog__content {
   overflow: scroll;
 }
+.mdl-data-table__cell--actions {
+  width: 30px;
+}
+.CodeMirror-wrap {
+  height: 230px !important;
+}

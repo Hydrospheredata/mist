@@ -1,3 +1,9 @@
+var CodeMirror = require("codemirror");
+require("codemirror/addon/edit/matchbrackets");
+require("codemirror/addon/edit/closebrackets");
+require("codemirror/addon/display/placeholder");
+require("codemirror/mode/javascript/javascript");
+
 var Mustache = require('mustache');
 var Mist = require('./request');
 //var Mist = require('./request_stub');
@@ -56,7 +62,7 @@ window.WebMist = {
 
   __runJob: function(uid, mode) {
     this.showLoader();
-    var params = document.getElementById("config-" + uid).value;
+    var params = window.editors["job-" + uid].getValue();
     this.routersStorage.set(uid, params);
     Mist.runRouter(uid, mode, params, function(res) {
       this.hideLoader();
@@ -167,8 +173,18 @@ window.WebMist = {
 
   __render: function(content) {
     document.getElementById('content').innerHTML = content;
-    [].forEach.call(document.querySelectorAll(".updateme, .mist-textfield"), function (el) {
+    [].forEach.call(document.querySelectorAll(".updateme"), function (el) {
       componentHandler.upgradeElement(el);
+    });
+    window.editors = {};
+    [].forEach.call(document.querySelectorAll("textarea.mist-textfield"), function (el) {
+      window.editors[el.id] = CodeMirror.fromTextArea(el, {
+        placeholder: "Parameters...",
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: "application/json",
+        lineWrapping: true
+      });
     });
   }
 };

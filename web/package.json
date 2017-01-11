@@ -15,7 +15,8 @@
   },
   "homepage": "https://github.com/Hydrospheredata/mist#readme",
   "dependencies": {
-    "mustache": "*"
+    "mustache": "*",
+    "codemirror": "*"
   },
   "devDependencies": {
     "gulp": "*",
