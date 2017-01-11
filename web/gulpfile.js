@@ -10,7 +10,13 @@ gulp.task("scripts", () => {
 });
 
 gulp.task("move", () => {
-    return gulp.src(["./index.html", "./styles.css", "./images/**/*.*"], { base: "./" }).pipe(gulp.dest(destination))
+  return gulp.src(["./index.html", "./styles.css", "./images/**/*.*"], { base: "./" })
+  .pipe(gulp.dest(destination))
 });
 
-gulp.task("default", ["scripts", "move"])
+gulp.task("codemirror", () => {
+  return gulp.src(["./node_modules/codemirror/lib/codemirror.css"])
+  .pipe(gulp.dest(destination))
+});
+
+gulp.task("default", ["scripts", "move", "codemirror"])

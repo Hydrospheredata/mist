@@ -238,7 +238,14 @@ _:-ms-input-placeholder, :root .mist-graph {
 }
 .mist-dialog {
   width: 680px;
+  z-index: 1005;
 }
 .mist-dialog__content {
   overflow: scroll;
+}
+.mdl-data-table__cell--actions {
+  width: 30px;
+}
+.CodeMirror-wrap {
+  height: 230px !important;
 }
