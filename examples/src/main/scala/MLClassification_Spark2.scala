@@ -44,6 +44,6 @@ object MLClassification extends MLMistJob with SQLSupport {
       LocalDataColumn("text", text)
     )
     val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.toMapList)
+    Map("result" -> result.select("text", "prediction").toMapList)
   }
 }
