@@ -4,7 +4,7 @@ function MistRequest() {
   };
 
   this.runRouter = function(name, mode, params, callback) {
-    __request("POST", location.origin + "/api/" + name + mode, params, callback);
+    __request("POST", location.origin + "/api/" + name + mode, params || "{}", callback);
   };
 
   this.jobs = function(callback) {

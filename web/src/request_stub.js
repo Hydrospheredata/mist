@@ -15,6 +15,26 @@ function MistRequestStub() {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming3",
         "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+      },
+      "streaming-4": {
+        "className": "SimpleSparkStreamingLong$",
+        "namespace": "streaming4",
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+      },
+      "streaming-5": {
+        "className": "SimpleSparkStreamingLong$",
+        "namespace": "streaming5",
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+      },
+      "streaming-6": {
+        "className": "SimpleSparkStreamingLong$",
+        "namespace": "streaming6",
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+      },
+      "streaming-7": {
+        "className": "SimpleSparkStreamingLong$",
+        "namespace": "streaming7",
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
       }
     };
     __success(data, callback);
