@@ -2,10 +2,12 @@ var Mustache = require('mustache');
 var Mist = require('./request');
 //var Mist = require('./request_stub');
 var MistStorage = require('./storage');
+var MistPopup = require('./popup');
 
 window.WebMist = {
   init: function() {
     this.routersStorage = new MistStorage("routers");
+    this.popup = new MistPopup("dialog");
 
     this.initEvents();
     this.loadRouters();
@@ -126,22 +128,11 @@ window.WebMist = {
   },
 
   showPopup: function(text) {
-    var content = document.getElementById("popup-content");
-    var dialog = document.querySelector('dialog');
-    var showDialogButton = document.querySelector('#show-dialog');
-    content.innerHTML = text;
-
-    if (! dialog.showModal) {
-      dialogPolyfill.registerDialog(dialog);
-    }
-    dialog.showModal();
-
-    dialog.querySelector('.close').addEventListener('click', this.closePopup);
+    this.popup.show(text);
   },
 
   closePopup: function() {
-    document.getElementById("popup-content").innerHTML = "";
-    document.querySelector('dialog').close();
+    this.popup.close();
   },
 
   showLoader: function() {

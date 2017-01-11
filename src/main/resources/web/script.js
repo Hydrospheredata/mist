@@ -635,10 +635,12 @@ var Mustache = require('mustache');
 var Mist = require('./request');
 //var Mist = require('./request_stub');
 var MistStorage = require('./storage');
+var MistPopup = require('./popup');
 
 window.WebMist = {
   init: function() {
     this.routersStorage = new MistStorage("routers");
+    this.popup = new MistPopup("dialog");
 
     this.initEvents();
     this.loadRouters();
@@ -759,22 +761,11 @@ window.WebMist = {
   },
 
   showPopup: function(text) {
-    var content = document.getElementById("popup-content");
-    var dialog = document.querySelector('dialog');
-    var showDialogButton = document.querySelector('#show-dialog');
-    content.innerHTML = text;
-
-    if (! dialog.showModal) {
-      dialogPolyfill.registerDialog(dialog);
-    }
-    dialog.showModal();
-
-    dialog.querySelector('.close').addEventListener('click', this.closePopup);
+    this.popup.show(text);
   },
 
   closePopup: function() {
-    document.getElementById("popup-content").innerHTML = "";
-    document.querySelector('dialog').close();
+    this.popup.close();
   },
 
   showLoader: function() {
@@ -819,7 +810,31 @@ window.addEventListener("load", function () {
   WebMist.init();
 })
 
-},{"./request":3,"./storage":4,"mustache":1}],3:[function(require,module,exports){
+},{"./popup":3,"./request":4,"./storage":5,"mustache":1}],3:[function(require,module,exports){
+function MistPopup(container) {
+  var self = this;
+
+  this.show = function(text) {
+    this.content.innerHTML = text;
+    this.popup.show();
+  };
+
+  this.close = function() {
+    this.content.innerHTML = '';
+    this.popup.close();
+  };
+
+  function init() {
+    self.popup = document.querySelector(container);
+    self.popup.querySelector('.close').addEventListener('click', self.close.bind(self));
+    self.content = self.popup.querySelector('#popup-content');
+  }
+
+  init();
+};
+module.exports = MistPopup;
+
+},{}],4:[function(require,module,exports){
 function MistRequest() {
   this.routers = function(callback) {
     __request("GET", location.origin + "/internal/routers", {}, callback);
@@ -872,7 +887,7 @@ function MistRequest() {
 };
 module.exports = new MistRequest;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 function MistStorage(prefix) {
   var self = this;
   this.prefix = prefix || 'default';
