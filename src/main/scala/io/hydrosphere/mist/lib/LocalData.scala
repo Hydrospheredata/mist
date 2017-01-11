@@ -12,7 +12,11 @@ class LocalData(private val columnData: List[LocalDataColumn[_]]) {
     columnData.find(_.name == columnName)
   }
   
-  def columns: List[String] = columnData.map(_.name)
+  def columnNames: List[String] = columnData.map(_.name)
+  
+  def select(names: String*): LocalData = {
+    LocalData(columnData.filter(column => names.contains(column.name)))
+  }
   
   def toMapList: List[Map[String, _]] = {
     val rowCount = (for (column <- columnData) yield column.data.length).max
@@ -37,7 +41,7 @@ class LocalData(private val columnData: List[LocalDataColumn[_]]) {
     val sizes = columnData.map(column => (List(column.name) ++ column.data.map(_.toString)).map(_.length).max + 1)
     
     stringParts :+= rowSeparator(sizes)
-    stringParts :+= rowFormat(columns, sizes)
+    stringParts :+= rowFormat(columnNames, sizes)
     stringParts :+= rowSeparator(sizes)
     for (rowNumber <- List.range(0, rowCount)) {
       val row = columnData.map { (column) =>
