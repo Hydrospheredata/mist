@@ -1,11 +1,10 @@
 package io.hydrosphere.mist
 
-import java.util.concurrent.TimeUnit
-
-import com.typesafe.config.{ConfigValue, ConfigException, ConfigFactory, Config}
+import com.typesafe.config.{Config, ConfigException, ConfigFactory, ConfigValue}
+import org.apache.spark.streaming.{Duration => SDuration}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.{FiniteDuration, Duration}
+import scala.concurrent.duration.Duration
 
 /** Configuration wrapper */
 private[mist] object MistConfig {
@@ -155,7 +154,7 @@ private[mist] object MistConfig {
     }
 
     /** Waiting for job completion timeout */
-    def timeout(contextName: String): Duration = {
+    def timeout(contextName: String): scala.concurrent.duration.Duration = {
       Duration(getContextOrDefault(contextName).getString("timeout"))
     }
 
@@ -175,8 +174,11 @@ private[mist] object MistConfig {
       getContextOrDefault(namespace).getString("run-options")
     }
 
-  }
+    def streamingDuration(contextName: String): SDuration = {
+      SDuration(Duration(getContextOrDefault(contextName).getString("streaming-duration")).toMillis)
+    }
 
+  }
 
   private def getConfigOption(config: Config, path: String): Option[Config] = {
     if (config.hasPath(path)) {

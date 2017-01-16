@@ -76,7 +76,7 @@ private[mist] object CLI extends App {
 
     input match {
       case msg if msg.contains(Constants.CLI.listJobsMsg) => {
-        val header = List("UID","TIME","NAMESPACE","EXT_ID","tROUTER")
+        val header = List("UID","TIME","NAMESPACE","EXT_ID","ROUTER")
         cliResponseBuilder(ListJobs, beautifulPrintResult(header))
       }
 

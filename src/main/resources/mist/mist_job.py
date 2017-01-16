@@ -77,3 +77,12 @@ class WithMQTTPublisher(PublisherSupport):
         super(WithMQTTPublisher, self).set_publisher(publisher_wrapper)
         self.mqtt = publisher_wrapper.mqtt
 
+class WithStreamingContext(ContextSupport):
+    __metaclass__ = ABCMeta
+
+    streaming_context = None
+
+    @abstractmethod
+    def setup(self, context_wrapper):
+        super(WithStreamingContext, self).setup(context_wrapper)
+        self.streaming_context = context_wrapper.streaming_context

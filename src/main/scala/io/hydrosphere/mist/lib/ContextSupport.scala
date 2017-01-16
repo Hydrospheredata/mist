@@ -8,4 +8,5 @@ trait ContextSupport {
   protected def context: SparkContext = _context
 
   private[mist] def setup(sc: ContextWrapper) = _context = sc.context
+  private[mist] def stopStreaming(): Unit = {}
 }
