@@ -154,7 +154,7 @@ private[mist] object MistConfig {
     }
 
     /** Waiting for job completion timeout */
-    def timeout(contextName: String): scala.concurrent.duration.Duration = {
+    def timeout(contextName: String): Duration = {
       Duration(getContextOrDefault(contextName).getString("timeout"))
     }
 
