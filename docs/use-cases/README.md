@@ -35,7 +35,7 @@ Artificial Intelligence (realtime decisioning)
 NLP, Image Recognition
 
 ### Read More
-Please check out detailed overview and coding tutorial for [Realtime Machine Learning Applications](/docs/use-cases/md-realtime.md).
+Please check out detailed overview and coding tutorial for [Realtime Machine Learning Applications](/docs/use-cases/ml-realtime.md).
 
 ## (3) Reactive Applications
 ### Technical nature
