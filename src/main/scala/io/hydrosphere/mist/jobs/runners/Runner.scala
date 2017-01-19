@@ -26,7 +26,10 @@ private[mist] trait Runner extends Logger {
 
   def stop(): Unit = {
     _status = Runner.Status.Stopped
+    stopStreaming()
   }
+
+  def stopStreaming(): Unit
 }
 
 private[mist] object Runner {

@@ -3,9 +3,9 @@ package io.hydrosphere.mist.jobs.runners.python
 import java.io.File
 
 import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile, MistJobConfiguration}
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile, MistJobConfiguration}
 import py4j.GatewayServer
 
 import scala.sys.process._
@@ -14,6 +14,8 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
   override val configuration: FullJobConfiguration = jobConfiguration
 
   _status = Runner.Status.Initialized
+
+  override def stopStreaming(): Unit = sparkStreamingWrapper.stopStreaming()
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
@@ -26,6 +28,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
       jobConfiguration.parameters,
       jobConfiguration.externalId ))
   val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(sparkContextWrapper)
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
@@ -70,4 +73,5 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         Right(e.toString)
     }
   }
+
 }

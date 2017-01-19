@@ -7,6 +7,7 @@ class ContextWrapper:
     _sql_context = None
     _hive_context = None
     _session = None
+    _streaming_context = None
 
     def __init__(self):
         pass
@@ -38,6 +39,11 @@ class ContextWrapper:
         spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
         self._session = SparkSession(self.context, spark_context_wrapper.withHive().sparkSession())
 
+    def set_streaming_context(self, java_gateway):
+        from pyspark.streaming import StreamingContext
+        self._streaming_context = StreamingContext(self._context, java_gateway.entry_point.sparkStreamingWrapper().getDurationSeconds())
+        java_gateway.entry_point.sparkStreamingWrapper().setStreamingContext(self._streaming_context._jssc)
+
     @property
     def context(self):
         return self._context
@@ -53,3 +59,7 @@ class ContextWrapper:
     @property
     def session(self):
         return self._session
+
+    @property
+    def streaming_context(self):
+        return self._streaming_context

@@ -50,4 +50,5 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
     }
   }
 
+  override def stopStreaming(): Unit = { objectRef.asInstanceOf[MistJob].stopStreaming }
 }
