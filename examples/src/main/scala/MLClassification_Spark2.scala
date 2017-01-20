@@ -5,7 +5,7 @@ import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
 
 
 object MLClassification extends MLMistJob with SQLSupport {
-  override def train(params: Map[String, Any]): Map[String, Any] = {
+  def train(): Map[String, Any] = {
     val training = session.createDataFrame(Seq(
       (0L, "a b c d e spark", 1.0),
       (1L, "b d", 0.0),
@@ -33,11 +33,9 @@ object MLClassification extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
   }
 
-  override def serve(params: Map[String, Any]): Map[String, Any] = {
+  def serve(text: List[String]): Map[String, Any] = {
 
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
-    
-    val text = params("text").asInstanceOf[List[String]]
     
     val pipeline = PipelineLoader.load(s"regression")
     val data = LocalData(

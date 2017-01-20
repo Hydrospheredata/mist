@@ -1,21 +1,12 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
-import java.net.{URL, URLClassLoader}
-
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.lib.{MLMistJob, MistJob}
+import io.hydrosphere.mist.utils.ExternalJar
 
 private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
-
-  val cls: Class[_] = {
-    val classLoader = new URLClassLoader(Array[URL](jobFile.file.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className)
-  }
-
-  // Scala `object` reference of user job
-  val objectRef: AnyRef = cls.getField("MODULE$").get(None)
 
   // TODO: remove nullable contextWrapper
   if (contextWrapper != null) {
@@ -28,15 +19,18 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
     try {
+      val externalInstance = ExternalJar(jobFile.file.getAbsolutePath)
+        .getExternalClass(configuration.className)
+        .getNewInstance
       val result = configuration match {
         case _: MistJobConfiguration =>
-          objectRef.asInstanceOf[MistJob].setup(contextWrapper)
-          Left(objectRef.asInstanceOf[MistJob].doStuff(configuration.parameters))
+          externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
+          Left(externalInstance.getMethod("doStuff").run(configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: TrainingJobConfiguration =>
-          objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
-          Left(objectRef.asInstanceOf[MLMistJob].train(configuration.parameters))
+          externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
+          Left(externalInstance.getMethod("train").run(configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: ServingJobConfiguration =>
-          Left(objectRef.asInstanceOf[MLMistJob].serve(configuration.parameters))
+          Left(externalInstance.getMethod("serve").run(configuration.parameters).asInstanceOf[Map[String, Any]])
       }
 
       _status = Runner.Status.Stopped

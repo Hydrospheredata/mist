@@ -4,12 +4,11 @@ object SimpleContext extends MistJob {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
-    * @param parameters user parameters
+    * @param numbers list of int to process
     * @return result of the job
     */
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
-    val numbers: List[Int] = parameters("digits").asInstanceOf[List[Int]]
+  def doStuff(numbers: List[Int], multiplier: Int): Map[String, Any] = {
     val rdd = context.parallelize(numbers)
-    Map("result" -> rdd.map(x => x * 2).collect())
+    Map("result" -> rdd.map(x => x * multiplier).collect())
   }
 }

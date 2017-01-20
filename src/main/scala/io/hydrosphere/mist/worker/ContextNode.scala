@@ -39,7 +39,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   lazy val jobDescriptions: ArrayBuffer[JobDescription] = ArrayBuffer.empty[JobDescription]
 
   type NamedActors = (JobDescription,  () => Unit)
-  lazy val namedJobCancellations = ArrayBuffer.empty[NamedActors]
+  lazy val namedJobCancellations: ArrayBuffer[(JobDescription, () => Unit)] = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
 

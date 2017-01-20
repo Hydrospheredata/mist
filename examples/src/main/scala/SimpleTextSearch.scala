@@ -2,7 +2,7 @@ import io.hydrosphere.mist.lib.MistJob
 
 object SimpleTextSearch extends MistJob {
 
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
     val path: String = parameters("filePath").asInstanceOf[String]
     val filters: List[String] = parameters("filters").asInstanceOf[List[String]]
 

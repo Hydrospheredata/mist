@@ -7,7 +7,7 @@ object TestError extends MistJob {
     * @param parameters user parameters
     * @return result exception Test Error
     */
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
     throw new Exception("Test Error")
   }
 }

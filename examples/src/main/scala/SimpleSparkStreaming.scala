@@ -12,7 +12,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
     * @param parameters user parameters
     * @return result of the job
     */
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
 
     val ssc = new StreamingContext(context, Seconds(1))
 
