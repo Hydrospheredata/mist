@@ -18,7 +18,7 @@ private[mist] trait ContextWrapper extends Logger {
 
   lazy val sqlContext = new SQLContext(context)
 
-  lazy val hiveContext: SQLContext = {
+  lazy val hiveContext = {
     if (MistConfig.Hive.hivetest) {
       new TestHiveContext(context)
     } else {
