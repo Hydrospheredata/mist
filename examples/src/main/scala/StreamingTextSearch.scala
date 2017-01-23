@@ -5,10 +5,8 @@ import org.apache.spark.streaming._
 import scala.collection.mutable
 
 object StreamingTextSearch extends MistJob with MQTTPublisher {
-  def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuff(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
-
-    val filter: String = parameters("filter").asInstanceOf[String]
 
     val ssc = new StreamingContext(context, Seconds(1))
 

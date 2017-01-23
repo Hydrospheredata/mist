@@ -5,12 +5,12 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.sql.SQLContext]]
     * Abstract method must be overridden
     *
-    * @param parameters user parameters
+    * @param file json file path
     * @return result of the job
     */
-  def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def doStuff(file: String): Map[String, Any] = {
 
-    val df = session.read.json(parameters("file").asInstanceOf[String])
+    val df = session.read.json(file)
     df.printSchema()
     df.createOrReplaceTempView("people")
 
