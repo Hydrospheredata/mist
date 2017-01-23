@@ -32,7 +32,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
   }
 
   def arguments: List[ExternalMethodArgument] = {
-    val params = symbol.paramLists.head
+    val params = symbol.paramss.head
     params.map((param) => ExternalMethodArgument(param.name.toString, param.typeSignature))
   }
   

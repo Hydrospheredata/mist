@@ -19,6 +19,7 @@ import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
