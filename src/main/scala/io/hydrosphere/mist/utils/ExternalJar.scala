@@ -37,7 +37,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
   }
   
   private def symbol: MethodSymbol = {
-    val memberSymbol = runtimeMirror(cls.getClassLoader).classSymbol(cls).toType.member(TermName(methodName))
+    val memberSymbol = runtimeMirror(cls.getClassLoader).classSymbol(cls).toType.member(newTermName(methodName))
     if (!memberSymbol.isMethod) {
       throw new Exception(s"MistJob subclass must implement $methodName method. See docs for details.")
     }
