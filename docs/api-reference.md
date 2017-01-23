@@ -31,13 +31,13 @@ Any job can be run via HTTP or async (MQTT) interface and besides requests for b
 MQTT example ([MQTT server and client](http://mosquitto.org/) are required):
 
 ```sh
-mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"path": "./examples/target/scala-2.10/mist_examples_2.10-0.0.2.jar", "className": "SimpleContext$","parameters":{"digits":[1,2,3,4,5,6,7,8,9,0]}, "externalId": "12345678", "namespace": "foo"}'  -t 'foo'
+mosquitto_pub -h 192.168.10.33 -p 1883 -m '{"path": "./examples/target/scala-2.10/mist_examples_2.10-0.8.0.jar", "className": "SimpleContext$","parameters":{"numbers":[1,2,3,4,5,6,7,8,9,0]}, "externalId": "12345678", "namespace": "foo"}'  -t 'foo'
 ```
 
 HTTP example:
 
 ```sh
-curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"path": "./examples/target/scala-2.10/mist_examples_2.10-0.0.2.jar", "className": "SimpleContext$", "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "externalId": "12345678", "namespace": "foo"}'
+curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003/jobs --data '{"path": "./examples/target/scala-2.10/mist_examples_2.10-0.8.0.jar", "className": "SimpleContext$", "parameters": {"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}, "externalId": "12345678", "namespace": "foo"}'
 ```
 
 
@@ -61,11 +61,11 @@ e.g.
     },
     "errors": [],
     "request": {
-        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.0.2.jar",
+        "jarPath": "/vagrant/examples/target/scala-2.10/mist_examples_2.10-0.8.0.jar",
         "className": "SimpleContext$",
         "namespace": "foo",
         "parameters": {
-            "digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+            "numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
         },
         "externalId":"12345678"
     }

@@ -4,7 +4,7 @@ assemblySettings
 
 name := "mist_examples"
 
-version := "0.0.2"
+version := "0.8.0"
 
 val versionRegex = "(\\d+)\\.(\\d+).*".r
 val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[2.0.0, )")
