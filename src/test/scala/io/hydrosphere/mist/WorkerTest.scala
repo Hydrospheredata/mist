@@ -208,7 +208,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
       }
 
       "http bad request" in {
-        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestBad, BadRequest)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestBad, BadRequest, None)
         eventually(timeout(testTimeout), interval(1 second)) {
           assert(success)
         }
@@ -222,7 +222,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
       }
 
       "HTTP bad JSON" in {
-        httpAsserter(POST, uri = TestConfig.httpUrl, TestConfig.requestBadJson, BadRequest)
+        httpAsserter(POST, uri = TestConfig.httpUrl, TestConfig.requestBadJson, BadRequest, None)
         eventually(timeout(testTimeout), interval(1 second)) {
           assert(success)
         }
