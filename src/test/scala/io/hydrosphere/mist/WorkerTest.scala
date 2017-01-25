@@ -126,8 +126,9 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
         }
         case _ => println(msg.entity.toString)
       }
+      case Failure(e) =>
+        println(e)
     }
-    Await.result(future, testTimeout)
   }
 
   override  def beforeAll() = {

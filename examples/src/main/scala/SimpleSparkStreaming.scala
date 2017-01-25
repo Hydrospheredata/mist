@@ -20,7 +20,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher with StreamingSup
     val mappedStream = inputStream.map(x => (x % 10, 1))
     val reducedStream = mappedStream.reduceByKey(_ + _)
 
-    reducedStream.print()
+    //reducedStream.print()
 
     reducedStream.foreachRDD{ (rdd, time) =>
       publish(Map(
