@@ -8,7 +8,7 @@ In order to prepare your job to be executed by Hydrosphere Mist you should exten
 import io.hydrosphere.mist.MistJob
 
 object MyCoolMistJob extends MistJob {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def doStuff(): Map[String, Any] = {
         val rdd = context.parallelize()
         ...
         return result.asInstance[Map[String, Any]]
@@ -24,7 +24,7 @@ Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions a
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
 object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def doStuff(): Map[String, Any] = {
         val dataFrame = session.read.load("file.parquet")
         ...
         return Map[String, Any].empty
@@ -38,7 +38,7 @@ Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSuppo
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
 object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def doStuff(): Map[String, Any] = {
         val dataFrame = sqlContext.read.load("file.parquet") // or hiveContext.read.load("file.parquet")
         ...
         return Map[String, Any].empty

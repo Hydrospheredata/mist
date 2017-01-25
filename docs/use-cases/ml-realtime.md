@@ -27,11 +27,9 @@ import io.hydrosphere.mist.lib._
 
 object MLClassification extends MLMistJob with SQLSupport {
   
-  override def serve(params: Map[String, Any]): Map[String, Any] = {
+  override def serve(text: List[String]): Map[String, Any] = {
 
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
-    
-    val text = params("text").asInstanceOf[List[String]]
     
     val pipeline = PipelineLoader.load(s"regression") // load the same model you've traing in original Apache Spark program
     // Wrap input data set into local data structure
