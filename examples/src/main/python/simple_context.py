@@ -1,8 +1,12 @@
+# coding=utf-8
+
 from mist.mist_job import MistJob
 
 class SimpleContext(MistJob):
 
     def do_stuff(self, params):
+        print(str(params))
+        print(type(params))
         val = params.values()
         list = val.head()
         size = list.size()

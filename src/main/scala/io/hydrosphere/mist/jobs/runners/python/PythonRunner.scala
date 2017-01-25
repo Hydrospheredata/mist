@@ -47,6 +47,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
           logger.info(s" Started PythonGatewayServer on port $boundPort")
           cmd += s" $boundPort"
         }
+        logger.info(s"Running python task: $cmd")
 
         val exitCode = cmd.!
         if (exitCode != 0 || errorWrapper.get().nonEmpty) {

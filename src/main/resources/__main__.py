@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import py4j.java_gateway
 import pyspark
 import sys, getopt, traceback, json, re, types
