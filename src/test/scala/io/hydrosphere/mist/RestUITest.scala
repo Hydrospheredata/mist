@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTyp
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import io.hydrosphere.mist.Constants
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike, _}
 import spray.json.DefaultJsonProtocol
@@ -225,7 +226,7 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
           case Success(msg) => msg match {
             case HttpResponse(OK, _, _, _) =>
               println(msg)
-              if(msg.entity.toString.contains("All Context is scheduled for shutdown.")) {
+              if(msg.entity.toString.contains(Constants.CLI.stopAllWorkers)) {
                 http_response_success = true
               }
             case _ =>
