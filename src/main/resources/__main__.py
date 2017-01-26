@@ -5,7 +5,7 @@ import pyspark
 import sys, getopt, traceback, json, re, types
 
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
-from py4j.java_collections import SetConverter, MapConverter, ListConverter
+from py4j.java_collections import SetConverter, MapConverter, ListConverter, JavaMap, JavaList
 from py4j.protocol import Py4JJavaError
 
 from pyspark.conf import SparkConf
@@ -22,7 +22,18 @@ from mist.mist_job import *
 from mist.context_wrapper import ContextWrapper
 from mist.publisher_wrapper import PublisherWrapper
 
-# TODO: errors
+def to_python_types(any):
+    python_any = any
+    if isinstance(any, JavaMap):
+        python_any = dict()
+        for key, value in any.iteritems():
+            python_any[key] = to_python_types(value)
+    elif isinstance(any, JavaList):
+        python_any = list()
+        for i, value in enumerate(any):
+            python_any.insert(i, to_python_types(value))
+    return python_any
+        
 
 _client = GatewayClient(port=int(sys.argv[1]))
 _gateway = JavaGateway(_client, auto_convert = True)
@@ -80,7 +91,7 @@ try:
     instance.setup(context_wrapper)
     instance.set_publisher(publisher_wrapper)
     # TODO: train/serve
-    result = instance.do_stuff(parameters)
+    result = instance.do_stuff(**to_python_types(parameters))
     data_wrapper.set(result)
 except Exception:
     error_wrapper.set(traceback.format_exc())

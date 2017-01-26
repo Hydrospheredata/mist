@@ -2,11 +2,8 @@ from mist.mist_job import *
 
 class SimpleHiveContext(MistJob, WithSQLSupport, WithHiveSupport):
 
-    def do_stuff(self, parameters):
-        val = parameters.values()
-        patch = val.head()
-
-        df = self.hive_context.read.json(patch)
+    def do_stuff(self, path):
+        df = self.hive_context.read.json(path)
         df.printSchema()
         df.registerTempTable("people")
 
