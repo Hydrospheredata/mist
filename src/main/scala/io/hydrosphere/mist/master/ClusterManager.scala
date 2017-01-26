@@ -181,7 +181,6 @@ private[mist] class ClusterManager extends Actor with Logger {
         case response => originalSender ! response
       }
 
-
     case jobRequest: FullJobConfiguration =>
       val originalSender = sender
       startNewWorkerWithName(jobRequest.namespace)

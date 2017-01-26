@@ -42,6 +42,9 @@ _entry_point = _gateway.entry_point
 java_import(_gateway.jvm, "org.apache.spark.SparkContext")
 java_import(_gateway.jvm, "org.apache.spark.SparkEnv")
 java_import(_gateway.jvm, "org.apache.spark.SparkConf")
+java_import(_gateway.jvm, "org.apache.spark.streaming.*")
+java_import(_gateway.jvm, "org.apache.spark.streaming.api.java.*")
+java_import(_gateway.jvm, "org.apache.spark.streaming.api.python.*")
 java_import(_gateway.jvm, "org.apache.spark.api.java.*")
 java_import(_gateway.jvm, "org.apache.spark.api.python.*")
 java_import(_gateway.jvm, "org.apache.spark.mllib.api.python.*")
@@ -86,6 +89,9 @@ except ImportError:
 
 if issubclass(class_, WithMQTTPublisher):
     publisher_wrapper.set_mqtt(_gateway)
+
+if issubclass(class_, WithStreamingContext):
+    context_wrapper.set_streaming_context(_gateway)
 
 try:
     instance.setup(context_wrapper)

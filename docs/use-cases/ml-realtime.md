@@ -1,13 +1,13 @@
-# Realtime ML applications
+# Real-time ML applications
 ## Overview
-Apache Spark is a great engine to train machine learning models at big data scale. After the model is trained there are plenty of use cases when the model could be used outside of Apache Spark. Obviously for single row predictions with low latency and high throughput it does not make sense to hit Apache Spark context. 
-On the other hand the line between offline batch predictions, streaming jobs and online low latency queries is very blur. Meaning that the same models could be used in different contexts, and it would be great to use the same machine learning and linear algebra codebase for these use cases. Also for web developers all these internals of batch, streaming and realtime processing should be hidden behind “analytics services” API layer.
-With Hydrosphere Mist you are able to train the model in Apache Spark and then expose it through the low latency REST API without making it compatible with PMML or exporting it to other production scoring/serving engine.
+Apache Spark is a great engine to train machine learning models at big data scale. After the model is trained, there are plenty of use cases where the model could be used outside Apache Spark. Obviously, for single row predictions with low latency and high throughput, it does not make sense to hit Apache Spark context. 
+On the other hand, the line between offline batch predictions, streaming jobs and online low latency queries is very blur. This implies that the same models could be used in different contexts, and it would be great to use the same machine learning and linear algebra codebase for these use cases. Also, for web developers, all these internals of batch, streaming and realtime processing should be hidden behind “analytics services” API layer.
+With Hydrosphere Mist, you are able to train the model in Apache Spark and then expose it through the low latency REST API without making it compatible with PMML or exporting it to other production scoring/serving engine.
 
 ![Mist Realtime ML serving (scoring)](http://dv9c7babquml0.cloudfront.net/docs-images/mist-realtime-ml-serving-scoring.png)
 
-Apache Spark 2.0 has introduced a concept of ML pipelines and added an ability to serialize fitted model for later use. It is naturally to use saved models for single row predictions.
-There is work in progress in Apache Spark community to separate MLLib from Apache Spark context and distributed computing. Hydrosphere Mist serving layer is aligned with future MLLib local release and will use it eventually.
+Apache Spark 2.0 has introduced a concept of ML pipelines and added the capability to serialize fitted model for later use. It is naturally possible to use saved models for single row predictions.
+Work is in progress within the Apache Spark community to separate MLLib from Apache Spark context and distributed computing. Hydrosphere Mist serving layer is aligned with future MLLib local release and will use it eventually.
 
 Fraud detection, ad serving, preventive maintenance, content recommendations, artificial intelligence (realtime decisioning), NLP, image recognition and other use cases require machine learning model to be embedded into low latency environment of online traffic or events processing systems like AWS Lambda/Kinesis or Apache Flink.
 

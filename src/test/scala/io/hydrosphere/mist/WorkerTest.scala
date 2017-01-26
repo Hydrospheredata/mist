@@ -80,7 +80,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   }
 }
 
-class workerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService{
+class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService{
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
