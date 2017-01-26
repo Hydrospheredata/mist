@@ -11,6 +11,7 @@ import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.sys.process._
 
 class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
@@ -71,7 +72,10 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
   def mockEqual(b: List[Any]): Boolean = true
 
   def cliAsserter[A](msg: A, out: (List[Any]) => Boolean): Boolean = {
-    implicit def anyToListAny(a: Any): List[Any] = if(a.isInstanceOf[List[Any]]) a.asInstanceOf[List[Any]] else List[Any](a)
+    implicit def anyToListAny(a: Any): List[Any] = a match {
+      case list: List[Any] => list
+      case _ => List[Any](a)
+    }
     val future = cliActor.ask(msg)(timeout = Constants.CLI.timeoutDuration)
     val result = Await.result(future, Constants.CLI.timeoutDuration)
     out(result)
@@ -80,13 +84,13 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
   "CLI Workers" must {
     "list no workers" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListWorkers, equal(List[Any]())))
+        assert(cliAsserter(ListWorkers(), equal(List[Any]())))
       }
     }
 
     "list routers" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListRouters, equal(List[Any]("streaming-1", "streaming-2", "streaming-3"))))
+        assert(cliAsserter(ListRouters(), equal(List[Any]("streaming-1", "streaming-2", "streaming-3"))))
       }
     }
 
@@ -94,44 +98,44 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
       StartJobs.start()
 
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListWorkers, equal(List[Any]("streaming1", "streaming2", "streaming3"))))
+        assert(cliAsserter(ListWorkers(), equal(List[Any]("streaming1", "streaming2", "streaming3"))))
       }
     }
 
     "list thre jobs" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListJobs, equal(List[Any]("job1", "job2", "job3"))))
+        assert(cliAsserter(ListJobs(), equal(List[Any]("job1", "job2", "job3"))))
       }
     }
 
     "list two workers after kill first" in {
-      cliAsserter(new StopWorker(s"${Constants.CLI.stopWorkerMsg} streaming1"), mockEqual)
+      cliAsserter(StopWorker("streaming1"), mockEqual)
 
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListWorkers, equal(List[Any]("streaming2", "streaming3"))) && !cliAsserter(ListWorkers, equal(List[Any]("streaming1"))))
+        assert(cliAsserter(ListWorkers(), equal(List[Any]("streaming2", "streaming3"))) && !cliAsserter(ListWorkers, equal(List[Any]("streaming1"))))
       }
     }
 
     "list two jobs" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListJobs, equal(List[Any]("job2", "job3"))) && !cliAsserter(ListJobs, equal(List[Any]("job1"))))
+        assert(cliAsserter(ListJobs(), equal(List[Any]("job2", "job3"))) && !cliAsserter(ListJobs, equal(List[Any]("job1"))))
       }
     }
 
     "list two workers and one job after kill job" in {
-      cliAsserter(new StopJob(s"${Constants.CLI.stopJobMsg} job2"), mockEqual)
+      cliAsserter(StopJob("job2"), mockEqual)
 
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert( cliAsserter(ListWorkers, equal(List[Any]("streaming2", "streaming3")))
-          && cliAsserter(ListJobs, equal(List[Any]("job3")))
-          && !cliAsserter(ListJobs, equal(List[Any]("job2"))))
+        assert( cliAsserter(ListWorkers(), equal(List[Any]("streaming2", "streaming3")))
+          && cliAsserter(ListJobs(), equal(List[Any]("job3")))
+          && !cliAsserter(ListJobs(), equal(List[Any]("job2"))))
       }
     }
 
     "list no workers after kill all" in {
       cliAsserter(StopAllContexts, mockEqual)
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListWorkers, equal(List[Any]())))
+        assert(cliAsserter(ListWorkers(), equal(List[Any]())))
       }
     }
   }

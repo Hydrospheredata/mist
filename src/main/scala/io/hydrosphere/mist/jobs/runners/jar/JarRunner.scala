@@ -3,8 +3,8 @@ package io.hydrosphere.mist.jobs.runners.jar
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.{MLMistJob, MistJob}
-import io.hydrosphere.mist.utils.ExternalJar
+import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
+import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
 private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
 
@@ -14,14 +14,15 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
     contextWrapper.addJar(jobFile.file.getPath)
   }
 
+  val externalInstance: ExternalInstance = ExternalJar(jobFile.file.getAbsolutePath)
+    .getExternalClass(configuration.className)
+    .getNewInstance
+
   _status = Runner.Status.Initialized
 
   override def run(): Either[Map[String, Any], String] = {
     _status = Runner.Status.Running
     try {
-      val externalInstance = ExternalJar(jobFile.file.getAbsolutePath)
-        .getExternalClass(configuration.className)
-        .getNewInstance
       val result = configuration match {
         case _: MistJobConfiguration =>
           externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
@@ -44,5 +45,8 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
     }
   }
 
-  override def stopStreaming(): Unit = { objectRef.asInstanceOf[MistJob].stopStreaming }
+  override def stopStreaming(): Unit = { 
+    if (externalInstance.externalClass.isStreamingJob)
+      externalInstance.objectRef.asInstanceOf[StreamingSupport].stopStreaming()
+  }
 }

@@ -38,7 +38,9 @@ window.WebMist = {
       this.hideLoader();
       var template = document.getElementById('routers').innerHTML;
       var renderParams = {
-        routers: Object.keys(data),
+        routers: Object.keys(data).map(function (m) {
+            return Object.assign({name: m}, data[m])
+        }),
         routerParams: function() {return routersStorage.get(this)},
         runCallback: "runRoute",
         trainCallback: "trainRoute",

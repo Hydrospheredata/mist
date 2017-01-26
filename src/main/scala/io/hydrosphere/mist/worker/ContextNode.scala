@@ -20,7 +20,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress
@@ -116,21 +116,18 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       sender ! jobDescriptionsSerializable
 
-    case StopJob(message) =>
+    case StopJob(jobIdentifier) =>
       val originalSender = sender
       val future: Future[List[String]] = Future {
         val stopResponse = ArrayBuffer.empty[String]
-        if(message.contains(Constants.CLI.stopJobMsg)) {
-          jobDescriptions.foreach {
-            case jobDescription: JobDescription => {
-              if(message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.externalId.getOrElse("None"))
-                || message.substring(Constants.CLI.stopJobMsg.length).contains(jobDescription.uid())) {
-                stopResponse += s"Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.uid()}" +
-                  s" is scheduled for shutdown. It may take a while."
-                namedJobCancellations
-                  .filter(namedJobCancellation => namedJobCancellation._1.uid() == jobDescription.uid())
-                  .foreach(namedJobCancellation => namedJobCancellation._2())
-              }
+        jobDescriptions.foreach {
+          jobDescription: JobDescription => {
+            if (jobIdentifier == jobDescription.externalId.getOrElse("None") || jobIdentifier == jobDescription.uid()) {
+              stopResponse += s"Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.uid()}" +
+                " is scheduled for shutdown. It may take a while."
+              namedJobCancellations
+                .filter(namedJobCancellation => namedJobCancellation._1.uid() == jobDescription.uid())
+                .foreach(namedJobCancellation => namedJobCancellation._2())
             }
           }
         }

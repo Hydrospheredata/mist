@@ -74,9 +74,9 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       pathEnd {
         get {
           cmd match {
-            case "jobs" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listJobsMsg))
-            case "workers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listWorkersMsg))
-            case "routers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listRoutersMsg))
+            case "jobs" => doInternalRequestComplete(ListJobs())
+            case "workers" => doInternalRequestComplete(ListWorkers())
+            case "routers" => doInternalRequestComplete(ListRouters(extended = true))
           }
         }
       }
@@ -95,20 +95,20 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     path("internal" / "jobs" / Segment) { cmd =>
       pathEnd {
         delete {
-          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopJobMsg + cmd)))
+          doInternalRequestComplete(StopJob(cmd))
         }
       }
     } ~
     path("internal" / "workers" / Segment) { cmd =>
       pathEnd {
         delete {
-          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopWorkerMsg + cmd)))
+          doInternalRequestComplete(StopWorker(cmd))
         }
       }
     } ~
     path("internal" / "workers" ) {
       delete {
-        doUserInterfaceComplete(Map("cmd" -> Constants.CLI.stopAllWorkersMsg))
+        doInternalRequestComplete(StopAllWorkers())
       }
     }
   }
@@ -120,7 +120,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     complete {
       logger.info(jobRequest.parameters.toString)
 
-      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
+      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       if(timeDuration.isFinite()) {
@@ -166,38 +166,25 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     }
   }
 
-  lazy val internalUserInterfaceActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.CLI.internalUserInterfaceActorName)
-
-  def doUserInterfaceComplete(cmd: Map[String, Any]): akka.http.scaladsl.server.Route  = {
+  def doInternalRequestComplete(cmd: AdminMessage): akka.http.scaladsl.server.Route  = {
     respondWithHeader(RawHeader("Content-Type", "application/json"))
-
-    var command: Any = ""
-    def getCommand: () => Any = { () => command }
-    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = Constants.CLI.timeoutDuration)
-
+    
     complete {
 
-      command = cmd("cmd") match {
-        case Constants.CLI.listJobsMsg => ListJobs
-        case Constants.CLI.listWorkersMsg => ListWorkers
-        case Constants.CLI.listRoutersMsg => ListRouters
-        case msg if msg.toString.contains(Constants.CLI.stopJobMsg) =>  StopJob(msg.toString)
-        case msg if msg.toString.contains(Constants.CLI.stopWorkerMsg) =>  StopWorker(msg.toString)
-        case Constants.CLI.stopAllWorkersMsg => StopAllContexts
-        case _ => throw new Exception("Unknown command")
-      }
+      val clusterManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
+      val future = clusterManagerActor.ask(cmd)(timeout = Constants.CLI.timeoutDuration)
 
       future
         .recover{
           case error: Throwable =>  HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
         }
         .map[ToResponseMarshallable] {
-        case result: Map[String, Any] =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
-        case result: List[Any] =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
-        case result: String =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
+          case result: Map[String, Any] =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+          case result: List[Any] =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+          case result: String =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
       }
     }
   }

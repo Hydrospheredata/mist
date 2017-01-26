@@ -108,7 +108,7 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
   override  def beforeAll() = {
     Thread.sleep(5000)
     AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
-    AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
+    AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.clusterManagerName
     AddressAndSuccessForWorkerTest.nodeAddress = Cluster(systemW).selfAddress.toString
     AddressAndSuccessForWorkerTest.nodeName = "/user/" + "foo"
 
@@ -126,7 +126,7 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
 
     "ContextNode" must {
       "started" in {
-        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
+        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
         Thread.sleep(5000)
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository

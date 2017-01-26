@@ -6,7 +6,7 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.worker.{CLINode, JobDescriptionSerializable, WorkerDescription}
 
 import scala.concurrent.Await
-import scala.language.postfixOps
+import scala.language.{implicitConversions, postfixOps}
 import scala.sys.process._
 
 private[mist] object CLI extends App {
@@ -41,19 +41,19 @@ private[mist] object CLI extends App {
         ""
       }
 
+    // TODO: use TypeTags
     def beautifulPrintResult(header: List[String] = List())(someList: List[Any]): Unit = {
       if(someList.nonEmpty) {
         val headerTabs = {
           try {
             someList.asInstanceOf[List[WorkerDescription]].head.length()
           } catch {
-            case _: ClassCastException => {
+            case _: ClassCastException =>
               try {
                 someList.asInstanceOf[List[JobDescriptionSerializable]].head.length()
               } catch {
                 case _: ClassCastException => List[Int](0)
               }
-            }
           }
         }
 
@@ -68,57 +68,52 @@ private[mist] object CLI extends App {
     }
 
     def cliResponseBuilder[A](msg: A, out: (List[Any]) => Unit): Unit = {
-      implicit def anyToListAny(a: Any): List[Any] = if(a.isInstanceOf[List[Any]]) a.asInstanceOf[List[Any]] else List[Any](a)
+      implicit def anyToListAny(a: Any): List[Any] = a match {
+        case list: List[Any] => list
+        case _ => List[Any](a)
+      }
       val future = cliActor.ask(msg)(timeout = Constants.CLI.timeoutDuration)
       val result = Await.result(future, Constants.CLI.timeoutDuration)
       out(result)
     }
 
     input match {
-      case msg if msg.contains(Constants.CLI.listJobsMsg) => {
+      case msg if msg.contains(Constants.CLI.listJobsMsg) =>
         val header = List("UID","TIME","NAMESPACE","EXT_ID","ROUTER")
-        cliResponseBuilder(ListJobs, beautifulPrintResult(header))
-      }
+        cliResponseBuilder(ListJobs(), beautifulPrintResult(header))
 
-      case msg if msg.contains(Constants.CLI.listWorkersMsg) => {
+      case msg if msg.contains(Constants.CLI.listWorkersMsg) =>
         val header = List("NAMESPACE", "ADDRESS")
-        cliResponseBuilder(ListWorkers, beautifulPrintResult(header))
-      }
+        cliResponseBuilder(ListWorkers(), beautifulPrintResult(header))
 
-      case msg if msg.contains(Constants.CLI.listRoutersMsg) => {
-        cliResponseBuilder(ListRouters, beautifulPrintResult())
-      }
+      case msg if msg.contains(Constants.CLI.listRoutersMsg) =>
+        cliResponseBuilder(ListRouters(), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopWorkerMsg) => {
-        cliResponseBuilder(new StopWorker(msg), beautifulPrintResult())
-      }
+      case msg if msg.contains(Constants.CLI.stopWorkerMsg) =>
+        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.stopWorkerMsg.length)), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopJobMsg) => {
-        cliResponseBuilder(new StopJob(msg), beautifulPrintResult())
-      }
+      case msg if msg.contains(Constants.CLI.stopJobMsg) =>
+        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.stopJobMsg.length)), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) => {
-        cliResponseBuilder(StopAllContexts, beautifulPrintResult())
-      }
+      case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) =>
+        cliResponseBuilder(StopAllContexts(), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.startJob) => {
+      case msg if msg.contains(Constants.CLI.startJob) =>
         val listCmd = msg.substring(Constants.CLI.startJob.length).trim.split(' ')
-        if(listCmd.size == 3) {
+        if(listCmd.length == 3) {
           val config = "--config " + listCmd(0)
           val route = "--route " + listCmd(1)
           val externalId = "--external-id " + listCmd(2)
-          s"bin/mist start job ${config} ${route} ${externalId}".!
+          s"bin/mist start job $config $route $externalId".!
         }
         else {
           println(listCmd.mkString(" "))
         }
-      }
 
-      case msg@Constants.CLI.exitMsg => {
+      case Constants.CLI.exitMsg =>
         system.shutdown
         sys.exit(0)
-      }
-      case _ => {
+      case _ =>
         println(s" ----------------------------------------------------------------- \n" +
           s"|             Mist Command Line Interface                          | \n" +
           s" ----------------------------------------------------------------- \n" +
@@ -130,7 +125,6 @@ private[mist] object CLI extends App {
           s"${Constants.CLI.stopWorkerMsg} <namespace> \t \t Stop worker by namespace \n" +
           s"${Constants.CLI.stopJobMsg} <extId|UID> \t \t \t Stop job by external id or UID\n" +
           s"${Constants.CLI.exitMsg} \t \n")
-      }
     }
   }
 }

@@ -74,7 +74,7 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Job
               .build()
         }
 
-        val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
+        val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
         // Run job asynchronously
 
         val timeDuration = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)

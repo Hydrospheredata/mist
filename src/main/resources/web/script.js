@@ -110,7 +110,7 @@
 
   function getConfig(cm) {
     var deflt = cm.state.closeBrackets;
-    if (!deflt) return null;
+    if (!deflt || deflt.override) return deflt;
     var mode = cm.getModeAt(cm.getCursor());
     return mode.closeBrackets || deflt;
   }
@@ -2138,6 +2138,9 @@ function buildLineContent(cm, lineView) {
                  col: 0, pos: 0, cm: cm,
                  trailingSpace: false,
                  splitSpaces: (ie || webkit) && cm.getOption("lineWrapping")}
+  // hide from accessibility tree
+  content.setAttribute("role", "presentation")
+  builder.pre.setAttribute("role", "presentation")
   lineView.measure = {}
 
   // Iterate over the logical lines that make up this visual line.
@@ -5976,6 +5979,7 @@ function markText(doc, from, to, options, type) {
     // Showing up as a widget implies collapsed (widget replaces text)
     marker.collapsed = true
     marker.widgetNode = elt("span", [marker.replacedWith], "CodeMirror-widget")
+    marker.widgetNode.setAttribute("role", "presentation") // hide from accessibility tree
     if (!options.handleMouseEvents) { marker.widgetNode.setAttribute("cm-ignore-events", "true") }
     if (options.insertLeft) { marker.widgetNode.insertLeft = true }
   }
@@ -6323,7 +6327,6 @@ Doc.prototype = createObj(BranchChunk.prototype, {
   clearGutter: docMethodOp(function(gutterID) {
     var this$1 = this;
 
-    var i = this.first
     this.iter(function (line) {
       if (line.gutterMarkers && line.gutterMarkers[gutterID]) {
         changeLine(this$1, line, "gutter", function () {
@@ -6332,7 +6335,6 @@ Doc.prototype = createObj(BranchChunk.prototype, {
           return true
         })
       }
-      ++i
     })
   }),
 
@@ -9497,7 +9499,7 @@ CodeMirror.fromTextArea = fromTextArea
 
 addLegacyProps(CodeMirror)
 
-CodeMirror.version = "5.22.0"
+CodeMirror.version = "5.23.0"
 
 return CodeMirror;
 
@@ -10010,9 +10012,9 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     if (type == ":") return cont(expressionNoComma);
     if (type == "(") return pass(functiondef);
   }
-  function commasep(what, end) {
+  function commasep(what, end, sep) {
     function proceed(type, value) {
-      if (type == ",") {
+      if (sep ? sep.indexOf(type) > -1 : type == ",") {
         var lex = cx.state.lexical;
         if (lex.info == "call") lex.pos = (lex.pos || 0) + 1;
         return cont(function(type, value) {
@@ -10046,15 +10048,17 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
   function typeexpr(type) {
     if (type == "variable") {cx.marked = "variable-3"; return cont(afterType);}
     if (type == "string" || type == "number" || type == "atom") return cont(afterType);
-    if (type == "{") return cont(commasep(typeprop, "}"))
+    if (type == "{") return cont(pushlex("}"), commasep(typeprop, "}", ",;"), poplex)
     if (type == "(") return cont(commasep(typearg, ")"), maybeReturnType)
   }
   function maybeReturnType(type) {
     if (type == "=>") return cont(typeexpr)
   }
-  function typeprop(type) {
+  function typeprop(type, value) {
     if (type == "variable" || cx.style == "keyword") {
       cx.marked = "property"
+      return cont(typeprop)
+    } else if (value == "?") {
       return cont(typeprop)
     } else if (type == ":") {
       return cont(typeexpr)
@@ -10972,7 +10976,9 @@ window.WebMist = {
       this.hideLoader();
       var template = document.getElementById('routers').innerHTML;
       var renderParams = {
-        routers: Object.keys(data),
+        routers: Object.keys(data).map(function (m) {
+            return Object.assign({name: m}, data[m])
+        }),
         routerParams: function() {return routersStorage.get(this)},
         runCallback: "runRoute",
         trainCallback: "trainRoute",

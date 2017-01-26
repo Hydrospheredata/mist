@@ -15,7 +15,7 @@ class JobRunnerNode(jobRequest: FullJobConfiguration) extends Actor with ActorLo
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress

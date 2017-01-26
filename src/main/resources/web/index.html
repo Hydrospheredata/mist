@@ -68,25 +68,45 @@
       <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
           {{#routers}}
-          <tr id="row-{{.}}">
+          <tr id="row-{{name}}">
             <td class="mdl-data-table__cell--non-numeric">
-              <div>{{.}}</div>
-              <div class="mist-textfield mdl-textfield">
-                <textarea class="mist-textfield mdl-textfield__input" type="text"id="job-{{.}}">{{routerParams}}</textarea>
+              <div class="router-details">
+                <span class="router-name">
+                  {{name}}
+                </span>
+                <span class="mdl-chip {{^isMLJob}}hide{{/isMLJob}}">
+                  <span class="mdl-chip__text">Machine Learning</span>
+                </span>
+                <span class="mdl-chip {{^isSqlJob}}hide{{/isSqlJob}}">
+                  <span class="mdl-chip__text">SQL</span>
+                </span>
+                <span class="mdl-chip {{^isHiveJob}}hide{{/isHiveJob}}">
+                  <span class="mdl-chip__text">Hive</span>
+                </span>
+                <span class="mdl-chip {{^isPython}}hide{{/isPython}}">
+                  <span class="mdl-chip__text">Python</span>
+                </span>
+                <div class="run-buttons">
+                  {{^isMLJob}}
+                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{runCallback}}">
+                      Run
+                    </button>
+                  {{/isMLJob}}
+                  {{#isMLJob}}
+                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{trainCallback}}">
+                      Train
+                    </button>
+                  {{/isMLJob}}
+                  {{#isMLJob}}
+                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{serveCallback}}">
+                      Serve
+                    </button>
+                  {{/isMLJob}}
+                </div>
               </div>
-            </td>
-            <td class="mdl-data-table__cell--actions">
-              <button id="demo-menu-lower-right-{{.}}"
-                      class="updateme mdl-button mdl-js-button mdl-button--icon">
-                <i class="material-icons">more_vert</i>
-              </button>
-
-              <ul class="updateme mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect"
-                  for="demo-menu-lower-right-{{.}}">
-                <li class="action-item mdl-menu__item" data-uid="{{.}}" data-callback="{{runCallback}}">Run</li>
-                <li class="action-item mdl-menu__item" data-uid="{{.}}" data-callback="{{trainCallback}}">Train</li>
-                <li class="action-item mdl-menu__item" data-uid="{{.}}" data-callback="{{serveCallback}}">Serve</li>
-              </ul>
+              <div class="mist-textfield mdl-textfield">
+                <textarea class="mist-textfield mdl-textfield__input" type="text"id="job-{{name}}">{{routerParams}}</textarea>
+              </div>
             </td>
           </tr>
           {{/routers}}

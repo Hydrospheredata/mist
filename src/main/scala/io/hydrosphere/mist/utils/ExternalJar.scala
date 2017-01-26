@@ -3,7 +3,7 @@ package io.hydrosphere.mist.utils
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import io.hydrosphere.mist.lib.{MLMistJob, MistJob}
+import io.hydrosphere.mist.lib._
 
 import scala.collection.immutable.Seq
 import scala.reflect.runtime.universe._
@@ -46,7 +46,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
   
 }
 
-class ExternalInstance(private val cls: Class[_]) {
+class ExternalInstance(val externalClass: ExternalClass, private val cls: Class[_]) {
 
   val objectRef: AnyRef = cls.getField("MODULE$").get(None)
 
@@ -61,26 +61,29 @@ class ExternalClass(className: String, private val classLoader: ClassLoader) {
   private val cls: Class[_] = classLoader.loadClass(className)
 
   def getNewInstance: ExternalInstance = {
-    new ExternalInstance(cls)
+    new ExternalInstance(this, cls)
   }
   
   def isMistJob: Boolean = cls.getInterfaces.contains(classOf[MistJob])
   def isMLJob: Boolean = cls.getInterfaces.contains(classOf[MLMistJob])
-
-  // TODO: add isStreamingJob 
+  def isStreamingJob: Boolean = cls.getInterfaces.contains(classOf[StreamingSupport])
+  def isSqlJob: Boolean = cls.getInterfaces.contains(classOf[SQLSupport])
+  def isHiveJob: Boolean = cls.getInterfaces.contains(classOf[HiveSupport])
   
 }
 
-class ExternalJar(jarPath: String) {
+class ExternalJar(jarFile: File) {
 
   def getExternalClass(className: String): ExternalClass = {
-    new ExternalClass(className, new URLClassLoader(Array[URL](new File(jarPath).toURI.toURL), getClass.getClassLoader))
+    new ExternalClass(className, new URLClassLoader(Array[URL](jarFile.toURI.toURL), getClass.getClassLoader))
   }
 
 }
 
 object ExternalJar {
 
-  def apply(jarPath: String): ExternalJar = new ExternalJar(jarPath)
+  def apply(jarPath: String): ExternalJar = new ExternalJar(new File(jarPath))
+
+  def apply(jarFile: File): ExternalJar = new ExternalJar(jarFile)
   
 }

@@ -18,7 +18,7 @@ class CLINode extends Actor {
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.workerManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress
@@ -42,25 +42,25 @@ class CLINode extends Actor {
   }
 
   override def receive: Receive = {
-    case StopWorker(message) =>
-      serverActor ! RemoveContext(message.substring(Constants.CLI.stopWorkerMsg.length).trim)
-      sender ! s"Worker ${message.substring(Constants.CLI.stopWorkerMsg.length).trim} is scheduled for shutdown."
+    case StopWorker(workerIdentifier) =>
+      serverActor ! RemoveContext(workerIdentifier)
+      sender ! s"Worker $workerIdentifier is scheduled for shutdown."
 
-    case StopJob(message) =>
-      cliResponder(StopJob(message), sender)
+    case message: StopJob =>
+      cliResponder(message, sender)
 
     case StopAllContexts =>
       serverActor ! StopAllContexts
       sender ! Constants.CLI.stopAllWorkers
 
-    case ListJobs =>
-      cliResponder(ListJobs, sender)
+    case ListJobs() =>
+      cliResponder(ListJobs(), sender)
 
-    case ListWorkers =>
-      cliResponder(ListWorkers, sender)
+    case ListWorkers() =>
+      cliResponder(ListWorkers(), sender)
 
-    case ListRouters =>
-      cliResponder(ListRouters, sender)
+    case message: ListRouters =>
+      cliResponder(message, sender)
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
