@@ -182,7 +182,7 @@ private[mist] class ClusterManager extends Actor with Logger {
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 
-    case StopAllContexts =>
+    case _: StopAllMessage =>
       workers.foreach {
         case WorkerLink(name, _) =>
           removeWorkerByName(name)

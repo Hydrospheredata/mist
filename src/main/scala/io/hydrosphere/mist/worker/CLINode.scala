@@ -49,8 +49,8 @@ class CLINode extends Actor {
     case message: StopJob =>
       cliResponder(message, sender)
 
-    case StopAllContexts =>
-      serverActor ! StopAllContexts
+    case StopAllContexts() =>
+      serverActor ! StopAllContexts()
       sender ! Constants.CLI.stopAllWorkers
 
     case ListJobs() =>

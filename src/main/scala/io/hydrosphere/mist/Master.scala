@@ -57,6 +57,6 @@ private[mist] object Master extends App with HTTPService with Logger {
   // We need to stop contexts on exit
   sys addShutdownHook {
     logger.info("Stopping all the contexts")
-    workerManager ! StopAllContexts
+    workerManager ! StopAllContexts()
   }
 }

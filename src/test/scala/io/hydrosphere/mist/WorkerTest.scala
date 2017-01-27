@@ -418,7 +418,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
           override def run() = {
             AddressAndSuccessForWorkerTest.success = false
             val workerManager = systemM.actorSelection(AddressAndSuccessForWorkerTest.serverAddress + AddressAndSuccessForWorkerTest.serverName)
-            workerManager ! StopAllContexts
+            workerManager ! StopAllContexts()
             Thread.sleep(5000)
             val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + "/user/TestActor")
             val future = workerTestActor.ask(WorkerIsRemoved)(timeout = 1.day)

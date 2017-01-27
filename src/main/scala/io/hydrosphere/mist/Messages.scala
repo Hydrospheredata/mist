@@ -7,10 +7,12 @@ private[mist] object Messages {
   sealed trait RemovingMessage {
     val name: String
   }
+  
+  sealed trait StopAllMessage
 
   case class CreateContext(namespace: String)
 
-  case class StopAllContexts()
+  case class StopAllContexts() extends StopAllMessage
 
   case class RemoveContext(name: String) extends RemovingMessage
 
@@ -26,7 +28,7 @@ private[mist] object Messages {
  
   case class StopWorker(name: String) extends AdminMessage with RemovingMessage
   
-  case class StopAllWorkers() extends AdminMessage
+  case class StopAllWorkers() extends AdminMessage with StopAllMessage
 
   case class ListWorkers() extends AdminMessage
 

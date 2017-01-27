@@ -133,7 +133,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
     }
 
     "list no workers after kill all" in {
-      cliAsserter(StopAllContexts, mockEqual)
+      cliAsserter(StopAllContexts(), mockEqual)
       eventually(timeoutAssert, interval(10 seconds)) {
         assert(cliAsserter(ListWorkers(), equal(List[Any]())))
       }
