@@ -15,7 +15,7 @@ Any job can be run via HTTP or async (MQTT) interface and besides requests for b
     "path": "/path/to/mist/job.jar",
     "className": "ExtendedMistJobObjectName",
     "parameters": { 
-        /* optional paramateres, that will be available as "parameters" argument in "doStuff" method  */ 
+        /* optional paramateres, that will be available as arguments in "execute" method  */ 
     },
     "externalId": "", // optional field with any string inside
     "namespace": "foo" // mist context namespace
@@ -25,7 +25,7 @@ Any job can be run via HTTP or async (MQTT) interface and besides requests for b
 * `path`: Request must contain `path` field with path to Mist job: .jar or .py file (can be local or in hdfs). 
 * `className`: Since .jar and .py files can include multiple classes it's necessary to specify `className` parameter. _Note: you should add `$` sign to the end of scala `object` name._ 
 * `namespace`: Every Mist job could be run in it's own Apache Spark context or share that context with other jobs. It is possible to specify [context namespace](context-namespaces.md) in low level API request.
-* `parameters`: `doStuff` method always takes `parameters: Map[String, Any]` argument. This argument is json subdocument in `parameters` field and could have job specific parameters to be specified by API user.
+* `parameters`: `execute` method always takes `parameters: Map[String, Any]` argument. This argument is json subdocument in `parameters` field and could have job specific parameters to be specified by API user.
 * `externalId`: `externalId` is used to dispatch multiple future responses from async calls. `externalId` will be returned beck in a response message.
 
 MQTT example ([MQTT server and client](http://mosquitto.org/) are required):
@@ -46,7 +46,7 @@ curl --header "Content-Type: application/json" -X POST http://192.168.10.33:2003
 ```javascript
 {
     "success": true,
-    "payload":{ /* returned from doStuff value */ },
+    "payload":{ /* returned from execute method value */ },
     "errors": [ /* array of string with errors */ ],
     "request": { /* clone of request */ }
 }

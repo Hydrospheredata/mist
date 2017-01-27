@@ -2,7 +2,7 @@ from mist.mist_job import *
 
 class SimpleSQLContext(MistJob, WithSQLSupport):
 
-    def do_stuff(self, path):
+    def execute(self, path):
         df = self.sql_context.read.json(path)
         df.printSchema()
         df.registerTempTable("people")
@@ -13,4 +13,4 @@ class SimpleSQLContext(MistJob, WithSQLSupport):
 
         result = df2.toJSON().first()
 
-        return result
+        return {"result": result}

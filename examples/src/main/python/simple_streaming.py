@@ -2,7 +2,7 @@ from mist.mist_job import *
 
 class SimpleStreaming(MistJob, WithStreamingContext, WithMQTTPublisher):
 
-    def do_stuff(self, parameters):
+    def execute(self, parameters):
         import time
 
         def takeAndPublish(time, rdd):
@@ -32,4 +32,4 @@ class SimpleStreaming(MistJob, WithStreamingContext, WithMQTTPublisher):
 
         result = "success"
 
-        return result
+        return {"result": result}

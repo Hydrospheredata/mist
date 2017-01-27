@@ -6,7 +6,7 @@ object TestError extends MistJob {
     *
     * @return result exception Test Error
     */
-  def doStuff(): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
     throw new Exception("Test Error")
   }
 }

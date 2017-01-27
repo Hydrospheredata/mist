@@ -128,7 +128,7 @@ private[mist] class ClusterManager extends Actor with Logger {
                 "isSqlJob" -> externalClass.isSqlJob,
                 "isHiveJob" -> externalClass.isHiveJob
               )
-              key -> (classInfo ++ value ++ methodInfo("doStuff") ++ methodInfo("train") ++ methodInfo("serve"))
+              key -> (classInfo ++ value ++ methodInfo("execute") ++ methodInfo("train") ++ methodInfo("serve"))
             }
         }
       } else {

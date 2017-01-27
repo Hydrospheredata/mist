@@ -52,7 +52,7 @@ import io.hydrosphere.mist.lib.{MistJob}
 
 object LogSearchJob extends MistJob {
 
-  override def doStuff(path: String, filters: List[String]): Map[String, Any] = {
+  override def execute(path: String, filters: List[String]): Map[String, Any] = {
     var data = context.textFile(path)
 
     filters.foreach { currentFilter =>

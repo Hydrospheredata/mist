@@ -7,7 +7,7 @@ object SimpleSQLContext extends MistJob with SQLSupport {
     * @param file json file path
     * @return result of the job
     */
-  def doStuff(file: String): Map[String, Any] = {
+  def execute(file: String): Map[String, Any] = {
     val df = sqlContext.read.json(file)
     df.registerTempTable("people")
     Map("result" -> sqlContext.sql("SELECT AVG(age) AS avg_age FROM people").collect())

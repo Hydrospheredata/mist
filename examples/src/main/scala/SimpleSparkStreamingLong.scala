@@ -9,7 +9,7 @@ object SimpleSparkStreamingLong extends MistJob with MQTTPublisher with Streamin
     *
     * @return result of the job
     */
-  def doStuff(): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
 
     val ssc = createStreamingContext
 

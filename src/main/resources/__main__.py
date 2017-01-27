@@ -97,7 +97,7 @@ try:
     instance.setup(context_wrapper)
     instance.set_publisher(publisher_wrapper)
     # TODO: train/serve
-    result = instance.do_stuff(**to_python_types(parameters))
+    result = instance.execute(**to_python_types(parameters))
     data_wrapper.set(result)
 except Exception:
     error_wrapper.set(traceback.format_exc())

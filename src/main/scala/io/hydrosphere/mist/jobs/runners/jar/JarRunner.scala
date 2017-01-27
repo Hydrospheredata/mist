@@ -26,7 +26,7 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
       val result = configuration match {
         case _: MistJobConfiguration =>
           externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
-          Left(externalInstance.getMethod("doStuff").run(configuration.parameters).asInstanceOf[Map[String, Any]])
+          Left(externalInstance.getMethod("execute").run(configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: TrainingJobConfiguration =>
           externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
           Left(externalInstance.getMethod("train").run(configuration.parameters).asInstanceOf[Map[String, Any]])

@@ -4,7 +4,7 @@ from mist.mist_job import MistJob
 
 class SimpleContext(MistJob):
 
-    def do_stuff(self, numbers, multiplier = 2):
+    def execute(self, numbers, multiplier = 2):
         rdd = self.context.parallelize(numbers)
         result = rdd.map(lambda s: s * multiplier).collect()
 

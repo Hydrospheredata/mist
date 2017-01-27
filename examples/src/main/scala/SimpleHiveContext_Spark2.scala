@@ -8,7 +8,7 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
     * @param file json file path
     * @return result of the job
     */
-  def doStuff(file: String): Map[String, Any] = {
+  def execute(file: String): Map[String, Any] = {
 
     val df = session.read.json(file)
     df.printSchema()

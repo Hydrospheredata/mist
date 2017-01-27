@@ -211,10 +211,10 @@ window.WebMist = {
           } 
         }
         var generatedObject = {};
-        if (settings.hasOwnProperty("doStuff")) {
-          for (var key in settings["doStuff"]) {
+        if (settings.hasOwnProperty("execute")) {
+          for (var key in settings["execute"]) {
               var newObj = {};
-              newObj[key] = make(settings["doStuff"][key]);
+              newObj[key] = make(settings["execute"][key]);
               Object.assign(generatedObject, newObj);
           }
           if (Object.keys(generatedObject).length === 0) {
