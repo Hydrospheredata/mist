@@ -1,14 +1,13 @@
-import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
+import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob, StreamingSupport}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming._
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with MQTTPublisher {
+object StreamingTextSearch extends MistJob with MQTTPublisher with StreamingSupport{
   def execute(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
 
-    val ssc = new StreamingContext(context, Seconds(1))
+    val ssc = createStreamingContext
 
     val rddQueue = new mutable.Queue[RDD[String]]()
 

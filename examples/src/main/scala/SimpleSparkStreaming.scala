@@ -1,11 +1,9 @@
-import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
-
+import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob, StreamingSupport}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming._
 
 import scala.collection.mutable
 
-object SimpleSparkStreaming extends MistJob with MQTTPublisher {
+object SimpleSparkStreaming extends MistJob with MQTTPublisher with StreamingSupport{
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
@@ -13,7 +11,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
     */
   def execute(): Map[String, Any] = {
 
-    val ssc = new StreamingContext(context, Seconds(1))
+    val ssc = createStreamingContext
 
     val rddQueue = new mutable.Queue[RDD[Int]]()
 
@@ -21,7 +19,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher {
     val mappedStream = inputStream.map(x => (x % 10, 1))
     val reducedStream = mappedStream.reduceByKey(_ + _)
 
-    reducedStream.print()
+    //reducedStream.print()
 
     reducedStream.foreachRDD{ (rdd, time) =>
       publish(Map(

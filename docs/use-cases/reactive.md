@@ -37,13 +37,12 @@ Let’s take a use case from [Enterprise Analytics Section](/docs/use-cases/ente
 Let’s take a SimpleTextSearch Mist job and modify it to use Spark Streaming context and return asynchronous result to upstream. Note that engineer who writes a code is abstracted from transport layer, he does not give much attention to MQTT, Kafka or any other messaging system he will be using.
 
 ````
-import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
+import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob, StreamingSupport}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.streaming._
 
-object StreamingTextSearch extends MistJob with MQTTPublisher {
+object StreamingTextSearch extends MistJob with MQTTPublisher with StreamingSupport {
   override def execute(filter: String): Map[String, Any] = {
-    val ssc = new StreamingContext(context, Seconds(1))
+    val ssc = createStreamingContext
 
     val inputStream = ssc.queueStream(...)
 
@@ -86,8 +85,9 @@ mist.mqtt.host = "localhost"
 mist.mqtt.port = 1883
 mist.mqtt.subscribe-topic = "foo"
 mist.mqtt.publish-topic = "foo"
-# Inifinity timeout for Streaming context
+# Inifinity timeout and duration window for Streaming context
 mist.context.streaming.timeout = Inf
+mist.context.streaming.streaming-duration = 1 seconds
 ```
 
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
+import akka.http.scaladsl.model._
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
@@ -76,169 +76,100 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
     StartMist.threadMaster.join()
   }
 
+  var success = false
+
+  def httpAssert(method: HttpMethod, uri: Uri, asserter: (String) => Boolean): Unit = {
+    success = false
+    val httpRequest = HttpRequest(method, uri)
+    val future_response = clientHTTP.singleRequest(httpRequest)
+    future_response onComplete {
+      case Success(msg) => msg match {
+        case HttpResponse(OK, _, _, _) => {
+          println(msg)
+          success = asserter(msg.entity.toString)
+        }
+        case _ => println(msg)
+      }
+      case Failure(e) =>
+        println(e)
+    }
+    Await.result(future_response, 14.seconds)
+    Thread.sleep(1000)
+  }
   "UI REST Test" must {
     "list workers" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListWorkers)
-        val future_response = clientHTTP.singleRequest(httpRequest)
+      def asserter(msg: String): Boolean = {
+        (msg.contains("streaming1") &&
+         msg.contains("streaming3") &&
+         msg.contains("streaming2"))
+      }
 
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              if(msg.entity.toString.contains("streaming1") &&
-                msg.entity.toString.contains("streaming2") &&
-                msg.entity.toString.contains("streaming3")) {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      eventually(timeoutAssert, interval(15 second)) {
+        httpAssert(GET, TestConfig.restUIUrlListWorkers, asserter)
+        assert(success)
       }
     }
 
     "list jobs" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListJobs)
-        val future_response = clientHTTP.singleRequest(httpRequest)
+      def asserter(msg: String): Boolean = {
+        (msg.contains("job1") &&
+         msg.contains("job2") &&
+         msg.contains("job3"))
+      }
 
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              if(msg.entity.toString.contains("job1") &&
-                msg.entity.toString.contains("job2") &&
-                msg.entity.toString.contains("job3")) {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      httpAssert(GET, TestConfig.restUIUrlListJobs, asserter)
+      eventually(timeoutAssert, interval(15 second)) {
+        assert(success)
       }
     }
 
     "list routers" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(GET, uri = TestConfig.restUIUrlListRouters)
-        val future_response = clientHTTP.singleRequest(httpRequest)
+      def asserter(msg: String): Boolean = {
+        (msg.contains("streaming-1") &&
+         msg.contains("streaming-2") &&
+         msg.contains("streaming-3"))
+      }
 
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              if(msg.entity.toString.contains("streaming-1") &&
-                msg.entity.toString.contains("streaming-2") &&
-                msg.entity.toString.contains("streaming-3")) {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      httpAssert(GET, TestConfig.restUIUrlListRouters, asserter)
+      eventually(timeoutAssert, interval(15 second)) {
+        assert(success)
       }
     }
 
     "kill job" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListJobs+"/job2")
-        val future_response = clientHTTP.singleRequest(httpRequest)
-
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val jobKillMsgRegex = """Job job2\w*is scheduled for shutdown. It may take a while.""".r
-              msg.entity.toString match {
-                case jobKillMsgRege => http_response_success = true
-                case _ => http_response_success = false
-              }
-
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
+      def asserter(msg: String): Boolean = {
+        val jobKillMsgRegex = """Job job2\w*is scheduled for shutdown. It may take a while.""".r
+        msg match {
+          case jobKillMsgRege => true
+          case _ => false
         }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      }
+
+      httpAssert(DELETE, TestConfig.restUIUrlListJobs+"/job2", asserter)
+      eventually(timeoutAssert, interval(15 second)) {
+        assert(success)
       }
     }
 
     "kill worker" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListWorkers + "/streaming1")
-        val future_response = clientHTTP.singleRequest(httpRequest)
+      def asserter(msg: String): Boolean = {
+        msg.contains("Worker streaming1 is scheduled for shutdown.")
+      }
 
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              if(msg.entity.toString.contains("Worker streaming1 is scheduled for shutdown.")) {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      httpAssert(DELETE, TestConfig.restUIUrlListWorkers + "/streaming1", asserter)
+      eventually(timeoutAssert, interval(15 second)) {
+        assert(success)
       }
     }
 
     "kill all workers" in {
-      var http_response_success = false
-      eventually(timeoutAssert, interval(10 second)) {
-        val httpRequest = HttpRequest(DELETE, uri = TestConfig.restUIUrlListWorkers)
-        val future_response = clientHTTP.singleRequest(httpRequest)
+      def asserter(msg: String): Boolean = {
+        msg.contains(Constants.CLI.stopAllWorkers)
+      }
 
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              if(msg.entity.toString.contains(Constants.CLI.stopAllWorkers)) {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        assert(http_response_success)
+      httpAssert(DELETE, TestConfig.restUIUrlListWorkers, asserter)
+      eventually(timeoutAssert, interval(15 second)) {
+        assert(success)
       }
     }
   }
