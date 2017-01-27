@@ -9,7 +9,7 @@ import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.utils.{Collections, ExternalJar, Logger}
+import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
 import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 
@@ -109,13 +109,26 @@ private[mist] class ClusterManager extends Actor with Logger {
               }
               
               val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
-              val additionalFields = Map(
+              val inst = externalClass.getNewInstance
+              
+              def methodInfo(methodName: String): Map[String, Map[String, String]] = {
+                try {
+                  Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
+                    Map(arg.name -> arg.tpe.toString)
+                  }.toMap[String, String]
+                  )
+                } catch {
+                  case _: Throwable => Map.empty[String, Map[String, String]]
+                }
+              } 
+              
+              val classInfo = Map(
                 "isMLJob" -> externalClass.isMLJob,
                 "isStreamingJob" -> externalClass.isStreamingJob,
                 "isSqlJob" -> externalClass.isSqlJob,
                 "isHiveJob" -> externalClass.isHiveJob
               )
-              key -> (additionalFields ++ value)
+              key -> (classInfo ++ value ++ methodInfo("doStuff") ++ methodInfo("train") ++ methodInfo("serve"))
             }
         }
       } else {

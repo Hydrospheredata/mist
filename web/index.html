@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.cyan-light_blue.min.css">
     <link rel="stylesheet" href="all.min.css">
+    <script src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   </head>
   <body>
     <div class="mist-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
@@ -38,7 +39,7 @@
           <img src="images/logo-l.png" class="logo">
         </header>
         <nav class="mist-navigation mdl-navigation mdl-color--blue-grey-800">
-          <a class="mdl-navigation__link" href="#" id="menu_routers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">view_list</i>Routers</a>
+          <a class="mdl-navigation__link" href="#" id="menu_routers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">view_list</i>Routes</a>
           <a class="mdl-navigation__link" href="#" id="menu_jobs"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">work</i>Jobs</a>
           <a class="mdl-navigation__link" href="#" id="menu_workers"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">work</i>Workers</a>
           <a class="mdl-navigation__link" href="#" id="menu_settings"><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">settings</i>Settings</a>
@@ -86,21 +87,17 @@
                   <span class="mdl-chip__text">Python</span>
                 </span>
                 <div class="run-buttons">
-                  {{^isMLJob}}
-                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{runCallback}}">
-                      Run
-                    </button>
-                  {{/isMLJob}}
                   {{#isMLJob}}
-                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{trainCallback}}">
-                      Train
-                    </button>
+                    <span>Train</span>
+                    <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect updateme" for="switch-{{name}}">
+                      <input type="checkbox" id="switch-{{name}}" class="mdl-switch__input mist-action-button action-item" checked data-uid="{{name}}" data-callback="switchMLAction">
+                      <span class="mdl-switch__label"></span>
+                    </label>
+                    <span>Serve</span>
                   {{/isMLJob}}
-                  {{#isMLJob}}
-                    <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{serveCallback}}">
-                      Serve
-                    </button>
-                  {{/isMLJob}}
+                  <button class="action-item mdl-button mdl-js-button mdl-button--raised" data-uid="{{name}}" data-callback="{{runCallback}}">
+                    Run
+                  </button>
                 </div>
               </div>
               <div class="mist-textfield mdl-textfield">
@@ -132,7 +129,6 @@
       </table>
     </script>
 
-    <script src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script src="script-min.js"></script>
   </body>
 </html>
