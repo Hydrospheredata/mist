@@ -9,7 +9,7 @@ import akka.cluster._
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, MediaTypes}
+import akka.http.scaladsl.model._
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
@@ -80,7 +80,8 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   }
 }
 
-class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService{
+class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures
+  with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService {
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
@@ -102,6 +103,31 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
     sparkVersion match {
       case versionRegex(major, minor) if major.toInt > 1 => true
       case _ => false
+    }
+  }
+
+  val testTimeout: Duration = 30.seconds
+
+  var success = false
+
+  def httpAsserter(httpMethod: HttpMethod, uri: Uri, request: String, statusCode: StatusCode, messageContains: Option[String] = None): Unit = {
+    success = false
+    val httpRequest = HttpRequest(httpMethod, uri, entity = HttpEntity(MediaTypes.`application/json`, request))
+    val future = clientHTTP.singleRequest(httpRequest)
+    future onComplete {
+      case Success(msg) => msg match {
+        case  HttpResponse(statusCode, _, _, _) => {
+          println(msg)
+          success = if (messageContains.nonEmpty) {
+            msg.entity.toString.contains(messageContains.get)
+          } else {
+            true
+          }
+        }
+        case _ => println(msg.entity.toString)
+      }
+      case Failure(e) =>
+        println(e)
     }
   }
 
@@ -140,7 +166,7 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         Thread.sleep(5000)
 
         val future = workerTestActor.ask(WorkerIsUp)(timeout = 1.day)
-        var success = false
+        success = false
         future
             .onSuccess{
               case result:Boolean =>
@@ -160,7 +186,7 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         val timeDuration = MistConfig.Contexts.timeout(jobConfiguration.namespace)
         if(timeDuration.isFinite()) {
           val future = contextNode.ask(jobConfiguration)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
-          var success = false
+          success = false
           future
             .onSuccess {
               case result: Either[Map[String, Any], String] =>
@@ -183,178 +209,51 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
       }
 
       "http bad request" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBad))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(BadRequest, _, _, _) =>
-              println(msg)
-              http_response_success = true
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 10.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestBad, BadRequest, None)
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "http bad patch" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadPath))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              if (json == "false") {
-                http_response_success = true
-              }
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 20.seconds)
-        eventually(timeout(20 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestBadPath, OK, Option("false"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP bad JSON" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestBadJson))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(BadRequest, _, _, _) =>
-              println(msg)
-              http_response_success = true
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, uri = TestConfig.httpUrl, TestConfig.requestBadJson, BadRequest, None)
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP Spark Context jar" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestJar))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestJar, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP Spark Context hdfs jar" in {
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestHdfsJar))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestHdfsJar, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP error in python" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyError))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "false"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestPyError, OK, Option("false"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP Pyspark Context" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyspark))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestPyspark, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
@@ -362,26 +261,9 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")
 
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestSparkSql))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestSparkSql, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
@@ -389,26 +271,9 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")
 
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPysparkSql))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestPysparkSql, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
@@ -416,26 +281,9 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")
 
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestSparkhive))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestSparkhive, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
@@ -443,74 +291,22 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")
 
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPysparkHive))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestPysparkHive, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
       "HTTP successful restificated request" in {
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.restificatedUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.restificatedRequest))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 60.seconds)
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.restificatedUrl, TestConfig.restificatedRequest, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
       "HTTP Python hdfs" in {
-
-        var http_response_success = false
-        val httpRequest = HttpRequest(POST, uri = TestConfig.httpUrl, entity = HttpEntity(MediaTypes.`application/json`, TestConfig.requestPyHdfs))
-        val future_response = clientHTTP.singleRequest(httpRequest)
-        future_response onComplete {
-          case Success(msg) => msg match {
-            case HttpResponse(OK, _, _, _) =>
-              println(msg)
-              val json = msg.entity.toString.split(':').drop(1).head.split(',').headOption.getOrElse("false").trim
-              http_response_success = json == "true"
-            case _ =>
-              println(msg)
-              http_response_success = false
-          }
-          case Failure(e) =>
-            println(e)
-            http_response_success = false
-        }
-        Await.result(future_response, 30.seconds)
-        eventually(timeout(30 seconds), interval(1 second)) {
-          assert(http_response_success)
+        httpAsserter(POST, TestConfig.httpUrl, TestConfig.requestPyHdfs, OK, Option("true"))
+        eventually(timeout(testTimeout), interval(1 second)) {
+          assert(success)
         }
       }
 
@@ -550,16 +346,6 @@ class WorkerManagerTestActor extends WordSpecLike with Eventually with BeforeAnd
         }
       }
 
-//TODO check py sql
-      /*
-      "mqtt python spark sql" in {
-        MqttSuccessObj.success = false
-
-        eventually(timeout(60 seconds), interval(1 second)) {
-          assert(MqttSuccessObj.success)
-        }
-      }
-*/
       "mqtt python spark" in {
         if(checkSparkSessionLogic)
           cancel("Can't run in Spark 2.0.0")

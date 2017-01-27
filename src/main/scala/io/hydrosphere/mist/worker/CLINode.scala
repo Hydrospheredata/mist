@@ -55,7 +55,7 @@ class CLINode extends Actor {
 
     case StopAllContexts =>
       serverActor ! StopAllContexts
-      sender ! "All Context is scheduled for shutdown."
+      sender ! Constants.CLI.stopAllWorkers
 
     case ListJobs =>
       cliResponder(ListJobs, sender)

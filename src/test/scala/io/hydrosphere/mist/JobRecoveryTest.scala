@@ -71,6 +71,8 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
 
       recoveryActor ! StartRecovery
 
+      assert(configurationRepository.size == 3)
+
       eventually (timeout(10 seconds), interval(1 second)) {
         recoveryActor ! JobStarted
         recoveryActor ! JobCompleted
