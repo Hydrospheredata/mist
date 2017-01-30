@@ -9,6 +9,7 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.Constants
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike, _}
 import spray.json.DefaultJsonProtocol
@@ -24,12 +25,12 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   implicit val system = ActorSystem("test-mist")
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  val timeoutAssert = timeout(90 seconds)
+  val timeoutAssert: Timeout = timeout(90 seconds)
 
   val clientHTTP = Http(system)
 
   object StartMist {
-    val threadMaster = {
+    val threadMaster: Thread = {
       new Thread {
         override def run(): Unit = {
           s"./bin/mist start master --config ${TestConfig.restUIConfig}" !
@@ -39,10 +40,10 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   }
 
   class StartJob(route: String, externalId: String) {
-    val threadMaster = {
+    val threadMaster: Unit = {
       new Thread {
         override def run(): Unit = {
-          s"bin/mist start job --config ${TestConfig.restUIConfig} --route ${route} --external-id ${externalId}" !
+          s"bin/mist start job --config ${TestConfig.restUIConfig} --route $route --external-id $externalId" !
         }
       }.start()
     }
@@ -67,9 +68,9 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   }
 
   override def afterAll(): Unit = {
-    clientHTTP.shutdownAllConnectionPools() andThen { case _ => {
+    clientHTTP.shutdownAllConnectionPools() andThen { case _ =>
       TestKit.shutdownActorSystem(system)
-    }}
+    }
 
     "./bin/mist stop" !
 
@@ -99,9 +100,9 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
   "UI REST Test" must {
     "list workers" in {
       def asserter(msg: String): Boolean = {
-        (msg.contains("streaming1") &&
-         msg.contains("streaming3") &&
-         msg.contains("streaming2"))
+        msg.contains("streaming1") &&
+          msg.contains("streaming3") &&
+          msg.contains("streaming2")
       }
 
       eventually(timeoutAssert, interval(15 second)) {
@@ -112,9 +113,9 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
 
     "list jobs" in {
       def asserter(msg: String): Boolean = {
-        (msg.contains("job1") &&
-         msg.contains("job2") &&
-         msg.contains("job3"))
+        msg.contains("job1") &&
+          msg.contains("job2") &&
+          msg.contains("job3")
       }
 
       httpAssert(GET, TestConfig.restUIUrlListJobs, asserter)
@@ -125,9 +126,9 @@ class RestUITest extends WordSpecLike with BeforeAndAfterAll with Eventually wit
 
     "list routers" in {
       def asserter(msg: String): Boolean = {
-        (msg.contains("streaming-1") &&
-         msg.contains("streaming-2") &&
-         msg.contains("streaming-3"))
+        msg.contains("streaming-1") &&
+          msg.contains("streaming-2") &&
+          msg.contains("streaming-3")
       }
 
       httpAssert(GET, TestConfig.restUIUrlListRouters, asserter)

@@ -187,10 +187,11 @@ private[mist] class ClusterManager extends Actor with Logger {
         case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
+      sender ! Constants.CLI.stopAllWorkers
 
     case message: RemovingMessage =>
       removeWorkerByName(message.name)
-      sender ! s"${message.name} context was stopped"
+      sender ! s"Worker ${message.name} is scheduled for shutdown."
 
     case WorkerDidStart(name, address) =>
       logger.info(s"Worker `$name` did start on $address")
