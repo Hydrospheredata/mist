@@ -4,7 +4,7 @@ The easiest way to run tests is to run them inside docker container.
 
 First of all export SPARK_VERSION with version you want to work: 
 ```sh
-export $SPARK_VERSION=2.0.0
+export $SPARK_VERSION=2.1.0
 ```
 
 Then create container with testing source code (inside work directory):
