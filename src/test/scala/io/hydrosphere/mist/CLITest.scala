@@ -1,12 +1,12 @@
 package  io.hydrosphere.mist
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
-import akka.util.Timeout
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.worker.CLINode
 import org.scalatest.concurrent.Eventually
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
 
 import scala.concurrent.Await
@@ -17,14 +17,14 @@ import scala.sys.process._
 class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
-  lazy val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName)
+  lazy val cliActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName)
 
-  val timeoutAssert = timeout(90 seconds)
+  val timeoutAssert: Timeout = timeout(90 seconds)
 
   object StartMist {
-    val threadMaster = {
+    val threadMaster: Thread = {
       new Thread {
-        override def run() = {
+        override def run(): Unit = {
           s"./bin/mist start master --config ${TestConfig.cliConfig}" !
         }
       }
@@ -32,10 +32,10 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
   }
 
   class StartJob(route: String, externalId: String) {
-    val threadMaster = {
+    val threadMaster: Unit = {
       new Thread {
-        override def run() = {
-          s"bin/mist start job --config ${TestConfig.cliConfig} --route ${route} --external-id ${externalId}".!
+        override def run(): Unit = {
+          s"bin/mist start job --config ${TestConfig.cliConfig} --route $route --external-id $externalId".!
         }
       }.start()
     }
@@ -43,7 +43,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
   object StartJobs {
     val routers = List(("streaming-1", "job1"), ("streaming-2", "job2"), ("streaming-3", "job3"))
-    def start() = {
+    def start(): Unit = {
       routers.foreach {
         router =>
           new StartJob(router._1, router._2)
@@ -112,13 +112,13 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
       cliAsserter(StopWorker("streaming1"), mockEqual)
 
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListWorkers(), equal(List[Any]("streaming2", "streaming3"))) && !cliAsserter(ListWorkers, equal(List[Any]("streaming1"))))
+        assert(cliAsserter(ListWorkers(), equal(List[Any]("streaming2", "streaming3"))) && !cliAsserter(ListWorkers(), equal(List[Any]("streaming1"))))
       }
     }
 
     "list two jobs" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListJobs(), equal(List[Any]("job2", "job3"))) && !cliAsserter(ListJobs, equal(List[Any]("job1"))))
+        assert(cliAsserter(ListJobs(), equal(List[Any]("job2", "job3"))) && !cliAsserter(ListJobs(), equal(List[Any]("job1"))))
       }
     }
 
