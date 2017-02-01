@@ -4,12 +4,11 @@ services:
 
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
-  - docker create --name mist-$SPARK_VERSION -v /usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION
   - docker run --name mosquitto-$SPARK_VERSION -d ansi/mosquitto
-  - docker run --name hdfs-$SPARK_VERSION --volumes-from mist-$SPARK_VERSION -d hydrosphere/hdfs start
+  - docker run --name hdfs-$SPARK_VERSION -v $PWD:/usr/share/mist -d hydrosphere/hdfs:experimental start
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests         
+  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests
 
 env:
   global:
