@@ -9,7 +9,7 @@ before_install:
 
 script:
   - docker run --name hdfs-$SPARK_VERSION -v $PWD:/usr/share/mist -d hydrosphere/hdfs:experimental start
-  - sleep 600
+  - sleep 500
   - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests
 
 env:
