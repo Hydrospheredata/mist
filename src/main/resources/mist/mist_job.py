@@ -1,3 +1,5 @@
+# coding=utf-8
+
 from abc import ABCMeta, abstractmethod
 
 class ContextSupport:
@@ -28,7 +30,7 @@ class MistJob(ContextSupport, PublisherSupport):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def do_stuff(self, params):
+    def execute(self, *args):
         raise NotImplementedError()
 
     def setup(self, context_wrapper):

@@ -20,7 +20,7 @@ private[mist] object Master extends App with HTTPService with Logger {
   logger.info(MistConfig.Akka.Main.port.toString)
 
   // Context creator actor
-  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
+  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
 
     // Creating contexts which are specified in config as `onstart`
   MistConfig.Contexts.precreated foreach { contextName =>
@@ -57,6 +57,6 @@ private[mist] object Master extends App with HTTPService with Logger {
   // We need to stop contexts on exit
   sys addShutdownHook {
     logger.info("Stopping all the contexts")
-    workerManager ! StopAllContexts
+    workerManager ! StopAllContexts()
   }
 }

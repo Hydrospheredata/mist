@@ -134,7 +134,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
   override  def beforeAll() = {
     Thread.sleep(5000)
     AddressAndSuccessForWorkerTest.serverAddress = Cluster(systemM).selfAddress.toString
-    AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.workerManagerName
+    AddressAndSuccessForWorkerTest.serverName = "/user/" + Constants.Actors.clusterManagerName
     AddressAndSuccessForWorkerTest.nodeAddress = Cluster(systemW).selfAddress.toString
     AddressAndSuccessForWorkerTest.nodeName = "/user/" + "foo"
 
@@ -152,7 +152,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
 
     "ContextNode" must {
       "started" in {
-        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
+        systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
         Thread.sleep(5000)
         lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
@@ -418,7 +418,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
           override def run() = {
             AddressAndSuccessForWorkerTest.success = false
             val workerManager = systemM.actorSelection(AddressAndSuccessForWorkerTest.serverAddress + AddressAndSuccessForWorkerTest.serverName)
-            workerManager ! StopAllContexts
+            workerManager ! StopAllContexts()
             Thread.sleep(5000)
             val workerTestActor = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + "/user/TestActor")
             val future = workerTestActor.ask(WorkerIsRemoved)(timeout = 1.day)

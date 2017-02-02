@@ -41,8 +41,7 @@ import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob, StreamingSupport}
 import org.apache.spark.rdd.RDD
 
 object StreamingTextSearch extends MistJob with MQTTPublisher with StreamingSupport {
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
-    val filter: String = parameters("filter").asInstanceOf[String]
+  override def execute(filter: String): Map[String, Any] = {
     val ssc = createStreamingContext
 
     val inputStream = ssc.queueStream(...)

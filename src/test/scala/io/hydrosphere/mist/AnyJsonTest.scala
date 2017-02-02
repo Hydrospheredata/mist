@@ -50,7 +50,7 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with AnyJsonFormatSu
 
       && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
       && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.workerManagerName == "ClusterManager"
+      && Constants.Actors.clusterManagerName == "ClusterManager"
       && Constants.Actors.mqttServiceName == "MQTTService")
   }
 }

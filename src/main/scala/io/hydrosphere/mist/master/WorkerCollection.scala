@@ -56,6 +56,13 @@ class WorkerCollection {
         f(WorkerLink(name, address))
     }
   }
+  
+  def map[T](f: (WorkerLink) => T): List[T] = {
+    workers.map {
+      case (name, address) =>
+        f(WorkerLink(name, address))
+    }.toList
+  }
 
   def apply(name: String): WorkerLink = {
     WorkerLink(name, workers(name))

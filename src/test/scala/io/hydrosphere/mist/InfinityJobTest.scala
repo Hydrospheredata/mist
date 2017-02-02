@@ -27,7 +27,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   InfinityJobTestMqttActor.subscribe(systemW)
 
   override def beforeAll() = {
-    systemM.actorOf(Props[ClusterManager], name = Constants.Actors.workerManagerName)
+    systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
     Thread.sleep(5000)
   }
 

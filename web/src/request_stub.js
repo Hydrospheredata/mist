@@ -4,37 +4,37 @@ function MistRequestStub() {
       "streaming-1": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming1",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-2": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming2",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-3": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming3",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-4": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming4",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-5": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming5",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-6": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming6",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       },
       "streaming-7": {
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming7",
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar"
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar"
       }
     };
     __success(data, callback);
@@ -48,14 +48,14 @@ function MistRequestStub() {
       },
       "errors": [],
       "request": {
-        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar",
+        "path": "./examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar",
         "className": "SimpleSparkStreamingLong$",
         "namespace": "streaming2",
         "parameters": {
-          "path": "/home/lblokhin/lymph/mist/examples/target/scala-2.11/mist_examples_2.11-0.0.2.jar",
+          "path": "/home/lblokhin/lymph/mist/examples/target/scala-2.11/mist_examples_2.11-0.8.0.jar",
           "externalId": "job3",
           "className": "SimpleSparkStreamingLong$",
-          "parameters": {"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0 ]},
+          "parameters": {"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0 ]},
           "namespace": "streaming3"
         },
         "router": "streaming-2"

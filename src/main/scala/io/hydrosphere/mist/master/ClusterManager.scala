@@ -9,11 +9,9 @@ import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
 import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -93,61 +91,85 @@ private[mist] class ClusterManager extends Actor with Logger {
 
   override def receive: Receive = {
 
-    case ListRouters =>
+    case ListRouters(extended) =>
       val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
-      val javaMap: java.util.Map[String, Object] = config.root().unwrapped()
+      val javaMap = config.root().unwrapped()
+      
+      val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
+      
+      if (extended) {
+        sender ! scalaMap.map {
+          case (key: String, value: Map[String, Any]) =>
+            if (JobFile.fileType(value("path").asInstanceOf[String]) == JobFile.FileType.Python) {
+              key -> (Map("isPython" -> true) ++ value)
+            } else {
+              val jobFile = JobFile(value("path").asInstanceOf[String])
+              if (!jobFile.exists) {
+                return null
+              }
+              
+              val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
+              val inst = externalClass.getNewInstance
+              
+              def methodInfo(methodName: String): Map[String, Map[String, String]] = {
+                try {
+                  Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
+                    Map(arg.name -> arg.tpe.toString)
+                  }.toMap[String, String]
+                  )
+                } catch {
+                  case _: Throwable => Map.empty[String, Map[String, String]]
+                }
+              } 
+              
+              val classInfo = Map(
+                "isMLJob" -> externalClass.isMLJob,
+                "isStreamingJob" -> externalClass.isStreamingJob,
+                "isSqlJob" -> externalClass.isSqlJob,
+                "isHiveJob" -> externalClass.isHiveJob
+              )
+              key -> (classInfo ++ value ++ methodInfo("execute") ++ methodInfo("train") ++ methodInfo("serve"))
+            }
+        }
+      } else {
+        sender ! scalaMap
+      }
+      
 
-      import scala.collection.JavaConversions._
-      val scalaMap: Map[String, Any] = javaMap.toMap.map { case (k, v) => (k, v.toString)}
-
-      sender ! scalaMap //TODO
-
-    case StopJob(message) => {
+    case message: StopJob =>
       val originalSender = sender
       val future: Future[List[String]] = Future {
-        val stopResponse = ArrayBuffer.empty[String]
-        if (message.contains(Constants.CLI.stopJobMsg)) {
-          workers.foreach {
-            case WorkerLink(name, address) => {
-              val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-              val futureListJobs = remoteActor.ask(new StopJob(message))(timeout = Constants.CLI.timeoutDuration)
-              val result = Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[String]]
-              result.map(jobStopResponse => stopResponse += jobStopResponse)
-            }
-          }
-        }
-        stopResponse.toList
+        workers.map {
+          case WorkerLink(name, address) =>
+            val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+            val futureListJobs = remoteActor.ask(message)(timeout = Constants.CLI.timeoutDuration)
+            Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[String]]
+        }.flatten
       }
 
       future onComplete {
         case Success(result: List[String]) => originalSender ! result
         case Failure(error: Throwable) => originalSender ! error
       }
-    }
 
-    case ListWorkers =>
-      val workerDescriptions = ArrayBuffer.empty[WorkerDescription]
-      workers
-        .foreach {
-          case WorkerLink(name, address) => {
-            workerDescriptions += new WorkerDescription(name, address)
-          }
-        }
-      sender ! workerDescriptions.toList
+    case ListWorkers() =>
+      sender ! workers.map {
+        case WorkerLink(name, address) =>
+          WorkerDescription(name, address)
+      }
 
-    case ListJobs =>
+    case ListJobs() =>
       val originalSender = sender
 
       val future: Future[List[JobDescriptionSerializable]] = Future {
         val jobDescriptionsSerializable = ArrayBuffer.empty[JobDescriptionSerializable]
         workers
           .foreach {
-            case WorkerLink(name, address) => {
+            case WorkerLink(name, address) =>
               val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
               val futureListJobs = remoteActor.ask(ListJobs)(timeout = Constants.CLI.timeoutDuration)
               val result = Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[JobDescriptionSerializable]]
               result.map(job => jobDescriptionsSerializable += job)
-            }
           }
         jobDescriptionsSerializable.toList
       }
@@ -160,14 +182,16 @@ private[mist] class ClusterManager extends Actor with Logger {
     case CreateContext(name) =>
       startNewWorkerWithName(name)
 
-    case StopAllContexts =>
+    case _: StopAllMessage =>
       workers.foreach {
         case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
+      sender ! Constants.CLI.stopAllWorkers
 
-    case RemoveContext(name) =>
-      removeWorkerByName(name)
+    case message: RemovingMessage =>
+      removeWorkerByName(message.name)
+      sender ! s"Worker ${message.name} is scheduled for shutdown."
 
     case WorkerDidStart(name, address) =>
       logger.info(s"Worker `$name` did start on $address")

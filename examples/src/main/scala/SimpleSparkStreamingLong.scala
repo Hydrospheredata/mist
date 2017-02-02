@@ -7,10 +7,9 @@ object SimpleSparkStreamingLong extends MistJob with MQTTPublisher with Streamin
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
-    * @param parameters user parameters
     * @return result of the job
     */
-  override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
 
     val ssc = createStreamingContext
 

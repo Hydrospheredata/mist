@@ -1,21 +1,11 @@
 from mist.mist_job import *
 
 class SimpleSparkContext(MistJob, WithMQTTPublisher):
-    def do_stuff(self, parameters):
+    def execute(self, numbers):
         self.mqtt.publish("test python publisher message")
-        val = parameters.values()
-        list = val.head()
-        size = list.size()
-        pylist = []
-        count = 0
-        while count < size:
-            pylist.append(list.head())
-            count = count + 1
-            list = list.tail()
-
-        rdd = self.context.parallelize(pylist)
+        rdd = self.context.parallelize(numbers)
         result = rdd.map(lambda s: 2 * s).collect()
         self.mqtt.publish(str(result).strip('[]'))
 
-        return result
+        return {"result": result}
 

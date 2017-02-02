@@ -1,11 +1,8 @@
 from mist.mist_job import *
 
 class SessionJob(MistJob, WithSQLSupport):
-    def do_stuff(self, parameters):
-        val = parameters.values()
-        patch = val.head()
-
-        df = self.session.read.json(patch)
+    def execute(self, path):
+        df = self.session.read.json(path)
         df.printSchema()
         df.registerTempTable("people")
 
@@ -15,4 +12,4 @@ class SessionJob(MistJob, WithSQLSupport):
 
         result = df2.toJSON().first()
 
-        return result
+        return {"result": result}

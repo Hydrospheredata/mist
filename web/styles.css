@@ -248,4 +248,38 @@ _:-ms-input-placeholder, :root .mist-graph {
 }
 .CodeMirror-wrap {
   height: 230px !important;
+  background-color: inherit !important;
+  cursor: text !important;
+}
+.router-name {
+    font-size: 18px;
+    font-weight: bold;
+    height: 22px;
+    line-height: 22px;
+    display: inline-block;
+    vertical-align: text-top;
+}
+.router-details .mdl-chip {
+    line-height: 22px;
+    height: 22px;
+}
+.run-buttons {
+    float: right;
+}
+
+.run-buttons .mdl-button {
+    margin-left: 7px;
+}
+
+.run-buttons .mdl-switch {
+    width: inherit;
+    margin-right: 11px;
+}
+
+.mdl-switch__thumb {
+    background: #3f51b5 !important;
+}
+
+.mdl-switch__track {
+    background: rgba(63,81,181,.5) !important;
 }

@@ -2,11 +2,8 @@ from mist.mist_job import *
 
 class HiveJob(MistJob, WithSQLSupport, WithHiveSupport):
 
-    def do_stuff(self, parameters):
-        val = parameters.values()
-        patch = val.head()
-
-        df = self.hive_context.read.json(patch)
+    def execute(self, path):
+        df = self.hive_context.read.json(path)
         df.printSchema()
         df.registerTempTable("people")
 
@@ -16,4 +13,4 @@ class HiveJob(MistJob, WithSQLSupport, WithHiveSupport):
 
         result = df2.toJSON().first()
 
-        return result
+        return {"result": result}

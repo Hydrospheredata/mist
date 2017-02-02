@@ -36,8 +36,6 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
 
-      dataWrapper.set(configuration.parameters)
-
       val gatewayServer: GatewayServer = new GatewayServer(this)
       try {
         gatewayServer.start()
@@ -50,6 +48,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
           logger.info(s" Started PythonGatewayServer on port $boundPort")
           cmd += s" $boundPort"
         }
+        logger.info(s"Running python task: $cmd")
 
         val exitCode = cmd.!
         if (exitCode != 0 || errorWrapper.get().nonEmpty) {
@@ -65,7 +64,7 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
 
       _status = Runner.Status.Stopped
 
-      Left(Map("result" -> dataWrapper.get))
+      Left(dataWrapper.get)
     } catch {
       case e: Throwable =>
         logger.error(e.getMessage, e)

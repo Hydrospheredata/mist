@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.master
 
 import java.util.concurrent.TimeUnit
-import akka.actor.{ActorSystem, Props}
+
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -19,6 +19,8 @@ import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
+import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
@@ -72,9 +74,9 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       pathEnd {
         get {
           cmd match {
-            case "jobs" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listJobsMsg))
-            case "workers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listWorkersMsg))
-            case "routers" => doUserInterfaceComplete(Map("cmd" -> Constants.CLI.listRoutersMsg))
+            case "jobs" => doInternalRequestComplete(ListJobs())
+            case "workers" => doInternalRequestComplete(ListWorkers())
+            case "routers" => doInternalRequestComplete(ListRouters(extended = true))
           }
         }
       }
@@ -93,20 +95,20 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     path("internal" / "jobs" / Segment) { cmd =>
       pathEnd {
         delete {
-          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopJobMsg + cmd)))
+          doInternalRequestComplete(StopJob(cmd))
         }
       }
     } ~
     path("internal" / "workers" / Segment) { cmd =>
       pathEnd {
         delete {
-          doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopWorkerMsg + cmd)))
+          doInternalRequestComplete(StopWorker(cmd))
         }
       }
     } ~
     path("internal" / "workers" ) {
       delete {
-        doUserInterfaceComplete(Map("cmd" -> (Constants.CLI.stopAllWorkersMsg)))
+        doInternalRequestComplete(StopAllWorkers())
       }
     }
   }
@@ -118,7 +120,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     complete {
       logger.info(jobRequest.parameters.toString)
 
-      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.workerManagerName}")
+      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       if(timeDuration.isFinite()) {
@@ -164,38 +166,25 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     }
   }
 
-  lazy val internalUserInterfaceActor = system.actorOf(Props[CLINode], name = Constants.CLI.internalUserInterfaceActorName)
-
-  def doUserInterfaceComplete(cmd: Map[String, Any]): akka.http.scaladsl.server.Route  = {
+  def doInternalRequestComplete(cmd: AdminMessage): akka.http.scaladsl.server.Route  = {
     respondWithHeader(RawHeader("Content-Type", "application/json"))
-
-    var command: Any = ""
-    def getCommand: () => Any = { () => {command} }
-    lazy val future = internalUserInterfaceActor.ask(getCommand())(timeout = Constants.CLI.timeoutDuration)
-
+    
     complete {
 
-      command = cmd("cmd") match {
-        case Constants.CLI.listJobsMsg => ListJobs
-        case Constants.CLI.listWorkersMsg => ListWorkers
-        case Constants.CLI.listRoutersMsg => ListRouters
-        case msg if msg.toString.contains(Constants.CLI.stopJobMsg) =>  new StopJob(msg.toString)
-        case msg if msg.toString.contains(Constants.CLI.stopWorkerMsg) =>  new StopWorker(msg.toString)
-        case Constants.CLI.stopAllWorkersMsg => StopAllContexts
-        case _ => throw new Exception("Unknow command")
-      }
+      val clusterManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
+      val future = clusterManagerActor.ask(cmd)(timeout = Constants.CLI.timeoutDuration)
 
       future
         .recover{
           case error: Throwable =>  HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
         }
         .map[ToResponseMarshallable] {
-        case result: Map[String, Any] =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
-        case result: List[Any] =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
-        case result: String =>
-          HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
+          case result: Map[String, Any] =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+          case result: List[Any] =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+          case result: String =>
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
       }
     }
   }

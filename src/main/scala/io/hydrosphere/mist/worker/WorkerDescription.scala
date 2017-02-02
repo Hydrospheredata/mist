@@ -1,8 +1,7 @@
 package io.hydrosphere.mist.worker
 
-private[mist] case class WorkerDescription (val namespace: String,
-                                            val address: String) {
-  override def toString(): String = {
+private[mist] case class WorkerDescription (namespace: String, address: String) {
+  override def toString: String = {
     namespace + "\t" + address
   }
 

@@ -59,7 +59,7 @@ docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosph
 ```
 sbt "project examples" package
 
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"digits": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
+curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
 ```
 
 Check out [Complete Getting Started Guide](/docs/getting-started/README.md)

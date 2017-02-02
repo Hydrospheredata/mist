@@ -2,13 +2,13 @@
 
 ######Mist Scala Spark Job 
 
-In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `doStuff(parameters: Map[String, Any]): Map[String, Any]`:
+In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
 
 ```scala
 import io.hydrosphere.mist.MistJob
 
 object MyCoolMistJob extends MistJob {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def execute(): Map[String, Any] = {
         val rdd = context.parallelize()
         ...
         return result.asInstance[Map[String, Any]]
@@ -16,7 +16,7 @@ object MyCoolMistJob extends MistJob {
 } 
 ```
 
-All subclasses have `context` field which is `SparkContext` instance. Method `doStuff` must always return a result which will be serialised into API response by Mist.
+All subclasses have `context` field which is `SparkContext` instance. Method `execute` must always return a result which will be serialised into API response by Mist.
 
 Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions as well as contexts. You should use `SQLSupport` and `HiveSupport` Mist traits to add `SparkSession` and `HiveQL` API into your job.
 
@@ -24,7 +24,7 @@ Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions a
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
 object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def execute(): Map[String, Any] = {
         val dataFrame = session.read.load("file.parquet")
         ...
         return Map[String, Any].empty
@@ -38,7 +38,7 @@ Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSuppo
 import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
 
 object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
-    def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    def execute(): Map[String, Any] = {
         val dataFrame = sqlContext.read.load("file.parquet") // or hiveContext.read.load("file.parquet")
         ...
         return Map[String, Any].empty
@@ -46,7 +46,7 @@ object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
 }
 ```
 
-Inside `doStuff` method you can write any code you want as it is an ordinary Apache Spark application.
+Inside `execute` method you can write any code you want as it is an ordinary Apache Spark application.
 
 ######Building Mist jobs
 
@@ -71,14 +71,14 @@ Link for direct download if you don't use a dependency manager:
 
 ######Mist Python Spark Job 
 
-Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/reousrces/mist), extend MistJob class and implement method `def do_stuff(self, params)`: 
+Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/reousrces/mist), extend MistJob class and implement method `def execute(self)`: 
 
 ```python
 from mist.mist_job import *
 
 class MyPythonMistJob(MistJob):
     
-    def do_stuff(self, parameters):
+    def execute(self):
         rdd = self.context.parallelize()
         ...
         return dict()
@@ -91,7 +91,7 @@ from mist.mist_job import *
 
 class MySessionJob(MistJob, WithSQLSupport, WithHiveSupport):
     
-    def do_stuff(self, parameters):
+    def execute(self):
         data_frame = self.session.read("file.parquet")
         ...
         return dict()
@@ -104,7 +104,7 @@ from mist.mist_job import *
 
 class MyOldSparkJob(MistJob, WithSQLSupport, WithHiveSupport):
     
-    def do_stuff(self, parameters):
+    def execute(self):
         data_frame = self.sql_context.read("file.parquet") # or self.hive_context.read("file.parquet")
         ...
         return dict()

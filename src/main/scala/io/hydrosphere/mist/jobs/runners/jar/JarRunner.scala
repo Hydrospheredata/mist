@@ -1,27 +1,22 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
-import java.net.{URL, URLClassLoader}
-
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.{MLMistJob, MistJob}
+import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
+import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
 private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
-
-  val cls: Class[_] = {
-    val classLoader = new URLClassLoader(Array[URL](jobFile.file.toURI.toURL), getClass.getClassLoader)
-    classLoader.loadClass(configuration.className)
-  }
-
-  // Scala `object` reference of user job
-  val objectRef: AnyRef = cls.getField("MODULE$").get(None)
 
   // TODO: remove nullable contextWrapper
   if (contextWrapper != null) {
     // We must add user jar into spark context
     contextWrapper.addJar(jobFile.file.getPath)
   }
+
+  val externalInstance: ExternalInstance = ExternalJar(jobFile.file.getAbsolutePath)
+    .getExternalClass(configuration.className)
+    .getNewInstance
 
   _status = Runner.Status.Initialized
 
@@ -30,13 +25,13 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
     try {
       val result = configuration match {
         case _: MistJobConfiguration =>
-          objectRef.asInstanceOf[MistJob].setup(contextWrapper)
-          Left(objectRef.asInstanceOf[MistJob].doStuff(configuration.parameters))
+          externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
+          Left(externalInstance.getMethod("execute").run(configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: TrainingJobConfiguration =>
-          objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
-          Left(objectRef.asInstanceOf[MLMistJob].train(configuration.parameters))
+          externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
+          Left(externalInstance.getMethod("train").run(configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: ServingJobConfiguration =>
-          Left(objectRef.asInstanceOf[MLMistJob].serve(configuration.parameters))
+          Left(externalInstance.getMethod("serve").run(configuration.parameters).asInstanceOf[Map[String, Any]])
       }
 
       _status = Runner.Status.Stopped
@@ -50,5 +45,8 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
     }
   }
 
-  override def stopStreaming(): Unit = { objectRef.asInstanceOf[MistJob].stopStreaming }
+  override def stopStreaming(): Unit = { 
+    if (externalInstance.externalClass.isStreamingJob)
+      externalInstance.objectRef.asInstanceOf[StreamingSupport].stopStreaming()
+  }
 }

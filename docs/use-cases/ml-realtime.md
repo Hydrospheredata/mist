@@ -27,11 +27,9 @@ import io.hydrosphere.mist.lib._
 
 object MLClassification extends MLMistJob with SQLSupport {
   
-  override def serve(params: Map[String, Any]): Map[String, Any] = {
+  override def serve(text: List[String]): Map[String, Any] = {
 
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
-    
-    val text = params("text").asInstanceOf[List[String]]
     
     val pipeline = PipelineLoader.load(s"regression") // load the same model you've traing in original Apache Spark program
     // Wrap input data set into local data structure
@@ -94,7 +92,7 @@ Let's use `curl` instead to measure latency.
 
 ```
 $ time curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/classification?serve --data """{\"text\": [\"mist makes spark better\"] }"""
-{"success":true,"payload":{"result":[{"features":{"size":1000,"indices":[105,691,941,991],"values":[1.0,1.0,1.0,1.0]},"text":"mist makes spark better","prediction":0.0,"words":["mist","makes","spark","better"],"rawPrediction":{"values":[0.16293291377588215,-0.16293291377588215]},"probability":{"values":[0.5406433544852302,0.45935664551476996]}}]},"errors":[],"request":{"path":"/jobs/mist_examples_2.11-0.0.2.jar","className":"MLClassification$","namespace":"regression","parameters":{"text":["mist makes spark better"]},"route":"classification"}}
+{"success":true,"payload":{"result":[{"features":{"size":1000,"indices":[105,691,941,991],"values":[1.0,1.0,1.0,1.0]},"text":"mist makes spark better","prediction":0.0,"words":["mist","makes","spark","better"],"rawPrediction":{"values":[0.16293291377588215,-0.16293291377588215]},"probability":{"values":[0.5406433544852302,0.45935664551476996]}}]},"errors":[],"request":{"path":"/jobs/mist_examples_2.11-0.8.0.jar","className":"MLClassification$","namespace":"regression","parameters":{"text":["mist makes spark better"]},"route":"classification"}}
 real	0m0.056s
 user	0m0.003s
 sys	0m0.006s

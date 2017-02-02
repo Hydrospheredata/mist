@@ -14,7 +14,7 @@ import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
 
 object MyStreamingMistJob extends MistJob with MQTTPublisher {
 
-    override def doStuff(parameters: Map[String, Any]): Map[String, Any] = {
+    override def execute(): Map[String, Any] = {
       ...
       reducedStream.foreachRDD{ (rdd, time) =>
          publish("time: " + time)
@@ -33,7 +33,7 @@ object MyStreamingMistJob extends MistJob with MQTTPublisher {
 from mist.mist_job import *
 
 class MyPythonMistJob(MistJob, WithMQTTPublisher):
-    def do_stuff(self, parameters):
+    def execute(self):
     	...
         self.mqtt.publish("message")
         ...
