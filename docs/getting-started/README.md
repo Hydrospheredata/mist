@@ -40,7 +40,7 @@ It is recommended to mount `./config` `./jobs` volumes to Mist docker container 
 mkdir configs
 curl -o ./configs/mist.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
 mkdir jobs
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
 ```
 
 Go to Mist UI at `http://localhost:2003/ui`
@@ -72,7 +72,7 @@ mist.context-defaults.spark-conf = {
 #### (3/3) Running Mist docker container with mounted config file
 
 ```
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
 ```
 
 ## What's next

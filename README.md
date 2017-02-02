@@ -28,7 +28,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 - Realtime low latency models serving/scoring
 - Exposing Apache Spark jobs through REST API
-- Spark **2.0.0** support!
+- Spark **2.1.0** support!
 - Spark Contexts orchestration
 - Super parallel mode: multiple Spark contexts in separate JVMs or Dockers
 - HTTP & Messaging (MQTT) API
@@ -49,7 +49,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 ######Run mist   
 
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.1.0 mist
 ```
         
 [More about docker image](https://hub.docker.com/r/hydrosphere/mist/)
@@ -71,7 +71,7 @@ Check out [Complete Getting Started Guide](/docs/getting-started/README.md)
 ```
 git clone https://github.com/hydrospheredata/mist.git
 cd mist
-sbt -DsparkVersion=2.0.0 assembly 
+sbt -DsparkVersion=2.1.0 assembly 
 ```
     
 * Run
@@ -86,8 +86,8 @@ sbt -DsparkVersion=2.0.0 assembly
 # clone mist repo 
 git clone https://github.com/Hydrospheredata/mist
 
-# available spark versions: 1.5.2, 1.6.2, 2.0.0
-export SPARK_VERSION=2.0.0
+# available spark versions: 1.5.2, 1.6.2, 2.0.2, 2.1.0
+export SPARK_VERSION=2.1.0
 docker create --name mist-${SPARK_VERSION} -v /usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION}
 docker run --name mosquitto-${SPARK_VERSION} -d ansi/mosquitto
 docker run --name hdfs-${SPARK_VERSION} --volumes-from mist-${SPARK_VERSION} -d hydrosphere/hdfs start
