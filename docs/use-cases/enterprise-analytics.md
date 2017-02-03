@@ -94,7 +94,7 @@ Start Mist and make sure that Router config you have created in step (3/5) and d
 
 ````
 mkdir jobs
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
 ````
 
 ### (5/6) Deploying a job

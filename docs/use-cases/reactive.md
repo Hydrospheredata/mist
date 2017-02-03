@@ -93,10 +93,10 @@ mist.context.streaming.streaming-duration = 1 seconds
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.
 
 ```
-docker run --name mosquitto--2.0.0 -d ansi/mosquitto
+docker run --name mosquitto--2.1.0 -d ansi/mosquitto
 #create jobs directory and mount it to Mist. So, you'll be able to copy new jobs there
 mkdir jobs
-docker run -p 2003:2003 --link mosquitto-2.0.0:mosquitto --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.0.0 mist
+docker run -p 2003:2003 --link mosquitto-2.1.0:mosquitto --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
 ```
 
 ### (4/6) Deploying a job
