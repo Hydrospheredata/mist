@@ -28,6 +28,7 @@ resolvers ++= Seq(
 )
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers += Resolver.bintrayRepo("cakesolutions", "maven")
 
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
@@ -48,32 +49,33 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-  "org.mapdb" % "mapdb" % "3.0.2",
+  "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive()
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
+  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"
 
 
 def akkaDependencies(scalaVersion: String) = {
-  val Old = """2\.10\..""".r
+  val New = """2\.11\..""".r
 
   scalaVersion match {
-    case Old() => Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
-      "org.slf4j" % "slf4j-api" % "1.7.5",
-      "ch.qos.logback" % "logback-classic" % "1.0.3",
-      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
-    )
-    case _ => Seq(
+    case New() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
       "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
+    )
+    case _ => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
+      "org.slf4j" % "slf4j-api" % "1.7.22",
+      "ch.qos.logback" % "logback-classic" % "1.0.3",
+      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
     )
   }
 }
