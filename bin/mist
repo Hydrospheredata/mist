@@ -226,7 +226,7 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${config_file}" "$jar_file"
+        java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.Master
     fi
 
     if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
