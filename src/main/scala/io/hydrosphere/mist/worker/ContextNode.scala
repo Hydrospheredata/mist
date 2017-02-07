@@ -1,7 +1,9 @@
 package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
-import akka.actor.{Actor, ActorLogging, Address, Props}
+import java.util.concurrent.TimeUnit
+
+import akka.actor.{Actor, ActorLogging, Address, Cancellable, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
@@ -10,11 +12,13 @@ import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
 import org.joda.time.DateTime
+
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future, Promise}
 import scala.util.{Failure, Random, Success}
 
-class ContextNode(namespace: String) extends Actor with ActorLogging{
+class ContextNode(namespace: String) extends Actor with ActorLogging {
 
   implicit val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -26,6 +30,12 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   val nodeAddress: Address = cluster.selfAddress
 
   lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
+
+  private var cancellableWatchDog: Option[Cancellable] = if(MistConfig.Contexts.downtime(namespace).isFinite()) {
+    Option(context.system.scheduler.scheduleOnce(
+    FiniteDuration(MistConfig.Contexts.downtime(namespace).toNanos, TimeUnit.NANOSECONDS))(f = {
+    serverActor ! RemoveContext(namespace)
+  })(executionContext))} else { None }
 
   override def preStart(): Unit = {
     serverActor ! WorkerDidStart(namespace, cluster.selfAddress.toString)
@@ -44,6 +54,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
   override def receive: Receive = {
 
     case jobRequest: FullJobConfiguration =>
+      if (cancellableWatchDog.nonEmpty) { cancellableWatchDog.get.cancel() }
       log.info(s"[WORKER] received JobRequest: $jobRequest")
       val originalSender = sender
 
@@ -97,6 +108,11 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         }(ExecutionContext.global)
         .andThen {
           case _ =>
+            cancellableWatchDog = if(MistConfig.Contexts.downtime(namespace).isFinite()) {
+              Option(context.system.scheduler.scheduleOnce(
+                FiniteDuration(MistConfig.Contexts.downtime(namespace).toNanos, TimeUnit.NANOSECONDS))(f = {
+                serverActor ! RemoveContext(namespace)
+              })(executionContext))} else { None }
             jobDescriptions -= jobDescription
             if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
