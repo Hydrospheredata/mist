@@ -178,6 +178,11 @@ private[mist] object MistConfig {
       SDuration(Duration(getContextOrDefault(contextName).getString("streaming-duration")).toMillis)
     }
 
+    /** Downtime worker's before stopping*/
+    def downtime(contextName: String): Duration = {
+      Duration(getContextOrDefault(contextName).getString("worker-downtime"))
+    }
+
   }
 
   private def getConfigOption(config: Config, path: String): Option[Config] = {
