@@ -52,7 +52,7 @@ libraryDependencies ++= Seq(
   "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
   "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
-  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2"
+  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka")
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"

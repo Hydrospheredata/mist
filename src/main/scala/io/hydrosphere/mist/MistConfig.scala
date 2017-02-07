@@ -11,15 +11,15 @@ private[mist] object MistConfig {
 
   private[mist] var config = ConfigFactory.load()
 
-  val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
+  val akkaConfig: Config = config.getConfig("mist").withOnlyPath("akka")
 
   object Akka {
 
     trait AkkaSettings {
       def settings: Config = config.getConfig("mist").withOnlyPath("akka")
 
-      lazy val serverList = settings.getStringList("akka.cluster.seed-nodes").toList
-      lazy val port = settings.getInt("akka.remote.netty.tcp.port")
+      lazy val serverList: List[String] = settings.getStringList("akka.cluster.seed-nodes").toList
+      lazy val port: Int = settings.getInt("akka.remote.netty.tcp.port")
     }
 
     object Worker extends AkkaSettings {
@@ -59,7 +59,7 @@ private[mist] object MistConfig {
     lazy val port: Int = http.getInt("port")
 
     /** Path to REST config */
-    lazy val routerConfigPath = http.getString("router-config-path")
+    lazy val routerConfigPath: String = http.getString("router-config-path")
   }
 
   /** Hive Test*/
@@ -90,6 +90,29 @@ private[mist] object MistConfig {
     /** MQTT topic used for ''writing'' */
     lazy val publishTopic: String = mqtt.getString("publish-topic")
 
+  }
+  
+  /** Kafka specific settings */
+  object Kafka {
+    private val kafka = config.getConfig("mist.kafka")
+    
+    /** To start Kafka subscriber or not to start */
+    val isOn: Boolean = kafka.getBoolean("on")
+    
+    /** Kafka bootstrap server host */
+    lazy val host: String = kafka.getString("host")
+
+    /** Kafka bootstrap server port */
+    lazy val port: String = kafka.getString("port")
+
+    /** Kafka topic used for ''reading'' */
+    lazy val subscribeTopic: String = kafka.getString("subscribe-topic")
+
+    /** Kafka topic used for ''writing'' */
+    lazy val publishTopic: String = kafka.getString("publish-topic")
+    
+    /** Other setting (group.id, auto.offset.reset, enable.auto.commit, etc) */
+    val conf: Config = kafka.getConfig("settings")
   }
 
   object Recovery {

@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
+import io.hydrosphere.mist.master.kafka.KafkaSubscriberActor
 import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery, StartRecovery}
 import io.hydrosphere.mist.utils.Logger
@@ -37,6 +38,10 @@ private[mist] object Master extends App with HTTPService with Logger {
   if (MistConfig.MQTT.isOn) {
     val mqttActor = system.actorOf(Props(classOf[MQTTServiceActor]))
     mqttActor ! MQTTSubscribe
+  }
+  
+  if (MistConfig.Kafka.isOn) {
+    system.actorOf(KafkaSubscriberActor.props())
   }
 
   // Job Recovery
