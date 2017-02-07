@@ -15,7 +15,7 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.ContextNode

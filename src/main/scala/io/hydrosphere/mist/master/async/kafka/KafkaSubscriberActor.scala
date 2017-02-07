@@ -1,11 +1,12 @@
-package io.hydrosphere.mist.master.kafka
+package io.hydrosphere.mist.master.async.kafka
 
 import akka.actor.{Actor, Props}
-import cakesolutions.kafka.KafkaConsumer
-import cakesolutions.kafka.akka.{ConsumerRecords, KafkaConsumerActor}
+import cakesolutions.kafka.{KafkaConsumer, KafkaProducer}
+import cakesolutions.kafka.akka.{ConsumerRecords, KafkaConsumerActor, KafkaProducerActor, ProducerRecords}
 import cakesolutions.kafka.akka.KafkaConsumerActor.{Confirm, Subscribe, Unsubscribe}
-import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.master.async.AsyncServiceActor
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
@@ -17,7 +18,7 @@ object KafkaSubscriberActor {
 
 }
 
-class KafkaSubscriberActor extends Actor with Logger with JobConfigurationJsonSerialization {
+class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigurationJsonSerialization {
 
   private val extractor = ConsumerRecords.extractor[String, String]
 
@@ -31,8 +32,16 @@ class KafkaSubscriberActor extends Actor with Logger with JobConfigurationJsonSe
     self
   ), "KafkaConsumer")
   context.watch(kafkaConsumer)
-  
-  
+
+  private val kafkaProducer = context.actorOf(KafkaProducerActor.props(
+    KafkaProducer.Conf(
+      props = Map("bootstrap.servers" -> s"${MistConfig.Kafka.host}:${MistConfig.Kafka.port}"), 
+      keySerializer = new StringSerializer, 
+      valueSerializer = new StringSerializer
+    ).withConf(MistConfig.Kafka.conf)
+  ))
+
+
   override def preStart(): Unit = {
     super.preStart()
     logger.info(s"Subscribe to kafka topic: ${MistConfig.Kafka.subscribeTopic}")
@@ -51,12 +60,16 @@ class KafkaSubscriberActor extends Actor with Logger with JobConfigurationJsonSe
         case (key, message) =>
           key match {
             case Some(k) if k == "error" => logger.debug("Received error, skip")
-            case _ => 
-              logger.info(s"Received: $message")
+            case _ =>
+              logger.info("Receiving Data from Kafka, Topic : %s, Message : %s".format(MistConfig.Kafka.subscribeTopic, message))
+              processIncomingMessage(message)
           }
       }
 
       kafkaConsumer ! Confirm(consumerRecords.offsets, commit = true)
-    case x: Any => logger.info(s"Received Any: ${x.toString}")
+  }
+
+  override def send(message: String): Unit = {
+    kafkaProducer ! ProducerRecords.fromValues(MistConfig.Kafka.publishTopic, List(message), None, None)
   }
 }

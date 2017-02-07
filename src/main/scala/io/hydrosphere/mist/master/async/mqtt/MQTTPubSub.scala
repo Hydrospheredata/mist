@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.mqtt
+package io.hydrosphere.mist.master.async.mqtt
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import io.hydrosphere.mist.utils.Logger

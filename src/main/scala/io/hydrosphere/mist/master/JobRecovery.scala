@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.Actor
-import io.hydrosphere.mist.master.mqtt.{MQTTPubSub, MQTTPubSubActor}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTPubSub, MQTTPubSubActor}
 import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.utils.Logger
@@ -19,7 +19,7 @@ case object JobStarted{
 case object JobCompleted
 
 // TODO: add abstract async interface instead of mqtt-specific one
-private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MQTTPubSubActor with Logger {
+private[mist] class JobRecovery(configurationRepository: ConfigurationRepository) extends Actor with Logger {
 
   private implicit val formats = org.json4s.DefaultFormats
 

@@ -3,8 +3,8 @@ package io.hydrosphere.mist
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.master.mqtt._
-import io.hydrosphere.mist.master.mqtt.MQTTPubSub._
+import io.hydrosphere.mist.master.async.mqtt._
+import io.hydrosphere.mist.master.async.mqtt.MQTTPubSub._
 import io.hydrosphere.mist.SubsActor.Report
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Second, Seconds, Span}

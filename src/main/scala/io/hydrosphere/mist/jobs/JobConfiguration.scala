@@ -1,6 +1,9 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.RouteConfig
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import spray.json.{DeserializationException, pimpString}
 
 sealed trait JobConfiguration
 
@@ -54,7 +57,7 @@ private[mist] case class RestificatedServingJobConfiguration(route: String,
                                                               override val externalId: Option[String] = None) extends RestificatedJobConfiguration
 
 
-class FullJobConfigurationBuilder {
+class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with Logger {
 
   private var training: Boolean = _
   private var serving: Boolean = _
@@ -65,6 +68,8 @@ class FullJobConfigurationBuilder {
   private var _parameters: Map[String, Any] = Map()
   private var _externalId: Option[String] = None
   private var _route: Option[String] = None
+  
+  private var _builtJob: FullJobConfiguration = _
 
   def setTraining(value: Boolean): FullJobConfigurationBuilder = {
     training = value
@@ -132,9 +137,30 @@ class FullJobConfigurationBuilder {
     _namespace = body("namespace").asInstanceOf[String]
     this
   }
+  
+  def fromJson(json: String): FullJobConfigurationBuilder = {
+    try {
+      _builtJob =  json.parseJson.convertTo[MistJobConfiguration]
+    } catch {
+      case _: DeserializationException =>
+        logger.debug(s"Try to parse restificated request")
+        val restificatedRequest = json.parseJson.convertTo[RestificatedMistJobConfiguration]
+        if (restificatedRequest.route.endsWith("?train")) {
+          training = true
+        } else if (restificatedRequest.route.endsWith("?serve")) {
+          serving = true
+        }
+        _route = Some(restificatedRequest.route)
+        _parameters = restificatedRequest.parameters
+        _externalId = restificatedRequest.externalId
+    }
+    this
+  }
 
   def build(): FullJobConfiguration = {
-    if (training) {
+    if (_builtJob != null) {
+      _builtJob
+    } else if (training) {
       TrainingJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route)
     } else if (serving) {
       ServingJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route)

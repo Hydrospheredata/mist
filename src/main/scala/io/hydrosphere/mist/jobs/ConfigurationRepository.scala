@@ -71,14 +71,14 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
     try {
       map.remove(jobId)
       logger.info(s"$jobId removed from MapDb")
-    } catch{
+    } catch {
       case e: Exception => logger.error(e.getMessage, e)
     }
   }
 
   override def getAll: scala.collection.mutable.Map[String, FullJobConfiguration] = {
     val _collection = scala.collection.mutable.Map[String, FullJobConfiguration]()
-    try{
+    try {
       val keys = map.getKeys.toArray()
 
       for(key <- keys){
@@ -129,5 +129,3 @@ private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepo
    }
  }
 }
-
-
