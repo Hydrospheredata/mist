@@ -1,4 +1,4 @@
-node {
+node('aws-slave') {
   wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
 
     try {
@@ -11,28 +11,8 @@ node {
       stage('build and test') {
         parallel ( failFast: false,
           Spark_1_5_2: { test_mist("1.5.2") },
-          Spark_1_6_2: { test_mist("1.6.2") },
-          Spark_2_0_0: { test_mist("2.0.0") },
         )
       }
-      if (tag == 'release') {
-        stage('public in maven') {
-          parallel ( failFast: false,
-            Publish_1_5_2: {sh "sbt publishSigned -DsparkVersion=1.5.2" },
-            Publish_2_0_0: {sh "sbt publishSigned -DsparkVersion=1.5.2" },
-          )
-          sh "sbt sonatypeRelease"
-        }
-
-        stage('public in docker hub') {
-          parallel ( failFast: false,
-            Spark_1_5_2: { build_image("1.5.2") },
-            Spark_1_6_2: { build_image("1.6.2") },
-            Spark_2_0_0: { build_image("2.0.0") },
-          )
-        }
-      }
-
     }
     catch (err) {
       currentBuild.result = "FAILURE"
