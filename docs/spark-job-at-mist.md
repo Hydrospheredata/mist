@@ -53,7 +53,7 @@ Inside `execute` method you can write any code you want as it is an ordinary Apa
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.9.0"
+libraryDependencies += "io.hydrosphere" % "mist" % "0.9.1"
 ```
 
 Maven dependency:
@@ -62,7 +62,7 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1</version>
 </dependency>
 ```
     
