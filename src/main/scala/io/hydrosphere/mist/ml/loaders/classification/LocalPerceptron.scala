@@ -1,6 +1,7 @@
-package io.hydrosphere.mist.ml.loaders
+package io.hydrosphere.mist.ml.loaders.classification
 
 import io.hydrosphere.mist.ml.Metadata
+import io.hydrosphere.mist.ml.loaders.LocalModel
 import org.apache.spark.ml.classification.MultilayerPerceptronClassificationModel
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 

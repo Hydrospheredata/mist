@@ -1,6 +1,7 @@
-package io.hydrosphere.mist.ml.loaders
+package io.hydrosphere.mist.ml.loaders.regression
 
 import io.hydrosphere.mist.ml.Metadata
+import io.hydrosphere.mist.ml.loaders.LocalModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.linalg.{Vector, Vectors}
