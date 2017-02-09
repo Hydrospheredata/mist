@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.ml.loaders.regression
 
-import io.hydrosphere.mist.ml.Metadata
+import io.hydrosphere.mist.ml.{DataUtils, Metadata}
 import io.hydrosphere.mist.ml.loaders.LocalModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.LogisticRegressionModel
@@ -11,11 +11,7 @@ object LocalLogisticRegressionModel extends LocalModel {
     val constructor = classOf[LogisticRegressionModel].getDeclaredConstructor(classOf[String], classOf[Vector], classOf[Double])
     constructor.setAccessible(true)
     val coefficientsParams = data("coefficients").asInstanceOf[Map[String, Any]] 
-    val coefficients = Vectors.sparse(
-      coefficientsParams("size").asInstanceOf[Int],
-      coefficientsParams("indices").asInstanceOf[List[Int]].toArray[Int],
-      coefficientsParams("values").asInstanceOf[List[Double]].toArray[Double]
-    )
+    val coefficients = DataUtils.constructVector(coefficientsParams)
     constructor
       .newInstance(metadata.uid, coefficients, data("intercept").asInstanceOf[java.lang.Double])
       .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
