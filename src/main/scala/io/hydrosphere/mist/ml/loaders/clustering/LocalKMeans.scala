@@ -8,16 +8,17 @@ import org.apache.spark.mllib.linalg.{Vector => MLlibVec}
 
 //TODO
 object LocalKMeans extends LocalModel {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): KMeansModel = {
-    val parentConstructor = classOf[MLlibKMeans].getDeclaredConstructor(classOf[Array[MLlibVec]])
-    parentConstructor.setAccessible(true)
-    val mlk = parentConstructor.newInstance(metadata.paramMap("clustersCenter"))
-
-    val constructor = classOf[KMeansModel].getDeclaredConstructor(classOf[String], classOf[MLlibVec])
-    constructor.setAccessible(true)
-    constructor
-      .newInstance(metadata.uid, mlk)
-      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
-      .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
-  }
+  override def localLoad(metadata: Metadata, data: Map[String, Any]): KMeansModel = ???
+//  {
+//    val parentConstructor = classOf[MLlibKMeans].getDeclaredConstructor(classOf[Array[MLlibVec]])
+//    parentConstructor.setAccessible(true)
+//    val mlk = parentConstructor.newInstance(metadata.paramMap("clustersCenter"))
+//
+//    val constructor = classOf[KMeansModel].getDeclaredConstructor(classOf[String], classOf[MLlibVec])
+//    constructor.setAccessible(true)
+//    constructor
+//      .newInstance(metadata.uid, mlk)
+//      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
+//      .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
+//  }
 }

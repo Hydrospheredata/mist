@@ -70,7 +70,16 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
         throw exc
     }
   }
-  
+
+  /**
+    * method for parsing model data from "/data/" folder
+    *
+    * @param pipelineParameters
+    * @param path
+    * @return
+    */
+  def getData(pipelineParameters: Metadata, path: String) = ???
+
   def getStages(pipelineParameters: Metadata, path: String): Array[Transformer] = pipelineParameters.paramMap("stageUids").asInstanceOf[List[String]].zipWithIndex.toArray.map {
     case (uid: String, index: Int) =>
       logger.debug(s"reading $uid stage")
