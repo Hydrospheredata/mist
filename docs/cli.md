@@ -24,7 +24,7 @@ Manage job and workers:
     list workers                   list all started workers
     list jobs                      list all started jobs
     kill all                       kill all workers
-    kill worker <namespace>        kill named worker
+    kill worker <namespace|UID>    kill named worker
     kill job <external id|UID>     kill named job
 ```
 
@@ -46,7 +46,7 @@ list workers                            List all started workers
 list jobs                               List all started jobs 
 list routers                            List routers
 kill all                                Stop all workers 
-kill worker <name>                      Stop worker by name 
+kill worker <name|UID>                  Stop worker by name 
 kill job <extId|UID>                    Stop job by external id 
 exit 	 
 
@@ -72,10 +72,10 @@ list all running workers
 ./mist cli list workers
 
 list workers
-NAMESPACE	ADDRESS
-streaming1	akka.tcp://mist@127.0.0.1:34997
-streaming3	akka.tcp://mist@127.0.0.1:40809
-streaming2	akka.tcp://mist@127.0.0.1:40451
+NAMESPACE      	ADDRESS                             	UID                                         BLACK_SPOT	
+streaming1     	akka.tcp://mist@127.0.0.1:35857     	350e9da4-0fed-4d27-bc06-bb761c97eeab        false
+streaming3      akka.tcp://mist@127.0.0.1:40809         547a79e8-f007-41ad-971d-29a8dfcd70a9        false
+streaming2      akka.tcp://mist@127.0.0.1:40451         bcc14241-c21d-4b97-8415-a1d951a35067        false
 exit
 ```
 
@@ -105,9 +105,10 @@ exit
 ./mist cli list workers
 
 list workers
-NAMESPACE	ADDRESS
-streaming3	akka.tcp://mist@127.0.0.1:40809
-streaming2	akka.tcp://mist@127.0.0.1:40451
+
+NAMESPACE       ADDRESS                             	UID                                         BLACK_SPOT	
+streaming3      akka.tcp://mist@127.0.0.1:40809         547a79e8-f007-41ad-971d-29a8dfcd70a9        false
+streaming2      akka.tcp://mist@127.0.0.1:40451         bcc14241-c21d-4b97-8415-a1d951a35067        false
 exit
 ```
 
