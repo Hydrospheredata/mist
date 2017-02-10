@@ -5,7 +5,7 @@ import io.hydrosphere.mist.jobs.FullJobConfiguration
 private[mist] object Messages {
   
   sealed trait RemovingMessage {
-    val name: String
+    val contextIdentifier: String
   }
   
   sealed trait StopAllMessage
@@ -14,9 +14,9 @@ private[mist] object Messages {
 
   case class StopAllContexts() extends StopAllMessage
 
-  case class RemoveContext(name: String) extends RemovingMessage
+  case class RemoveContext(contextIdentifier: String) extends RemovingMessage
 
-  case class WorkerDidStart(namespace: String, address: String)
+  case class WorkerDidStart(uid: String, namespace: String, address: String)
 
   case class AddJobToRecovery(jobId: String, jobConfiguration: FullJobConfiguration)
 
@@ -26,7 +26,7 @@ private[mist] object Messages {
   
   case class StopJob(jobIdentifier: String) extends AdminMessage
  
-  case class StopWorker(name: String) extends AdminMessage with RemovingMessage
+  case class StopWorker(contextIdentifier: String) extends AdminMessage with RemovingMessage
   
   case class StopAllWorkers() extends AdminMessage with StopAllMessage
 
@@ -35,5 +35,7 @@ private[mist] object Messages {
   case class ListRouters(extended: Boolean = false) extends AdminMessage
 
   case class ListJobs() extends AdminMessage
+
+  case class StopWhenAllDo() extends AdminMessage
 
 }
