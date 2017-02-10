@@ -14,7 +14,7 @@ import io.hydrosphere.mist.{Constants, MistConfig}
 import org.joda.time.DateTime
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future, Promise}
 import scala.util.{Failure, Random, Success}
 
@@ -31,14 +31,22 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
   lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
 
-  private var cancellableWatchDog: Option[Cancellable] = if(MistConfig.Contexts.downtime(namespace).isFinite()) {
-    Option(context.system.scheduler.scheduleOnce(
-    FiniteDuration(MistConfig.Contexts.downtime(namespace).toNanos, TimeUnit.NANOSECONDS))(f = {
-    serverActor ! RemoveContext(namespace)
-  })(executionContext))} else { None }
+  private val workerDowntime: Duration = MistConfig.Contexts.downtime(namespace)
+
+  private var cancellableWatchDog: Option[Cancellable] = scheduleDowntime(workerDowntime)
+
+  private val nodeUID = java.util.UUID.randomUUID.toString
+
+  def scheduleDowntime(duration: Duration): Option[Cancellable] = {
+    if(duration.isFinite()) {
+      Option(context.system.scheduler.scheduleOnce(
+        FiniteDuration(duration.toNanos, TimeUnit.NANOSECONDS))(f = {
+        serverActor ! RemoveContext(nodeUID)
+      })(executionContext))} else { None }
+  }
 
   override def preStart(): Unit = {
-    serverActor ! WorkerDidStart(namespace, cluster.selfAddress.toString)
+    serverActor ! WorkerDidStart(nodeUID, namespace, cluster.selfAddress.toString)
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
@@ -108,12 +116,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
         }(ExecutionContext.global)
         .andThen {
           case _ =>
-            cancellableWatchDog = if(MistConfig.Contexts.downtime(namespace).isFinite()) {
-              Option(context.system.scheduler.scheduleOnce(
-                FiniteDuration(MistConfig.Contexts.downtime(namespace).toNanos, TimeUnit.NANOSECONDS))(f = {
-                serverActor ! RemoveContext(namespace)
-              })(executionContext))} else { None }
             jobDescriptions -= jobDescription
+            if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
             if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
@@ -122,6 +126,14 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
           case Success(result: Either[Map[String, Any], String]) => originalSender ! result
           case Failure(error: Throwable) => originalSender ! Right(error.toString)
         }(ExecutionContext.global)
+
+    case StopWhenAllDo =>
+      context.system.scheduler.schedule(FiniteDuration(0, TimeUnit.SECONDS),
+        FiniteDuration(1, TimeUnit.MINUTES))(f = {
+        if(jobDescriptions.isEmpty) {
+          serverActor ! RemoveContext(nodeUID)
+        }
+      })(executionContext)
 
     case ListJobs =>
       val jobDescriptionsSerializable = jobDescriptions.map(
@@ -154,7 +166,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
         case Success(result: List[String]) => originalSender ! result
         case Failure(error: Throwable) => originalSender ! error
       }
-
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
