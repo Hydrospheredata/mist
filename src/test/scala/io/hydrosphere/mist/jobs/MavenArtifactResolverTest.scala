@@ -38,8 +38,9 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
 
     val future = MockHttpServer.onServer(routes, binding => {
       val port = binding.localAddress.getPort
-      val path = s"mvn://http://localhost:$port/artifactory/libs-release-local :: mist_examples % mist_examples_2.10 % 0.8.0"
-      val resolver = MavenArtifactResolver.fromPath(path)
+      val url = s"http://localhost:$port/artifactory/libs-release-local"
+      val artefact = MavenArtifact("mist_examples", "mist_examples_2.10", "0.8.0")
+      val resolver = MavenArtifactResolver(url, artefact, "target")
       resolver.file
     })
 

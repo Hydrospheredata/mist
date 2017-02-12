@@ -9,7 +9,8 @@ import java.nio.file.{Files, Paths}
   */
 case class MavenArtifactResolver(
   repoUrl: String,
-  artifact: MavenArtifact
+  artifact: MavenArtifact,
+  targetDirectory: String = "/tmp"
 ) extends JobFile {
 
   import scalaj.http._
@@ -30,13 +31,14 @@ case class MavenArtifactResolver(
       println(message)
       throw new JobFile.NotFoundException(message)
     } else {
-      val localPath = Paths.get("/tmp", artifact.jarName)
+      val localPath = Paths.get(targetDirectory, artifact.jarName)
       Files.write(localPath, resp.body)
       localPath.toFile
     }
   }
 
-  private def jarUlr: String = s"$repoUrl/${artifact.jarPath}"
+  private def jarUlr: String =
+    s"$repoUrl/${artifact.jarPath}".replaceAll("(?<!http:|https:)//", "/")
 
 }
 
