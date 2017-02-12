@@ -1,11 +1,11 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.loaders.preprocessors.LocalStandardScaler
+import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalStandardScaler}
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
-import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCA, StandardScaler, Tokenizer}
+import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCA, StandardScaler, Tokenizer, MaxAbsScaler}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF}
@@ -180,6 +180,23 @@ object LocalTransformers extends Logger {
       localData.column(scaler.getInputCol) match {
         case Some(column) =>
           val method = classOf[StandardScaler].getMethod("transform")
+          val newData = column.data.map(r => {
+            method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+          })
+          localData.withColumn(LocalDataColumn(scaler.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalMaxAbsScaler(val scaler: MaxAbsScaler) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local MaxAbsScaler")
+      logger.debug(localData.toString)
+      localData.column(scaler.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[MaxAbsScaler].getMethod("transform")
           val newData = column.data.map(r => {
             method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
           })
