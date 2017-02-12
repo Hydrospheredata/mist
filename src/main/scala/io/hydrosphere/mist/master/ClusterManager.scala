@@ -9,6 +9,7 @@ import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
 import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}

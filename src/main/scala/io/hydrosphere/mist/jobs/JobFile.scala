@@ -26,6 +26,8 @@ object JobFile {
   def apply(path: String): JobFile = {
     if (path.startsWith("hdfs://")) {
       new HDFSJobFile(path)
+    } else if(path.startsWith("mvn://")) {
+      MavenArtifactResolver.fromPath(path)
     } else {
       new LocalJobFile(path)
     }
@@ -35,7 +37,9 @@ object JobFile {
     path.split('.').drop(1).lastOption.getOrElse("") match {
       case "jar" => JobFile.FileType.Jar
       case "py" => JobFile.FileType.Python
-      case _ => throw new UnknownTypeException(s"Unknown file type in $path")
+      //TODO: for maven arifact we dont have ".jar" postfix in path defenition
+      case _ =>  JobFile.FileType.Jar
+      //case _ => throw new UnknownTypeException(s"Unknown file type in $path")
     }
   }
 
