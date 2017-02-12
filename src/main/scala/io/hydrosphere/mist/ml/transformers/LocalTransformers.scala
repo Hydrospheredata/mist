@@ -1,13 +1,16 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
+import io.hydrosphere.mist.ml.loaders.preprocessors.LocalStandardScaler
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{LogisticRegressionModel, MultilayerPerceptronClassificationModel}
-import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
+import org.apache.spark.ml.clustering.GaussianMixtureModel
+import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCA, StandardScaler, Tokenizer}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -77,7 +80,6 @@ object LocalTransformers extends Logger {
 
   }
 
-
   implicit class LocalLogisticRegression(val logisticRegression: LogisticRegressionModel) {
 
     implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
@@ -113,6 +115,75 @@ object LocalTransformers extends Logger {
             newData = newData.withColumn(newColumn)
           }
           newData
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalGaussianMixtureModel(val gaussianModel: GaussianMixtureModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug("Local GaussianMixture")
+      logger.debug(localData.toString)
+      localData.column(gaussianModel.getFeaturesCol) match {
+        case Some(column) =>
+          val predictMethod = classOf[GaussianMixtureModel].getMethod("predict", classOf[Vector])
+          predictMethod.setAccessible(true)
+          val newColumn = LocalDataColumn(gaussianModel.getPredictionCol, column.data map { feature =>
+            predictMethod.invoke(gaussianModel, feature.asInstanceOf[Vector]).asInstanceOf[Int]
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalBinarizer(val binarizer: Binarizer) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local Binarizer")
+      logger.debug(localData.toString)
+      localData.column(binarizer.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[Binarizer].getMethod("transform")
+          val newData = column.data.map(r => {
+            method.invoke(binarizer).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+          })
+          localData.withColumn(LocalDataColumn(binarizer.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalPCA(val pca: PCA) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local PCA")
+      logger.debug(localData.toString)
+      localData.column(pca.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[PCA].getMethod("transform")
+          val newData = column.data.map(r => {
+            method.invoke(pca).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+          })
+          localData.withColumn(LocalDataColumn(pca.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalStandardScaler(val scaler: StandardScaler) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local StandardScaler")
+      logger.debug(localData.toString)
+      localData.column(scaler.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[StandardScaler].getMethod("transform")
+          val newData = column.data.map(r => {
+            method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+          })
+          localData.withColumn(LocalDataColumn(scaler.getOutputCol, newData))
         case None => localData
       }
     }
