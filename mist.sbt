@@ -50,7 +50,10 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.2",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive()
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
+
+  "org.scalaj" %% "scalaj-http" % "2.3.0"
+
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"
