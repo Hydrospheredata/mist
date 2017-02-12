@@ -27,6 +27,7 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
   test("resolver over http") {
     import akka.http.scaladsl.model.StatusCodes._
 
+    // maven-like repository mock
     val routes = Flow[HttpRequest].map { request =>
       if (request.uri.toString().endsWith(".jar")) {
         HttpResponse(status = OK, entity = "JAR CONTENT")

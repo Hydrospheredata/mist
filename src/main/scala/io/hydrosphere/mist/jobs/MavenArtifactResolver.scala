@@ -3,6 +3,10 @@ package io.hydrosphere.mist.jobs
 import java.io.File
 import java.nio.file.{Files, Paths}
 
+/**
+  * Maven-like artifact resolver
+  * Currently it can download only ONE root jar
+  */
 case class MavenArtifactResolver(
   repoUrl: String,
   artifact: MavenArtifact
@@ -39,6 +43,10 @@ case class MavenArtifactResolver(
 object MavenArtifactResolver {
   import scala.util.matching.Regex
 
+  /**
+    * Pattern for catching job file definition ib routes conf
+    * Example: "mvn://http://repo1.maven.org/maven2 :: org.company % name % version"
+    */
   val pattern = "mvn://" +
     "(https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])\\s?::\\s?" + // repo - host:port/path
     "(.+) % (.+) % (.+)"r
