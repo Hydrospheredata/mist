@@ -25,12 +25,6 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
     resolver.artifact shouldBe MavenArtifact("io.hydrosphere", "mist_2.10", "0.0.1")
   }
 
-  test("construct resolver from path232323") {
-    val path = "mvn://http://localhost:8081/artifactory/libs-release-local :: mist_examples % mist_examples_2.10 % 0.8.0"
-    val resolver = MavenArtifactResolver.fromPath(path)
-    resolver.file
-  }
-
   test("resolver over http") {
     import akka.http.scaladsl.model.StatusCodes._
 

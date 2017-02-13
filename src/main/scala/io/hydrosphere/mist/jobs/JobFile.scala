@@ -33,14 +33,13 @@ object JobFile {
     }
   }
 
-  def fileType(path: String): FileType = {
-    path.split('.').drop(1).lastOption.getOrElse("") match {
-      case "jar" => JobFile.FileType.Jar
-      case "py" => JobFile.FileType.Python
-      //TODO: for maven arifact we dont have ".jar" postfix in path defenition
-      case _ =>  JobFile.FileType.Jar
-      //case _ => throw new UnknownTypeException(s"Unknown file type in $path")
-    }
+  def fileType(path: String): FileType = path match {
+    case p if p.startsWith("mvn://") || p.endsWith(".jar") =>
+      JobFile.FileType.Jar
+    case p if p.endsWith(".py") =>
+      JobFile.FileType.Python
+    case _ =>
+      throw new UnknownTypeException(s"Unknown file type in $path")
   }
 
 }
