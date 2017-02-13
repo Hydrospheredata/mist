@@ -3,6 +3,8 @@ package io.hydrosphere.mist.jobs
 import java.io.File
 import java.nio.file.{Files, Paths}
 
+import org.apache.commons.codec.digest.DigestUtils
+
 /**
   * Maven-like artifact resolver
   * Currently it can download only ONE root jar
@@ -21,24 +23,41 @@ case class MavenArtifactResolver(
   }
 
   override def file: File = {
-    val resp = Http(jarUlr).method("GET").asBytes
+    val content = download(jarUlr)
+    if (validateContent(content)) {
+      val localPath = Paths.get(targetDirectory, artifact.jarName)
+      Files.write(localPath, content)
+      localPath.toFile
+    } else {
+      val message = s"Different checksums for downloaded $artifact"
+      throw new JobFile.UnknownTypeException(message)
+    }
+  }
+
+  private def validateContent(bytes: Array[Byte]): Boolean = {
+    val data = download(checkSumUrl)
+    DigestUtils.sha1Hex(bytes) == new String(data)
+  }
+
+  private def download(url: String): Array[Byte] = {
+    val resp = Http(url).method("GET").asBytes
     if (resp.code != 200) {
       val message =
         s"""
-           |Could not find $jarUlr.
+           |Maven resolver request failed: $url.
            | Response code: ${resp.code} ${new String(resp.body)}
          """.stripMargin
-      println(message)
-      throw new JobFile.NotFoundException(message)
+      throw new JobFile.UnknownTypeException(message)
     } else {
-      val localPath = Paths.get(targetDirectory, artifact.jarName)
-      Files.write(localPath, resp.body)
-      localPath.toFile
+      resp.body
     }
   }
 
   private def jarUlr: String =
     s"$repoUrl/${artifact.jarPath}".replaceAll("(?<!http:|https:)//", "/")
+
+  private def checkSumUrl: String =
+    jarUlr + ".sha1"
 
 }
 
