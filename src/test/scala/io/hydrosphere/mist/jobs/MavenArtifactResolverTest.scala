@@ -79,7 +79,10 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
       val close = Promise[Http.ServerBinding]
       close.future
         .flatMap(binding => binding.unbind())
-        .onComplete(_ => system.terminate())
+        .onComplete(_ => {
+          system.shutdown()
+          system.awaitTermination()
+        })
 
       val result = binding.flatMap(binding => {
         try{
