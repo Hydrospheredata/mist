@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, AddressFromURIString, Props}
 import akka.cluster.Cluster
+import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemoved, UnreachableMember}
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
@@ -81,6 +82,14 @@ private[mist] class ClusterManager extends Actor with Logger {
       }
     }
   }
+  
+  override def preStart(): Unit = {
+    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+  }
+
+  override def postStop(): Unit = {
+    cluster.unsubscribe(self)
+  }
 
   def removeWorkerByName(name: String): Unit = {
     if (workers.containsName(name)) {
@@ -97,6 +106,11 @@ private[mist] class ClusterManager extends Actor with Logger {
       workers -= WorkerLink(uid, name, address, blackSpot)
       cluster.down(AddressFromURIString(address))
     }
+  }
+
+  def removeWorkerByAddress(address: String): Unit = {
+    val uid = workers.getUIDByAddress(address)
+    removeWorkerByUID(uid)
   }
 
   def restartWorkerWithName(name: String): Unit = {
@@ -278,6 +292,9 @@ private[mist] class ClusterManager extends Actor with Logger {
         val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
         recoveryActor ! JobCompleted
       }
+
+    case MemberRemoved(member, _) =>
+      removeWorkerByAddress(member.address.toString)
 
   }
 

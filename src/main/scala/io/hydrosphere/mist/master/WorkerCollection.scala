@@ -68,6 +68,15 @@ class WorkerCollection {
     }
   }
 
+  def getUIDByAddress(address: String): String = {
+    val w = workers.find(n => n._2._1 == address)
+    if(w.nonEmpty) {
+      w.get._1._2
+    } else {
+      ""
+    }
+  }
+
   def getNameByUID(uid: String): String = {
     val w = workers.find(n => n._1._2 == uid)
     if(w.nonEmpty) {
