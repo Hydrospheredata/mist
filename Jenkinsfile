@@ -31,7 +31,7 @@ node('aws-slave') {
 def test_mist(sparkVersion) {
     echo 'prepare for Mist with Spark version - ' + sparkVersion
     def mosquitto = docker.image('ansi/mosquitto:latest').run()
-    def hdfs = docker.image('hydrosphere/hdfs:experimental').run("start")
+    def hdfs = docker.image('hydrosphere/hdfs:experimental').run()
     echo 'Testing Mist with Spark version: ' + sparkVersion
     def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs 060183668755.dkr.ecr.eu-central-1.amazonaws.com/mist:tests-${sparkVersion} tests").trim()
       sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
