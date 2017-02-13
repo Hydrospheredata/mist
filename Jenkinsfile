@@ -31,10 +31,9 @@ node('aws-slave') {
 def test_mist(sparkVersion) {
     echo 'prepare for Mist with Spark version - ' + sparkVersion
     def mosquitto = docker.image('ansi/mosquitto:latest').run()
-    def mistVolume = docker.image("hydrosphere/mist:tests-${sparkVersion}").run("-v /usr/share/mist")
-    def hdfs = docker.image('hydrosphere/hdfs:latest').run("--volumes-from ${mistVolume.id}", "start")
+    def hdfs = docker.image('hydrosphere/hdfs:experimental').run("start")
     echo 'Testing Mist with Spark version: ' + sparkVersion
-    def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
+    def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs 060183668755.dkr.ecr.eu-central-1.amazonaws.com/mist:tests-${sparkVersion} tests").trim()
       sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
       sh "docker start ${mistId}"
       sh "docker logs -f ${mistId}"
@@ -42,6 +41,11 @@ def test_mist(sparkVersion) {
     def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true).trim()
     echo "Build flag: ${checkExitCode}"
     if ( checkExitCode == "1" ) {
+          sh "docker rm -f ${mistId}"
+          echo 'remove containers'
+          mosquitto.stop()
+          mistVolume.stop()
+          hdfs.stop()
           error("Tests failed")
     }
     sh "docker rm -f ${mistId}"
