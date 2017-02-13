@@ -4,6 +4,7 @@ import java.nio.file.{Files, Paths}
 
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.Flow
+import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.duration.Duration
@@ -24,13 +25,23 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
     resolver.artifact shouldBe MavenArtifact("io.hydrosphere", "mist_2.10", "0.0.1")
   }
 
+  test("construct resolver from path232323") {
+    val path = "mvn://http://localhost:8081/artifactory/libs-release-local :: mist_examples % mist_examples_2.10 % 0.8.0"
+    val resolver = MavenArtifactResolver.fromPath(path)
+    resolver.file
+  }
+
   test("resolver over http") {
     import akka.http.scaladsl.model.StatusCodes._
 
     // maven-like repository mock
     val routes = Flow[HttpRequest].map { request =>
-      if (request.uri.toString().endsWith(".jar")) {
+      val uri = request.uri.toString()
+      if (uri.endsWith(".jar")) {
         HttpResponse(status = OK, entity = "JAR CONTENT")
+      } else if (uri.endsWith(".sha1")) {
+        val data = DigestUtils.sha1Hex("JAR CONTENT")
+        HttpResponse(status = OK, entity = data)
       } else {
         HttpResponse(status = NotFound, entity = s"Not found ${request.uri}")
       }
