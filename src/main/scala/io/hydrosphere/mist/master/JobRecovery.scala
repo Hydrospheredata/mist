@@ -33,7 +33,7 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
 
     case TryRecoveryNext =>
 
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+      if (JobStarted.jobStartedCount < MistConfig().Recovery.recoveryMultilimit) {
         if (TryRecoveryNext._collection.nonEmpty) {
           val job_configuration = TryRecoveryNext._collection.last
           val json = Serialization.write(job_configuration._2)
@@ -45,13 +45,13 @@ private[mist] class JobRecovery(configurationRepository :ConfigurationRepository
 
     case JobStarted =>
       JobStarted.jobStartedCount += 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+      if (JobStarted.jobStartedCount < MistConfig().Recovery.recoveryMultilimit) {
         this.self ! TryRecoveryNext
       }
 
     case JobCompleted =>
       JobStarted.jobStartedCount -= 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
+      if (JobStarted.jobStartedCount < MistConfig().Recovery.recoveryMultilimit) {
         this.self ! TryRecoveryNext
       }
   }

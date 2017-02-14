@@ -9,7 +9,7 @@ import spray.json.pimpString
 
 private[mist] object JobEntryPoint extends App with Logger with JobConfigurationJsonSerialization{
 
-  implicit val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+  implicit val system = ActorSystem("mist", MistConfig().Akka.Worker.settings)
   val contextNode =
     if (args.length == 6) {
       val jobConfiguration = FullJobConfigurationBuilder()

@@ -34,7 +34,7 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   val clientHTTP = Http(system)
 
-  val contextName: String = MistConfig.Contexts.precreated.headOption.getOrElse("foo")
+  val contextName: String = MistConfig().Contexts.precreated.headOption.getOrElse("foo")
 
   object StartMist {
     val threadMaster = {
@@ -48,9 +48,9 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
 
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
-    if (MistConfig.Recovery.recoveryOn) {
+    if (MistConfig().Recovery.recoveryOn) {
       val db = DBMaker
-        .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+        .fileDB(MistConfig().Recovery.recoveryDbFileName + "b")
         .make
 
       // Map
@@ -70,8 +70,8 @@ class IntegrationTests extends FunSuite with Eventually with BeforeAndAfterAll w
       map.close()
       db.close()
 
-      val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
-      val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+      val src = new File(MistConfig().Recovery.recoveryDbFileName + "b")
+      val dest = new File(MistConfig().Recovery.recoveryDbFileName)
       new FileOutputStream(dest) getChannel() transferFrom(
         new FileInputStream(src) getChannel, 0, Long.MaxValue)
     }

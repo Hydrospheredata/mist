@@ -29,18 +29,20 @@ private[mist] class ClusterManager extends Actor with Logger {
 
   private val workers = WorkerCollection()
 
+  private var mistConfigs = scala.collection.mutable.Map[String, MistConfig]()
+
   def startNewWorkerWithName(name: String): Unit = {
     if (!workers.containsName(name)) {
-      if (MistConfig.Settings.singleJVMMode) {
+      if (mistConfigs(name).Settings.singleJVMMode) {
         Worker.main(Array(name))
       } else {
         new Thread {
           override def run(): Unit = {
-            val runOptions = MistConfig.Contexts.runOptions(name)
+            val runOptions = mistConfigs(name).Contexts.runOptions(name)
             val configFile = System.getProperty("config.file")
             val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
 
-            MistConfig.Workers.runner match {
+            mistConfigs(name).Workers.runner match {
               case "local" =>
                 print("STARTING WORKER: ")
                 val cmd: Seq[String] = Seq(
@@ -59,8 +61,8 @@ private[mist] class ClusterManager extends Actor with Logger {
                   "start",
                   "worker",
                   "--runner", "docker",
-                  "--docker-host", MistConfig.Workers.dockerHost,
-                  "--docker-port", MistConfig.Workers.dockerPort.toString,
+                  "--docker-host", mistConfigs(name).Workers.dockerHost,
+                  "--docker-port", mistConfigs(name).Workers.dockerPort.toString,
                   "--namespace", name,
                   "--config", configFile.toString,
                   "--jar", jarPath.toString,
@@ -68,7 +70,7 @@ private[mist] class ClusterManager extends Actor with Logger {
                 cmd !
               case "manual" =>
                 Process(
-                  Seq("bash", "-c", MistConfig.Workers.cmd),
+                  Seq("bash", "-c", mistConfigs(name).Workers.cmd),
                   None,
                     "MIST_WORKER_NAMESPACE" -> name,
                     "MIST_WORKER_CONFIG" -> configFile.toString,
@@ -117,7 +119,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       val uid = workers.getUIDByName(name)
       val address = workers(name, uid).address
       val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-      if(MistConfig.Contexts.timeout(name).isFinite()) {
+      if(mistConfigs(name).Contexts.timeout(name).isFinite()) {
         remoteActor ! StopWhenAllDo
         workers.setBlackSpotByName(name)
         startNewWorkerWithName(name)
@@ -133,7 +135,7 @@ private[mist] class ClusterManager extends Actor with Logger {
   override def receive: Receive = {
 
     case ListRouters(extended) =>
-      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
+      val config = ConfigFactory.parseFile(new File(MistConfig().HTTP.routerConfigPath))
       val javaMap = config.root().unwrapped()
 
       val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
@@ -241,23 +243,39 @@ private[mist] class ClusterManager extends Actor with Logger {
     case jobRequest: ServingJobConfiguration =>
       val originalSender = sender
       val localNodeActor = context.system.actorOf(Props(classOf[LocalNode]))
-      val future = localNodeActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+      val future = localNodeActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig().Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
       future onSuccess {
         case response => originalSender ! response
       }
 
     case jobRequest: FullJobConfiguration =>
       val originalSender = sender
-      startNewWorkerWithName(jobRequest.namespace)
+
+      if(mistConfigs.contains(jobRequest.namespace)) {
+        if (MistConfig.withoutChangesForNamespace(mistConfigs(jobRequest.namespace), jobRequest.namespace)) {
+          startNewWorkerWithName(jobRequest.namespace)
+        } else {
+          mistConfigs -= jobRequest.namespace
+          mistConfigs += ((jobRequest.namespace, MistConfig()))
+          restartWorkerWithName(jobRequest.namespace)
+        }
+      } else {
+        mistConfigs += ((jobRequest.namespace, MistConfig()))
+        startNewWorkerWithName(jobRequest.namespace)
+      }
+      println(mistConfigs.toList.toString())
       
       workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(uid, name, address, false) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-          if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-            val future = remoteActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+          if(mistConfigs(jobRequest.namespace).Contexts.timeout(jobRequest.namespace).isFinite()) {
+            val future = remoteActor
+              .ask(jobRequest)(timeout = FiniteDuration(
+                mistConfigs(jobRequest.namespace).Contexts.timeout(jobRequest.namespace).toNanos,
+                TimeUnit.NANOSECONDS))
             future.onSuccess {
               case response: Any =>
-                if (MistConfig.Contexts.isDisposable(name)) {
+                if (mistConfigs(jobRequest.namespace).Contexts.isDisposable(name)) {
                   removeWorkerByUID(uid)
                 }
                 originalSender ! response
@@ -269,8 +287,8 @@ private[mist] class ClusterManager extends Actor with Logger {
       })
 
     case AddJobToRecovery(jobId, jobConfiguration) =>
-      if (MistConfig.Recovery.recoveryOn) {
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+      if (MistConfig().Recovery.recoveryOn) {
+        lazy val configurationRepository: ConfigurationRepository = MistConfig().Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
 
@@ -281,8 +299,8 @@ private[mist] class ClusterManager extends Actor with Logger {
       }
 
     case RemoveJobFromRecovery(jobId) =>
-      if (MistConfig.Recovery.recoveryOn) {
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+      if (MistConfig().Recovery.recoveryOn) {
+        lazy val configurationRepository: ConfigurationRepository = MistConfig().Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
 

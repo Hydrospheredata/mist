@@ -20,7 +20,7 @@ import scala.util.{Failure, Success}
 private[mist] case object MQTTSubscribe
 
 private[mist] trait MQTTPubSubActor { this: Actor =>
-  val pubsub: ActorRef = context.actorOf(Props(classOf[MQTTPubSub], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}"))
+  val pubsub: ActorRef = context.actorOf(Props(classOf[MQTTPubSub], s"tcp://${MistConfig().MQTT.host}:${MistConfig().MQTT.port}"))
 }
 
 private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with JobConfigurationJsonSerialization with Logger {
@@ -44,7 +44,7 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Job
 
       val stringMessage = new String(msg.payload, "utf-8")
 
-      logger.info("Receiving Data, Topic : %s, Message : %s".format(MistConfig.MQTT.publishTopic, stringMessage))
+      logger.info("Receiving Data, Topic : %s, Message : %s".format(MistConfig().MQTT.publishTopic, stringMessage))
 
       val jobResult = try {
         val json = stringMessage.parseJson
@@ -77,7 +77,7 @@ private[mist] class MQTTServiceActor extends Actor with MQTTPubSubActor with Job
         val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
         // Run job asynchronously
 
-        val timeDuration = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)
+        val timeDuration = MistConfig().Contexts.timeout(jobCreatingRequest.namespace)
         if(timeDuration.isFinite()) {
           val future = workerManagerActor.ask(jobCreatingRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {
             case error: Throwable => Right(error.toString)

@@ -122,7 +122,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
 
       val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
 
-      val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
+      val timeDuration = MistConfig().Contexts.timeout(jobRequest.namespace)
       if(timeDuration.isFinite()) {
         val future = workerManagerActor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
 

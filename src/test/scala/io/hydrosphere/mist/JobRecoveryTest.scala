@@ -30,7 +30,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
     val db = DBMaker
-      .fileDB(MistConfig.Recovery.recoveryDbFileName + "b")
+      .fileDB(MistConfig().Recovery.recoveryDbFileName + "b")
       .make
 
     // Map
@@ -50,8 +50,8 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
     map.close()
     db.close()
 
-    val src = new File(MistConfig.Recovery.recoveryDbFileName + "b")
-    val dest = new File(MistConfig.Recovery.recoveryDbFileName)
+    val src = new File(MistConfig().Recovery.recoveryDbFileName + "b")
+    val dest = new File(MistConfig().Recovery.recoveryDbFileName)
     new FileOutputStream(dest) getChannel() transferFrom(
       new FileInputStream(src) getChannel, 0, Long.MaxValue)
   }
@@ -60,8 +60,8 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
     "All recovered ok" in {
       var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
 
-      if (MistConfig.Recovery.recoveryOn) {
-        configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+      if (MistConfig().Recovery.recoveryOn) {
+        configurationRepository = MistConfig().Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
         }

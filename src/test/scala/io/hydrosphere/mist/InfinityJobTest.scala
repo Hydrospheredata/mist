@@ -18,9 +18,9 @@ import scala.concurrent.duration._
 
 class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol {
 
-  val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
-  val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
-  val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+  val systemM = ActorSystem("mist", MistConfig().Akka.Main.settings)
+  val systemW = ActorSystem("mist", MistConfig().Akka.Worker.settings)
+  val systemS = ActorSystem("mist", MistConfig().Akka.Worker.settings)
 
   val mqttActor = systemW.actorOf(Props(classOf[MQTTServiceActor]))
   mqttActor ! MQTTSubscribe
@@ -59,11 +59,11 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
 object InfinityJobTestMqttActor {
 
   val persistence = new MemoryPersistence
-  val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+  val mqttClient = new MqttClient(s"tcp://${MistConfig().MQTT.host}:${MistConfig().MQTT.port}", MqttClient.generateClientId, persistence)
 
   def subscribe(actorSystem: ActorSystem): Unit = {
     mqttClient.connect()
-    mqttClient.subscribe(MistConfig.MQTT.subscribeTopic)
+    mqttClient.subscribe(MistConfig().MQTT.subscribeTopic)
 
     val callback = new MqttCallback {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {

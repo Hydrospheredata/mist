@@ -20,18 +20,18 @@ import scala.util.{Failure, Random, Success}
 
 class ContextNode(namespace: String) extends Actor with ActorLogging {
 
-  implicit val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  implicit val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig().Settings.threadNumber))
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig().Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress
 
   lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
 
-  private val workerDowntime: Duration = MistConfig.Contexts.downtime(namespace)
+  private val workerDowntime: Duration = MistConfig().Contexts.downtime(namespace)
 
   private var cancellableWatchDog: Option[Cancellable] = scheduleDowntime(workerDowntime)
 
@@ -89,7 +89,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
       }
 
       val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
-        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+        if(MistConfig().Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! AddJobToRecovery(runner.id, runner.configuration)
         }
         log.info(s"${jobRequest.namespace}#${runner.id} is running")
@@ -99,7 +99,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
       val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
         jobDescriptions -= jobDescription
-        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+        if (MistConfig().Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! RemoveJobFromRecovery(runner.id)
         }
         runner.stop()
@@ -118,7 +118,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
           case _ =>
             jobDescriptions -= jobDescription
             if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
-            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
+            if (MistConfig().Contexts.timeout(jobRequest.namespace).isFinite()) {
               serverActor ! RemoveJobFromRecovery(runner.id)
             }
         }(ExecutionContext.global)

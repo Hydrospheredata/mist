@@ -14,11 +14,11 @@ import scala.util.{Failure, Random, Success}
 
 class CLINode extends Actor {
 
-  val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig().Settings.threadNumber))
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig().Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress

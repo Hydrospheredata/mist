@@ -46,7 +46,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
   private val cluster = Cluster(context.system)
   private var workerUp = false
   private var workerRemowed = false
-  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
+  val executionContext = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig().Settings.threadNumber))
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
@@ -83,13 +83,13 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures
   with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService {
 
-  val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
-  val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+  val systemM = ActorSystem("mist", MistConfig().Akka.Main.settings)
+  val systemW = ActorSystem("mist", MistConfig().Akka.Worker.settings)
 
   override implicit val system = systemM
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+  Http().bindAndHandle(route, MistConfig().HTTP.host, MistConfig().HTTP.port)
   val clientHTTP = Http(systemM)
 
   val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
@@ -154,7 +154,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
       "started" in {
         systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
         Thread.sleep(5000)
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+        lazy val configurationRepository: ConfigurationRepository = MistConfig().Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
         }
@@ -183,7 +183,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
         val contextNode = systemW.actorSelection(AddressAndSuccessForWorkerTest.nodeAddress + AddressAndSuccessForWorkerTest.nodeName)
         val json = TestConfig.requestJar.parseJson
         val jobConfiguration = json.convertTo[FullJobConfiguration]
-        val timeDuration = MistConfig.Contexts.timeout(jobConfiguration.namespace)
+        val timeDuration = MistConfig().Contexts.timeout(jobConfiguration.namespace)
         if(timeDuration.isFinite()) {
           val future = contextNode.ask(jobConfiguration)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
           success = false

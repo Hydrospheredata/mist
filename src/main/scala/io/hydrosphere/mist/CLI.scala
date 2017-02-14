@@ -11,7 +11,7 @@ import scala.sys.process._
 
 private[mist] object CLI extends App {
 
-  implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
+  implicit val system = ActorSystem("mist", MistConfig().Akka.CLI.settings)
   val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName )
 
   var argInput = args.mkString(" ")

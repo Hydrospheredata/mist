@@ -13,28 +13,28 @@ import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
 private[mist] object Master extends App with HTTPService with Logger {
-  override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
+  override implicit val system = ActorSystem("mist", MistConfig().Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  logger.info(MistConfig.Akka.Worker.port.toString)
-  logger.info(MistConfig.Akka.Main.port.toString)
+  logger.info(MistConfig().Akka.Worker.port.toString)
+  logger.info(MistConfig().Akka.Main.port.toString)
 
   // Context creator actor
   val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
 
     // Creating contexts which are specified in config as `onstart`
-  MistConfig.Contexts.precreated foreach { contextName =>
+  MistConfig().Contexts.precreated foreach { contextName =>
     logger.info("Creating contexts which are specified in config")
     workerManager ! CreateContext(contextName)
   }
 
   // Start HTTP server if it is on in config
-  if (MistConfig.HTTP.isOn) {
-    Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+  if (MistConfig().HTTP.isOn) {
+    Http().bindAndHandle(route, MistConfig().HTTP.host, MistConfig().HTTP.port)
   }
 
   // Start MQTT subscriber if it is on in config
-  if (MistConfig.MQTT.isOn) {
+  if (MistConfig().MQTT.isOn) {
     val mqttActor = system.actorOf(Props(classOf[MQTTServiceActor]))
     mqttActor ! MQTTSubscribe
   }
@@ -42,15 +42,15 @@ private[mist] object Master extends App with HTTPService with Logger {
   // Job Recovery
   var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
 
-  if(MistConfig.Recovery.recoveryOn) {
-    configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+  if(MistConfig().Recovery.recoveryOn) {
+    configurationRepository = MistConfig().Recovery.recoveryTypeDb match {
       case "MapDb" => InMapDbJobConfigurationRepository
       case _ => InMemoryJobConfigurationRepository
     }
   }
 
   lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
-  if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
+  if (MistConfig().MQTT.isOn && MistConfig().Recovery.recoveryOn) {
     recoveryActor ! StartRecovery
   }
 
