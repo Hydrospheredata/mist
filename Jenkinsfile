@@ -2,7 +2,7 @@ parallel (
     "stream 1" : {
           node('aws-slave-01') {
             wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-
+              def version = "1.5.2"
               try {
                 stage('Clone project') {
                   checkout scm
@@ -37,7 +37,7 @@ parallel (
       "stream 2" : {
         node('aws-slave-02') {
           wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-
+            def version = "1.2.2"
             try {
               stage('Clone project') {
                 checkout scm
@@ -73,7 +73,7 @@ parallel (
 
           node('aws-slave-03') {
             wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-
+              def version = "2.1.0"
               try {
                 stage('Clone project') {
                   checkout scm
