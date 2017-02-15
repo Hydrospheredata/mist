@@ -1,38 +1,12 @@
-parallel (
-    "stream 1" : {
-          node('aws-slave-01') {
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
 
-              try {
-                stage('clone project') {
-                  checkout scm
-                }
-
-                def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-
-                stage('build and test') {
-                  parallel ( failFast: false,
-                    Spark_1_5_2: { test_mist("1.5.2") },
-                  )
-                }
-              }
-              catch (err) {
-                currentBuild.result = "FAILURE"
-                echo "${err}"
-                gitEmail = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' HEAD").trim()
-                mail body: "project build error is here: ${env.BUILD_URL}" ,
-                from: 'hydro-support@provectus.com',
-                replyTo: 'noreply@provectus.com',
-                subject: 'project build failed',
-                to: gitEmail
-                throw err
-              }
-            }
-          }
-      },
-
-      "stream 2" : {
-        node('aws-slave-02') {
+def labels = ['aws-slave-01', 'aws-slave-02','aws-slave-03'] // labels for Jenkins node types we will build on
+def spark_versions = ['1.5.2','1.6.2']
+def builders = [:]
+for (version in spark_versions) {
+  for (y in labels) {
+      def label = y
+      builders[label] = {
+        node(label) {
           wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
 
             try {
@@ -44,7 +18,7 @@ parallel (
 
               stage('build and test') {
                 parallel ( failFast: false,
-                  Spark_1_6_2: { test_mist("1.6.2") },
+                  Spark_+version: { test_mist(version) },
                 )
               }
             }
@@ -61,42 +35,9 @@ parallel (
             }
           }
         }
-      },
-
-      "stream 3" : {
-
-          node('aws-slave-03') {
-            wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-
-              try {
-                stage('clone project') {
-                  checkout scm
-                }
-
-                def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-
-                stage('build and test') {
-                  parallel ( failFast: false,
-                    Spark_2_1_0: { test_mist("2.1.0") },
-                  )
-                }
-              }
-              catch (err) {
-                currentBuild.result = "FAILURE"
-                echo "${err}"
-                gitEmail = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' HEAD").trim()
-                mail body: "project build error is here: ${env.BUILD_URL}" ,
-                from: 'hydro-support@provectus.com',
-                replyTo: 'noreply@provectus.com',
-                subject: 'project build failed',
-                to: gitEmail
-                throw err
-              }
-            }
-          }
-      },
-
-)
+      }
+  }
+}
 
 def test_mist(sparkVersion) {
     echo 'prepare for Mist with Spark version - ' + sparkVersion
