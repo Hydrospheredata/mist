@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import scala.collection.mutable.ArrayBuffer
 
-case class WorkerLink(name: String, address: String)
+case class WorkerLink(uid: String, name: String, address: String, blackSpot: Boolean)
 
 class WorkerCollection {
 
@@ -30,12 +30,12 @@ class WorkerCollection {
     }
   }
 
-  private val workers = scala.collection.mutable.Map[String, String]()
+  private val workers = scala.collection.mutable.Map[(String, String), (String, Boolean)]()
 
   private val callbacks = new CallbackCollection()
 
   def +=(worker: WorkerLink): Unit = {
-    workers += (worker.name -> worker.address)
+    workers += ((worker.name, worker.uid) -> (worker.address, worker.blackSpot))
     callbacks(worker.name).foreach { (callback) =>
       callback(worker)
       callbacks -= (worker.name, callback)
@@ -43,34 +43,77 @@ class WorkerCollection {
   }
 
   def -=(worker: WorkerLink): Unit = {
-    workers -= worker.name
+    println(worker.name, worker.uid)
+    println(workers.toList)
+    workers -= ((worker.name, worker.uid))
   }
 
-  def contains(name: String): Boolean = {
-    workers.contains(name)
+  def contains(name: String, uid: String): Boolean = {
+    workers.contains(name, uid)
+  }
+
+  def containsName(name: String): Boolean = {
+    val w = workers.find(n => n._1._1 == name && n._2._2 == false)
+    if(w.nonEmpty) {
+      workers.contains(w.get._1)
+    } else { false }
+  }
+
+  def getUIDByName(name: String): String = {
+    val w = workers.find(n => n._1._1 == name && n._2._2 == false)
+    if(w.nonEmpty) {
+      w.get._1._2
+    } else {
+      ""
+    }
+  }
+
+  def getUIDByAddress(address: String): String = {
+    val w = workers.find(n => n._2._1 == address)
+    if(w.nonEmpty) {
+      w.get._1._2
+    } else {
+      ""
+    }
+  }
+
+  def getNameByUID(uid: String): String = {
+    val w = workers.find(n => n._1._2 == uid)
+    if(w.nonEmpty) {
+      w.get._1._1
+    } else { "" }
   }
 
   def foreach(f: (WorkerLink) => Unit): Unit = {
     workers.foreach {
-      case (name, address) =>
-        f(WorkerLink(name, address))
+      case ((name, uid), (address, blackSpot)) =>
+        f(WorkerLink(uid, name, address, blackSpot))
     }
   }
   
   def map[T](f: (WorkerLink) => T): List[T] = {
     workers.map {
-      case (name, address) =>
-        f(WorkerLink(name, address))
+      case ((name, uid), (address, blackSpot)) =>
+        f(WorkerLink(uid, name, address, blackSpot))
     }.toList
   }
 
-  def apply(name: String): WorkerLink = {
-    WorkerLink(name, workers(name))
+  def setBlackSpotByName(name: String): Unit = {
+    val w = workers.find(n => {n._1._1 == name && n._2._2 == false})
+    if(w.nonEmpty) {
+      workers -= ((name, w.get._1._2))
+      workers += ((name, w.get._1._2) -> (w.get._2._1, true))
+    }
+  }
+
+  def apply(name: String, uid: String): WorkerLink = {
+    WorkerLink(uid, name, workers(name, uid)._1, workers(name, uid)._2)
   }
 
   def registerCallbackForName(name: String, callback: WorkerCollection.Callback): Unit = {
-    if (workers.contains(name)) {
-      callback(this(name))
+    val uid = getUIDByName(name)
+    if (workers.contains(name, uid)) {
+      callback(this(name, uid))
     } else {
       callbacks += (name -> callback)
     }
