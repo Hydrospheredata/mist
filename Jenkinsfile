@@ -37,7 +37,7 @@ parallel (
       "stream 2" : {
         node('aws-slave-02') {
           wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-            def version = "1.2.2"
+            def version = "1.6.2"
             try {
               stage('Clone project') {
                 checkout scm
