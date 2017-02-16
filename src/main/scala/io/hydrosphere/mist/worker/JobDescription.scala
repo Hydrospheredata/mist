@@ -12,10 +12,19 @@ private[mist] class JobDescriptionSerializable (val uid: String,
                                                 val externalId: Option[String] = None,
                                                 val router: Option[String] = None)
   extends Serializable {
+  val separator = 5
   override def toString(): String = {
-    uid + "\t" +  time + "\t" + namespace + "\t" + externalId.getOrElse(" " * 10) + "\t" + router.getOrElse(" " * 6)
+    uid + " " * separator + "\t" +
+      time + " " * separator + "\t" +
+      namespace + " " * separator + "\t" +
+      externalId.getOrElse(" " * 10) + " " * separator +
+      "\t" + router.getOrElse(" " * 6)
   }
   def length(): List[Int] = {
-    List(uid.length, time.length, namespace.length, externalId.getOrElse(" " * 10).length, router.getOrElse(" " * 6).length)
+    List(uid.length + separator,
+      time.length + separator,
+      namespace.length + separator,
+      externalId.getOrElse(" " * 10).length + separator,
+      router.getOrElse(" " * 6).length)
   }
 }

@@ -45,6 +45,31 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
 //      "outputCol": "features"
 //    }
 //  }
+
+//  {
+//    "class":"org.apache.spark.ml.classification.DecisionTreeClassificationModel",
+//    "timestamp":1486760757329,
+//    "sparkVersion":"2.1.0",
+//    "uid":"dtc_8582acc89f5a",
+//    "paramMap":{
+//        "impurity":"gini",
+//        "cacheNodeIds":false,
+//        "labelCol":"label",
+//        "checkpointInterval":10,
+//        "predictionCol":"prediction",
+//        "maxBins":32,
+//        "featuresCol":"features",
+//        "seed":159147643,
+//        "minInstancesPerNode":1,
+//        "rawPredictionCol":"rawPrediction",
+//        "probabilityCol":"probability",
+//        "minInfoGain":0.0,
+//        "maxMemoryInMB":256,
+//        "maxDepth":5
+//     },
+//    "numFeatures":1000,
+//    "numClasses":2
+//  }
   
   // TODO: tests
 

@@ -1,3 +1,7 @@
+2016-2-8 Mist v0.9.1
+
+    Fix Logistic regression for Apache Spark 2.1.0
+
 2016-2-2 Mist v0.9.0
 
     Spark 2.1.0 maintenance

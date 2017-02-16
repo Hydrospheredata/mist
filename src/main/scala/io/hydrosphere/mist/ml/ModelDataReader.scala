@@ -11,6 +11,7 @@ import parquet.schema.MessageType
 
 import scala.collection.immutable.HashMap
 
+
 object ModelDataReader {
   def parse(path: String): HashMap[String, Any] = {
     val parquetFileOption = Option(new File(path).listFiles).map(_.filter(_.isFile).toList.find(_.getAbsolutePath.endsWith("parquet")).orNull)
@@ -26,7 +27,8 @@ object ModelDataReader {
           var value = reader.read()
           while (value != null) {
             value.prettyPrint(schema)
-            result ++= value.struct(HashMap.empty[String, Any], schema)
+            val valMap = value.struct(HashMap.empty[String, Any], schema)
+            result ++= mergeMaps(result, valMap)
             value = reader.read()
           }
           result
@@ -37,6 +39,14 @@ object ModelDataReader {
         }
       case None =>
         new HashMap[String, Any]
+    }
+  }
+
+  private def mergeMaps(acc: Map[String, Any], map: Map[String, Any]): Map[String, Any] = {
+    if (map.contains("leftChild") && map.contains("rightChild") && map.contains("id")) { // tree structure detected
+      acc + (map("id").toString -> map)
+    } else {
+      acc ++ map
     }
   }
 }

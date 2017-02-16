@@ -3,7 +3,7 @@ package io.hydrosphere.mist.ml.transformers
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalStandardScaler}
 import io.hydrosphere.mist.utils.Logger
-import org.apache.spark.ml.classification.{LogisticRegressionModel, MultilayerPerceptronClassificationModel}
+import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCA, StandardScaler, Tokenizer, MaxAbsScaler}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
@@ -25,10 +25,29 @@ object LocalTransformers extends Logger {
         case hashingTF: HashingTF => hashingTF.transform(x)
         case logisticRegression: LogisticRegressionModel => logisticRegression.transform(x)
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
+        case classTree: DecisionTreeClassificationModel => classTree.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
 
+  }
+
+  implicit class LocalDecisionTreeClassificationModel(val tree: DecisionTreeClassificationModel) {
+
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local DecisionTreeClassificationModel")
+      logger.info(localData.toString)
+      localData.column(tree.getFeaturesCol) match {
+        case Some(column) =>
+          val method = classOf[DecisionTreeClassificationModel].getMethod("predict", classOf[Vector])
+          method.setAccessible(true)
+          val newColumn = LocalDataColumn(tree.getPredictionCol, column.data map { feature =>
+            method.invoke(tree, feature.asInstanceOf[Vector]).asInstanceOf[Double]
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
   }
   
   implicit class LocalTokenizer(val tokenizer: Tokenizer) {

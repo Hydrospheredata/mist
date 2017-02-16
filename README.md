@@ -3,13 +3,13 @@
 [![Coverage Status](https://coveralls.io/repos/github/Hydrospheredata/mist/badge.svg?branch=master)](https://coveralls.io/github/Hydrospheredata/mist?branch=master)
 [![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/)
 [![Dependency Status](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000)
-# Mist
+# Hydrosphere Mist
 
-Mist is a service for exposing analytics jobs and machine learning models as web services.
+[Hydrosphere](http://hydrosphere.io) Mist is a service for exposing analytical jobs and machine learning models as web services.
 
-Mist provides an API for Scala & Python Apache Spark jobs and for machine learning models.
+Mist provides an API for Scala & Python Apache Spark jobs and for machine learning models trained in Apache Spark.
 
-It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a Big Data lake.
+It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a big data stack.
 
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 
@@ -120,7 +120,7 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 | 0.6.5          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.7.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.8.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.9.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.9.1          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
