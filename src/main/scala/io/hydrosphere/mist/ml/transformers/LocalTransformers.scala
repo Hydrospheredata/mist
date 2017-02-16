@@ -26,6 +26,7 @@ object LocalTransformers extends Logger {
         case logisticRegression: LogisticRegressionModel => logisticRegression.transform(x)
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
+        case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }

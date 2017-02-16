@@ -7,14 +7,18 @@ object GaussianMixture extends MLMistJob with SQLSupport {
   def train(): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load("jobs/data/mllib/sample_kmeans_data.txt")
 
+
     val gmm = new GaussianMixture().setK(2)
 
-    val model = gmm.fit(dataset)
+    val pipeline = new Pipeline().setStages(Array(gmm))
+
+    val model = pipeline.fit(dataset)
 
     model.write.overwrite().save("models/gaussian_mixture")
     Map.empty[String, Any]
   }
 
+  // TODO: test
   def serve(text: List[String]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 

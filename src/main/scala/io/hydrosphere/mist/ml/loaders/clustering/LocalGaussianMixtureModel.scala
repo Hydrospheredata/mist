@@ -5,7 +5,7 @@ import io.hydrosphere.mist.ml.loaders.LocalModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.stat.distribution.MultivariateGaussian
-import org.apache.spark.ml.linalg.{Vector, Matrix}
+import org.apache.spark.ml.linalg.{Vector, Matrix, Vectors}
 
 
 /**
@@ -15,9 +15,12 @@ import org.apache.spark.ml.linalg.{Vector, Matrix}
   */
 object LocalGaussianMixtureModel extends LocalModel {
   override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    val weights = data("weights").asInstanceOf[Array[Double]]
-    val mus = data("mus").asInstanceOf[Array[Vector]]
-    val sigmas = data("sigmas").asInstanceOf[Array[Matrix]]
+    println(data)
+    println(metadata)
+
+    val weights = data("weights").asInstanceOf[List[Double]].toArray
+    val mus = data("mus").asInstanceOf[List[Vector]].toArray
+    val sigmas = data("sigmas").asInstanceOf[List[Matrix]].toArray
     val gaussians = mus.zip(sigmas).map {
       case (mu, sigma) => new MultivariateGaussian(mu, sigma)
     }
