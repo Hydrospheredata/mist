@@ -5,10 +5,10 @@ import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalSta
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
-import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCAModel, StandardScaler, Tokenizer, MaxAbsScaler}
+import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCAModel, StandardScalerModel, Tokenizer, MaxAbsScaler}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
-import org.apache.spark.mllib.feature.{HashingTF => HTF, PCAModel => OldPCAModel}
+import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => OldStandardScalerModel}
 import org.apache.spark.mllib.linalg.{
   SparseVector => SVector,
   DenseMatrix => OldDenseMatrix,
@@ -37,6 +37,7 @@ object LocalTransformers extends Logger {
         case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
         case binarizer: Binarizer => binarizer.transform(x)
         case pca: PCAModel => pca.transform(x)
+        case standardScaler: StandardScalerModel => standardScaler.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -205,17 +206,24 @@ object LocalTransformers extends Logger {
   }
 
   // TODO: test
-  implicit class LocalStandardScaler(val scaler: StandardScaler) {
+  implicit class LocalStandardScaler(val standardScaler: StandardScalerModel) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local StandardScaler")
       logger.debug(localData.toString)
-      localData.column(scaler.getInputCol) match {
+      localData.column(standardScaler.getInputCol) match {
         case Some(column) =>
-          val method = classOf[StandardScaler].getMethod("transform")
+          val scaler = new OldStandardScalerModel(
+            OldVectors.fromML(standardScaler.std.asInstanceOf[Vector]),
+            OldVectors.fromML(standardScaler.mean.asInstanceOf[Vector]),
+            standardScaler.getWithStd,
+            standardScaler.getWithMean
+          )
+
           val newData = column.data.map(r => {
-            method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+            val vector: OldVector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            scaler.transform(vector)
           })
-          localData.withColumn(LocalDataColumn(scaler.getOutputCol, newData))
+          localData.withColumn(LocalDataColumn(standardScaler.getOutputCol, newData))
         case None => localData
       }
     }
