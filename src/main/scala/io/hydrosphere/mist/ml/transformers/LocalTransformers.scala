@@ -27,6 +27,7 @@ object LocalTransformers extends Logger {
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
         case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
+        case binarizer: Binarizer => binarizer.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -165,9 +166,9 @@ object LocalTransformers extends Logger {
       logger.debug(localData.toString)
       localData.column(binarizer.getInputCol) match {
         case Some(column) =>
-          val method = classOf[Binarizer].getMethod("transform")
+          val trashhold: Double = binarizer.getThreshold
           val newData = column.data.map(r => {
-            method.invoke(binarizer).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+            if (r.asInstanceOf[Double] > trashhold) 1.0 else 0.0
           })
           localData.withColumn(LocalDataColumn(binarizer.getOutputCol, newData))
         case None => localData

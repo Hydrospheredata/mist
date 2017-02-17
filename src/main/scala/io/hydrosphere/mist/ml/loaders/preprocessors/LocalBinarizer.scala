@@ -11,6 +11,6 @@ object LocalBinarizer extends LocalModel {
     new Binarizer(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-      .setThreshold(metadata.paramMap("threshold").asInstanceOf[Double])
+      .setThreshold(metadata.paramMap("threshold").toString.toDouble)
   }
 }
