@@ -22,7 +22,6 @@ object Binarizer extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
   }
 
-  // TODO: test
   def serve(features: List[Double]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 

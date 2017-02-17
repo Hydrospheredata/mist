@@ -14,15 +14,24 @@ object LocalPCA extends LocalModel {
     constructor.setAccessible(true)
     if (data.contains("explainedVariance")) {
       // NOTE: Spark >= 2
-      val pc = data("pc").asInstanceOf[DenseMatrix]
-      val explainedVariance = data("explainedVariance").asInstanceOf[DenseVector]
+      val numRows = data("pc").asInstanceOf[Map[String, Any]].getOrElse("numRows", 0).asInstanceOf[Int]
+      val numCols = data("pc").asInstanceOf[Map[String, Any]].getOrElse("numCols", 0).asInstanceOf[Int]
+      val pcValues = data("pc").asInstanceOf[Map[String, Any]].getOrElse("values", List()).asInstanceOf[List[Double]].toArray
+      val pc = new DenseMatrix(numRows, numCols, pcValues)
+
+      val evValues = data("explainedVariance").asInstanceOf[Map[String, Any]].getOrElse("values", List()).asInstanceOf[List[Double]].toArray
+      val explainedVariance = new DenseVector(evValues)
       constructor
         .newInstance(metadata.uid, pc, explainedVariance)
         .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
         .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
     } else {
       // NOTE: Spark < 2
-      val pc = data("pc").asInstanceOf[OldDenseMatrix]
+      val numRows = data("pc").asInstanceOf[Map[String, Any]].getOrElse("numRows", 0).asInstanceOf[Int]
+      val numCols = data("pc").asInstanceOf[Map[String, Any]].getOrElse("numCols", 0).asInstanceOf[Int]
+      val pcValues = data("pc").asInstanceOf[Map[String, Any]].getOrElse("values", List()).asInstanceOf[List[Double]].toArray
+
+      val pc = new OldDenseMatrix(numRows, numCols, pcValues)
       constructor
         .newInstance(metadata.uid, pc.asML, Vectors.dense(Array.empty[Double]).asInstanceOf[DenseVector])
         .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])

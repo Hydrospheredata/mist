@@ -5,12 +5,20 @@ import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalSta
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
-import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCA, StandardScaler, Tokenizer, MaxAbsScaler}
+import org.apache.spark.ml.feature.{Binarizer, HashingTF, PCAModel, StandardScaler, Tokenizer, MaxAbsScaler}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
-import org.apache.spark.mllib.feature.{HashingTF => HTF}
-import org.apache.spark.mllib.linalg.{SparseVector => SVector}
+import org.apache.spark.mllib.feature.{HashingTF => HTF, PCAModel => OldPCAModel}
+import org.apache.spark.mllib.linalg.{
+  SparseVector => SVector,
+  DenseMatrix => OldDenseMatrix,
+  DenseVector => OldDenseVector,
+  Matrices => OldMatrices,
+  Vector => OldVector,
+  Vectors => OldVectors
+}
 import org.apache.spark.sql.{DataFrame, Dataset}
+
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -28,6 +36,7 @@ object LocalTransformers extends Logger {
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
         case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
         case binarizer: Binarizer => binarizer.transform(x)
+        case pca: PCAModel => pca.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -159,7 +168,6 @@ object LocalTransformers extends Logger {
     }
   }
 
-  // TODO: test
   implicit class LocalBinarizer(val binarizer: Binarizer) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local Binarizer")
@@ -176,16 +184,19 @@ object LocalTransformers extends Logger {
     }
   }
 
-  // TODO: test
-  implicit class LocalPCA(val pca: PCA) {
+  implicit class LocalPCA(val pca: PCAModel) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local PCA")
       logger.debug(localData.toString)
+
+      println(localData.toString)
+
       localData.column(pca.getInputCol) match {
         case Some(column) =>
-          val method = classOf[PCA].getMethod("transform")
           val newData = column.data.map(r => {
-            method.invoke(pca).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+            val pc = OldMatrices.fromML(pca.pc).asInstanceOf[OldDenseMatrix]
+            val vector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            pc.transpose.multiply(vector)
           })
           localData.withColumn(LocalDataColumn(pca.getOutputCol, newData))
         case None => localData

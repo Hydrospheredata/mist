@@ -7,7 +7,7 @@ import io.hydrosphere.mist.ml.loaders.regression.LocalLogisticRegressionModel
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.clustering.KMeansModel
-import org.apache.spark.ml.feature.{HashingTF, Tokenizer, Binarizer, PCA, StandardScaler, MaxAbsScaler}
+import org.apache.spark.ml.feature.{HashingTF, Tokenizer, Binarizer, PCAModel, StandardScaler, MaxAbsScaler}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 
 
@@ -25,7 +25,7 @@ object ModelConversions {
     case _: KMeansModel.type => LocalKMeans
     case _: GaussianMixtureModel.type => LocalGaussianMixtureModel
     case _: Binarizer.type => LocalBinarizer
-    case _: PCA.type => LocalPCA
+    case _: PCAModel.type => LocalPCA
     case _: StandardScaler.type => LocalStandardScaler
     case _: MaxAbsScaler.type => LocalMaxAbsScaler
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
