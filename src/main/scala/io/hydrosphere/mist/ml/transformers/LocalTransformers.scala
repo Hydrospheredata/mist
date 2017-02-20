@@ -1,14 +1,16 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
+import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalStandardScaler}
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
-import org.apache.spark.ml.feature.{HashingTF, StringIndexerModel, Tokenizer}
+import org.apache.spark.ml.clustering.GaussianMixtureModel
+import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
-import org.apache.spark.mllib.feature.{HashingTF => HTF}
-import org.apache.spark.mllib.linalg.{SparseVector => SVector}
-import org.apache.spark.mllib.feature
+import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => OldStandardScalerModel}
+import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
+import org.apache.spark.sql.{DataFrame, Dataset}
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -25,6 +27,10 @@ object LocalTransformers extends Logger {
         case logisticRegression: LogisticRegressionModel => logisticRegression.transform(x)
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
+        case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
+        case binarizer: Binarizer => binarizer.transform(x)
+        case pca: PCAModel => pca.transform(x)
+        case standardScaler: StandardScalerModel => standardScaler.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -88,7 +94,7 @@ object LocalTransformers extends Logger {
       localData.column(strIndexer.getInputCol) match {
         case Some(column) =>
           val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
-            strIndexer.transform()
+            ???
           })
           localData.withColumn(newColumn)
         case None => localData
@@ -114,7 +120,6 @@ object LocalTransformers extends Logger {
     }
 
   }
-
 
   implicit class LocalLogisticRegression(val logisticRegression: LogisticRegressionModel) {
 
@@ -151,6 +156,101 @@ object LocalTransformers extends Logger {
             newData = newData.withColumn(newColumn)
           }
           newData
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalGaussianMixtureModel(val gaussianModel: GaussianMixtureModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug("Local GaussianMixture")
+      logger.debug(localData.toString)
+      localData.column(gaussianModel.getFeaturesCol) match {
+        case Some(column) =>
+          val predictMethod = classOf[GaussianMixtureModel].getMethod("predict", classOf[Vector])
+          predictMethod.setAccessible(true)
+          val newColumn = LocalDataColumn(gaussianModel.getPredictionCol, column.data map { feature =>
+            predictMethod.invoke(gaussianModel, feature.asInstanceOf[Vector]).asInstanceOf[Int]
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalBinarizer(val binarizer: Binarizer) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local Binarizer")
+      logger.debug(localData.toString)
+      localData.column(binarizer.getInputCol) match {
+        case Some(column) =>
+          val trashhold: Double = binarizer.getThreshold
+          val newData = column.data.map(r => {
+            if (r.asInstanceOf[Double] > trashhold) 1.0 else 0.0
+          })
+          localData.withColumn(LocalDataColumn(binarizer.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalPCA(val pca: PCAModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local PCA")
+      logger.debug(localData.toString)
+
+      println(localData.toString)
+
+      localData.column(pca.getInputCol) match {
+        case Some(column) =>
+          val newData = column.data.map(r => {
+            val pc = OldMatrices.fromML(pca.pc).asInstanceOf[OldDenseMatrix]
+            val vector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            pc.transpose.multiply(vector)
+          })
+          localData.withColumn(LocalDataColumn(pca.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalStandardScaler(val standardScaler: StandardScalerModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local StandardScaler")
+      logger.debug(localData.toString)
+      localData.column(standardScaler.getInputCol) match {
+        case Some(column) =>
+          val scaler = new OldStandardScalerModel(
+            OldVectors.fromML(standardScaler.std.asInstanceOf[Vector]),
+            OldVectors.fromML(standardScaler.mean.asInstanceOf[Vector]),
+            standardScaler.getWithStd,
+            standardScaler.getWithMean
+          )
+
+          val newData = column.data.map(r => {
+            val vector: OldVector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            scaler.transform(vector)
+          })
+          localData.withColumn(LocalDataColumn(standardScaler.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  // TODO: test
+  implicit class LocalMaxAbsScaler(val scaler: MaxAbsScaler) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local MaxAbsScaler")
+      logger.debug(localData.toString)
+      localData.column(scaler.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[MaxAbsScaler].getMethod("transform")
+          val newData = column.data.map(r => {
+            method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+          })
+          localData.withColumn(LocalDataColumn(scaler.getOutputCol, newData))
         case None => localData
       }
     }

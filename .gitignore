@@ -15,3 +15,5 @@ scalastyle-config.xml
 /Vagrantfile
 web/node_modules
 web/script.js
+jobs/data/*
+models/*
