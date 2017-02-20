@@ -4,10 +4,10 @@ import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
+import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.async.kafka.KafkaSubscriberActor
 import io.hydrosphere.mist.master.async.mqtt.{MQTTServiceActor, MQTTSubscribe}
-import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery, StartRecovery}
+import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
@@ -43,21 +43,26 @@ private[mist] object Master extends App with HTTPService with Logger {
   if (MistConfig.Kafka.isOn) {
     system.actorOf(KafkaSubscriberActor.props())
   }
+  
+  // Start Job Queue Actor
+  system.actorOf(JobQueue.props(), name = Constants.Actors.jobQueueName)
 
   // Job Recovery
-  var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
-
-  if(MistConfig.Recovery.recoveryOn) {
-    configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-      case "MapDb" => InMapDbJobConfigurationRepository
-      case _ => InMemoryJobConfigurationRepository
-    }
-  }
-
-  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
-  if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
-    recoveryActor ! StartRecovery
-  }
+  // TODO: start recovery
+  
+//  var configurationRepository: JobRepository = InMemoryJobRepository
+//
+//  if(MistConfig.Recovery.recoveryOn) {
+//    configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+//      case "MapDb" => MapDbJobRepository
+//      case _ => InMemoryJobRepository
+//    }
+//  }
+//
+//  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
+//  if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
+//    recoveryActor ! StartRecovery
+//  }
 
   // We need to stop contexts on exit
   sys addShutdownHook {

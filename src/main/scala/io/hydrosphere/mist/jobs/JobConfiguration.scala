@@ -153,6 +153,11 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
         _route = Some(restificatedRequest.route)
         _parameters = restificatedRequest.parameters
         _externalId = restificatedRequest.externalId
+
+        val routeConfig = RouteConfig(restificatedRequest.route)
+        _path = routeConfig.path
+        _className = routeConfig.className
+        _namespace = routeConfig.namespace
     }
     this
   }

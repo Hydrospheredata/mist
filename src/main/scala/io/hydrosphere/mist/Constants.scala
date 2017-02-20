@@ -15,6 +15,9 @@ object Constants {
     final val clusterManagerName = "ClusterManager"
     final val mqttServiceName = "MQTTService"
     final val contextNode = "ContextNode"
+    
+    final val distributorName = "Distributor"
+    final val jobQueueName = "JobQueue"
   }
   object CLI {
     final val stopWorkerMsg = "kill worker"

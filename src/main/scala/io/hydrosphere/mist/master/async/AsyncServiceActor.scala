@@ -4,8 +4,9 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.Actor
 import akka.pattern.ask
-import io.hydrosphere.mist.{Constants, MistConfig}
-import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobResult}
+import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails, JobResult}
+import io.hydrosphere.mist.master.JobDistributor
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.json4s.DefaultFormats
@@ -14,6 +15,7 @@ import spray.json.{DeserializationException, pimpString}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 trait AsyncServiceActor extends Actor with JobConfigurationJsonSerialization with Logger {
@@ -25,27 +27,29 @@ trait AsyncServiceActor extends Actor with JobConfigurationJsonSerialization wit
       try {
         message.parseJson.convertTo[JobResult]
         logger.debug(s"Try to parse job result")
+        throw IncomingMessageIsJobResult
       } catch {
-        case _: DeserializationException =>
-          throw IncomingMessageIsJobResult
+        case _: DeserializationException => //pass
       }
       val jobCreatingRequest = FullJobConfigurationBuilder().fromJson(message).build()
-
-      val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
+      logger.info(s"Received new request: $jobCreatingRequest")
+//      val workerManagerActor = context.system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
+      val distributorActor = context.system.actorOf(JobDistributor.props())
       // Run job asynchronously
 
       val timeDuration = MistConfig.Contexts.timeout(jobCreatingRequest.namespace)
       if (timeDuration.isFinite()) {
-        val future = workerManagerActor.ask(jobCreatingRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {
+        val future = distributorActor.ask(jobCreatingRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {
           case error: Throwable => Right(error.toString)
         }
         val result = Await.ready(future, Duration.Inf).value.get
-        val jobResultEither = result match {
-          case Success(r) => r
+        val jobResult = result match {
+          case Success(r: JobDetails) => r.jobResult.getOrElse(Left("Empty result"))
+          case Success(r: Either[String, Map[String, Any]]) => r
           case Failure(r) => r
         }
 
-        jobResultEither match {
+        jobResult match {
           case Left(jobResult: Map[String, Any]) =>
             JobResult(success = true, payload = jobResult, request = jobCreatingRequest, errors = List.empty)
           case Right(error: String) =>
@@ -53,7 +57,7 @@ trait AsyncServiceActor extends Actor with JobConfigurationJsonSerialization wit
         }
       }
       else {
-        workerManagerActor ! jobCreatingRequest
+        distributorActor ! jobCreatingRequest
         JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobCreatingRequest, errors = List.empty)
       }
 
@@ -68,7 +72,8 @@ trait AsyncServiceActor extends Actor with JobConfigurationJsonSerialization wit
         logger.debug("Received job result as incoming message")
         null
       case e: Throwable =>
-        logger.error(e.toString)
+//        logger.error(e.toString)
+        throw e
         null
     }
 

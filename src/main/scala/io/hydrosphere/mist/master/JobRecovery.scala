@@ -1,58 +1,62 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.Actor
-import io.hydrosphere.mist.master.async.mqtt.{MQTTPubSub, MQTTPubSubActor}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTPubSub}
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobDetails}
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.utils.Logger
 import org.json4s.jackson.Serialization
-import scala.collection.mutable
 
-case object StartRecovery
-
-case object TryRecoveryNext{
- var _collection: mutable.Map[String, FullJobConfiguration] = scala.collection.mutable.Map[String, FullJobConfiguration]()
-}
-case object JobStarted{
-  var jobStartedCount = 0
-}
-case object JobCompleted
-
-// TODO: add abstract async interface instead of mqtt-specific one
-private[mist] class JobRecovery(configurationRepository: ConfigurationRepository) extends Actor with Logger {
-
-  private implicit val formats = org.json4s.DefaultFormats
+private[mist] class JobRecoveryActor extends Actor with Logger {
 
   override def receive: Receive = {
-
-    case StartRecovery =>
-      TryRecoveryNext._collection = configurationRepository.getAll
-      logger.info(s"${TryRecoveryNext._collection.size} loaded from MapDb ")
-      configurationRepository.clear()
-      this.self ! TryRecoveryNext
-
-    case TryRecoveryNext =>
-
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        if (TryRecoveryNext._collection.nonEmpty) {
-          val job_configuration = TryRecoveryNext._collection.last
-          val json = Serialization.write(job_configuration._2)
-          logger.info(s"send $json")
-          TryRecoveryNext._collection.remove(TryRecoveryNext._collection.last._1)
-          pubsub ! new MQTTPubSub.Publish(json.getBytes("utf-8"))
-        }
-      }
-
-    case JobStarted =>
-      JobStarted.jobStartedCount += 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveryNext
-      }
-
-    case JobCompleted =>
-      JobStarted.jobStartedCount -= 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveryNext
-      }
+    case _: Any => println("received msg") 
   }
+  
 }
+
+//case object StartRecovery
+//case object JobCompleted
+//case class TryRecoveryNext(collection: List[JobDetails])
+//case class JobStarted(jobStartedCount: Int = 0)
+
+
+
+// TODO: add abstract async interface instead of mqtt-specific one
+//private[mist] class JobRecovery(configurationRepository: JobRepository) extends Actor with Logger {
+//
+//  private implicit val formats = org.json4s.DefaultFormats
+//  private var startedJobCount = 0
+//
+//  override def receive: Receive = {
+//
+//    case StartRecovery =>
+//      val allJobs = configurationRepository.getAll
+//      logger.info(s"${allJobs.length} loaded from MapDb ")
+//      configurationRepository.clear()
+//      this.self ! TryRecoveryNext(allJobs)
+//
+//    case nextTry: TryRecoveryNext =>
+//      if (startedJobCount < MistConfig.Recovery.recoveryMultilimit) {
+//        if (nextTry.collection.nonEmpty) {
+//          val jobDetails = nextTry.collection.last
+//          val json = Serialization.write(jobDetails)
+//          logger.info(s"send $json")
+//          nextTry.collection.remove(TryRecoveryNext.collection.last)
+//          pubsub ! new MQTTPubSub.Publish(json.getBytes("utf-8"))
+//        }
+//      }
+//
+//    case JobStarted =>
+//      startedJobCount += 1
+//      if (startedJobCount < MistConfig.Recovery.recoveryMultilimit) {
+//        this.self ! TryRecoveryNext
+//      }
+//
+//    case JobCompleted =>
+//      startedJobCount -= 1
+//      if (startedJobCount < MistConfig.Recovery.recoveryMultilimit) {
+//        this.self ! TryRecoveryNext
+//      }
+//  }
+//}

@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.worker.CLINode
+import io.hydrosphere.mist.cli.CLINode
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}

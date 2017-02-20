@@ -3,14 +3,15 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, AddressFromURIString, Props}
+import akka.actor.{Actor, ActorRef, AddressFromURIString, Props}
 import akka.cluster.Cluster
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.cli.{JobDescription, WorkerDescription}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
-import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
+import io.hydrosphere.mist.worker.LocalNode
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 
 import scala.collection.mutable.ArrayBuffer
@@ -21,15 +22,22 @@ import scala.language.postfixOps
 import scala.sys.process._
 import scala.util.{Failure, Success}
 
-/** Manages context repository */
-private[mist] class ClusterManager extends Actor with Logger {
+object ClusterManager {
+  
+  case class StartJob(jobDetails: JobDetails)
 
-  private val cluster = Cluster(context.system)
+  def props(): Props = Props(classOf[ClusterManager])
 
   private val workers = WorkerCollection()
+}
+
+/** Manages context repository */
+private[mist] class ClusterManager extends Actor with Logger {
+// TODO: refactor
+  private val cluster = Cluster(context.system)
 
   def startNewWorkerWithName(name: String): Unit = {
-    if (!workers.contains(name)) {
+    if (!ClusterManager.workers.contains(name)) {
       if (MistConfig.Settings.singleJVMMode) {
         Worker.main(Array(name))
       } else {
@@ -82,9 +90,9 @@ private[mist] class ClusterManager extends Actor with Logger {
   }
 
   def removeWorkerByName(name: String): Unit = {
-    if (workers.contains(name)) {
-      val address = workers(name).address
-      workers -= WorkerLink(name, address)
+    if (ClusterManager.workers.contains(name)) {
+      val address = ClusterManager.workers(name).address
+      ClusterManager.workers -= WorkerLink(name, address)
       cluster.down(AddressFromURIString(address))
     }
   }
@@ -139,7 +147,7 @@ private[mist] class ClusterManager extends Actor with Logger {
     case message: StopJob =>
       val originalSender = sender
       val future: Future[List[String]] = Future {
-        workers.map {
+        ClusterManager.workers.map {
           case WorkerLink(name, address) =>
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
             val futureListJobs = remoteActor.ask(message)(timeout = Constants.CLI.timeoutDuration)
@@ -153,7 +161,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       }
 
     case ListWorkers() =>
-      sender ! workers.map {
+      sender ! ClusterManager.workers.map {
         case WorkerLink(name, address) =>
           WorkerDescription(name, address)
       }
@@ -161,21 +169,14 @@ private[mist] class ClusterManager extends Actor with Logger {
     case ListJobs() =>
       val originalSender = sender
 
-      val future: Future[List[JobDescriptionSerializable]] = Future {
-        val jobDescriptionsSerializable = ArrayBuffer.empty[JobDescriptionSerializable]
-        workers
-          .foreach {
-            case WorkerLink(name, address) =>
-              val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-              val futureListJobs = remoteActor.ask(ListJobs)(timeout = Constants.CLI.timeoutDuration)
-              val result = Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[JobDescriptionSerializable]]
-              result.map(job => jobDescriptionsSerializable += job)
-          }
-        jobDescriptionsSerializable.toList
-      }
+      val future: Future[List[JobDetails]] = Future.sequence(ClusterManager.workers.map[Future[JobDetails]] {
+        case WorkerLink(name, address) =>
+          val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+          remoteActor.ask(ListJobs)(timeout = Constants.CLI.timeoutDuration).asInstanceOf[Future[JobDetails]]
+      })
 
       future onComplete {
-        case Success(result: List[JobDescriptionSerializable]) => originalSender ! result
+        case Success(result: List[JobDetails]) => originalSender ! result
         case Failure(error: Throwable) => originalSender ! error
       }
 
@@ -183,7 +184,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       startNewWorkerWithName(name)
 
     case _: StopAllMessage =>
-      workers.foreach {
+      ClusterManager.workers.foreach {
         case WorkerLink(name, _) =>
           removeWorkerByName(name)
       }
@@ -195,62 +196,55 @@ private[mist] class ClusterManager extends Actor with Logger {
 
     case WorkerDidStart(name, address) =>
       logger.info(s"Worker `$name` did start on $address")
-      workers += WorkerLink(name, address)
+      ClusterManager.workers += WorkerLink(name, address)
 
-    case jobRequest: ServingJobConfiguration =>
+    case ClusterManager.StartJob(jobDetails) if jobDetails.configuration.isInstanceOf[ServingJobConfiguration] =>
       val originalSender = sender
       val localNodeActor = context.system.actorOf(Props(classOf[LocalNode]))
-      val future = localNodeActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
+      val future = localNodeActor.ask(jobDetails)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobDetails.configuration.namespace).toNanos, TimeUnit.NANOSECONDS))
       future onSuccess {
         case response => originalSender ! response
       }
 
-    case jobRequest: FullJobConfiguration =>
-      val originalSender = sender
-      startNewWorkerWithName(jobRequest.namespace)
+    case ClusterManager.StartJob(jobDetails) =>
+      startNewWorkerWithName(jobDetails.configuration.namespace)
 
-      workers.registerCallbackForName(jobRequest.namespace, {
+      ClusterManager.workers.registerCallbackForName(jobDetails.configuration.namespace, {
         case WorkerLink(name, address) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
-          if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-            val future = remoteActor.ask(jobRequest)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobRequest.namespace).toNanos, TimeUnit.NANOSECONDS))
-            future.onSuccess {
-              case response: Any =>
-                if (MistConfig.Contexts.isDisposable(name)) {
-                  removeWorkerByName(name)
-                }
-                originalSender ! response
-            }
-          }
-          else {
-            remoteActor ! jobRequest
-          }
+          remoteActor ! jobDetails
       })
-
-    case AddJobToRecovery(jobId, jobConfiguration) =>
-      if (MistConfig.Recovery.recoveryOn) {
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-          case "MapDb" => InMapDbJobConfigurationRepository
-          case _ => InMemoryJobConfigurationRepository
-
-        }
-        configurationRepository.add(jobId, jobConfiguration)
-        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
-        recoveryActor ! JobStarted
-      }
-
-    case RemoveJobFromRecovery(jobId) =>
-      if (MistConfig.Recovery.recoveryOn) {
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-          case "MapDb" => InMapDbJobConfigurationRepository
-          case _ => InMemoryJobConfigurationRepository
-
-        }
-        configurationRepository.remove(jobId)
-        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
-        recoveryActor ! JobCompleted
-      }
-
+      context become jobUpdates(sender)
+      
+  def jobUpdates(originalSender: ActorRef): Receive = {
+    case jobDetails: JobDetails =>
+      originalSender ! jobDetails
+  }
+    
+//    case AddJobToRecovery(jobId, jobConfiguration) =>
+//      if (MistConfig.Recovery.recoveryOn) {
+//        lazy val configurationRepository: JobRepository = MistConfig.Recovery.recoveryTypeDb match {
+//          case "MapDb" => InMapDbJobConfigurationRepository
+//          case _ => InMemoryJobConfigurationRepository
+//
+//        }
+//        configurationRepository.add(jobId, jobConfiguration)
+//        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+//        recoveryActor ! JobStarted
+//      }
+//
+//    case RemoveJobFromRecovery(jobId) =>
+//      if (MistConfig.Recovery.recoveryOn) {
+//        lazy val configurationRepository: JobRepository = MistConfig.Recovery.recoveryTypeDb match {
+//          case "MapDb" => InMapDbJobConfigurationRepository
+//          case _ => InMemoryJobConfigurationRepository
+//
+//        }
+//        configurationRepository.remove(jobId)
+//        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+//        recoveryActor ! JobCompleted
+//      }
+//
   }
 
 }

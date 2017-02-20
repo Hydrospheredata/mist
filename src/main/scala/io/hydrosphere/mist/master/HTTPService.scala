@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
@@ -15,7 +15,6 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-import io.hydrosphere.mist.worker.CLINode
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
@@ -119,12 +118,12 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
 
     complete {
       logger.info(jobRequest.parameters.toString)
-
-      val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
+      
+      val distributor = system.actorOf(JobDistributor.props())
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       if(timeDuration.isFinite()) {
-        val future = workerManagerActor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
+        val future = distributor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
 
         future
           .recover {
@@ -132,18 +131,20 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
             case error: Throwable => Right(error.toString)
           }
           .map[ToResponseMarshallable] {
-          case result: Either[Map[String, Any], String] =>
-            val jobResult: JobResult = result match {
+          case jobDetails: JobDetails =>
+            val jobResult: JobResult = jobDetails.jobResult.getOrElse(Right("Empty result")) match {
               case Left(jobResults: Map[String, Any]) =>
                 JobResult(success = true, payload = jobResults, request = jobRequest, errors = List.empty)
               case Right(error: String) =>
                 JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
             }
             HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+          case Right(error: String) =>
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error)))))
         }
       }
       else {
-        workerManagerActor ! jobRequest
+        distributor ! jobRequest
         val jobResult = JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
         HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
       }
@@ -171,8 +172,8 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
     
     complete {
 
-      val clusterManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
-      val future = clusterManagerActor.ask(cmd)(timeout = Constants.CLI.timeoutDuration)
+      val clusterManager = system.actorOf(ClusterManager.props())
+      val future = clusterManager.ask(cmd)(timeout = Constants.CLI.timeoutDuration)
 
       future
         .recover{

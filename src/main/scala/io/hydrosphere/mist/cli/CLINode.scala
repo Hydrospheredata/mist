@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.worker
+package io.hydrosphere.mist.cli
 
 import java.util.concurrent.Executors._
 
@@ -7,6 +7,7 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
@@ -36,6 +37,9 @@ class CLINode extends Actor {
     future.andThen {
       case Success(result: Map[String, Any]) => originalSender ! result
       case Success(result: String) => originalSender ! result
+      case Success(result: List[JobDetails]) => originalSender ! result.map {
+        job: JobDetails => JobDescription(job)
+      }
       case Success(result: List[Any]) => originalSender ! result
       case Failure(error: Throwable) => originalSender ! error
     }(ExecutionContext.global)

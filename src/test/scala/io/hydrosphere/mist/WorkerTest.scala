@@ -15,6 +15,7 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.async.mqtt.{MQTTServiceActor, MQTTSubscribe}
 import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
@@ -154,7 +155,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
       "started" in {
         systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
         Thread.sleep(5000)
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+        lazy val configurationRepository: JobRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
         }

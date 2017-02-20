@@ -1,15 +1,18 @@
-package io.hydrosphere.mist
+package io.hydrosphere.mist.cli
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.worker.{CLINode, JobDescriptionSerializable, WorkerDescription}
+import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.Await
 import scala.language.{implicitConversions, postfixOps}
 import scala.sys.process._
 
-private[mist] object CLI extends App {
+import scala.reflect.runtime.universe._
+
+
+private[mist] object EntryPoint extends App {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
   val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName )
@@ -41,27 +44,20 @@ private[mist] object CLI extends App {
         ""
       }
 
-    // TODO: use TypeTags
-    def beautifulPrintResult(header: List[String] = List())(someList: List[Any]): Unit = {
+    def beautifulPrintResult[T: TypeTag](header: List[String] = List())(someList: List[T]): Unit = {
       if(someList.nonEmpty) {
-        val headerTabs = {
-          try {
-            someList.asInstanceOf[List[WorkerDescription]].head.length()
-          } catch {
-            case _: ClassCastException =>
-              try {
-                someList.asInstanceOf[List[JobDescriptionSerializable]].head.length()
-              } catch {
-                case _: ClassCastException => List[Int](0)
-              }
-          }
+        val headerTabs = typeOf[T] match {
+          case t if t <:< typeOf[Description] => someList.asInstanceOf[List[Description]].head.fieldSizes
+          case _ => List[Int](0)
         }
 
         (header zip headerTabs).foreach { case (h, t) => print(h + " " * (t - h.length) + "\t") }
         print("\n")
-        someList.foreach(y => println(y.toString))
-      }
-      else {
+        someList.foreach({
+          case t: Description => print(t.prettyPrint)
+          case _ => print(" ")
+        })
+      } else {
         header foreach (h => print(h + "\t"))
         print("\n")
       }

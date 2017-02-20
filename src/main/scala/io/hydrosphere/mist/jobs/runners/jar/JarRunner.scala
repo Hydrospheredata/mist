@@ -6,7 +6,7 @@ import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
 import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
-private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+private[mist] class JarRunner(override val job: JobDetails, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
 
   // TODO: remove nullable contextWrapper
   if (contextWrapper != null) {
@@ -15,32 +15,26 @@ private[mist] class JarRunner(override val configuration: FullJobConfiguration, 
   }
 
   val externalInstance: ExternalInstance = ExternalJar(jobFile.file.getAbsolutePath)
-    .getExternalClass(configuration.className)
+    .getExternalClass(job.configuration.className)
     .getNewInstance
 
-  _status = Runner.Status.Initialized
-
   override def run(): Either[Map[String, Any], String] = {
-    _status = Runner.Status.Running
     try {
-      val result = configuration match {
+      val result = job.configuration match {
         case _: MistJobConfiguration =>
           externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
-          Left(externalInstance.getMethod("execute").run(configuration.parameters).asInstanceOf[Map[String, Any]])
+          Left(externalInstance.getMethod("execute").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: TrainingJobConfiguration =>
           externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
-          Left(externalInstance.getMethod("train").run(configuration.parameters).asInstanceOf[Map[String, Any]])
+          Left(externalInstance.getMethod("train").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
         case _: ServingJobConfiguration =>
-          Left(externalInstance.getMethod("serve").run(configuration.parameters).asInstanceOf[Map[String, Any]])
+          Left(externalInstance.getMethod("serve").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
       }
-
-      _status = Runner.Status.Stopped
 
       result
     } catch {
       case e: Throwable =>
         logger.error(e.getMessage, e)
-        _status = Runner.Status.Aborted
         Right(e.toString)
     }
   }

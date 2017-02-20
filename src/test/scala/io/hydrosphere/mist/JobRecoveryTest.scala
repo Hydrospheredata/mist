@@ -4,7 +4,8 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
+import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.mapdb.{DBMaker, Serializer}
@@ -58,7 +59,7 @@ class JobRecoveryTest(_system: ActorSystem) extends TestKit(_system) with Implic
 
   "Recovery 3 jobs" must {
     "All recovered ok" in {
-      var configurationRepository: ConfigurationRepository = InMemoryJobConfigurationRepository
+      var configurationRepository: JobRepository = InMemoryJobConfigurationRepository
 
       if (MistConfig.Recovery.recoveryOn) {
         configurationRepository = MistConfig.Recovery.recoveryTypeDb match {

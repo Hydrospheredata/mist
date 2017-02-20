@@ -1,12 +1,12 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorLogging}
-import io.hydrosphere.mist.jobs.ServingJobConfiguration
+import io.hydrosphere.mist.jobs.{JobDetails, ServingJobConfiguration}
 import io.hydrosphere.mist.jobs.runners.Runner
 
 class LocalNode extends Actor with ActorLogging {
   override def receive: Receive = {
-    case jobRequest: ServingJobConfiguration =>
+    case jobRequest: JobDetails =>
       val originalSender = sender
       try {
         val runner = Runner(jobRequest, null)

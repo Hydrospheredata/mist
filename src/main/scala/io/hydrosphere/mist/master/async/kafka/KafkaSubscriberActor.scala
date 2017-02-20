@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.async.kafka
 
-import akka.actor.{Actor, Props}
+import akka.actor.Props
 import cakesolutions.kafka.{KafkaConsumer, KafkaProducer}
 import cakesolutions.kafka.akka.{ConsumerRecords, KafkaConsumerActor, KafkaProducerActor, ProducerRecords}
 import cakesolutions.kafka.akka.KafkaConsumerActor.{Confirm, Subscribe, Unsubscribe}
@@ -70,6 +70,6 @@ class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigu
   }
 
   override def send(message: String): Unit = {
-    kafkaProducer ! ProducerRecords.fromValues(MistConfig.Kafka.publishTopic, List(message), None, None)
+    kafkaProducer ! ProducerRecords.fromKeyValues(MistConfig.Kafka.publishTopic, Seq((Some("result"), message)), None, None)
   }
 }

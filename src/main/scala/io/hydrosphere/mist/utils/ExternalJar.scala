@@ -28,6 +28,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
       }
     })
     val method = objectRef.getClass.getMethods.find(_.getName == methodName).get
+    // TODO: more clear exceptions instead of InvocationTargetException 
     method.invoke(objectRef, args.asInstanceOf[Seq[AnyRef]]: _*).asInstanceOf[Map[String, Any]]
   }
 

@@ -200,6 +200,10 @@ private[mist] object MistConfig {
     def streamingDuration(contextName: String): SDuration = {
       SDuration(Duration(getContextOrDefault(contextName).getString("streaming-duration")).toMillis)
     }
+    
+    def maxParallelJobs(contextName: String): Int = {
+      getContextOrDefault(contextName).getInt("max-parallel-jobs")
+    }
 
   }
 
