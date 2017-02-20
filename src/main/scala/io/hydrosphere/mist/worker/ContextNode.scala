@@ -41,6 +41,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
     if(duration.isFinite()) {
       Option(context.system.scheduler.scheduleOnce(
         FiniteDuration(duration.toNanos, TimeUnit.NANOSECONDS))(f = {
+        serverActor ! EcsHook(namespace)
         serverActor ! RemoveContext(nodeUID)
       })(executionContext))} else { None }
   }

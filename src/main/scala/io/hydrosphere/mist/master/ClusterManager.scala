@@ -295,6 +295,24 @@ private[mist] class ClusterManager extends Actor with Logger {
     case MemberRemoved(member, _) =>
       removeWorkerByAddress(member.address.toString)
 
+    case EcsHook(name) =>
+      if(MistConfig.Workers.cmdStop.nonEmpty) {
+        new Thread {
+          override def run(): Unit = {
+            val runOptions = MistConfig.Contexts.runOptions(name)
+            val configFile = System.getProperty("config.file")
+            val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
+            MistConfig.Workers.runner match {
+              case "manual" =>
+                Process(
+                  Seq("bash", "-c", MistConfig.Workers.cmdStop.get),
+                  None,
+                  "MIST_WORKER_NAMESPACE" -> name
+                ).!
+            }
+          }
+        }.start()
+      }
   }
 
 }

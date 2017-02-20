@@ -38,4 +38,6 @@ private[mist] object Messages {
 
   case class StopWhenAllDo() extends AdminMessage
 
+  case class EcsHook(name: String) extends AdminMessage
+
 }
