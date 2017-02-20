@@ -12,7 +12,7 @@ if [ "$1" == "init" ]; then
 fi
 
 if [ "$1" == "run" ]; then
-    cid=$(docker run -d -v /var/run/docker.sock:/var/run/docker.sock -p 1234:1234 --link mosquitto-2.1.0:mosquitto --link hdfs-2.1.0:hdfs -v /c/Users/Bulat/Documents/Projects/Provectus/mist:/usr/share/mist hydrosphere/mist:tests-2.1.0 mist --config configs/docker.conf)
+    cid=$(docker run -d -v /var/run/docker.sock:/var/run/docker.sock -p 1234:1234 --link mosquitto-2.1.0:mosquitto --link hdfs-2.1.0:hdfs -v /c/Users/Bulat/Documents/Projects/Provectus/data:/data -v /c/Users/Bulat/Documents/Projects/Provectus/models:/models -v /c/Users/Bulat/Documents/Projects/Provectus/mist:/usr/share/mist hydrosphere/mist:tests-2.1.0 mist --config configs/docker.conf)
     echo "$cid" > ${cid_file}
     echo "$cid"
     exit 0

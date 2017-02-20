@@ -3,6 +3,7 @@ package io.hydrosphere.mist.ml.loaders.regression
 import java.lang.Boolean
 
 import io.hydrosphere.mist.ml.Metadata
+import io.hydrosphere.mist.ml.loaders.LocalModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.linalg.{Matrix, SparseMatrix, Vector, Vectors}

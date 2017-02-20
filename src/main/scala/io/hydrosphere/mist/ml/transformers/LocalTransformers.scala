@@ -3,11 +3,12 @@ package io.hydrosphere.mist.ml.transformers
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
-import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
+import org.apache.spark.ml.feature.{HashingTF, StringIndexerModel, Tokenizer}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
+import org.apache.spark.mllib.feature
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -20,6 +21,7 @@ object LocalTransformers extends Logger {
       pipeline.stages.foldLeft(localData)((x: LocalData, y: Transformer) => y match {
         case tokenizer: Tokenizer => tokenizer.transform(x)
         case hashingTF: HashingTF => hashingTF.transform(x)
+        case strIndexer: StringIndexerModel => strIndexer.transform(x)
         case logisticRegression: LogisticRegressionModel => logisticRegression.transform(x)
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
@@ -30,6 +32,7 @@ object LocalTransformers extends Logger {
   }
 
   implicit class LocalDecisionTreeClassificationModel(val tree: DecisionTreeClassificationModel) {
+    import io.hydrosphere.mist.ml.DataUtils._
 
     def transform(localData: LocalData): LocalData = {
       logger.info(s"Local DecisionTreeClassificationModel")
@@ -39,7 +42,8 @@ object LocalTransformers extends Logger {
           val method = classOf[DecisionTreeClassificationModel].getMethod("predict", classOf[Vector])
           method.setAccessible(true)
           val newColumn = LocalDataColumn(tree.getPredictionCol, column.data map { feature =>
-            method.invoke(tree, feature.asInstanceOf[Vector]).asInstanceOf[Double]
+            val vector: SparseVector = feature.asInstanceOf[SVector]
+            method.invoke(tree, vector).asInstanceOf[Double]
           })
           localData.withColumn(newColumn)
         case None => localData
@@ -77,6 +81,21 @@ object LocalTransformers extends Logger {
     }
   }
 
+  implicit class LocalStringIndexer(val strIndexer: StringIndexerModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local StringIndexer")
+      logger.info(localData.toString)
+      localData.column(strIndexer.getInputCol) match {
+        case Some(column) =>
+          val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
+            strIndexer.transform()
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+  }
+
   implicit class LocalMultilayerPerceptronClassificationModel(val perceptron: MultilayerPerceptronClassificationModel) {
 
     def transform(localData: LocalData): LocalData = {
@@ -99,7 +118,7 @@ object LocalTransformers extends Logger {
 
   implicit class LocalLogisticRegression(val logisticRegression: LogisticRegressionModel) {
 
-    implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
+    import io.hydrosphere.mist.ml.DataUtils._
 
     def transform(localData: LocalData): LocalData = {
       logger.debug("Local LogisticRegression")

@@ -2,7 +2,7 @@ package io.hydrosphere.mist.ml.loaders.preprocessors
 
 import io.hydrosphere.mist.ml.Metadata
 import io.hydrosphere.mist.ml.loaders.LocalModel
-import org.apache.spark.ml.feature.PCA
+import org.apache.spark.ml.feature.PCAModel
 import org.apache.spark.ml.Transformer
 
 

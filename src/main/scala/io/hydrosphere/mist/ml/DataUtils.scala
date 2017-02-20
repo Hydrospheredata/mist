@@ -1,11 +1,13 @@
 package io.hydrosphere.mist.ml
 
-import org.apache.spark.ml.linalg.{Matrices, Matrix, Vector, Vectors}
-
+import org.apache.spark.ml.linalg.{Matrices, Matrix, SparseVector, Vector, Vectors}
+import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 /**
   * Created by Bulat on 09.02.2017.
   */
 object DataUtils {
+  implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
+
   def constructMatrix(params: Map[String, Any]): Matrix = {
     val numRows = params("numRows").asInstanceOf[Int]
     val numCols = params("numCols").asInstanceOf[Int]
