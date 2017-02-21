@@ -115,6 +115,7 @@ private[mist] class ClusterManager extends Actor with Logger {
   }
 
   def restartWorkerWithName(name: String): Unit = {
+    logger.info(s"Worker `$name` will be restart")
     if (workers.containsName(name)) {
       val uid = workers.getUIDByName(name)
       val address = workers(name, uid).address
@@ -252,7 +253,8 @@ private[mist] class ClusterManager extends Actor with Logger {
       val originalSender = sender
 
       if(mistConfigs.contains(jobRequest.namespace)) {
-        if (MistConfig.withoutChangesForNamespace(mistConfigs(jobRequest.namespace), jobRequest.namespace)) {
+        if (MistConfig.withoutChangesForNamespace(mistConfigs(jobRequest.namespace), jobRequest.namespace) &&
+          mistConfigs(jobRequest.namespace).Contexts.timeout(jobRequest.namespace).isFinite()) {
           startNewWorkerWithName(jobRequest.namespace)
         } else {
           mistConfigs -= jobRequest.namespace
@@ -263,8 +265,7 @@ private[mist] class ClusterManager extends Actor with Logger {
         mistConfigs += ((jobRequest.namespace, MistConfig()))
         startNewWorkerWithName(jobRequest.namespace)
       }
-      println(mistConfigs.toList.toString())
-      
+
       workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(uid, name, address, false) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")

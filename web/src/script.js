@@ -85,7 +85,7 @@ window.WebMist = {
     Mist.jobs(function(data) {
       this.hideLoader();
       var template = document.getElementById('jobs').innerHTML;
-      this.render(template, {"jobs": data, callback: "killJob"});
+      this.render(template, {"jobs": data, "name": function() {return this.namespace}, callback: "killJob"});
     }.bind(this));
   },
 
@@ -106,7 +106,7 @@ window.WebMist = {
     Mist.workers(function(data) {
       this.hideLoader();
       var template = document.getElementById('jobs').innerHTML;
-      this.render(template, {"jobs": data, "uid": function() {return this.namespace}, callback: "killWorker" });
+      this.render(template, {"jobs": data, "uid": function() {return this.uid}, callback: "killWorker" });
     }.bind(this));
   },
 
