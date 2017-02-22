@@ -18,39 +18,39 @@ private[mist] object MistConfig {
     }
   }
 
-  def akkaConfig(): Config = config.getConfig("mist").withOnlyPath("akka")
+  def akkaConfig: Config = config.getConfig("mist").withOnlyPath("akka")
 
   object Akka {
 
     trait AkkaSettings {
       def settings: Config = config.getConfig("mist").withOnlyPath("akka")
 
-      def serverList(): List[String] = settings.getStringList("akka.cluster.seed-nodes").toList
-      def port(): Int = settings.getInt("akka.remote.netty.tcp.port")
+      def serverList: List[String] = settings.getStringList("akka.cluster.seed-nodes").toList
+      def port: Int = settings.getInt("akka.remote.netty.tcp.port")
     }
 
     object Worker extends AkkaSettings {
-      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.worker"))
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.worker"))
     }
 
     object Main extends AkkaSettings {
-      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.main"))
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.main"))
     }
 
     object CLI extends AkkaSettings {
-      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.cli"))
+      override def settings: Config = super.settings.withFallback(config.getConfig("mist.cli"))
     }
   }
 
   /** Common application settings */
   object Settings {
-    private def settings(): Config = config.getConfig("mist.settings")
+    private def settings: Config = config.getConfig("mist.settings")
 
     /** Max number of threads for JVM where jobs are running */
-    def threadNumber(): Int = settings.getInt("thread-number")
+    def threadNumber: Int = settings.getInt("thread-number")
 
     /** Single JVM mode only for easier run for development */
-    def singleJVMMode(): Boolean = settings.getBoolean("single-jvm-mode")
+    def singleJVMMode: Boolean = settings.getBoolean("single-jvm-mode")
   }
 
   /** HTTP specific settings */
@@ -58,21 +58,21 @@ private[mist] object MistConfig {
     private def http(): Config = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
-    def isOn(): Boolean = http.getBoolean("on")
+    def isOn: Boolean = http.getBoolean("on")
 
     /** HTTP server host */
-    def host(): String = http.getString("host")
+    def host: String = http.getString("host")
     /** HTTP server port */
-    def port(): Int = http.getInt("port")
+    def port: Int = http.getInt("port")
 
     /** Path to REST config */
-    def routerConfigPath(): String = http.getString("router-config-path")
+    def routerConfigPath: String = http.getString("router-config-path")
   }
 
   /** Hive Test*/
 
   object Hive {
-    def hiveTest(): Boolean = {
+    def hiveTest: Boolean = {
       try {
         config.getBoolean("mist.hive.test")
       } catch {
@@ -83,59 +83,60 @@ private[mist] object MistConfig {
 
   /** MQTT specific settings */
   object MQTT {
-    private def mqtt(): Config = config.getConfig("mist.mqtt")
+    private def mqtt: Config = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */
-    def isOn(): Boolean = mqtt.getBoolean("on")
+    def isOn: Boolean = mqtt.getBoolean("on")
 
     /** MQTT host */
-    def host(): String = mqtt.getString("host")
+    def host: String = mqtt.getString("host")
     /** MQTT port */
-    def port(): Int = mqtt.getInt("port")
+    def port: Int = mqtt.getInt("port")
     /** MQTT topic used for ''reading'' */
-    def subscribeTopic(): String = mqtt.getString("subscribe-topic")
+    def subscribeTopic: String = mqtt.getString("subscribe-topic")
     /** MQTT topic used for ''writing'' */
-    def publishTopic(): String = mqtt.getString("publish-topic")
+    def publishTopic: String = mqtt.getString("publish-topic")
 
   }
 
   object Recovery {
-    private def recovery(): Config = config.getConfig("mist.recovery")
+    private def recovery: Config = config.getConfig("mist.recovery")
 
     /** job recovery after mist Failure */
-    def recoveryOn(): Boolean = recovery.getBoolean("on")
+    def recoveryOn: Boolean = recovery.getBoolean("on")
     /** job recovery multi start limit */
-    def recoveryMultilimit(): Int = recovery.getInt("multilimit")
+    def recoveryMultilimit: Int = recovery.getInt("multilimit")
     /** type Db */
-    def recoveryTypeDb(): String = recovery.getString("typedb")
+    def recoveryTypeDb: String = recovery.getString("typedb")
     /** job recovery MapDb file name */
-    def recoveryDbFileName(): String = recovery.getString("dbfilename")
+    def recoveryDbFileName: String = recovery.getString("dbfilename")
   }
 
   /** Workers specific settings */
   object Workers {
-    private def workers(): Config = config.getConfig("mist.workers")
+    private def workers: Config = config.getConfig("mist.workers")
 
     /** Run workers (local, docker, manual) */
-    def runner(): String = workers.getString("runner")
+    def runner: String = workers.getString("runner")
 
     /** Runner server host */
-    def dockerHost(): String = workers.getString("docker-host")
+    def dockerHost: String = workers.getString("docker-host")
+
     /** Runner server port */
-    def dockerPort(): Int = workers.getInt("docker-port")
+    def dockerPort: Int = workers.getInt("docker-port")
 
     /** Shell command for manual running */
-    def cmd(): String = workers.getString("cmd")
+    def cmd: String = workers.getString("cmd")
   }
 
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
-    private def contexts(): Option[Config] = getConfigOption(config, "mist.context")
-    private def contextDefaults(): Config = config.getConfig("mist.context-defaults")
-    private def contextSettings(): Option[Config] = getConfigOption(config, "mist.context-settings")
+    private def contexts: Option[Config] = getConfigOption(config, "mist.context")
+    private def contextDefaults: Config = config.getConfig("mist.context-defaults")
+    private def contextSettings: Option[Config] = getConfigOption(config, "mist.context-settings")
 
     /** Flag of context creating on start or on demand */
-    def precreated(): List[String] = {
+    def precreated: List[String] = {
       contextSettings match {
         case Some(cnf) => cnf.getStringList("onstart").toList
         case None => List()
