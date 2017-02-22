@@ -11,61 +11,68 @@ private[mist] object MistConfig {
 
   private[mist] var config = ConfigFactory.load()
 
-  val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
+  def reload(): Unit = {
+    config = {
+      ConfigFactory.invalidateCaches()
+      ConfigFactory.load()
+    }
+  }
+
+  def akkaConfig(): Config = config.getConfig("mist").withOnlyPath("akka")
 
   object Akka {
 
     trait AkkaSettings {
       def settings: Config = config.getConfig("mist").withOnlyPath("akka")
 
-      lazy val serverList = settings.getStringList("akka.cluster.seed-nodes").toList
-      lazy val port = settings.getInt("akka.remote.netty.tcp.port")
+      def serverList(): List[String] = settings.getStringList("akka.cluster.seed-nodes").toList
+      def port(): Int = settings.getInt("akka.remote.netty.tcp.port")
     }
 
     object Worker extends AkkaSettings {
-      override def settings: Config = super.settings.withFallback(config.getConfig("mist.worker"))
+      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.worker"))
     }
 
     object Main extends AkkaSettings {
-      override def settings: Config = super.settings.withFallback(config.getConfig("mist.main"))
+      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.main"))
     }
 
     object CLI extends AkkaSettings {
-      override def settings: Config = super.settings.withFallback(config.getConfig("mist.cli"))
+      override def settings(): Config = super.settings.withFallback(config.getConfig("mist.cli"))
     }
   }
 
   /** Common application settings */
   object Settings {
-    private val settings = config.getConfig("mist.settings")
+    private def settings(): Config = config.getConfig("mist.settings")
 
     /** Max number of threads for JVM where jobs are running */
-    lazy val threadNumber: Int = settings.getInt("thread-number")
+    def threadNumber(): Int = settings.getInt("thread-number")
 
     /** Single JVM mode only for easier run for development */
-    lazy val singleJVMMode: Boolean = settings.getBoolean("single-jvm-mode")
+    def singleJVMMode(): Boolean = settings.getBoolean("single-jvm-mode")
   }
 
   /** HTTP specific settings */
   object HTTP {
-    private val http = config.getConfig("mist.http")
+    private def http(): Config = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
-    val isOn: Boolean = http.getBoolean("on")
+    def isOn(): Boolean = http.getBoolean("on")
 
     /** HTTP server host */
-    lazy val host: String = http.getString("host")
+    def host(): String = http.getString("host")
     /** HTTP server port */
-    lazy val port: Int = http.getInt("port")
+    def port(): Int = http.getInt("port")
 
     /** Path to REST config */
-    lazy val routerConfigPath = http.getString("router-config-path")
+    def routerConfigPath(): String = http.getString("router-config-path")
   }
 
   /** Hive Test*/
 
   object Hive {
-    lazy val hivetest: Boolean = {
+    def hiveTest(): Boolean = {
       try {
         config.getBoolean("mist.hive.test")
       } catch {
@@ -76,59 +83,59 @@ private[mist] object MistConfig {
 
   /** MQTT specific settings */
   object MQTT {
-    private val mqtt = config.getConfig("mist.mqtt")
+    private def mqtt(): Config = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */
-    val isOn: Boolean = mqtt.getBoolean("on")
+    def isOn(): Boolean = mqtt.getBoolean("on")
 
     /** MQTT host */
-    lazy val host: String = mqtt.getString("host")
+    def host(): String = mqtt.getString("host")
     /** MQTT port */
-    lazy val port: Int = mqtt.getInt("port")
+    def port(): Int = mqtt.getInt("port")
     /** MQTT topic used for ''reading'' */
-    lazy val subscribeTopic: String = mqtt.getString("subscribe-topic")
+    def subscribeTopic(): String = mqtt.getString("subscribe-topic")
     /** MQTT topic used for ''writing'' */
-    lazy val publishTopic: String = mqtt.getString("publish-topic")
+    def publishTopic(): String = mqtt.getString("publish-topic")
 
   }
 
   object Recovery {
-    private val recovery = config.getConfig("mist.recovery")
+    private def recovery(): Config = config.getConfig("mist.recovery")
 
     /** job recovery after mist Failure */
-    lazy val recoveryOn: Boolean = recovery.getBoolean("on")
+    def recoveryOn(): Boolean = recovery.getBoolean("on")
     /** job recovery multi start limit */
-    lazy val recoveryMultilimit: Int = recovery.getInt("multilimit")
+    def recoveryMultilimit(): Int = recovery.getInt("multilimit")
     /** type Db */
-    lazy val recoveryTypeDb: String = recovery.getString("typedb")
+    def recoveryTypeDb(): String = recovery.getString("typedb")
     /** job recovery MapDb file name */
-    lazy val recoveryDbFileName: String = recovery.getString("dbfilename")
+    def recoveryDbFileName(): String = recovery.getString("dbfilename")
   }
 
   /** Workers specific settings */
   object Workers {
-    private val workers = config.getConfig("mist.workers")
+    private def workers(): Config = config.getConfig("mist.workers")
 
     /** Run workers (local, docker, manual) */
-    val runner: String = workers.getString("runner")
+    def runner(): String = workers.getString("runner")
 
     /** Runner server host */
-    lazy val dockerHost: String = workers.getString("docker-host")
+    def dockerHost(): String = workers.getString("docker-host")
     /** Runner server port */
-    lazy val dockerPort: Int = workers.getInt("docker-port")
+    def dockerPort(): Int = workers.getInt("docker-port")
 
     /** Shell command for manual running */
-    lazy val cmd: String = workers.getString("cmd")
+    def cmd(): String = workers.getString("cmd")
   }
 
   /** Settings for all contexts generally and for each context particularly */
   object Contexts {
-    private val contexts = getConfigOption(config, "mist.context")
-    private val contextDefaults = config.getConfig("mist.context-defaults")
-    private val contextSettings = getConfigOption(config, "mist.context-settings")
+    private def contexts(): Option[Config] = getConfigOption(config, "mist.context")
+    private def contextDefaults(): Config = config.getConfig("mist.context-defaults")
+    private def contextSettings(): Option[Config] = getConfigOption(config, "mist.context-settings")
 
     /** Flag of context creating on start or on demand */
-    lazy val precreated: List[String] = {
+    def precreated(): List[String] = {
       contextSettings match {
         case Some(cnf) => cnf.getStringList("onstart").toList
         case None => List()
