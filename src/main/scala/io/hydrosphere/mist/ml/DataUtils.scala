@@ -2,9 +2,9 @@ package io.hydrosphere.mist.ml
 
 import org.apache.spark.ml.linalg.{Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
-/**
-  * Created by Bulat on 09.02.2017.
-  */
+import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
+
+
 object DataUtils {
   implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
 
@@ -29,4 +29,6 @@ object DataUtils {
       params("values").asInstanceOf[List[Double]].toArray[Double]
     )
   }
+
+  def asBreeze(values: Array[Double]): BV[Double] = new BDV[Double](values)
 }
