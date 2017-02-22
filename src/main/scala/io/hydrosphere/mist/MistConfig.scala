@@ -7,9 +7,13 @@ import scala.collection.JavaConversions._
 import scala.concurrent.duration.Duration
 
 /** Configuration wrapper */
-private[mist] object MistConfig {
 
-  private[mist] var config = ConfigFactory.load()
+private[mist] class MistConfig {
+
+  private[mist] var config = {
+    ConfigFactory.invalidateCaches()
+    ConfigFactory.load()
+  }
 
   val akkaConfig = config.getConfig("mist").withOnlyPath("akka")
 
@@ -192,4 +196,23 @@ private[mist] object MistConfig {
       None
     }
   }
+}
+
+
+
+private[mist] object MistConfig {
+
+  def apply(): MistConfig = { new MistConfig() }
+
+  def withoutChangesForNamespace(mistConfig: MistConfig, namespace: String): Boolean = {
+
+    mistConfig.Contexts.downtime(namespace) == MistConfig().Contexts.downtime(namespace) &&
+    mistConfig.Contexts.streamingDuration(namespace) == MistConfig().Contexts.streamingDuration(namespace) &&
+    mistConfig.Contexts.isDisposable(namespace) == MistConfig().Contexts.isDisposable(namespace) &&
+    mistConfig.Contexts.runOptions(namespace) == MistConfig().Contexts.runOptions(namespace) &&
+    mistConfig.Contexts.sparkConf(namespace) == MistConfig().Contexts.sparkConf(namespace) &&
+    mistConfig.Contexts.timeout(namespace) == MistConfig().Contexts.timeout(namespace)
+
+  }
+
 }

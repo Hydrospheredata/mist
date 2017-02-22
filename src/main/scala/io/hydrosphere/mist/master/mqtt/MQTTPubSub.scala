@@ -56,13 +56,12 @@ private[mist] class MQTTPubSub(connectionUrl: String) extends Actor with Logger 
 
     case p: MQTTPubSub.Publish =>
       try {
-        client.publish(MistConfig.MQTT.publishTopic, p.message())
+        client.publish(MistConfig().MQTT.publishTopic, p.message())
       } catch {
-        case _: Exception => logger.error(s"can't publish to ${MistConfig.MQTT.publishTopic}")
+        case _: Exception => logger.error(s"can't publish to ${MistConfig().MQTT.publishTopic}")
       }
 
     case msg@MQTTPubSub.Subscribe(_) =>
-
       context.child(Constants.Actors.mqttServiceName) match {
         case Some(t) => t ! msg
         case None =>
@@ -70,9 +69,9 @@ private[mist] class MQTTPubSub(connectionUrl: String) extends Actor with Logger 
           t ! msg
           context watch t
           try {
-            client.subscribe(MistConfig.MQTT.subscribeTopic, 0, None, MQTTPubSub.SubscribeListener)
+            client.subscribe(MistConfig().MQTT.subscribeTopic, 0, None, MQTTPubSub.SubscribeListener)
           } catch {
-            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.subscribeTopic}", e)
+            case e: Exception => logger.error(s"can't subscribe to ${MistConfig().MQTT.subscribeTopic}", e)
           }
       }
 

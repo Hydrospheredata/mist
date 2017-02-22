@@ -37,7 +37,7 @@ object SimpleSparkStreaming extends MistJob with MQTTPublisher with StreamingSup
       }
       Thread.sleep(100)
     }
-    ssc.stop()
+    ssc.stop(false)
     Map.empty[String, Any]
   }
 }

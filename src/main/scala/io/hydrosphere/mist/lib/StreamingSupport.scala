@@ -11,7 +11,7 @@ trait StreamingSupport extends ContextSupport {
   private[mist] var _ssc: StreamingContext = _
 
   def createStreamingContext: StreamingContext = {
-    _ssc = new StreamingContext(_sc, MistConfig.Contexts.streamingDuration(_sc.appName))
+    _ssc = new StreamingContext(_sc, MistConfig().Contexts.streamingDuration(_sc.appName))
     _ssc
   }
 

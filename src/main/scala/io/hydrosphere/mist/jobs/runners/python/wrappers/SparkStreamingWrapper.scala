@@ -12,6 +12,6 @@ private[mist] class SparkStreamingWrapper(contextWrapper: ContextWrapper) extend
   }
 
   def getDurationSeconds: Int = {
-    (MistConfig.Contexts.streamingDuration(_sc.appName).milliseconds/1000).toInt
+    (MistConfig().Contexts.streamingDuration(_sc.appName).milliseconds/1000).toInt
   }
 }

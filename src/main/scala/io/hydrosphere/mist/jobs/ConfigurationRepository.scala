@@ -43,8 +43,8 @@ private[mist] object InMemoryJobConfigurationRepository extends ConfigurationRep
 
 private[mist] object InMapDbJobConfigurationRepository extends ConfigurationRepository with JobConfigurationJsonSerialization {
   // Db
-  private lazy val db  =  DBMaker
-    .fileDB(MistConfig.Recovery.recoveryDbFileName)
+  private def db()  =  DBMaker
+    .fileDB(MistConfig().Recovery.recoveryDbFileName)
     .fileLockDisable
     .closeOnJvmShutdown
     .make
