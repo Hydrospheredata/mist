@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.ml
 
-import org.apache.spark.ml.linalg.{Matrices, Matrix, SparseVector, Vector, Vectors}
+import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
 
@@ -31,4 +31,23 @@ object DataUtils {
   }
 
   def asBreeze(values: Array[Double]): BV[Double] = new BDV[Double](values)
+
+  def fromBreeze(breezeVector: BV[Double]): Vector = {
+    breezeVector match {
+      case v: BDV[Double] =>
+        if (v.offset == 0 && v.stride == 1 && v.length == v.data.length) {
+          new DenseVector(v.data)
+        } else {
+          new DenseVector(v.toArray)
+        }
+      case v: BSV[Double] =>
+        if (v.index.length == v.used) {
+          new SparseVector(v.length, v.index, v.data)
+        } else {
+          new SparseVector(v.length, v.index.slice(0, v.used), v.data.slice(0, v.used))
+        }
+      case v: BV[_] =>
+        sys.error("Unsupported Breeze vector type: " + v.getClass.getName)
+    }
+  }
 }

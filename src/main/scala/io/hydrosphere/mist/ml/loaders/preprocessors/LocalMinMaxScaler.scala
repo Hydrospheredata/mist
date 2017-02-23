@@ -9,11 +9,6 @@ import org.apache.spark.ml.linalg.{Vector, DenseVector}
 
 object LocalMinMaxScaler extends LocalModel {
   override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    println("METADATA")
-    println(metadata)
-    println("DATA")
-    println(data)
-
     val originalMinList = data("originalMin").
       asInstanceOf[Map[String, Any]].
       getOrElse("values", List()).
