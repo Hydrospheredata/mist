@@ -1,11 +1,13 @@
 package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
+
 import akka.actor.{Actor, ActorLogging, Address, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.jobs.FullJobConfiguration
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobDetails}
 import io.hydrosphere.mist.{Constants, MistConfig}
+
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.util.Random
 
@@ -32,7 +34,7 @@ class JobRunnerNode(jobRequest: FullJobConfiguration) extends Actor with ActorLo
     // TODO: train|serve
     case MemberUp(member) =>
       if (member.address == cluster.selfAddress) {
-        serverActor ! jobRequest
+        serverActor ! JobDetails(jobRequest, JobDetails.Source.Cli)
         cluster.system.shutdown()
       }
 

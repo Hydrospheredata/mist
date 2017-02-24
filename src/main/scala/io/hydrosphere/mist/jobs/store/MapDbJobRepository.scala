@@ -2,7 +2,7 @@ package io.hydrosphere.mist.jobs.store
 
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
-import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.utils.Logger
 import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
@@ -16,6 +16,7 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
     .fileDB(MistConfig.Recovery.recoveryDbFileName)
     .fileLockDisable
     .closeOnJvmShutdown
+    .checksumHeaderBypass()
     .make
 
   // Map
@@ -47,11 +48,12 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
 
   override def getAll: List[JobDetails] = {
     try {
-      val keys = map.getKeys.toArray.toList.map { (key) =>
+      val values = map.getKeys.toArray.toList.map { (key) =>
+        logger.info(key.toString)
         new String(map.get(key.toString)).parseJson.convertTo[JobDetails]
       }
-      logger.info(s"${keys.length} get from MapDb")
-      keys
+      logger.info(s"${values.length} get from MapDb")
+      values
     }
     catch {
       case e: Exception =>
@@ -94,5 +96,11 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
 
   override def update(jobDetails: JobDetails): Unit = {
     add(jobDetails)
+  }
+
+  override def filteredByStatuses(statuses: List[Status]): List[JobDetails] = {
+    getAll.filter {
+      job: JobDetails => statuses contains job.status
+    }
   }
 }

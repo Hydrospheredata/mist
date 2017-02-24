@@ -16,7 +16,7 @@ import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
-import io.hydrosphere.mist.master.async.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscriber, MQTTSubscribe}
 import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.ContextNode
@@ -93,7 +93,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
   Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
   val clientHTTP = Http(systemM)
 
-  val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+  val mqttActor = systemM.actorOf(Props(classOf[MQTTSubscriber]))
   mqttActor ! MQTTSubscribe
   MQTTTest.subscribe(systemM)
 

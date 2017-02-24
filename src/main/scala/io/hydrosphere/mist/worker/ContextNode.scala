@@ -68,7 +68,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         (cancellation, first)
       }
 
-      val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.RUNNING)
+      val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.Running)
       originalSender ! startedJobDetails
       val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
 //        if(MistConfig.Contexts.timeout(jobRequest.configuration.namespace).isFinite()) {
@@ -85,7 +85,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 //          serverActor ! RemoveJobFromRecovery(runner.id)
 //        }
         runner.stop()
-        originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.ABORTED).withJobResult(Right("Canceled"))
+        originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Aborted).withJobResult(Right("Canceled"))
       }
 
       jobDescriptions += jobRequest
@@ -94,7 +94,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       cancellableRunnerFuture
         .recover {
-          case e: Throwable => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.ERROR).withJobResult(Right(e.toString))
+          case e: Throwable => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(e.toString))
         }(ExecutionContext.global)
         .andThen {
           case _ =>
@@ -104,8 +104,8 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 //            }
         }(ExecutionContext.global)
         .andThen {
-          case Success(result: Either[Map[String, Any], String]) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.STOPPED).withJobResult(result)
-          case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.ERROR).withJobResult(Right(error.toString))
+          case Success(result: Either[Map[String, Any], String]) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
+          case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(error.toString))
         }(ExecutionContext.global)
 
     case ListJobs =>

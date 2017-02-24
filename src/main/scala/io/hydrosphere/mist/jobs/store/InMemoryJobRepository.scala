@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.jobs.store
 
 import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.JobDetails.Status
 
 private[mist] object InMemoryJobRepository extends JobRepository {
 
@@ -28,5 +29,11 @@ private[mist] object InMemoryJobRepository extends JobRepository {
 
   override def update(jobDetails: JobDetails): Unit = {
     add(jobDetails)
+  }
+
+  override def filteredByStatuses(statuses: List[Status]): List[JobDetails] = {
+    getAll.filter {
+      job: JobDetails => statuses contains job.status
+    }
   }
 }

@@ -1,9 +1,7 @@
 package io.hydrosphere.mist.master
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props}
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobDetails}
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.master.JobQueue.{DequeueJob, EnqueueJob}
 import io.hydrosphere.mist.utils.Logger
 import org.joda.time.DateTime
@@ -18,18 +16,18 @@ object JobDistributor {
 
 class JobDistributor extends Actor with Logger {
 
-  private val jobQueueActor: ActorRef = context.system.actorOf(JobQueue.props())
+  private val jobQueueActor: ActorRef = context.actorOf(JobQueue.props())
   
   override def receive: Receive = {
-    case message: FullJobConfiguration =>
-      logger.debug(s"Received new FullJobConfiguration: $message")
-      val jobDetails = JobDetails(message, UUID.randomUUID().toString)
+    case jobDetails: JobDetails =>
+      logger.debug(s"Received new JobDetails: $jobDetails")
+//      val jobDetails = JobDetails(message, UUID.randomUUID().toString)
       
       // Add job into queue
       jobQueueActor ! EnqueueJob(jobDetails)
 
       // Add job into history
-      context.system.actorOf(JobHistory.props()) ! JobHistory.AddJob(jobDetails)
+      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(jobDetails)
       
       context become jobStarted(sender)
   }
@@ -38,7 +36,7 @@ class JobDistributor extends Actor with Logger {
     case job: JobDetails => 
       logger.debug(s"Job was started at ${new DateTime(job.startTime.getOrElse(0L)).toString}")
       // Update job in history store
-      context.system.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
+      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
       context become getResult(originalSender)
   }
   
@@ -50,7 +48,7 @@ class JobDistributor extends Actor with Logger {
       jobQueueActor ! DequeueJob(job)
 
       // Update job in history store
-      context.system.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
+      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
     
       originalSender ! job
   }

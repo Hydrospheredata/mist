@@ -1,5 +1,8 @@
 package io.hydrosphere.mist.jobs
 
+import java.util.UUID
+
+import io.hydrosphere.mist.master.async.AsyncInterface.Provider
 import org.joda.time.DateTime
 
 /*
@@ -19,45 +22,67 @@ object JobDetails {
   object Status {
     
     def apply(string: String): Status = string match {
-      case "INITIALIZED" => INITIALIZED
-      case "QUEUED" => QUEUED
-      case "RUNNING" => RUNNING
-      case "STOPPED" => STOPPED
-      case "ABORTED" => ABORTED
-      case "ERROR" => ERROR
+      case "Initialized" => Initialized
+      case "Queued" => Queued
+      case "Running" => Running
+      case "Stopped" => Stopped
+      case "Aborted" => Aborted
+      case "Error" => Error
     }
 
-    case object INITIALIZED extends Status {
-      override def toString: String = "INITIALIZED"
+    case object Initialized extends Status {
+      override def toString: String = "Initialized"
     }
-    case object QUEUED extends Status {
-      override def toString: String = "QUEUED"
+    case object Queued extends Status {
+      override def toString: String = "Queued"
     }
-    case object RUNNING extends Status {
-      override def toString: String = "RUNNING"
+    case object Running extends Status {
+      override def toString: String = "Running"
     }
-    case object STOPPED extends Status {
-      override def toString: String = "STOPPED"
+    case object Stopped extends Status {
+      override def toString: String = "Stopped"
     }
-    case object ABORTED extends Status {
-      override def toString: String = "ABORTED"
+    case object Aborted extends Status {
+      override def toString: String = "Aborted"
     }
-    case object ERROR extends Status {
-      override def toString: String = "ERROR"
+    case object Error extends Status {
+      override def toString: String = "Error"
     }
 
+  }
+  
+  sealed trait Source
+  
+  object Source {
+    
+    def apply(string: String): Source = string match {
+      case "Http" => Http
+      case "Cli" => Cli
+      case async if async.startsWith("Async") => Async(Provider(async.split(" ").last))
+    }
+    
+    case object Http extends Source {
+      override def toString: String = "Http"
+    }
+    case object Cli extends Source {
+      override def toString: String = "Cli"
+    }
+    case class Async(provider: Provider) extends Source {
+      override def toString: String = s"Async ${provider.toString}"
+    }
+    
   }
   
 }
 
 case class JobDetails(
                        configuration: FullJobConfiguration,
-                       jobId: String,
+                       source: JobDetails.Source,
+                       jobId: String = UUID.randomUUID().toString,
                        startTime: Option[Long] = None,
                        endTime: Option[Long] = None,
                        jobResult: Option[Either[Map[String, Any], String]] = None,
-                       status: JobDetails.Status = JobDetails.Status.INITIALIZED
-                       /* source: SourceType */
+                       status: JobDetails.Status = JobDetails.Status.Initialized
                      )
 {
   override def equals(that: Any): Boolean = that match {
@@ -66,7 +91,7 @@ case class JobDetails(
   }
   
   def withStartTime(time: Long): JobDetails = {
-    JobDetails(configuration, jobId, Some(time), endTime, jobResult, status)
+    JobDetails(configuration, source, jobId, Some(time), endTime, jobResult, status)
   }
   
   def starts(): JobDetails = {
@@ -74,7 +99,7 @@ case class JobDetails(
   }
   
   def withEndTime(time: Long): JobDetails = {
-    JobDetails(configuration, jobId, startTime, Some(time), jobResult, status)
+    JobDetails(configuration, source, jobId, startTime, Some(time), jobResult, status)
   }
   
   def ends(): JobDetails = {
@@ -82,10 +107,10 @@ case class JobDetails(
   }
   
   def withJobResult(result: Either[Map[String, Any], String]): JobDetails = {
-    JobDetails(configuration, jobId, startTime, endTime, Some(result), status)
+    JobDetails(configuration, source, jobId, startTime, endTime, Some(result), status)
   }
 
   def withStatus(status: JobDetails.Status): JobDetails = {
-    JobDetails(configuration, jobId, startTime, endTime, jobResult, status)
+    JobDetails(configuration, source, jobId, startTime, endTime, jobResult, status)
   }
 }

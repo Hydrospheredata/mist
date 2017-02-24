@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.utils.json
 
 import io.hydrosphere.mist.jobs.JobDetails
-import io.hydrosphere.mist.jobs.JobDetails.Status
+import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import spray.json.{JsObject, JsString, JsValue, RootJsonFormat}
 
 import scala.language.reflectiveCalls
@@ -28,7 +28,15 @@ private[mist] trait JobDetailsJsonSerialization extends JobConfigurationJsonSeri
       case JsString(str) => JobDetails.Status(str)
     }
   }
+  
+  implicit object JobSourceSupport extends RootJsonFormat[JobDetails.Source] {
+    override def write(obj: Source): JsValue = JsString(obj.toString)
 
-  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat6(JobDetails.apply)
+    override def read(json: JsValue): Source = json match {
+      case JsString(str) => JobDetails.Source(str)
+    }
+  }
+
+  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat7(JobDetails.apply)
   
 }

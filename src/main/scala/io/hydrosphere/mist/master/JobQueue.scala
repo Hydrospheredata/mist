@@ -52,7 +52,7 @@ class JobQueue extends Actor with Logger {
         val job = namespaceQueue.dequeue()
         logger.debug(s"Starting job in $namespace. ${runningJobs.length} jobs are started")
         runningJobs += job
-        context.system.actorOf(ClusterManager.props()) ! ClusterManager.StartJob(job)
+        context.actorOf(ClusterManager.props()) ! ClusterManager.StartJob(job)
       } else {
         return
       }

@@ -4,10 +4,10 @@ import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.async.kafka.KafkaSubscriberActor
-import io.hydrosphere.mist.master.async.mqtt.{MQTTServiceActor, MQTTSubscribe}
+import io.hydrosphere.mist.master.async.kafka.{KafkaPublisher, KafkaSubscriber}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTActorWrapper, MQTTPublisher, MQTTSubscriber}
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
@@ -23,47 +23,33 @@ private[mist] object Master extends App with HTTPService with Logger {
   // Context creator actor
   val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
 
-    // Creating contexts which are specified in config as `onstart`
+  // Creating contexts which are specified in config as `onstart`
   MistConfig.Contexts.precreated foreach { contextName =>
     logger.info("Creating contexts which are specified in config")
     workerManager ! CreateContext(contextName)
   }
 
-  // Start HTTP server if it is on in config
+  // Start HTTP server
   if (MistConfig.HTTP.isOn) {
     Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
   }
 
-  // Start MQTT subscriber if it is on in config
+  // Start MQTT subscriber
   if (MistConfig.MQTT.isOn) {
-    val mqttActor = system.actorOf(Props(classOf[MQTTServiceActor]))
-    mqttActor ! MQTTSubscribe
+    AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt, system)
   }
   
+  // Start Kafka subscriber
   if (MistConfig.Kafka.isOn) {
-    system.actorOf(KafkaSubscriberActor.props())
+    AsyncInterface.subscriber(AsyncInterface.Provider.Kafka, system)
   }
   
   // Start Job Queue Actor
   system.actorOf(JobQueue.props(), name = Constants.Actors.jobQueueName)
 
-  // Job Recovery
-  // TODO: start recovery
+  // Start job recovery
+  system.actorOf(JobRecovery.props()) ! JobRecovery.StartRecovery
   
-//  var configurationRepository: JobRepository = InMemoryJobRepository
-//
-//  if(MistConfig.Recovery.recoveryOn) {
-//    configurationRepository = MistConfig.Recovery.recoveryTypeDb match {
-//      case "MapDb" => MapDbJobRepository
-//      case _ => InMemoryJobRepository
-//    }
-//  }
-//
-//  lazy val recoveryActor = system.actorOf(Props(classOf[JobRecovery], configurationRepository), name = "RecoveryActor")
-//  if (MistConfig.MQTT.isOn && MistConfig.Recovery.recoveryOn) {
-//    recoveryActor ! StartRecovery
-//  }
-
   // We need to stop contexts on exit
   sys addShutdownHook {
     logger.info("Stopping all the contexts")

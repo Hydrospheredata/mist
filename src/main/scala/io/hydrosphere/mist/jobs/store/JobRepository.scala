@@ -11,6 +11,7 @@ private[mist] trait JobRepository {
   def size: Int
   def clear(): Unit
   def update(jobDetails: JobDetails): Unit
+  def filteredByStatuses(statuses: List[JobDetails.Status]): List[JobDetails]
 }
 
 object JobRepository {

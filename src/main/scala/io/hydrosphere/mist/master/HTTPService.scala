@@ -122,8 +122,9 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       val distributor = system.actorOf(JobDistributor.props())
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
+      val jobDetails = JobDetails(jobRequest, JobDetails.Source.Http)
       if(timeDuration.isFinite()) {
-        val future = distributor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
+        val future = distributor.ask(jobDetails)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
 
         future
           .recover {
@@ -144,7 +145,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
         }
       }
       else {
-        distributor ! jobRequest
+        distributor ! jobDetails
         val jobResult = JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
         HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
       }

@@ -1,25 +1,28 @@
 package io.hydrosphere.mist.master.async.kafka
 
-import akka.actor.Props
-import cakesolutions.kafka.{KafkaConsumer, KafkaProducer}
-import cakesolutions.kafka.akka.{ConsumerRecords, KafkaConsumerActor, KafkaProducerActor, ProducerRecords}
+import akka.actor.{ActorRef, Props}
+import cakesolutions.kafka.KafkaConsumer
+import cakesolutions.kafka.akka.{ConsumerRecords, KafkaConsumerActor}
 import cakesolutions.kafka.akka.KafkaConsumerActor.{Confirm, Subscribe, Unsubscribe}
-import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
+import org.apache.kafka.common.serialization.StringDeserializer
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.master.async.AsyncServiceActor
+import io.hydrosphere.mist.master.async.AsyncInterface.Provider
+import io.hydrosphere.mist.master.async.{AsyncInterface, AsyncSubscriber}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 import scala.concurrent.duration._
 
-object KafkaSubscriberActor {
+object KafkaSubscriber {
 
-  def props() = Props(classOf[KafkaSubscriberActor])
+  def props(publishActor: ActorRef) = Props(classOf[KafkaSubscriber], publishActor)
 
 }
 
-class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigurationJsonSerialization {
-
+private[mist] class KafkaSubscriber(override val publisherActor: ActorRef) extends AsyncSubscriber with Logger with JobConfigurationJsonSerialization {
+  
+  override val provider: Provider = AsyncInterface.Provider.Kafka
+  
   private val extractor = ConsumerRecords.extractor[String, String]
 
   private val kafkaConsumer = context.actorOf(KafkaConsumerActor.props(
@@ -32,16 +35,7 @@ class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigu
     self
   ), "KafkaConsumer")
   context.watch(kafkaConsumer)
-
-  private val kafkaProducer = context.actorOf(KafkaProducerActor.props(
-    KafkaProducer.Conf(
-      props = Map("bootstrap.servers" -> s"${MistConfig.Kafka.host}:${MistConfig.Kafka.port}"), 
-      keySerializer = new StringSerializer, 
-      valueSerializer = new StringSerializer
-    ).withConf(MistConfig.Kafka.conf)
-  ))
-
-
+  
   override def preStart(): Unit = {
     super.preStart()
     logger.info(s"Subscribe to kafka topic: ${MistConfig.Kafka.subscribeTopic}")
@@ -54,7 +48,7 @@ class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigu
     super.postStop()
   }
 
-  override def receive: Receive = {
+  receiver {
     case extractor(consumerRecords) =>
       consumerRecords.pairs.foreach {
         case (key, message) =>
@@ -69,7 +63,4 @@ class KafkaSubscriberActor extends AsyncServiceActor with Logger with JobConfigu
       kafkaConsumer ! Confirm(consumerRecords.offsets, commit = true)
   }
 
-  override def send(message: String): Unit = {
-    kafkaProducer ! ProducerRecords.fromKeyValues(MistConfig.Kafka.publishTopic, Seq((Some("result"), message)), None, None)
-  }
 }
