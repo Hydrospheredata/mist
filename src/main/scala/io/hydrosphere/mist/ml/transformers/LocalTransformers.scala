@@ -2,7 +2,10 @@ package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalStandardScaler}
+import io.hydrosphere.mist.utils.SparkCollections.OpenHashMap
 import io.hydrosphere.mist.utils.Logger
+import org.apache.spark.SparkException
+import org.apache.spark.ml.attribute.NominalAttribute
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.feature._
@@ -94,7 +97,25 @@ object LocalTransformers extends Logger {
       localData.column(strIndexer.getInputCol) match {
         case Some(column) =>
           val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
-            ???
+            val labelToIndex = {
+              val n = strIndexer.labels.length
+              val map = new OpenHashMap[String, Double](n)
+              var i = 0
+              while (i < n) {
+                map.update(strIndexer.labels(i), i)
+                i += 1
+              }
+              map
+            }
+            val indexer = (label: String) => {
+              if (labelToIndex.contains(label)) {
+                labelToIndex(label)
+              } else {
+                throw new SparkException(s"Unseen label: $label.")
+              }
+            }
+            val list = feature.asInstanceOf[List[String]]
+            list.map(indexer)
           })
           localData.withColumn(newColumn)
         case None => localData

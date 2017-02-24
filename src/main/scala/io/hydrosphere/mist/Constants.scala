@@ -32,6 +32,9 @@ object Constants {
     final val stopAllWorkers = "All contexts are scheduled for shutdown."
   }
   object ML {
+    object Models {
+      final val randomForestClassifier = "org.apache.spark.ml.classification.RandomForestClassificationModel"
+    }
     object Collumns {
       final val inputCol = "inputCol"
       final val outputCol = "outputCol"

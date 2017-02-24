@@ -37,8 +37,7 @@ object DTree extends MLMistJob with SQLSupport {
 
     model.write.overwrite().save("/models/dtree")
     Map.empty[String, Any]
-  }
-
+}
   def serve(text: List[String]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 

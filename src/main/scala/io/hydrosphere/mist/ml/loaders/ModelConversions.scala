@@ -28,6 +28,7 @@ object ModelConversions {
     case _: PCAModel.type => LocalPCA
     case _: StandardScalerModel.type => LocalStandardScaler
     case _: MaxAbsScaler.type => LocalMaxAbsScaler
+    case _: VectorIndexerModel.type => LocalVectorIndexer
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }
