@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.ml
 
+import java.util
+
 import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
@@ -49,5 +51,22 @@ object DataUtils {
       case v: BV[_] =>
         sys.error("Unsupported Breeze vector type: " + v.getClass.getName)
     }
+  }
+
+  /**
+    * NOTE: for faster implementation use org.apache.spark.util.collection.OpenHashMap
+    *
+    * @param labels Array[String]
+    * @return HashMap
+    */
+  def labelToIndex(labels: Array[String]): util.HashMap[String, Double] = {
+    val n = labels.length
+    val map = new util.HashMap[String, Double](n)
+    var i = 0
+    while (i < n) {
+      map.put(labels(i), i)
+      i += 1
+    }
+    map
   }
 }

@@ -12,6 +12,7 @@ import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => 
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import io.hydrosphere.mist.ml.DataUtils
+import org.apache.spark.SparkException
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -96,10 +97,17 @@ object LocalTransformers extends Logger {
       logger.info(localData.toString)
       localData.column(strIndexer.getInputCol) match {
         case Some(column) =>
-          val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
-            ???
+          val values = strIndexer.labels
+          val labelToIndex = DataUtils.labelToIndex(values)
+
+          val newData = column.data.map(r => {
+            if (labelToIndex.containsKey(r)) {
+              labelToIndex.get(r)
+            } else {
+              throw new SparkException(s"Unseen label: $r.")
+            }
           })
-          localData.withColumn(newColumn)
+          localData.withColumn(LocalDataColumn(strIndexer.getOutputCol, newData))
         case None => localData
       }
     }
@@ -291,6 +299,4 @@ object LocalTransformers extends Logger {
       }
     }
   }
-
-
 }
