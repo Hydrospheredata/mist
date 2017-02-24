@@ -62,5 +62,6 @@ private[mist] object AsyncInterface {
         mqttActorWrapper = system.actorOf(MqttActorWrapper.props())
       }
       mqttActorWrapper
+    case x: Provider => throw new IllegalArgumentException(s"No wrapper for ${x.toString}")
   }
 }

@@ -66,13 +66,14 @@ private[mist] abstract class AsyncSubscriber extends Actor with MultiReceiveActo
         val result = Await.ready(future, Duration.Inf).value.get
         val jobResult = result match {
           case Success(r: JobDetails) => r.jobResult.getOrElse(Left("Empty result"))
-          case Success(r: Either[String, Map[String, Any]]) => r
+          case Success(r: Either[_, _]) => r
+          case Success(r: Any) => Left(s"Unknown type ${r.getClass.getCanonicalName}")
           case Failure(r) => r
         }
 
         jobResult match {
-          case Left(jobResult: Map[String, Any]) =>
-            JobResult(success = true, payload = jobResult, request = jobDetails.configuration, errors = List.empty)
+          case Left(jobResult: Map[_, _]) =>
+            JobResult(success = true, payload = jobResult.asInstanceOf[Map[String, Any]], request = jobDetails.configuration, errors = List.empty)
           case Right(error: String) =>
             JobResult(success = false, payload = Map.empty[String, Any], request = jobDetails.configuration, errors = List(error))
         }

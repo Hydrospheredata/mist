@@ -35,7 +35,7 @@ class CLINode extends Actor {
   def cliResponder[A](el: A, originalSender: akka.actor.ActorRef): Unit = {
     val future = serverActor.ask(el)(timeout = Constants.CLI.timeoutDuration)
     future.andThen {
-      case Success(result: Map[String, Any]) => originalSender ! result
+      case Success(result: Map[_, _]) => originalSender ! result
       case Success(result: String) => originalSender ! result
       case Success(result: List[JobDetails]) => originalSender ! result.map {
         job: JobDetails => JobDescription(job)
