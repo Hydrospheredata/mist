@@ -3,10 +3,13 @@ package io.hydrosphere.mist.ml
 import org.apache.spark.ml.classification.DecisionTreeClassificationModel
 import org.apache.spark.ml.linalg.{Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.ml.tree._
+import java.util
+
+import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
-/**
-  * Created by Bulat on 09.02.2017.
-  */
+import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
+
+
 object DataUtils {
   implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
 
@@ -15,7 +18,7 @@ object DataUtils {
     val numCols = params("numCols").asInstanceOf[Int]
     val values = params("values").asInstanceOf[Array[Double]]
 
-    if(params.contains("colPtrs")) {
+    if (params.contains("colPtrs")) {
       val colPtrs = params("colPtrs").asInstanceOf[Array[Int]]
       val rowIndices = params("rowIndices").asInstanceOf[Array[Int]]
       Matrices.sparse(numRows, numCols, colPtrs, rowIndices, values)
@@ -72,7 +75,7 @@ object DataUtils {
     }
   }
 
-  def isInternalNode(nodeData: Map[String, Any]) : Boolean =
+  def isInternalNode(nodeData: Map[String, Any]): Boolean =
     (nodeData("leftChild").asInstanceOf[java.lang.Integer] == -1) && (nodeData("rightChild").asInstanceOf[java.lang.Integer] == -1)
 
 
@@ -122,5 +125,26 @@ object DataUtils {
     }
     println(res)
     res
+  }
+
+  def asBreeze(values: Array[Double]): BV[Double] = new BDV[Double](values)
+
+  def fromBreeze(breezeVector: BV[Double]): Vector = {
+    breezeVector match {
+      case v: BDV[Double] =>
+        if (v.offset == 0 && v.stride == 1 && v.length == v.data.length) {
+          new DenseVector(v.data)
+        } else {
+          new DenseVector(v.toArray)
+        }
+      case v: BSV[Double] =>
+        if (v.index.length == v.used) {
+          new SparseVector(v.length, v.index, v.data)
+        } else {
+          new SparseVector(v.length, v.index.slice(0, v.used), v.data.slice(0, v.used))
+        }
+      case v: BV[_] =>
+        sys.error("Unsupported Breeze vector type: " + v.getClass.getName)
+    }
   }
 }

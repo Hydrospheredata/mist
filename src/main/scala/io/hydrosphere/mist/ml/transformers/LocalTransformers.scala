@@ -9,11 +9,13 @@ import org.apache.spark.ml.attribute.NominalAttribute
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.feature._
-import org.apache.spark.ml.linalg.{SparseVector, Vector}
+import org.apache.spark.ml.linalg.{SparseVector, Vector, Vectors}
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => OldStandardScalerModel}
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
 import org.apache.spark.sql.{DataFrame, Dataset}
+import io.hydrosphere.mist.ml.DataUtils
+import org.apache.spark.SparkException
 
 import scala.language.implicitConversions
 import scala.collection.mutable
@@ -34,6 +36,8 @@ object LocalTransformers extends Logger {
         case binarizer: Binarizer => binarizer.transform(x)
         case pca: PCAModel => pca.transform(x)
         case standardScaler: StandardScalerModel => standardScaler.transform(x)
+        case minMaxScaler: MinMaxScalerModel => minMaxScaler.transform(x)
+        case maxAbsScaler: MaxAbsScalerModel => maxAbsScaler.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -236,7 +240,6 @@ object LocalTransformers extends Logger {
     }
   }
 
-  // TODO: test
   implicit class LocalStandardScaler(val standardScaler: StandardScalerModel) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local StandardScaler")
@@ -260,21 +263,54 @@ object LocalTransformers extends Logger {
     }
   }
 
-  // TODO: test
-  implicit class LocalMaxAbsScaler(val scaler: MaxAbsScaler) {
+  implicit class LocalMaxAbsScaler(val maxAbsScaler: MaxAbsScalerModel) {
     def transform(localData: LocalData): LocalData = {
       logger.debug(s"Local MaxAbsScaler")
       logger.debug(localData.toString)
-      localData.column(scaler.getInputCol) match {
+      localData.column(maxAbsScaler.getInputCol) match {
         case Some(column) =>
-          val method = classOf[MaxAbsScaler].getMethod("transform")
+          val maxAbsUnzero = Vectors.dense(maxAbsScaler.maxAbs.toArray.map(x => if (x == 0) 1 else x))
           val newData = column.data.map(r => {
-            method.invoke(scaler).asInstanceOf[Dataset[_] => DataFrame](r.asInstanceOf[Dataset[_]])
+            val brz = DataUtils.asBreeze(r.asInstanceOf[Array[Double]]) / DataUtils.asBreeze(maxAbsUnzero.toArray)
+            DataUtils.fromBreeze(brz)
           })
-          localData.withColumn(LocalDataColumn(scaler.getOutputCol, newData))
+          localData.withColumn(LocalDataColumn(maxAbsScaler.getOutputCol, newData))
         case None => localData
       }
     }
   }
 
+  implicit class LocalMinMaxScaler(val minMaxScaler: MinMaxScalerModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local MinMaxScaler")
+      logger.debug(localData.toString)
+
+      val originalRange = (DataUtils.asBreeze(minMaxScaler.originalMax.toArray) - DataUtils.asBreeze(minMaxScaler.originalMin.toArray)).toArray
+      val minArray = minMaxScaler.originalMin.toArray
+      val min = minMaxScaler.getMin
+      val max = minMaxScaler.getMax
+
+      localData.column(minMaxScaler.getInputCol) match {
+        case Some(column) =>
+
+          val newData = column.data.map(r => {
+            val scale = max - min
+
+            val values = r.asInstanceOf[Array[Double]]
+            val size = values.length
+            var i = 0
+            while (i < size) {
+              if (!values(i).isNaN) {
+                val raw = if (originalRange(i) != 0) (values(i) - minArray(i)) / originalRange(i) else 0.5
+                values(i) = raw * scale + min
+              }
+              i += 1
+            }
+            values
+          })
+          localData.withColumn(LocalDataColumn(minMaxScaler.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
 }
