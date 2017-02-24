@@ -8,7 +8,7 @@ import spray.json._
 import DefaultJsonProtocol._
 import io.hydrosphere.mist.jobs.MistJobConfiguration
 import io.hydrosphere.mist.master.ClusterManager
-import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscriber, MQTTSubscribe}
+import io.hydrosphere.mist.master.async.mqtt.{MqttSubscriber$, MQTTSubscribe}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
@@ -22,7 +22,7 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
   val systemS = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
-  val mqttActor = systemW.actorOf(Props(classOf[MQTTSubscriber]))
+  val mqttActor = systemW.actorOf(Props(classOf[MqttSubscriber]))
   mqttActor ! MQTTSubscribe
   InfinityJobTestMqttActor.subscribe(systemW)
 
@@ -59,11 +59,11 @@ class InfinityJobTestActor extends WordSpecLike with Eventually with BeforeAndAf
 object InfinityJobTestMqttActor {
 
   val persistence = new MemoryPersistence
-  val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+  val mqttClient = new MqttClient(s"tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}", MqttClient.generateClientId, persistence)
 
   def subscribe(actorSystem: ActorSystem): Unit = {
     mqttClient.connect()
-    mqttClient.subscribe(MistConfig.MQTT.subscribeTopic)
+    mqttClient.subscribe(MistConfig.Mqtt.subscribeTopic)
 
     val callback = new MqttCallback {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {

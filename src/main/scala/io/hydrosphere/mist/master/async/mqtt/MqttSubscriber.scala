@@ -8,24 +8,24 @@ import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.master.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.async.{AsyncInterface, AsyncSubscriber}
 
-private[mist] object MQTTSubscriber {
+private[mist] object MqttSubscriber {
   
-  def props(publisherActor: ActorRef, mqttActorWrapper: ActorRef): Props = Props(classOf[MQTTSubscriber], publisherActor, mqttActorWrapper)
+  def props(publisherActor: ActorRef, mqttActorWrapper: ActorRef): Props = Props(classOf[MqttSubscriber], publisherActor, mqttActorWrapper)
   
 }
 
-private[mist] class MQTTSubscriber(override val publisherActor: ActorRef, mqttActorWrapper: ActorRef) extends AsyncSubscriber with MultiReceiveActor with JobConfigurationJsonSerialization with Logger {
+private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttActorWrapper: ActorRef) extends AsyncSubscriber with MultiReceiveActor with JobConfigurationJsonSerialization with Logger {
   
   override val provider: Provider = AsyncInterface.Provider.Mqtt
 
   override def preStart(): Unit = {
-    mqttActorWrapper ! MQTTActorWrapper.Subscribe(self)
+    mqttActorWrapper ! MqttActorWrapper.Subscribe(self)
   }
 
   receiver {
-    case msg: MQTTActorWrapper.Message =>
+    case msg: MqttActorWrapper.Message =>
       val stringMessage = new String(msg.payload, "utf-8")
-      logger.info("Receiving Data from MQTT, Topic : %s, Message : %s".format(MistConfig.MQTT.subscribeTopic, stringMessage))
+      logger.info("Receiving Data from MQTT, Topic : %s, Message : %s".format(MistConfig.Mqtt.subscribeTopic, stringMessage))
       processIncomingMessage(stringMessage)
   }
 

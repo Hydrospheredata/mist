@@ -5,16 +5,6 @@ import java.util.UUID
 import io.hydrosphere.mist.master.async.AsyncInterface.Provider
 import org.joda.time.DateTime
 
-/*
-object SourceType {
-  val HTTP
-  val Kafka
-  val MQTT
-  val CLI
-}
-
- */
-
 object JobDetails {
   
   sealed trait Status

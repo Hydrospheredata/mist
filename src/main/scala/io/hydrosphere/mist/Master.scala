@@ -4,8 +4,6 @@ import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.{CreateContext, StopAllContexts}
-import io.hydrosphere.mist.master.async.kafka.{KafkaPublisher, KafkaSubscriber}
-import io.hydrosphere.mist.master.async.mqtt.{MQTTActorWrapper, MQTTPublisher, MQTTSubscriber}
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.utils.Logger
@@ -13,7 +11,7 @@ import io.hydrosphere.mist.utils.Logger
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Master extends App with HTTPService with Logger {
+private[mist] object Master extends App with HttpService with Logger {
   override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
@@ -30,12 +28,12 @@ private[mist] object Master extends App with HTTPService with Logger {
   }
 
   // Start HTTP server
-  if (MistConfig.HTTP.isOn) {
-    Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+  if (MistConfig.Http.isOn) {
+    Http().bindAndHandle(route, MistConfig.Http.host, MistConfig.Http.port)
   }
 
   // Start MQTT subscriber
-  if (MistConfig.MQTT.isOn) {
+  if (MistConfig.Mqtt.isOn) {
     AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt, system)
   }
   

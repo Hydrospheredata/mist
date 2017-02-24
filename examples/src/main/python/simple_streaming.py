@@ -1,11 +1,11 @@
 from mist.mist_job import *
 
-class SimpleStreaming(MistJob, WithStreamingContext, WithMQTTPublisher):
+class SimpleStreaming(MistJob, WithStreamingContext, WithMqttPublisher):
 
     def execute(self, parameters):
         import time
 
-        def takeAndPublish(time, rdd):
+        def take_and_publish(time, rdd):
             taken = rdd.take(11)
             self.mqtt.publish("-------------------------------------------")
             self.mqtt.publish("Time: %s" % time)
@@ -14,17 +14,17 @@ class SimpleStreaming(MistJob, WithStreamingContext, WithMQTTPublisher):
 
         ssc = self.streaming_context
         type(ssc)
-        rddQueue = []
-        for i in range(500):
-            rddQueue += [ssc.sparkContext.parallelize([j for j in range(1, 1001)], 10)]
+        rdd_queue = []
+        for _ in range(500):
+            rdd_queue += [ssc.sparkContext.parallelize([j for j in range(1, 1001)], 10)]
 
         # Create the QueueInputDStream and use it do some processing
-        inputStream = ssc.queueStream(rddQueue)
-        mappedStream = inputStream.map(lambda x: (x % 10, 1))
-        reducedStream = mappedStream.reduceByKey(lambda a, b: a + b)
-        #reducedStream.pprint()
+        input_stream = ssc.queueStream(rdd_queue)
+        mapped_stream = input_stream.map(lambda x: (x % 10, 1))
+        reduced_stream = mapped_stream.reduceByKey(lambda a, b: a + b)
+        #reduced_stream.pprint()
 
-        reducedStream.foreachRDD(takeAndPublish)
+        reduced_stream.foreachRDD(take_and_publish)
 
         ssc.start()
         time.sleep(15)

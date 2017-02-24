@@ -25,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
 
 /** HTTP interface */
-private[mist] trait HTTPService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
+private[mist] trait HttpService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer

@@ -9,7 +9,7 @@ import org.eclipse.paho.client.mqttv3._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Deadline, DurationInt}
 
-private[mist] object MQTTActorWrapper {
+private[mist] object MqttActorWrapper {
 
   class Publish(payload: Array[Byte]) {
     def message(): MqttMessage = {
@@ -84,13 +84,13 @@ private[mist] object MQTTActorWrapper {
     }
   }
   
-  def props(connectionUrl: String): Props = Props(classOf[MQTTActorWrapper], connectionUrl)
+  def props(connectionUrl: String): Props = Props(classOf[MqttActorWrapper], connectionUrl)
 
-  def props(): Props = Props(classOf[MQTTActorWrapper], s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}")
+  def props(): Props = Props(classOf[MqttActorWrapper], s"tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}")
 }
 
 
-private[mist] class MQTTActorWrapper(connectionUrl: String) extends Actor with Logger {
+private[mist] class MqttActorWrapper(connectionUrl: String) extends Actor with Logger {
 
   lazy val connectionOptions: MqttConnectOptions = {
     val opt = new MqttConnectOptions
@@ -101,16 +101,16 @@ private[mist] class MQTTActorWrapper(connectionUrl: String) extends Actor with L
   private[this] val client = {
     val persistence = new MemoryPersistence
     val client = new MqttAsyncClient(connectionUrl, MqttAsyncClient.generateClientId(), persistence)
-    client.setCallback(new MQTTActorWrapper.Callback(self))
+    client.setCallback(new MqttActorWrapper.Callback(self))
     client
   }
 
-  private[this] val connectionListener = new MQTTActorWrapper.ConnectionListener(self)
+  private[this] val connectionListener = new MqttActorWrapper.ConnectionListener(self)
 
   private[this] val msgBuffer = ListBuffer.empty[(Deadline, Any)]
 
   def receive: Receive = {
-    case MQTTActorWrapper.Connect =>
+    case MqttActorWrapper.Connect =>
       logger.info(s"connecting to $connectionUrl..")
       try {
         client.connect(connectionOptions, None, connectionListener)
@@ -118,14 +118,14 @@ private[mist] class MQTTActorWrapper(connectionUrl: String) extends Actor with L
         case _: Exception => logger.error(s"can't connect to $connectionUrl")
       }
 
-    case MQTTActorWrapper.Connected =>
+    case MqttActorWrapper.Connected =>
       for ((deadline, x) <- msgBuffer if deadline.hasTimeLeft()) {
         self ! x
       }
       msgBuffer.clear()
       context become ready
 
-    case x @ (_: MQTTActorWrapper.Publish | _: MQTTActorWrapper.Subscribe) =>
+    case x @ (_: MqttActorWrapper.Publish | _: MqttActorWrapper.Subscribe) =>
       if (msgBuffer.length > 1000) {
         msgBuffer.remove(0, msgBuffer.length/2)
       }
@@ -134,29 +134,29 @@ private[mist] class MQTTActorWrapper(connectionUrl: String) extends Actor with L
 
   def ready: Receive = {
 
-    case p: MQTTActorWrapper.Publish =>
+    case p: MqttActorWrapper.Publish =>
       try {
-        client.publish(MistConfig.MQTT.publishTopic, p.message())
+        client.publish(MistConfig.Mqtt.publishTopic, p.message())
       } catch {
-        case _: Exception => logger.error(s"can't publish to ${MistConfig.MQTT.publishTopic}")
+        case _: Exception => logger.error(s"can't publish to ${MistConfig.Mqtt.publishTopic}")
       }
 
-    case msg@MQTTActorWrapper.Subscribe(_) =>
+    case msg@MqttActorWrapper.Subscribe(_) =>
 
       context.child(Constants.Actors.mqttServiceName) match {
         case Some(t) => t ! msg
         case None =>
-          val t = context.actorOf(Props[MQTTActorWrapper.Subscribers], name = Constants.Actors.mqttServiceName)
+          val t = context.actorOf(Props[MqttActorWrapper.Subscribers], name = Constants.Actors.mqttServiceName)
           t ! msg
           context watch t
           try {
-            client.subscribe(MistConfig.MQTT.subscribeTopic, 0, None, MQTTActorWrapper.SubscribeListener)
+            client.subscribe(MistConfig.Mqtt.subscribeTopic, 0, None, MqttActorWrapper.SubscribeListener)
           } catch {
-            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.MQTT.subscribeTopic}", e)
+            case e: Exception => logger.error(s"can't subscribe to ${MistConfig.Mqtt.subscribeTopic}", e)
           }
       }
 
-    case msg: MQTTActorWrapper.Message => context.child(Constants.Actors.mqttServiceName) foreach (_ ! msg)
+    case msg: MqttActorWrapper.Message => context.child(Constants.Actors.mqttServiceName) foreach (_ ! msg)
 
     case Terminated(topicRef) =>
       try {
@@ -165,10 +165,10 @@ private[mist] class MQTTActorWrapper(connectionUrl: String) extends Actor with L
         case e: Exception => logger.error(s"can't unsubscribe from ${topicRef.path.name}", e)
       }
 
-    case MQTTActorWrapper.Disconnected =>
+    case MqttActorWrapper.Disconnected =>
       context become receive
-      self ! MQTTActorWrapper.Connect
+      self ! MqttActorWrapper.Connect
   }
 
-  self ! MQTTActorWrapper.Connect
+  self ! MqttActorWrapper.Connect
 }

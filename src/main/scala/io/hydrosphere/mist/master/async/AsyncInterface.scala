@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.async
 
 import akka.actor.{ActorRef, ActorSystem}
 import io.hydrosphere.mist.master.async.kafka.{KafkaPublisher, KafkaSubscriber}
-import io.hydrosphere.mist.master.async.mqtt.{MQTTActorWrapper, MQTTPublisher, MQTTSubscriber}
+import io.hydrosphere.mist.master.async.mqtt.{MqttActorWrapper, MqttPublisher, MqttSubscriber}
 
 private[mist] object AsyncInterface {
 
@@ -32,8 +32,8 @@ private[mist] object AsyncInterface {
   def subscriber(provider: Provider, system: ActorSystem): ActorRef = provider match {
     case Provider.Mqtt =>
       if (mqttSubscriber == null) {
-        mqttActorWrapper = system.actorOf(MQTTActorWrapper.props())
-        mqttSubscriber = system.actorOf(MQTTSubscriber.props(publisher(provider, system), actorWrapper(provider, system)))
+        mqttActorWrapper = system.actorOf(MqttActorWrapper.props())
+        mqttSubscriber = system.actorOf(MqttSubscriber.props(publisher(provider, system), actorWrapper(provider, system)))
       }
       mqttSubscriber
     case Provider.Kafka =>
@@ -46,7 +46,7 @@ private[mist] object AsyncInterface {
   def publisher(provider: Provider, system: ActorSystem): ActorRef = provider match {
     case Provider.Mqtt =>
       if (mqttPublisher == null) {
-        mqttPublisher = system.actorOf(MQTTPublisher.props(actorWrapper(provider, system)))
+        mqttPublisher = system.actorOf(MqttPublisher.props(actorWrapper(provider, system)))
       }
       mqttPublisher
     case Provider.Kafka =>
@@ -59,7 +59,7 @@ private[mist] object AsyncInterface {
   private def actorWrapper(provider: Provider, system: ActorSystem): ActorRef = provider match {
     case Provider.Mqtt =>
       if (mqttActorWrapper == null) {
-        mqttActorWrapper = system.actorOf(MQTTActorWrapper.props())
+        mqttActorWrapper = system.actorOf(MqttActorWrapper.props())
       }
       mqttActorWrapper
   }

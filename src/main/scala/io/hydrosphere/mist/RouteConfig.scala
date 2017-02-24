@@ -36,13 +36,13 @@ private[mist] object RouteConfig extends Logger {
 
   def apply(route: String): RouteConfig = {
     val configFile = try {
-      new File(MistConfig.HTTP.routerConfigPath)
+      new File(MistConfig.Http.routerConfigPath)
     } catch {
       case _: ConfigException.Missing => throw new RouterConfigurationMissingError(s"Router configuration file is not defined")
     }
     if (!configFile.exists()) {
-      logger.error(s"${MistConfig.HTTP.routerConfigPath} does not exists")
-      throw new RouterConfigurationMissingError(s"${MistConfig.HTTP.routerConfigPath} does not exists")
+      logger.error(s"${MistConfig.Http.routerConfigPath} does not exists")
+      throw new RouterConfigurationMissingError(s"${MistConfig.Http.routerConfigPath} does not exists")
     }
     val config = ConfigFactory.parseFile(configFile)
     new RouteConfig(route, config)

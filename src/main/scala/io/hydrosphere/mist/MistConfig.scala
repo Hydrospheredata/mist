@@ -47,7 +47,7 @@ private[mist] object MistConfig {
   }
 
   /** HTTP specific settings */
-  object HTTP {
+  object Http {
     private val http = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
@@ -75,7 +75,7 @@ private[mist] object MistConfig {
   }
 
   /** MQTT specific settings */
-  object MQTT {
+  object Mqtt {
     private val mqtt = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */

@@ -16,8 +16,8 @@ import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
-import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscriber, MQTTSubscribe}
-import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
+import io.hydrosphere.mist.master.async.mqtt.{MqttSubscriber$, MQTTSubscribe}
+import io.hydrosphere.mist.master.{ClusterManager, HttpService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.ContextNode
 import org.scalatest._
@@ -82,7 +82,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 }
 
 class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures
-  with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService {
+  with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HttpService {
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
@@ -90,10 +90,10 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
   override implicit val system = systemM
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+  Http().bindAndHandle(route, MistConfig.Http.host, MistConfig.Http.port)
   val clientHTTP = Http(systemM)
 
-  val mqttActor = systemM.actorOf(Props(classOf[MQTTSubscriber]))
+  val mqttActor = systemM.actorOf(Props(classOf[MqttSubscriber]))
   mqttActor ! MQTTSubscribe
   MQTTTest.subscribe(systemM)
 

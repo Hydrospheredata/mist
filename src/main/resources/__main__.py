@@ -87,7 +87,7 @@ except ImportError:
     if issubclass(class_, WithHiveSupport):
         context_wrapper.set_hive_context(_gateway)
 
-if issubclass(class_, WithMQTTPublisher):
+if issubclass(class_, WithMqttPublisher):
     publisher_wrapper.set_mqtt(_gateway)
 
 if issubclass(class_, WithStreamingContext):

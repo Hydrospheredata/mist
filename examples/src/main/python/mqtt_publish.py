@@ -1,6 +1,6 @@
 from mist.mist_job import *
 
-class SimpleSparkContext(MistJob, WithMQTTPublisher):
+class SimpleSparkContext(MistJob, WithMqttPublisher):
     def execute(self, numbers):
         self.mqtt.publish("test python publisher message")
         rdd = self.context.parallelize(numbers)
@@ -8,4 +8,3 @@ class SimpleSparkContext(MistJob, WithMQTTPublisher):
         self.mqtt.publish(str(result).strip('[]'))
 
         return {"result": result}
-

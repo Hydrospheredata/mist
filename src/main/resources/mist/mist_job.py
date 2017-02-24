@@ -69,14 +69,14 @@ class WithHiveSupport(ContextSupport):
         except ImportError:
             self.hive_context = context_wrapper.hive_context
 
-class WithMQTTPublisher(PublisherSupport):
+class WithMqttPublisher(PublisherSupport):
     __metaclass__ = ABCMeta
 
     mqtt = None
 
     @abstractmethod
     def set_publisher(self, publisher_wrapper):
-        super(WithMQTTPublisher, self).set_publisher(publisher_wrapper)
+        super(WithMqttPublisher, self).set_publisher(publisher_wrapper)
         self.mqtt = publisher_wrapper.mqtt
 
 class WithStreamingContext(ContextSupport):

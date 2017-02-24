@@ -100,7 +100,7 @@ private[mist] class ClusterManager extends Actor with Logger {
   override def receive: Receive = {
 
     case ListRouters(extended) =>
-      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
+      val config = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath))
       val javaMap = config.root().unwrapped()
       
       val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
