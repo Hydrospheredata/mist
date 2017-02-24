@@ -10,6 +10,8 @@ private[mist] trait AsyncPublisher extends Actor {
     case jobResult: JobResult =>
       val jsonString = Json(DefaultFormats).write(jobResult)
       send(jsonString)
+    case string: String =>
+      send(string)
   }
 
   def send(message: String): Unit

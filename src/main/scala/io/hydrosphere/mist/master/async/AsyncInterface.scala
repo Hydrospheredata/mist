@@ -46,11 +46,17 @@ private[mist] object AsyncInterface {
   def publisher(provider: Provider, system: ActorSystem): ActorRef = provider match {
     case Provider.Mqtt =>
       if (mqttPublisher == null) {
+        if (system == null) {
+          throw new IllegalArgumentException("ActorSystem cannot be null before initializing the actor")
+        }
         mqttPublisher = system.actorOf(MqttPublisher.props(actorWrapper(provider, system)))
       }
       mqttPublisher
     case Provider.Kafka =>
       if (kafkaPublisher == null) {
+        if (system == null) {
+          throw new IllegalArgumentException("ActorSystem cannot be null before initializing the actor")
+        }
         kafkaPublisher = system.actorOf(KafkaPublisher.props())
       }
       kafkaPublisher
