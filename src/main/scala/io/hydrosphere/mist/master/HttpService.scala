@@ -16,9 +16,10 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
+import io.hydrosphere.mist.utils.TypeAlias._  
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import spray.json.{pimpAny, pimpString}
+
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -36,16 +37,13 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
       // POST /jobs
       post {
         parameters('train.?, 'serve.?) { (train, serve) =>
-          val requestBody = train match {
-            case Some(_) => as[TrainingJobConfiguration]
-            case None => serve match {
-              case Some(_) => as[ServingJobConfiguration]
-              case None => as[MistJobConfiguration]
-            }
-          }
-
-          entity(requestBody) { jobCreatingRequest =>
-            doComplete(jobCreatingRequest)
+          entity(as[FullJobConfiguration]) { jobCreatingRequest =>
+            val jobConfiguration = FullJobConfigurationBuilder()
+              .init(jobCreatingRequest)
+              .setServing(serve.nonEmpty)
+              .setTraining(train.nonEmpty)
+              .build()
+            doComplete(jobConfiguration)
           }
         }
       }
@@ -54,15 +52,18 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
       pathEnd {
         post {
           parameters('train.?, 'serve.?) { (train, serve) =>
-            entity(as[Map[String, Any]]) { jobRequestParams =>
-              // TODO: use FullJobConfigurationBuilder
-              fillJobRequestFromConfig(jobRequestParams, jobRoute, train.nonEmpty, serve.nonEmpty) match {
-                case Left(_: NoRouteError) =>
+            entity(as[JobParameters]) { jobRequestParams =>
+              try {
+                val jobConfiguration = FullJobConfigurationBuilder()
+                  .fromRest(jobRoute, jobRequestParams)
+                  .setServing(serve.nonEmpty)
+                  .setTraining(train.nonEmpty)
+                  .build()
+                doComplete(jobConfiguration)
+              } catch {
+                case _: RouteConfig.RouteNotFoundError =>
                   complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
-                case Left(error: ConfigError) =>
-                  complete(HttpResponse(StatusCodes.InternalServerError, entity = error.reason))
-                case Right(jobRequest: FullJobConfiguration) =>
-                  doComplete(jobRequest)
+                case err: Throwable => complete(HttpResponse(StatusCodes.InternalServerError, entity = err.toString))
               }
             }
           }
@@ -134,37 +135,22 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
           .map[ToResponseMarshallable] {
           case jobDetails: JobDetails =>
             val jobResult: JobResult = jobDetails.jobResult.getOrElse(Right("Empty result")) match {
-              case Left(jobResults: Map[String, Any]) =>
+              case Left(jobResults: JobResponse) =>
                 JobResult(success = true, payload = jobResults, request = jobRequest, errors = List.empty)
               case Right(error: String) =>
                 JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
             }
-            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+            logger.info(jobResult.toString)
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.compactPrint))
           case Right(error: String) =>
-            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error)))))
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error)).toJson.compactPrint))
         }
       }
       else {
         distributor ! jobDetails
         val jobResult = JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobRequest, errors = List.empty)
-        HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Json(DefaultFormats).write(jobResult)))
+        HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.compactPrint))
       }
-    }
-  }
-
-  def fillJobRequestFromConfig(jobRequestParams: Map[String, Any], jobRoute: String, isTraining: Boolean = false, isServing: Boolean = false): Either[JobConfigError, FullJobConfiguration] = {
-    try {
-      val config = RouteConfig(jobRoute)
-      if (isTraining) {
-        Right(TrainingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
-      } else if (isServing) {
-        Right(ServingJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute)))
-      } else {
-        Right(MistJobConfiguration(config.path, config.className, config.namespace, jobRequestParams, None, Some(jobRoute))) 
-      }
-    } catch {
-      case exc: RouteConfig.RouteNotFoundError => Left(NoRouteError(exc.toString))
-      case exc: Throwable => Left(ConfigError(exc.toString))
     }
   }
 
@@ -182,11 +168,11 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
         }
         .map[ToResponseMarshallable] {
           case result: Map[String, Any] =>
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result.toJson.compactPrint))
           case result: List[Any] =>
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(result)))
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result.toJson.compactPrint))
           case result: String =>
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Json(DefaultFormats).write(Map("result"->result))))
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Map("result"->result).toJson.compactPrint))
       }
     }
   }

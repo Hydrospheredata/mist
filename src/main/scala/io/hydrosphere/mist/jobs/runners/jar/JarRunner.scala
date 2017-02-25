@@ -4,6 +4,7 @@ import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
+import io.hydrosphere.mist.utils.TypeAlias.{JobResponse, JobResponseOrError}
 import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
 private[mist] class JarRunner(override val job: JobDetails, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
@@ -18,17 +19,17 @@ private[mist] class JarRunner(override val job: JobDetails, jobFile: JobFile, co
     .getExternalClass(job.configuration.className)
     .getNewInstance
 
-  override def run(): Either[Map[String, Any], String] = {
+  override def run(): JobResponseOrError = {
     try {
-      val result = job.configuration match {
-        case _: MistJobConfiguration =>
+      val result = job.configuration.action match {
+        case JobConfiguration.Action.Execute =>
           externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
-          Left(externalInstance.getMethod("execute").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
-        case _: TrainingJobConfiguration =>
+          Left(externalInstance.getMethod("execute").run(job.configuration.parameters).asInstanceOf[JobResponse])
+        case JobConfiguration.Action.Train =>
           externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
-          Left(externalInstance.getMethod("train").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
-        case _: ServingJobConfiguration =>
-          Left(externalInstance.getMethod("serve").run(job.configuration.parameters).asInstanceOf[Map[String, Any]])
+          Left(externalInstance.getMethod("train").run(job.configuration.parameters).asInstanceOf[JobResponse])
+        case JobConfiguration.Action.Serve =>
+          Left(externalInstance.getMethod("serve").run(job.configuration.parameters).asInstanceOf[JobResponse])
       }
 
       result

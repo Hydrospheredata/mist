@@ -38,21 +38,22 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
-  "org.json4s" %% "json4s-native" % "3.2.10",
-  "org.json4s" %% "json4s-jackson" % "3.2.10",
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
   "com.typesafe" % "config" % "1.3.1",
   "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
   "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
   "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "com.github.fge" % "json-schema-validator" % "2.2.6",
   "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
-  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka")
+  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
+  "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+  "io.getquill" %% "quill-jdbc" % "1.1.1-SNAPSHOT",
+  "org.flywaydb" % "flyway-core" % "4.1.1"
 )
 
 dependencyOverrides += "com.typesafe" % "config" % "1.3.1"
@@ -66,7 +67,7 @@ def akkaDependencies(scalaVersion: String) = {
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
       "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
-      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
       "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
     )
     case _ => Seq(

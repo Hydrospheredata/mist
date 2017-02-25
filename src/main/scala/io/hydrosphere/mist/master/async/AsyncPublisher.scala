@@ -2,13 +2,16 @@ package io.hydrosphere.mist.master.async
 
 import akka.actor.Actor
 import io.hydrosphere.mist.jobs.JobResult
-import org.json4s.DefaultFormats
-import org.json4s.native.Json
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import spray.json.pimpAny
 
-private[mist] trait AsyncPublisher extends Actor {
+private[mist] trait AsyncPublisher extends Actor with Logger with JobConfigurationJsonSerialization {
   override def receive: Receive = {
     case jobResult: JobResult =>
-      val jsonString = Json(DefaultFormats).write(jobResult)
+      logger.info(jobResult.toString)
+      logger.info(jobResult.toJson.compactPrint)
+      val jsonString = jobResult.toJson.compactPrint //Json(DefaultFormats).write(jobResult)
       send(jsonString)
     case string: String =>
       send(string)

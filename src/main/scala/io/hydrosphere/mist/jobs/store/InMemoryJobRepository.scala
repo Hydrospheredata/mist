@@ -7,7 +7,7 @@ private[mist] object InMemoryJobRepository extends JobRepository {
 
   private val _collection = scala.collection.mutable.Map[String, JobDetails]()
 
-  override def add(jobDetails: JobDetails): Unit = {
+  private def add(jobDetails: JobDetails): Unit = {
     _collection put (jobDetails.jobId, jobDetails)
   }
 
@@ -19,9 +19,9 @@ private[mist] object InMemoryJobRepository extends JobRepository {
     _collection.get(jobId)
   }
   
-  override def getAll: List[JobDetails] = _collection.values.toList
+  private def getAll: List[JobDetails] = _collection.values.toList
 
-  override def size: Int = _collection.size
+  override def size: Long = _collection.size.toLong
 
   override def clear(): Unit = {
     _collection.clear()

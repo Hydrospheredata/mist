@@ -7,6 +7,7 @@ import akka.pattern.ask
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails, JobResult}
 import io.hydrosphere.mist.master.JobDistributor
+import io.hydrosphere.mist.utils.TypeAlias.JobResponse
 import io.hydrosphere.mist.utils.{Logger, MultiReceiveActor}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DeserializationException, pimpString}
@@ -73,7 +74,7 @@ private[mist] abstract class AsyncSubscriber extends Actor with MultiReceiveActo
 
         jobResult match {
           case Left(jobResult: Map[_, _]) =>
-            JobResult(success = true, payload = jobResult.asInstanceOf[Map[String, Any]], request = jobDetails.configuration, errors = List.empty)
+            JobResult(success = true, payload = jobResult.asInstanceOf[JobResponse], request = jobDetails.configuration, errors = List.empty)
           case Right(error: String) =>
             JobResult(success = false, payload = Map.empty[String, Any], request = jobDetails.configuration, errors = List(error))
         }

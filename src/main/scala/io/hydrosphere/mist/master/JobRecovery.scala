@@ -30,9 +30,12 @@ private[mist] class JobRecovery extends Actor with Logger {
               jobs.foreach {
                 job => AsyncInterface.subscriber(s.provider, context.system) ! job
               }
-            case _ => logger.debug(s"${jobs.length} jobs must be marked as aborted")
+            case _ =>
+              logger.debug(s"${jobs.length} jobs must be marked as aborted")
+              jobs.foreach {
+                job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+              }
           }
-          // TODO: return response 
         })
   }
   

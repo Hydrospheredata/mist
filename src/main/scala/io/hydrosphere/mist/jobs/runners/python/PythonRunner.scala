@@ -5,7 +5,8 @@ import java.io.File
 import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
-import io.hydrosphere.mist.jobs.{JobDetails, JobFile, MistJobConfiguration}
+import io.hydrosphere.mist.jobs.{JobDetails, JobFile}
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import py4j.GatewayServer
 
 import scala.sys.process._
@@ -17,17 +18,11 @@ class PythonRunner(override val job: JobDetails, jobFile: JobFile, contextWrappe
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
   val sparkContextWrapper: ContextWrapper = contextWrapper
-  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(
-    MistJobConfiguration(
-      jobFile.file.getPath,
-      job.configuration.className,
-      job.configuration.namespace,
-      job.configuration.parameters,
-      job.configuration.externalId ))
+  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(job.configuration)
   val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
   val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(sparkContextWrapper)
 
-  override def run(): Either[Map[String, Any], String] = {
+  override def run(): JobResponseOrError = {
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath

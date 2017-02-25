@@ -10,9 +10,9 @@ Please note that usually it does not make sense to start streaming job from HTTP
 ######Reactive Scala job
 
 ```scala
-import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob}
+import io.hydrosphere.mist.lib.{MqttPublisher, MistJob}
 
-object MyStreamingMistJob extends MistJob with MQTTPublisher {
+object MyStreamingMistJob extends MistJob with MqttPublisher {
 
     override def execute(): Map[String, Any] = {
       ...
@@ -32,7 +32,7 @@ object MyStreamingMistJob extends MistJob with MQTTPublisher {
 ```python
 from mist.mist_job import *
 
-class MyPythonMistJob(MistJob, WithMQTTPublisher):
+class MyPythonMistJob(MistJob, WithMqttPublisher):
     def execute(self):
     	...
         self.mqtt.publish("message")

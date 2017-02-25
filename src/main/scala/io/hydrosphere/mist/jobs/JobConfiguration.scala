@@ -1,83 +1,67 @@
 package io.hydrosphere.mist.jobs
 
+import io.getquill.Embedded
 import io.hydrosphere.mist.RouteConfig
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DeserializationException, pimpString}
 
 sealed trait JobConfiguration
 
-abstract class FullJobConfiguration extends JobConfiguration {
-  def path: String
-  def className: String
-  def namespace: String
-  def parameters: Map[String, Any] = Map()
-  def externalId: Option[String] = None
-  def route: Option[String] = None
+object JobConfiguration {
+  sealed trait Action
+  
+  object Action {
+
+    def apply(string: String): Action = string match {
+      case "execute" => Execute
+      case "train" => Train
+      case "serve" => Serve
+    }
+    
+    case object Execute extends Action {
+      override def toString: String = "execute"
+    }
+    case object Train extends Action {
+      override def toString: String = "train"
+    }
+    case object Serve extends Action {
+      override def toString: String = "serve"
+    }
+  }
 }
 
-abstract class RestificatedJobConfiguration extends JobConfiguration {
-  def route: String
-  def parameters: Map[String, Any] = Map()
-  def externalId: Option[String] = None
-}
-
-private[mist] case class MistJobConfiguration(path: String,
-                                              className: String,
-                                              namespace: String,
-                                              override val parameters: Map[String, Any] = Map(),
-                                              override val externalId: Option[String] = None,
-                                              override val route: Option[String] = None) extends FullJobConfiguration
-
-private[mist] case class RestificatedMistJobConfiguration(route: String,
-                                                          override val parameters: Map[String, Any] = Map(),
-                                                          override val externalId: Option[String] = None) extends RestificatedJobConfiguration
-
-private[mist] case class TrainingJobConfiguration(path: String,
-                                                  className: String,
-                                                  namespace: String,
-                                                  override val parameters: Map[String, Any] = Map(),
-                                                  override val externalId: Option[String] = None,
-                                                  override val route: Option[String] = None) extends FullJobConfiguration
-
-private[mist] case class ServingJobConfiguration(path: String,
-                                                  className: String,
-                                                  namespace: String = null,
-                                                  override val parameters: Map[String, Any] = Map(),
-                                                  override val externalId: Option[String] = None,
-                                                  override val route: Option[String] = None) extends FullJobConfiguration
-
-
-private[mist] case class RestificatedTrainingJobConfiguration(route: String,
-                                                  override val parameters: Map[String, Any] = Map(),
-                                                  override val externalId: Option[String] = None) extends RestificatedJobConfiguration
-
-private[mist] case class RestificatedServingJobConfiguration(route: String,
-                                                              override val parameters: Map[String, Any] = Map(),
-                                                              override val externalId: Option[String] = None) extends RestificatedJobConfiguration
-
+case class FullJobConfiguration(
+                                 path: String, 
+                                 className: String, 
+                                 namespace: String, 
+                                 parameters: JobParameters, 
+                                 externalId: Option[String], 
+                                 route: Option[String], 
+                                 action: JobConfiguration.Action = JobConfiguration.Action.Execute
+                               ) extends JobConfiguration with Embedded
+case class RestificatedJobConfiguration(route: String, parameters: JobParameters, externalId: Option[String]) extends JobConfiguration
 
 class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with Logger {
-
-  private var training: Boolean = _
-  private var serving: Boolean = _
 
   private var _path: String = _
   private var _className: String = _
   private var _namespace: String = _
-  private var _parameters: Map[String, Any] = Map()
+  private var _parameters: JobParameters = Map()
   private var _externalId: Option[String] = None
   private var _route: Option[String] = None
+  private var _action: JobConfiguration.Action = JobConfiguration.Action.Execute
   
   private var _builtJob: FullJobConfiguration = _
 
-  def setTraining(value: Boolean): FullJobConfigurationBuilder = {
-    training = value
+  def setTraining(training: Boolean): FullJobConfigurationBuilder = {
+    _action = if (training) JobConfiguration.Action.Train else _action
     this
   }
 
-  def setServing(value: Boolean): FullJobConfigurationBuilder = {
-    serving = value
+  def setServing(serving: Boolean): FullJobConfigurationBuilder = {
+    _action = if (serving) JobConfiguration.Action.Serve else _action
     this
   }
   
@@ -96,7 +80,7 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
     this
   }
   
-  def setParameters(value: Map[String, Any]): FullJobConfigurationBuilder = {
+  def setParameters(value: JobParameters): FullJobConfigurationBuilder = {
     _parameters = value
     this
   }
@@ -111,7 +95,7 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
     this
   }
 
-  def fromRouter(route: String, parameters: Map[String, Any], externalId: Option[String]): FullJobConfigurationBuilder = {
+  def fromRouter(route: String, parameters: JobParameters, externalId: Option[String]): FullJobConfigurationBuilder = {
     _route = Some(route)
     _parameters = parameters
     _externalId = externalId
@@ -122,15 +106,13 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
     this
   }
 
-  def fromRest(path: String, queryString: Map[String, String], body: Map[String, Any]): FullJobConfigurationBuilder = {
+  def fromRest(path: String, body: JobParameters): FullJobConfigurationBuilder = {
     fromRouter(path, body, None)
-      .setServing(queryString.contains("serve"))
-      .setTraining(queryString.contains("train"))
   }
 
-  def fromHttp(queryString: Map[String, String], body: Map[String, Any]): FullJobConfigurationBuilder = {
+  def fromHttp(queryString: Map[String, String], body: JobParameters): FullJobConfigurationBuilder = {
     _route = None
-    _parameters = body("parameters").asInstanceOf[Map[String, Any]]
+    _parameters = body("parameters").asInstanceOf[JobParameters]
     _externalId = body.get("externalId").map(_.asInstanceOf[String])
     _path = body("path").asInstanceOf[String]
     _className = body("className").asInstanceOf[String]
@@ -140,15 +122,15 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
   
   def fromJson(json: String): FullJobConfigurationBuilder = {
     try {
-      _builtJob =  json.parseJson.convertTo[MistJobConfiguration]
+      _builtJob =  json.parseJson.convertTo[FullJobConfiguration]
     } catch {
       case _: DeserializationException =>
         logger.debug(s"Try to parse restificated request")
-        val restificatedRequest = json.parseJson.convertTo[RestificatedMistJobConfiguration]
+        val restificatedRequest = json.parseJson.convertTo[RestificatedJobConfiguration]
         if (restificatedRequest.route.endsWith("?train")) {
-          training = true
+          _action = JobConfiguration.Action.Train
         } else if (restificatedRequest.route.endsWith("?serve")) {
-          serving = true
+          _action = JobConfiguration.Action.Serve
         }
         _route = Some(restificatedRequest.route)
         _parameters = restificatedRequest.parameters
@@ -161,16 +143,23 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
     }
     this
   }
+  
+  def init(configuration: FullJobConfiguration): FullJobConfigurationBuilder = {
+    _path = configuration.path
+    _className = configuration.className
+    _namespace = configuration.namespace
+    _parameters = configuration.parameters
+    _externalId = configuration.externalId
+    _route = configuration.route
+    _action = configuration.action
+    this
+  }
 
   def build(): FullJobConfiguration = {
     if (_builtJob != null) {
       _builtJob
-    } else if (training) {
-      TrainingJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route)
-    } else if (serving) {
-      ServingJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route)
     } else {
-      MistJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route)
+      FullJobConfiguration(_path, _className, _namespace, _parameters, _externalId, _route, _action)
     }
   }
 

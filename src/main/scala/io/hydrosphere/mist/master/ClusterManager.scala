@@ -201,7 +201,7 @@ private[mist] class ClusterManager extends Actor with Logger {
     case jobDetails: JobDetails =>
       context.actorOf(JobDistributor.props()) ! jobDetails
 
-    case ClusterManager.StartJob(jobDetails) if jobDetails.configuration.isInstanceOf[ServingJobConfiguration] =>
+    case ClusterManager.StartJob(jobDetails) if jobDetails.configuration.action == JobConfiguration.Action.Serve =>
       val originalSender = sender
       val localNodeActor = context.actorOf(Props(classOf[LocalNode]))
       val future = localNodeActor.ask(jobDetails)(timeout = FiniteDuration(MistConfig.Contexts.timeout(jobDetails.configuration.namespace).toNanos, TimeUnit.NANOSECONDS))

@@ -4,6 +4,7 @@ import java.io.File
 import java.net.{URL, URLClassLoader}
 
 import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponse}
 
 import scala.collection.immutable.Seq
 import scala.reflect.runtime.universe._
@@ -15,7 +16,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
   // TODO: support classes 
   // Scala `object` reference of user job
 
-  def run(parameters: Map[String, Any]): Any = {
+  def run(parameters: JobParameters): Any = {
     val args: Seq[Any] = arguments.map((param) => {
       if (param.tpe.erasure =:= typeOf[Option[Any]]) {
         parameters.get(param.name)
@@ -29,7 +30,7 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
     })
     val method = objectRef.getClass.getMethods.find(_.getName == methodName).get
     // TODO: more clear exceptions instead of InvocationTargetException 
-    method.invoke(objectRef, args.asInstanceOf[Seq[AnyRef]]: _*).asInstanceOf[Map[String, Any]]
+    method.invoke(objectRef, args.asInstanceOf[Seq[AnyRef]]: _*).asInstanceOf[JobResponse]
   }
 
   def arguments: List[ExternalMethodArgument] = {

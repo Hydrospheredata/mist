@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorLogging}
-import io.hydrosphere.mist.jobs.{JobDetails, ServingJobConfiguration}
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.runners.Runner
 
 class LocalNode extends Actor with ActorLogging {

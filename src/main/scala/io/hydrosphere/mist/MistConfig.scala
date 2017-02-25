@@ -120,12 +120,14 @@ private[mist] object MistConfig {
 
     /** job recovery after mist Failure */
     lazy val recoveryOn: Boolean = recovery.getBoolean("on")
-    /** job recovery multi start limit */
-    lazy val recoveryMultilimit: Int = recovery.getInt("multilimit")
-    /** type Db */
-    lazy val recoveryTypeDb: String = recovery.getString("typedb")
-    /** job recovery MapDb file name */
-    lazy val recoveryDbFileName: String = recovery.getString("dbfilename")
+  }
+  
+  object History {
+    private def history = config.getConfig("mist.history")
+    
+    def isOn: Boolean = history.getBoolean("on")
+    def filePath: String = history.getString("filepath")
+    def dbType: String = history.getString("type")
   }
 
   /** Workers specific settings */

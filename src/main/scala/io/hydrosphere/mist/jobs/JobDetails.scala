@@ -3,6 +3,7 @@ package io.hydrosphere.mist.jobs
 import java.util.UUID
 
 import io.hydrosphere.mist.master.async.AsyncInterface.Provider
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import org.joda.time.DateTime
 
 object JobDetails {
@@ -71,7 +72,7 @@ case class JobDetails(
                        jobId: String = UUID.randomUUID().toString,
                        startTime: Option[Long] = None,
                        endTime: Option[Long] = None,
-                       jobResult: Option[Either[Map[String, Any], String]] = None,
+                       jobResult: Option[JobResponseOrError] = None,
                        status: JobDetails.Status = JobDetails.Status.Initialized
                      )
 {
@@ -96,7 +97,7 @@ case class JobDetails(
     withEndTime(new DateTime().getMillis)
   }
   
-  def withJobResult(result: Either[Map[String, Any], String]): JobDetails = {
+  def withJobResult(result: JobResponseOrError): JobDetails = {
     JobDetails(configuration, source, jobId, startTime, endTime, Some(result), status)
   }
 

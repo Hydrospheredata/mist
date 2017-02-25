@@ -4,16 +4,15 @@ import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.utils.Logger
-import org.apache.commons.lang.SerializationUtils
 import org.mapdb.{DBMaker, Serializer}
-import io.hydrosphere.mist.utils.json.{JobConfigurationJsonSerialization, JobDetailsJsonSerialization}
+import io.hydrosphere.mist.utils.json.JobDetailsJsonSerialization
 import spray.json._
 
 
 private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJsonSerialization with Logger {
   // Db
   private lazy val db = DBMaker
-    .fileDB(MistConfig.Recovery.recoveryDbFileName)
+    .fileDB(MistConfig.History.filePath)
     .fileLockDisable
     .closeOnJvmShutdown
     .checksumHeaderBypass()
@@ -23,11 +22,8 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
   private lazy val map = db
     .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
     .createOrOpen
-
-  // Json formats
-  private implicit val formats = org.json4s.DefaultFormats
-
-  override def add(jobDetails: JobDetails): Unit = {
+  
+  private def add(jobDetails: JobDetails): Unit = {
     try {
       val w_job = jobDetails.toJson.compactPrint.getBytes
       map.put(jobDetails.jobId, w_job)
@@ -46,7 +42,7 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
     }
   }
 
-  override def getAll: List[JobDetails] = {
+  private def getAll: List[JobDetails] = {
     try {
       val values = map.getKeys.toArray.toList.map { (key) =>
         logger.info(key.toString)
@@ -73,15 +69,15 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
     }
   }
 
-  override def size: Int ={
+  override def size: Long ={
     try{
       val keys = map.getKeys.toArray()
-      keys.length
+      keys.length.toLong
     }
     catch {
       case e: Exception =>
         logger.error(e.getMessage, e)
-        0
+        0L
     }
   }
 

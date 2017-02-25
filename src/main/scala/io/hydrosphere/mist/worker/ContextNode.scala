@@ -9,6 +9,7 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.collection.mutable.ArrayBuffer
@@ -50,13 +51,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       val runner = Runner(jobRequest, contextWrapper)
 
-//      val jobDescription = new JobDetals(jobRequest.jobId,
-//        new DateTime().toString,
-//        jobRequest.configuration.namespace,
-//        jobRequest.configuration.externalId,
-//        jobRequest.configuration.route
-//      )
-
       def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
         val p = Promise[T]
         val first = Future firstCompletedOf Seq(p.future, f)
@@ -70,10 +64,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.Running)
       originalSender ! startedJobDetails
-      val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
-//        if(MistConfig.Contexts.timeout(jobRequest.configuration.namespace).isFinite()) {
-//          serverActor ! AddJobToRecovery(runner.id, runner.configuration)
-//        }
+      val runnerFuture: Future[JobResponseOrError] = Future {
         log.info(s"${jobRequest.configuration.namespace}#${jobRequest.jobId} is running")
 
         runner.run()
@@ -81,9 +72,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
 
       val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
         jobDescriptions -= jobRequest
-//        if (MistConfig.Contexts.timeout(jobRequest.configuration.namespace).isFinite()) {
-//          serverActor ! RemoveJobFromRecovery(runner.id)
-//        }
         runner.stop()
         originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Aborted).withJobResult(Right("Canceled"))
       }
@@ -99,12 +87,9 @@ class ContextNode(namespace: String) extends Actor with ActorLogging{
         .andThen {
           case _ =>
             jobDescriptions -= jobRequest
-//            if (MistConfig.Contexts.timeout(jobRequest.configuration.namespace).isFinite()) {
-//              serverActor ! RemoveJobFromRecovery(runner.id)
-//            }
         }(ExecutionContext.global)
         .andThen {
-          case Success(result: Either[Map[String, Any], String]) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
+          case Success(result: JobResponseOrError) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
           case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(error.toString))
         }(ExecutionContext.global)
 
