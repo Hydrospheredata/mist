@@ -50,9 +50,8 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "net.cakesolutions" %% "scala-kafka-client-akka" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
+  "net.cakesolutions" % "scala-kafka-client-akka_2.11" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-  "io.getquill" %% "quill-jdbc" % "1.1.1-SNAPSHOT",
   "org.flywaydb" % "flyway-core" % "4.1.1"
 )
 
@@ -68,7 +67,8 @@ def akkaDependencies(scalaVersion: String) = {
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
       "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1",   // needed for logback to work
+      "com.typesafe.slick" %% "slick" % "3.2.0"
     )
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
@@ -76,7 +76,8 @@ def akkaDependencies(scalaVersion: String) = {
       "org.slf4j" % "slf4j-api" % "1.7.22",
       "ch.qos.logback" % "logback-classic" % "1.0.3",
       "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
+      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+      "com.typesafe.slick" %% "slick" % "3.1.1"
     )
   }
 }

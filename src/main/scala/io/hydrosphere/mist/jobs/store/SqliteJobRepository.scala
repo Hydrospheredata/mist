@@ -1,145 +1,140 @@
 package io.hydrosphere.mist.jobs.store
 
-import java.io.File
-
-import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.jobs.{JobConfiguration, JobDetails}
+import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobConfiguration, JobDetails}
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.utils.Logger
-import io.getquill._
-import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponseOrError}
 import io.hydrosphere.mist.utils.json.JobDetailsJsonSerialization
 import org.flywaydb.core.Flyway
 import spray.json.{pimpAny, pimpString}
+import slick.driver.SQLiteDriver.api._
+import slick.lifted.ProvenShape
 
-import scala.collection.immutable.Seq
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.language.{implicitConversions, postfixOps}
+
 
 object SqliteJobRepository extends JobRepository with JobDetailsJsonSerialization with Logger {
-  
-  lazy private val ctx = {
+
+  private val db = {
     val jdbcPath = s"jdbc:sqlite:${MistConfig.History.filePath}"
-    logger.info(getClass.getResource("/db/migrations").getPath)
-    val dir = new File(getClass.getResource("/db").toExternalForm)
-    logger.info(dir.isDirectory.toString)
-    logger.info(dir.exists().toString)
-    logger.info(dir.canRead.toString)
-    logger.info(dir.toString)
-    val flyway = new Flyway()
+    val flyway = new Flyway ()
     flyway.setLocations("/db/migrations")
     flyway.setDataSource(jdbcPath, null, null)
     flyway.migrate()
+    Database.forURL(jdbcPath, driver="org.sqlite.JDBC")
+  }
+
+  private implicit def string2Source = MappedColumnType.base[JobDetails.Source, String](
+    source => source.toString,
+    string => JobDetails.Source(string)
+  )
+
+  private implicit def string2Status = MappedColumnType.base[JobDetails.Status, String](
+    status => status.toString,
+    string => JobDetails.Status(string)
+  )
+
+  private implicit def string2JobResponseOrError = MappedColumnType.base[JobResponseOrError, String](
+    jobResponseOrError => jobResponseOrError.toJson.compactPrint,
+    string => string.parseJson.convertTo[JobResponseOrError]
+  )
+
+  private implicit def string2JobParameters = MappedColumnType.base[JobParameters, String](
+    jobParameters => jobParameters.toJson.compactPrint,
+    string => string.parseJson.convertTo[JobParameters]
+  )
+
+  private implicit def string2Action = MappedColumnType.base[JobConfiguration.Action, String](
+    action => action.toString,
+    string => JobConfiguration.Action(string)
+  )
+
+  private implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], JobConfiguration.Action)): FullJobConfiguration = tuple match {
+    case (path, className, namespace, parameters, externalId, route, action) =>
+      FullJobConfiguration(path, className, namespace, parameters, externalId, route, action)
+  }
+
+
+  private class JobDetailsTable(tag: Tag) extends Table[JobDetails](tag, "job_details") {
     
-    val config = 
-      s"""
-         | driverClassName=org.sqlite.JDBC
-         | jdbcUrl="$jdbcPath"
-     """.stripMargin
-    new SqliteJdbcContext[SnakeCase](ConfigFactory.parseString(config))
-  }
-  
-  private implicit val encodeSource = MappedEncoding[JobDetails.Source, String](_.toString)
-  private implicit val decodeSource = MappedEncoding[String, JobDetails.Source](JobDetails.Source(_))
-  
-  private implicit val encodeJobResult = MappedEncoding[JobResponseOrError, String](_.toJson.compactPrint)
-  private implicit val decodeJobResult = MappedEncoding[String, JobResponseOrError](_.parseJson.convertTo[JobResponseOrError])
-  
-  private implicit val encodeStatus = MappedEncoding[JobDetails.Status, String](_.toString)
-  private implicit val decodeStatus = MappedEncoding[String, JobDetails.Status](JobDetails.Status(_))
-  
-  private implicit val encodeParameters = MappedEncoding[JobParameters, String](_.toJson.compactPrint)
-  private implicit val decodeParameters = MappedEncoding[String, JobParameters](_.parseJson.convertTo[JobParameters])
-  
-  private implicit val encodeAction = MappedEncoding[JobConfiguration.Action, String](_.toString)
-  private implicit val decodeAction = MappedEncoding[String, JobConfiguration.Action](JobConfiguration.Action(_))
-
-  private def add(jobDetails: JobDetails): Unit = {
-    import ctx._
-    val q = quote {
-      query[JobDetails].insert(
-        _.configuration.path -> ctx.lift(jobDetails.configuration.path),
-        _.configuration.className -> ctx.lift(jobDetails.configuration.className),
-        _.configuration.namespace -> ctx.lift(jobDetails.configuration.namespace),
-        _.configuration.parameters -> ctx.lift(jobDetails.configuration.parameters),
-        _.configuration.externalId -> ctx.lift(jobDetails.configuration.externalId),
-        _.configuration.route -> ctx.lift(jobDetails.configuration.route),
-        _.configuration.action -> ctx.lift(jobDetails.configuration.action),
-        _.source -> ctx.lift(jobDetails.source),
-        _.jobId -> ctx.lift(jobDetails.jobId),
-        _.startTime -> ctx.lift(jobDetails.startTime),
-        _.endTime -> ctx.lift(jobDetails.endTime),
-        _.jobResult -> ctx.lift(jobDetails.jobResult),
-        _.status -> ctx.lift(jobDetails.status)
-      )
+    def path: Rep[String] = column[String]("path")
+    def className: Rep[String] = column[String]("class_name")
+    def namespace: Rep[String] = column[String]("namespace")
+    def parameters: Rep[JobParameters] = column[JobParameters]("parameters")
+    def externalId: Rep[Option[String]] = column[Option[String]]("external_id")
+    def route: Rep[Option[String]] = column[Option[String]]("route")
+    def action: Rep[JobConfiguration.Action] = column[JobConfiguration.Action]("action")
+    def source: Rep[JobDetails.Source] = column[JobDetails.Source]("source")
+    def jobId: Rep[String] = column[String]("job_id", O.PrimaryKey)
+    def startTime: Rep[Option[Long]] = column[Option[Long]]("start_time")
+    def endTime: Rep[Option[Long]] = column[Option[Long]]("end_time")
+    def jobResult: Rep[Option[JobResponseOrError]] = column[Option[JobResponseOrError]]("job_result")
+    def status: Rep[JobDetails.Status] = column[JobDetails.Status]("status")
+    
+    override def * : ProvenShape[JobDetails] = {
+      val shapedValue = (
+        path,
+        className,
+        namespace,
+        parameters,
+        externalId,
+        route,
+        action,
+        source,
+        jobId,
+        startTime,
+        endTime,
+        jobResult,
+        status
+      ).shaped
+      shapedValue.<>({
+        tuple => JobDetails.apply(
+          configuration = FullJobConfiguration(tuple._1, tuple._2, tuple._3, tuple._4, tuple._5, tuple._6, tuple._7),
+          source = tuple._8,
+          jobId = tuple._9,
+          startTime = tuple._10,
+          endTime = tuple._11,
+          jobResult = tuple._12,
+          status = tuple._13  
+        )
+      }, {
+        (j: JobDetails) => Some {
+          (j.configuration.path, j.configuration.className, j.configuration.namespace, j.configuration.parameters,
+           j.configuration.externalId, j.configuration.route, j.configuration.action, j.source, j.jobId, j.startTime,
+           j.endTime, j.jobResult, j.status)
+        }
+      })
     }
-    run(q)
   }
   
-
+  private val jobs = TableQuery[JobDetailsTable]
+  
+  private def run[A](query: DBIOAction[A, NoStream, Nothing]): A = Await.result(db.run(query), atMost = 10 seconds)
+  
   override def remove(jobId: String): Unit = {
-    import ctx._
-    val q = quote {
-      query[JobDetails].filter(jobDetails => jobDetails.jobId == ctx.lift(jobId)).delete
-    }
-    ctx.run(q)
+    run(jobs.filter(_.jobId === jobId).delete)
   }
 
   override def get(jobId: String): Option[JobDetails] = {
-    import ctx._
-    val q = quote {
-      query[JobDetails].filter(jobDetails => jobDetails.jobId == ctx.lift(jobId))
-    }
-    val response: Seq[JobDetails] = ctx.run(q)
-    response.headOption
+    run(jobs.filter(_.jobId === jobId).result).headOption
   }
 
   override def size: Long = {
-    import ctx._
-    val q = quote {
-      query[JobDetails]
-    }
-    ctx.run(q.size)
+    run(jobs.length.result).toLong
   }
 
   override def clear(): Unit = {
-    import ctx._
-    val q = quote {
-      query[JobDetails].delete
-    }
-    ctx.run(q)
+    run(jobs.delete)
   }
 
   override def update(jobDetails: JobDetails): Unit = {
-    get(jobDetails.jobId) match {
-      case Some(_) =>
-        import ctx._
-        val q = quote {
-          query[JobDetails].filter(j => j.jobId == ctx.lift(jobDetails.jobId)).update(
-            _.configuration.path -> ctx.lift(jobDetails.configuration.path),
-            _.configuration.className -> ctx.lift(jobDetails.configuration.className),
-            _.configuration.namespace -> ctx.lift(jobDetails.configuration.namespace),
-            _.configuration.parameters -> ctx.lift(jobDetails.configuration.parameters),
-            _.configuration.externalId -> ctx.lift(jobDetails.configuration.externalId),
-            _.configuration.route -> ctx.lift(jobDetails.configuration.route),
-            _.configuration.action -> ctx.lift(jobDetails.configuration.action),
-            _.source -> ctx.lift(jobDetails.source),
-            _.jobId -> ctx.lift(jobDetails.jobId),
-            _.startTime -> ctx.lift(jobDetails.startTime),
-            _.endTime -> ctx.lift(jobDetails.endTime),
-            _.jobResult -> ctx.lift(jobDetails.jobResult),
-            _.status -> ctx.lift(jobDetails.status)
-          )
-        }
-        ctx.run(q)
-      case None => add(jobDetails)
-    }
+    run(jobs.insertOrUpdate(jobDetails))
   }
 
   override def filteredByStatuses(statuses: List[Status]): List[JobDetails] = {
-    import ctx._
-    val q = quote {
-      query[JobDetails].filter(j => liftQuery(statuses).contains(j.status))
-    }
-    ctx.run(q)
+    run(jobs.filter(_.status inSetBind statuses).result).toList
   }
 }

@@ -1,6 +1,5 @@
 package io.hydrosphere.mist.jobs
 
-import io.getquill.Embedded
 import io.hydrosphere.mist.RouteConfig
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
@@ -40,7 +39,7 @@ case class FullJobConfiguration(
                                  externalId: Option[String], 
                                  route: Option[String], 
                                  action: JobConfiguration.Action = JobConfiguration.Action.Execute
-                               ) extends JobConfiguration with Embedded
+                               ) extends JobConfiguration
 case class RestificatedJobConfiguration(route: String, parameters: JobParameters, externalId: Option[String]) extends JobConfiguration
 
 class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with Logger {
