@@ -293,15 +293,13 @@ private[mist] class ClusterManager extends Actor with Logger {
       }
 
     case MemberRemoved(member, _) =>
+      val uid = workers.getUIDByAddress(member.address.toString)
+      val name = workers.getNameByUID(uid)
       removeWorkerByAddress(member.address.toString)
 
-    case EcsHook(name) =>
-      if(MistConfig.Workers.cmdStop.nonEmpty) {
+      if(MistConfig.Workers.cmdStop.nonEmpty && name.nonEmpty) {
         new Thread {
           override def run(): Unit = {
-            val runOptions = MistConfig.Contexts.runOptions(name)
-            val configFile = System.getProperty("config.file")
-            val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
             MistConfig.Workers.runner match {
               case "manual" =>
                 Process(
@@ -313,6 +311,7 @@ private[mist] class ClusterManager extends Actor with Logger {
           }
         }.start()
       }
+
   }
 
 }
