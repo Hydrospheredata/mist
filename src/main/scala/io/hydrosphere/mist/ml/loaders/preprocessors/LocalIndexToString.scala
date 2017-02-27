@@ -7,7 +7,10 @@ import org.apache.spark.ml.feature.IndexToString
 
 object LocalIndexToString extends LocalModel {
   override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    new IndexToString()
+    val ctor = classOf[IndexToString].getDeclaredConstructor(classOf[String])
+    ctor.setAccessible(true)
+    ctor
+      .newInstance(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }

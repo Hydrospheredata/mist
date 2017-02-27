@@ -30,6 +30,7 @@ object ModelConversions {
     case _: VectorIndexerModel.type => LocalVectorIndexer
     case _: MaxAbsScalerModel.type => LocalMaxAbsScaler
     case _: MinMaxScalerModel.type => LocalMinMaxScaler
+    case _: IndexToString.type => LocalIndexToString
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }
