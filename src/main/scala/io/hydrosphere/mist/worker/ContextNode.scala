@@ -99,6 +99,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
       val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
         jobDescriptions -= jobDescription
+        if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
         if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
           serverActor ! RemoveJobFromRecovery(runner.id)
         }
