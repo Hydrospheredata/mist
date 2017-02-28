@@ -31,15 +31,17 @@ private[mist] object Master extends App with HttpService with Logger {
   if (MistConfig.Http.isOn) {
     Http().bindAndHandle(route, MistConfig.Http.host, MistConfig.Http.port)
   }
+  
+  AsyncInterface.init(system)
 
   // Start MQTT subscriber
   if (MistConfig.Mqtt.isOn) {
-    AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt, system)
+    AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt)
   }
   
   // Start Kafka subscriber
   if (MistConfig.Kafka.isOn) {
-    AsyncInterface.subscriber(AsyncInterface.Provider.Kafka, system)
+    AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }
   
   // Start Job Queue Actor

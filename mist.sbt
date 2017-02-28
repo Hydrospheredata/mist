@@ -50,7 +50,8 @@ libraryDependencies ++= Seq(
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
   "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "net.cakesolutions" % "scala-kafka-client-akka_2.11" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
+  "org.apache.kafka" %% "kafka" % "0.10.2.0",
+//  "net.cakesolutions" % "scala-kafka-client-akka_2.11" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.flywaydb" % "flyway-core" % "4.1.1"
 )

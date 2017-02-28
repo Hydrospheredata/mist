@@ -11,7 +11,7 @@ private[mist] trait AsyncPublisher extends Actor with Logger with JobConfigurati
     case jobResult: JobResult =>
       logger.info(jobResult.toString)
       logger.info(jobResult.toJson.compactPrint)
-      val jsonString = jobResult.toJson.compactPrint //Json(DefaultFormats).write(jobResult)
+      val jsonString = jobResult.toJson.compactPrint
       send(jsonString)
     case string: String =>
       send(string)

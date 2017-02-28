@@ -113,6 +113,8 @@ private[mist] object MistConfig {
     
     /** Other setting (group.id, auto.offset.reset, enable.auto.commit, etc) */
     val conf: Config = kafka.getConfig("settings")
+
+    def groupId: String = conf.getString("group.id")
   }
 
   object Recovery {

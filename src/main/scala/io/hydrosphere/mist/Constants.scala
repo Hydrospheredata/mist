@@ -14,6 +14,7 @@ object Constants {
     final val asyncJobRunnerName = "AsyncJobRunner"
     final val clusterManagerName = "ClusterManager"
     final val mqttServiceName = "MQTTService"
+    final val kafkaServiceName = "KafkaService"
     final val contextNode = "ContextNode"
     
     final val distributorName = "Distributor"

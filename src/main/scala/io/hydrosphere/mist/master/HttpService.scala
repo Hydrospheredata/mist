@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, PoisonPill}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
@@ -16,10 +16,9 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
-import io.hydrosphere.mist.utils.TypeAlias._  
+import io.hydrosphere.mist.utils.TypeAlias._
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 import spray.json.{pimpAny, pimpString}
-
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -141,8 +140,10 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
                 JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error))
             }
             logger.info(jobResult.toString)
+            distributor ! PoisonPill
             HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), jobResult.toJson.compactPrint))
           case Right(error: String) =>
+            distributor ! PoisonPill
             HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), JobResult(success = false, payload = Map.empty[String, Any], request = jobRequest, errors = List(error)).toJson.compactPrint))
         }
       }

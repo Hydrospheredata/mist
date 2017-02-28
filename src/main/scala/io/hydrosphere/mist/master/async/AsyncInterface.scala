@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.async
 
-import akka.actor.{ActorRef, ActorSystem}
-import io.hydrosphere.mist.master.async.kafka.{KafkaPublisher, KafkaSubscriber}
+import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import io.hydrosphere.mist.master.async.kafka.{KafkaActorWrapper, KafkaPublisher, KafkaSubscriber}
 import io.hydrosphere.mist.master.async.mqtt.{MqttActorWrapper, MqttPublisher, MqttSubscriber}
 
 private[mist] object AsyncInterface {
@@ -22,52 +22,49 @@ private[mist] object AsyncInterface {
     }
   }
   
-  private var mqttActorWrapper: ActorRef = _
-  private var mqttSubscriber: ActorRef = _
-  private var mqttPublisher: ActorRef = _
+  var system: ActorSystem = _
   
-  private var kafkaSubscriber: ActorRef = _
-  private var kafkaPublisher: ActorRef = _
+  def init(system: ActorSystem): Unit = {
+    this.system = system
+  }
   
-  def subscriber(provider: Provider, system: ActorSystem): ActorRef = provider match {
+  def subscriber(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
     case Provider.Mqtt =>
-      if (mqttSubscriber == null) {
-        mqttActorWrapper = system.actorOf(MqttActorWrapper.props())
-        mqttSubscriber = system.actorOf(MqttSubscriber.props(publisher(provider, system), actorWrapper(provider, system)))
+      inContext match {
+        case Some(context) => context.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
+        case None => system.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
       }
-      mqttSubscriber
     case Provider.Kafka =>
-      if (kafkaSubscriber == null) {
-        kafkaSubscriber = system.actorOf(KafkaSubscriber.props(publisher(provider, system)))
+      inContext match {
+        case Some(context) => context.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
+        case None => system.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext))) 
       }
-      kafkaSubscriber
   }
 
-  def publisher(provider: Provider, system: ActorSystem): ActorRef = provider match {
+  def publisher(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
     case Provider.Mqtt =>
-      if (mqttPublisher == null) {
-        if (system == null) {
-          throw new IllegalArgumentException("ActorSystem cannot be null before initializing the actor")
+        inContext match {
+          case Some(context) => context.actorOf(MqttPublisher.props(actorWrapper(provider, inContext)))
+          case None => system.actorOf(MqttPublisher.props(actorWrapper(provider, inContext))) 
         }
-        mqttPublisher = system.actorOf(MqttPublisher.props(actorWrapper(provider, system)))
-      }
-      mqttPublisher
     case Provider.Kafka =>
-      if (kafkaPublisher == null) {
-        if (system == null) {
-          throw new IllegalArgumentException("ActorSystem cannot be null before initializing the actor")
+        inContext match {
+          case Some(context) => context.actorOf(KafkaPublisher.props())
+          case None => system.actorOf(KafkaPublisher.props())
         }
-        kafkaPublisher = system.actorOf(KafkaPublisher.props())
-      }
-      kafkaPublisher
   }
   
-  private def actorWrapper(provider: Provider, system: ActorSystem): ActorRef = provider match {
+  private def actorWrapper(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
     case Provider.Mqtt =>
-      if (mqttActorWrapper == null) {
-        mqttActorWrapper = system.actorOf(MqttActorWrapper.props())
+      inContext match {
+        case Some(context) => context.actorOf(MqttActorWrapper.props())
+        case None => system.actorOf(MqttActorWrapper.props())
       }
-      mqttActorWrapper
+    case Provider.Kafka =>
+      inContext match {
+        case Some(context) => context.actorOf(KafkaActorWrapper.props())
+        case None => system.actorOf(KafkaActorWrapper.props())
+      }
     case x: Provider => throw new IllegalArgumentException(s"No wrapper for ${x.toString}")
   }
 }

@@ -28,7 +28,7 @@ private[mist] class JobRecovery extends Actor with Logger {
             case s: JobDetails.Source.Async => 
               logger.info(s"${jobs.length} jobs must be sent to ${s.provider}")
               jobs.foreach {
-                job => AsyncInterface.subscriber(s.provider, context.system) ! job
+                job => AsyncInterface.subscriber(s.provider, Some(context)) ! job
               }
             case _ =>
               logger.debug(s"${jobs.length} jobs must be marked as aborted")
