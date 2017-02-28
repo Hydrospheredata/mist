@@ -1,24 +1,19 @@
 package io.hydrosphere.mist.ml.transformers
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.loaders.preprocessors.{LocalMaxAbsScaler, LocalStandardScaler}
-import io.hydrosphere.mist.utils.SparkCollections.OpenHashMap
+import io.hydrosphere.mist.ml.DataUtils
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.SparkException
-import org.apache.spark.ml.attribute.NominalAttribute
-import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel}
+import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel, RandomForestClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.feature._
-import org.apache.spark.ml.linalg.{SparseVector, Vector, Vectors}
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => OldStandardScalerModel}
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
-import org.apache.spark.sql.{DataFrame, Dataset}
-import io.hydrosphere.mist.ml.DataUtils
-import org.apache.spark.SparkException
 
-import scala.language.implicitConversions
 import scala.collection.mutable
+import scala.language.implicitConversions
 
 object LocalTransformers extends Logger {
 
@@ -38,10 +33,105 @@ object LocalTransformers extends Logger {
         case standardScaler: StandardScalerModel => standardScaler.transform(x)
         case minMaxScaler: MinMaxScalerModel => minMaxScaler.transform(x)
         case maxAbsScaler: MaxAbsScalerModel => maxAbsScaler.transform(x)
+        case vecIndx: VectorIndexerModel => vecIndx.transform(x)
+        case indxStr: IndexToString => indxStr.transform(x)
+        case rndFrstClass: RandomForestClassificationModel => rndFrstClass.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
+  }
 
+  implicit class LocalRandomForestClassificationModel(val rndFrstClass: RandomForestClassificationModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local RandomForestClassificationModel")
+      logger.info(localData.toString)
+      localData.column(rndFrstClass.getFeaturesCol) match {
+        case Some(column) =>
+          val newColumn = LocalDataColumn(rndFrstClass.getPredictionCol, column.data map { data =>
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalIndexToString(val indxStr: IndexToString) {
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local IndexToString")
+      logger.info(localData.toString)
+      localData.column(indxStr.getInputCol) match {
+        case Some(column) =>
+          val newColumn = LocalDataColumn(indxStr.getOutputCol, column.data map { data =>
+            val list = data.asInstanceOf[List[Vector]]
+            val labels = indxStr.getLabels
+            // If the labels array is empty use column metadata
+            val indexer = (index: Double) => {
+              val idx = index.toInt
+              if (0 <= idx && idx < labels.length) {
+                labels(idx)
+              } else {
+                throw new SparkException(s"Unseen index: $index ??")
+              }
+            }
+            val vector = column.asInstanceOf[Vector]
+            vector.toArray.map(indexer)
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalVectorIndexerModel(val vecIndx: VectorIndexerModel) {
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local VectorIndexerModel")
+      logger.info(localData.toString)
+      localData.column(vecIndx.getInputCol) match {
+        case Some(column) =>
+          val newColumn = LocalDataColumn(vecIndx.getOutputCol, column.data map { data =>
+            val list = data.asInstanceOf[List[Vector]]
+            list.map(transformFunc)
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
+    }
+    private val transformFunc: Vector => Vector = {
+      val sortedCatFeatureIndices = vecIndx.categoryMaps.keys.toArray.sorted
+      val localVectorMap = vecIndx.categoryMaps
+      val localNumFeatures = vecIndx.numFeatures
+      val f: Vector => Vector = { (v: Vector) =>
+        assert(v.size == localNumFeatures, "VectorIndexerModel expected vector of length" +
+          s" $vecIndx.numFeatures but found length ${v.size}")
+        v match {
+          case dv: DenseVector =>
+            val tmpv = dv.copy
+            localVectorMap.foreach { case (featureIndex: Int, categoryMap: Map[Double, Int]) =>
+              tmpv.values(featureIndex) = categoryMap(tmpv(featureIndex))
+            }
+            tmpv
+          case sv: SparseVector =>
+            // We use the fact that categorical value 0 is always mapped to index 0.
+            val tmpv = sv.copy
+            var catFeatureIdx = 0 // index into sortedCatFeatureIndices
+          var k = 0 // index into non-zero elements of sparse vector
+            while (catFeatureIdx < sortedCatFeatureIndices.length && k < tmpv.indices.length) {
+              val featureIndex = sortedCatFeatureIndices(catFeatureIdx)
+              if (featureIndex < tmpv.indices(k)) {
+                catFeatureIdx += 1
+              } else if (featureIndex > tmpv.indices(k)) {
+                k += 1
+              } else {
+                tmpv.values(k) = localVectorMap(featureIndex)(tmpv.values(k))
+                catFeatureIdx += 1
+                k += 1
+              }
+            }
+            tmpv
+        }
+      }
+      f
+    }
   }
 
   implicit class LocalDecisionTreeClassificationModel(val tree: DecisionTreeClassificationModel) {
@@ -103,7 +193,7 @@ object LocalTransformers extends Logger {
           val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
             val labelToIndex = {
               val n = strIndexer.labels.length
-              val map = new OpenHashMap[String, Double](n)
+              val map = new mutable.HashMap[String, Double]
               var i = 0
               while (i < n) {
                 map.update(strIndexer.labels(i), i)
