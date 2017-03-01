@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.{Actor, Props}
+import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.JobRecovery.StartRecovery
@@ -27,8 +28,10 @@ private[mist] class JobRecovery extends Actor with Logger {
           case (source: JobDetails.Source, jobs: List[JobDetails]) => source match {
             case s: JobDetails.Source.Async => 
               logger.info(s"${jobs.length} jobs must be sent to ${s.provider}")
-              jobs.foreach {
-                job => AsyncInterface.subscriber(s.provider, Some(context)) ! job
+              if (MistConfig.AsyncInterfaceConfig(s.provider).isOn) {
+                jobs.foreach {
+                  job => AsyncInterface.subscriber(s.provider, Some(context)) ! job
+                }
               }
             case _ =>
               logger.debug(s"${jobs.length} jobs must be marked as aborted")

@@ -20,7 +20,10 @@ private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttAc
 
   override def preStart(): Unit = {
     mqttActorWrapper ! MqttActorWrapper.Subscribe(self)
+    logger.debug("MqttSubscriber: starting")
   }
+  
+  
 
   receiver {
     case msg: MqttActorWrapper.Message =>
@@ -29,4 +32,9 @@ private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttAc
       processIncomingMessage(stringMessage)
   }
 
+  override def postStop(): Unit = {
+    super.postStop()
+    
+    logger.debug("MqttSubscriber: stopping")
+  }
 }

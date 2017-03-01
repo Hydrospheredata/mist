@@ -119,7 +119,7 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
     complete {
       logger.info(jobRequest.parameters.toString)
       
-      val distributor = system.actorOf(JobDistributor.props())
+      val distributor = system.actorOf(JobDispatcher.props())
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       val jobDetails = JobDetails(jobRequest, JobDetails.Source.Http)

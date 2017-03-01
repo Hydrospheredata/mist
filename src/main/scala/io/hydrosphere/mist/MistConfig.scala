@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory, ConfigValue}
+import io.hydrosphere.mist.master.async.AsyncInterface
 import org.apache.spark.streaming.{Duration => SDuration}
 
 import scala.collection.JavaConversions._
@@ -55,7 +56,7 @@ private[mist] object MistConfig {
 
   /** HTTP specific settings */
   object Http {
-    private def http(): Config = config.getConfig("mist.http")
+    private def http: Config = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
     def isOn: Boolean = http.getBoolean("on")
@@ -80,9 +81,22 @@ private[mist] object MistConfig {
       }
     }
   }
+  
+  trait AsyncInterfaceConfig {
+    def isOn: Boolean
+    def subscribeTopic: String
+    def publishTopic: String
+  }
+  
+  object AsyncInterfaceConfig {
+    def apply(provider: AsyncInterface.Provider): AsyncInterfaceConfig = provider match {
+      case AsyncInterface.Provider.Mqtt => Mqtt
+      case AsyncInterface.Provider.Kafka => Kafka
+    }
+  }
 
   /** MQTT specific settings */
-  object Mqtt {
+  object Mqtt extends AsyncInterfaceConfig {
     private def mqtt: Config = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */
@@ -100,7 +114,7 @@ private[mist] object MistConfig {
   }
   
   /** Kafka specific settings */
-  object Kafka {
+  object Kafka extends AsyncInterfaceConfig {
     private val kafka = config.getConfig("mist.kafka")
     
     /** To start Kafka subscriber or not to start */

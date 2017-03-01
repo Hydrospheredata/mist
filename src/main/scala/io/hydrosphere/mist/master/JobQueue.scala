@@ -23,7 +23,13 @@ object JobQueue {
 class JobQueue extends Actor with Logger {
 
   import io.hydrosphere.mist.master.JobQueue.EnqueueJob
-  
+
+
+  override def preStart(): Unit = {
+    super.preStart()
+    logger.debug("JobQueue: starting")
+  }
+
   override def receive: Receive = {
     case EnqueueJob(job) =>
       val namespaceQueue = JobQueue.queue.getOrElseUpdate(job.configuration.namespace, mutable.Queue[JobDetails]())
@@ -57,5 +63,10 @@ class JobQueue extends Actor with Logger {
         return
       }
     }
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    logger.debug("JobQueue: stopping")
   }
 }

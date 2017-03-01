@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails, JobResult}
-import io.hydrosphere.mist.master.JobDistributor
+import io.hydrosphere.mist.master.JobDispatcher
 import io.hydrosphere.mist.utils.TypeAlias.JobResponse
 import io.hydrosphere.mist.utils.{Logger, MultiReceiveActor}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
@@ -58,7 +58,7 @@ private[mist] abstract class AsyncSubscriber extends Actor with MultiReceiveActo
   
   def processJob(jobDetails: JobDetails): Unit = {
     val jobResult = {
-      val distributorActor = context.actorOf(JobDistributor.props())
+      val distributorActor = context.actorOf(JobDispatcher.props())
       val timeDuration = MistConfig.Contexts.timeout(jobDetails.configuration.namespace)
       if (timeDuration.isFinite()) {
         val future = distributorActor.ask(jobDetails)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {

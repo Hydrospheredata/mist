@@ -40,6 +40,7 @@ private[mist] object Master extends App with HttpService with Logger {
   }
   
   // Start Kafka subscriber
+  logger.debug(MistConfig.Kafka.isOn.toString)
   if (MistConfig.Kafka.isOn) {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }

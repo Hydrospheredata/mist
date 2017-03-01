@@ -239,7 +239,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       ClusterManager.workers += WorkerLink(uid, name, address, blackSpot = false)
 
     case jobDetails: JobDetails =>
-      context.actorOf(JobDistributor.props()) ! jobDetails
+      context.actorOf(JobDispatcher.props()) ! jobDetails
 
     case ClusterManager.StartJob(jobDetails) if jobDetails.configuration.action == JobConfiguration.Action.Serve =>
       val originalSender = sender

@@ -8,20 +8,25 @@ import org.joda.time.DateTime
 
 import scala.language.postfixOps
 
-object JobDistributor {
+object JobDispatcher {
   
-  def props(): Props = Props(classOf[JobDistributor])
+  def props(): Props = Props(classOf[JobDispatcher])
   
 }
 
-class JobDistributor extends Actor with Logger {
+class JobDispatcher extends Actor with Logger {
 
   private val jobQueueActor: ActorRef = context.actorOf(JobQueue.props())
-  
+
+
+  override def preStart(): Unit = {
+    super.preStart()
+    logger.debug("JobDispatcher: starting")
+  }
+
   override def receive: Receive = {
     case jobDetails: JobDetails =>
       logger.debug(s"Received new JobDetails: $jobDetails")
-//      val jobDetails = JobDetails(message, UUID.randomUUID().toString)
       
       // Add job into queue
       jobQueueActor ! EnqueueJob(jobDetails)
@@ -51,5 +56,10 @@ class JobDistributor extends Actor with Logger {
       context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
     
       originalSender ! job
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    logger.debug("JobDispatcher: stopping")
   }
 }

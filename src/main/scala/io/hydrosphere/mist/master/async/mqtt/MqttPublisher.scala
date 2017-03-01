@@ -10,7 +10,18 @@ private[mist] object MqttPublisher {
 }
 
 private[mist] class MqttPublisher(mqttActorWrapper: ActorRef) extends AsyncPublisher {
+  
+  override def preStart(): Unit = {
+    super.preStart()
+    logger.debug("MqttPublisher: starting")
+  }
+
   override def send(message: String): Unit = {
     mqttActorWrapper ! new MqttActorWrapper.Publish(message.getBytes("utf-8"))
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    logger.debug("MqttPublisher: stopping")
   }
 }
