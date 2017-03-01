@@ -23,10 +23,10 @@ private[mist] case class JobDescription(jobDetails: JobDetails) extends Descript
 
 }
 
-private[mist] case class WorkerDescription(namespace: String, address: String) extends Description {
+private[mist] case class WorkerDescription(uid: String, namespace: String, address: String, blackSpot: Boolean) extends Description {
 
   override def fields: List[String] = {
-    List(namespace, address)
+    List(uid, namespace, address, blackSpot.toString)
   }
 
 }

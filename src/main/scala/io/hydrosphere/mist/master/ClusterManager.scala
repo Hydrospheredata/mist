@@ -9,13 +9,12 @@ import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemov
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.cli.{JobDescription, WorkerDescription}
+import io.hydrosphere.mist.cli.WorkerDescription
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
 import io.hydrosphere.mist.worker.LocalNode
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
@@ -108,7 +107,7 @@ private[mist] class ClusterManager extends Actor with Logger {
   def removeWorkerByUID(uid: String): Unit = {
     val name = ClusterManager.workers.getNameByUID(uid)
     if (ClusterManager.workers.contains(name, uid)) {
-      val address = workers(name, uid).address
+      val address = ClusterManager.workers(name, uid).address
       val blackSpot = ClusterManager.workers(name, uid).blackSpot
       ClusterManager.workers -= WorkerLink(uid, name, address, blackSpot)
       cluster.down(AddressFromURIString(address))
@@ -116,22 +115,22 @@ private[mist] class ClusterManager extends Actor with Logger {
   }
 
   def removeWorkerByAddress(address: String): Unit = {
-    val uid = workers.getUIDByAddress(address)
+    val uid = ClusterManager.workers.getUIDByAddress(address)
     removeWorkerByUID(uid)
   }
 
   def restartWorkerWithName(name: String): Unit = {
-    if (workers.containsName(name)) {
-      val uid = workers.getUIDByName(name)
-      val address = workers(name, uid).address
+    if (ClusterManager.workers.containsName(name)) {
+      val uid = ClusterManager.workers.getUIDByName(name)
+      val address = ClusterManager.workers(name, uid).address
       val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
       if(MistConfig.Contexts.timeout(name).isFinite()) {
         remoteActor ! StopWhenAllDo
-        workers.setBlackSpotByName(name)
+        ClusterManager.workers.setBlackSpotByName(name)
         startNewWorkerWithName(name)
       } else {
-        val uid = workers.getUIDByName(name)
-        workers.setBlackSpotByName(name)
+        val uid = ClusterManager.workers.getUIDByName(name)
+        ClusterManager.workers.setBlackSpotByName(name)
         startNewWorkerWithName(name)
         removeWorkerByUID(uid)
       }
@@ -254,7 +253,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       startNewWorkerWithName(jobDetails.configuration.namespace)
 
       ClusterManager.workers.registerCallbackForName(jobDetails.configuration.namespace, {
-        case WorkerLink(name, address) =>
+        case WorkerLink(_, name, address, _) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
           remoteActor ! jobDetails
       })

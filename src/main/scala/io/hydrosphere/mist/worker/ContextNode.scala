@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
-import java.util.concurrent.TimeUnitimport akka.actor.{Actor, ActorLogging, Address, Cancellable,Props}
+import java.util.concurrent.TimeUnit
+import akka.actor.{Actor, ActorLogging, Address, Cancellable,Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
@@ -102,9 +103,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
           case _ =>
             jobDescriptions -= jobRequest
             if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
-            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-              serverActor ! RemoveJobFromRecovery(runner.id)
-            }
         }(ExecutionContext.global)
         .andThen {
           case Success(result: JobResponseOrError) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)

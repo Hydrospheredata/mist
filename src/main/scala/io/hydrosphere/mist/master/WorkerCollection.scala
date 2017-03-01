@@ -53,14 +53,14 @@ class WorkerCollection {
   }
 
   def containsName(name: String): Boolean = {
-    val w = workers.find(n => n._1._1 == name && n._2._2 == false)
+    val w = workers.find(n => n._1._1 == name && !n._2._2)
     if(w.nonEmpty) {
       workers.contains(w.get._1)
     } else { false }
   }
 
   def getUIDByName(name: String): String = {
-    val w = workers.find(n => n._1._1 == name && n._2._2 == false)
+    val w = workers.find(n => n._1._1 == name && !n._2._2)
     if(w.nonEmpty) {
       w.get._1._2
     } else {
@@ -99,7 +99,7 @@ class WorkerCollection {
   }
 
   def setBlackSpotByName(name: String): Unit = {
-    val w = workers.find(n => {n._1._1 == name && n._2._2 == false})
+    val w = workers.find(n => {n._1._1 == name && !n._2._2})
     if(w.nonEmpty) {
       workers -= ((name, w.get._1._2))
       workers += ((name, w.get._1._2) -> (w.get._2._1, true))
