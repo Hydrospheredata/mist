@@ -79,17 +79,17 @@ private[mist] object EntryPoint extends App {
         cliResponseBuilder(ListJobs(), beautifulPrintResult(header))
 
       case msg if msg.contains(Constants.CLI.listWorkersMsg) =>
-        val header = List("NAMESPACE", "ADDRESS")
+        val header = List("NAMESPACE", "ADDRESS", "UID","BLACK_SPOT")
         cliResponseBuilder(ListWorkers(), beautifulPrintResult(header))
 
       case msg if msg.contains(Constants.CLI.listRoutersMsg) =>
         cliResponseBuilder(ListRouters(), beautifulPrintResult())
 
       case msg if msg.contains(Constants.CLI.stopWorkerMsg) =>
-        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.stopWorkerMsg.length)), beautifulPrintResult())
+        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.stopWorkerMsg.length).trim), beautifulPrintResult())
 
       case msg if msg.contains(Constants.CLI.stopJobMsg) =>
-        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.stopJobMsg.length)), beautifulPrintResult())
+        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.stopJobMsg.length).trim), beautifulPrintResult())
 
       case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) =>
         cliResponseBuilder(StopAllContexts(), beautifulPrintResult())
@@ -118,7 +118,7 @@ private[mist] object EntryPoint extends App {
           s"${Constants.CLI.listJobsMsg} \t \t \t \t List all started jobs \n" +
           s"${Constants.CLI.listRoutersMsg} \t \t \t \t List routers \n" +
           s"${Constants.CLI.stopAllWorkersMsg} \t \t \t \t Stop all workers \n" +
-          s"${Constants.CLI.stopWorkerMsg} <namespace> \t \t Stop worker by namespace \n" +
+          s"${Constants.CLI.stopWorkerMsg} <namespace> \t \t Stop worker by UID \n" +
           s"${Constants.CLI.stopJobMsg} <extId|UID> \t \t \t Stop job by external id or UID\n" +
           s"${Constants.CLI.exitMsg} \t \n")
     }

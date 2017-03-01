@@ -4,13 +4,13 @@
 [![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/)
 [![Dependency Status](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000)
 [![Docker Hub Pulls](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)
-# Mist
+# Hydrosphere Mist
 
-Mist is a service for exposing analytics jobs and machine learning models as web services.
+[Hydrosphere](http://hydrosphere.io) Mist is a service for exposing analytical jobs and machine learning models as web services.
 
-Mist provides an API for Scala & Python Apache Spark jobs and for machine learning models.
+Mist provides an API for Scala & Python Apache Spark jobs and for machine learning models trained in Apache Spark.
 
-It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a Big Data lake.
+It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a big data stack.
 
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 

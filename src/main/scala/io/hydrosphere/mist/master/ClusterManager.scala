@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorRef, AddressFromURIString, Props}
 import akka.cluster.Cluster
+import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemoved, UnreachableMember}
 import akka.pattern.ask
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages._
@@ -37,7 +38,7 @@ private[mist] class ClusterManager extends Actor with Logger {
   private val cluster = Cluster(context.system)
 
   def startNewWorkerWithName(name: String): Unit = {
-    if (!ClusterManager.workers.contains(name)) {
+    if (!ClusterManager.workers.containsName(name)) {
       if (MistConfig.Settings.singleJVMMode) {
         Worker.main(Array(name))
       } else {
@@ -88,13 +89,53 @@ private[mist] class ClusterManager extends Actor with Logger {
       }
     }
   }
+  
+  override def preStart(): Unit = {
+    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+  }
+
+  override def postStop(): Unit = {
+    cluster.unsubscribe(self)
+  }
 
   def removeWorkerByName(name: String): Unit = {
-    if (ClusterManager.workers.contains(name)) {
-      val address = ClusterManager.workers(name).address
-      ClusterManager.workers -= WorkerLink(name, address)
+    if (ClusterManager.workers.containsName(name)) {
+      val uid = ClusterManager.workers.getUIDByName(name)
+      removeWorkerByUID(uid)
+    }
+  }
+
+  def removeWorkerByUID(uid: String): Unit = {
+    val name = ClusterManager.workers.getNameByUID(uid)
+    if (ClusterManager.workers.contains(name, uid)) {
+      val address = workers(name, uid).address
+      val blackSpot = ClusterManager.workers(name, uid).blackSpot
+      ClusterManager.workers -= WorkerLink(uid, name, address, blackSpot)
       cluster.down(AddressFromURIString(address))
     }
+  }
+
+  def removeWorkerByAddress(address: String): Unit = {
+    val uid = workers.getUIDByAddress(address)
+    removeWorkerByUID(uid)
+  }
+
+  def restartWorkerWithName(name: String): Unit = {
+    if (workers.containsName(name)) {
+      val uid = workers.getUIDByName(name)
+      val address = workers(name, uid).address
+      val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
+      if(MistConfig.Contexts.timeout(name).isFinite()) {
+        remoteActor ! StopWhenAllDo
+        workers.setBlackSpotByName(name)
+        startNewWorkerWithName(name)
+      } else {
+        val uid = workers.getUIDByName(name)
+        workers.setBlackSpotByName(name)
+        startNewWorkerWithName(name)
+        removeWorkerByUID(uid)
+      }
+    } else { startNewWorkerWithName(name) }
   }
 
   override def receive: Receive = {
@@ -102,9 +143,9 @@ private[mist] class ClusterManager extends Actor with Logger {
     case ListRouters(extended) =>
       val config = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath))
       val javaMap = config.root().unwrapped()
-      
+
       val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
-      
+
       if (extended) {
         sender ! scalaMap.map {
           case (key: String, value: Map[String, Any]) =>
@@ -115,10 +156,10 @@ private[mist] class ClusterManager extends Actor with Logger {
               if (!jobFile.exists) {
                 return null
               }
-              
+
               val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
               val inst = externalClass.getNewInstance
-              
+
               def methodInfo(methodName: String): Map[String, Map[String, String]] = {
                 try {
                   Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
@@ -128,8 +169,8 @@ private[mist] class ClusterManager extends Actor with Logger {
                 } catch {
                   case _: Throwable => Map.empty[String, Map[String, String]]
                 }
-              } 
-              
+              }
+
               val classInfo = Map(
                 "isMLJob" -> externalClass.isMLJob,
                 "isStreamingJob" -> externalClass.isStreamingJob,
@@ -142,13 +183,12 @@ private[mist] class ClusterManager extends Actor with Logger {
       } else {
         sender ! scalaMap
       }
-      
 
     case message: StopJob =>
       val originalSender = sender
       val future: Future[List[String]] = Future {
         ClusterManager.workers.map {
-          case WorkerLink(name, address) =>
+          case WorkerLink(_, name, address, _) =>
             val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
             val futureListJobs = remoteActor.ask(message)(timeout = Constants.CLI.timeoutDuration)
             Await.result(futureListJobs, Constants.CLI.timeoutDuration).asInstanceOf[List[String]]
@@ -162,15 +202,15 @@ private[mist] class ClusterManager extends Actor with Logger {
 
     case ListWorkers() =>
       sender ! ClusterManager.workers.map {
-        case WorkerLink(name, address) =>
-          WorkerDescription(name, address)
+        case WorkerLink(uid, name, address, blackSpot) =>
+          WorkerDescription(uid, name, address, blackSpot)
       }
 
     case ListJobs() =>
       val originalSender = sender
 
       val future: Future[List[JobDetails]] = Future.sequence(ClusterManager.workers.map[Future[JobDetails]] {
-        case WorkerLink(name, address) =>
+        case WorkerLink(_, name, address, _) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
           remoteActor.ask(ListJobs)(timeout = Constants.CLI.timeoutDuration).asInstanceOf[Future[JobDetails]]
       })
@@ -185,18 +225,19 @@ private[mist] class ClusterManager extends Actor with Logger {
 
     case _: StopAllMessage =>
       ClusterManager.workers.foreach {
-        case WorkerLink(name, _) =>
-          removeWorkerByName(name)
+        case WorkerLink(uid, _, _, _) =>
+          removeWorkerByUID(uid)
       }
       sender ! Constants.CLI.stopAllWorkers
 
     case message: RemovingMessage =>
-      removeWorkerByName(message.name)
-      sender ! s"Worker ${message.name} is scheduled for shutdown."
+      removeWorkerByName(message.contextIdentifier)
+      removeWorkerByUID(message.contextIdentifier)
+      sender ! s"Worker ${message.contextIdentifier} is scheduled for shutdown."
 
-    case WorkerDidStart(name, address) =>
+    case WorkerDidStart(uid, name, address) =>
       logger.info(s"Worker `$name` did start on $address")
-      ClusterManager.workers += WorkerLink(name, address)
+      ClusterManager.workers += WorkerLink(uid, name, address, blackSpot = false)
 
     case jobDetails: JobDetails =>
       context.actorOf(JobDistributor.props()) ! jobDetails
@@ -248,6 +289,34 @@ private[mist] class ClusterManager extends Actor with Logger {
 //        recoveryActor ! JobCompleted
 //      }
 //
+
+//    case AddJobToRecovery(jobId, jobConfiguration) =>
+//      if (MistConfig.Recovery.recoveryOn) {
+//        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+//          case "MapDb" => InMapDbJobConfigurationRepository
+//          case _ => InMemoryJobConfigurationRepository
+//
+//        }
+//        configurationRepository.add(jobId, jobConfiguration)
+//        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+//        recoveryActor ! JobStarted
+//      }
+//
+//    case RemoveJobFromRecovery(jobId) =>
+//      if (MistConfig.Recovery.recoveryOn) {
+//        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+//          case "MapDb" => InMapDbJobConfigurationRepository
+//          case _ => InMemoryJobConfigurationRepository
+//
+//        }
+//        configurationRepository.remove(jobId)
+//        val recoveryActor = context.system.actorSelection(cluster.selfAddress + "/user/RecoveryActor")
+//        recoveryActor ! JobCompleted
+//      }
+
+    case MemberRemoved(member, _) =>
+      removeWorkerByAddress(member.address.toString)
+
   }
 
 }
