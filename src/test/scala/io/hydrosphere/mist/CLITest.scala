@@ -17,7 +17,7 @@ import scala.sys.process._
 class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
-  lazy val cliActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName)
+  lazy val cliActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.Actors.cliName)
 
   val timeoutAssert: Timeout = timeout(90 seconds)
 

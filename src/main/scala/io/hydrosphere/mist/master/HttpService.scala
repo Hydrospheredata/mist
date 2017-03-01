@@ -128,7 +128,7 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
 
         future
           .recover {
-            case _: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
+            case _: AskTimeoutException => Right("Job timeout error")
             case error: Throwable => Right(error.toString)
           }
           .map[ToResponseMarshallable] {

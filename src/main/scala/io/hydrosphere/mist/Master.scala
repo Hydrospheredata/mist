@@ -46,7 +46,7 @@ private[mist] object Master extends App with HttpService with Logger {
   }
   
   // Start Job Queue Actor
-  system.actorOf(JobQueue.props(), name = Constants.Actors.jobQueueName)
+  system.actorOf(JobQueue.props())
 
   // Start job recovery
   system.actorOf(JobRecovery.props()) ! JobRecovery.StartRecovery

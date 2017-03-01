@@ -15,7 +15,7 @@ import scala.reflect.runtime.universe._
 private[mist] object EntryPoint extends App {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
-  val cliActor = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName )
+  val cliActor = system.actorOf(Props[CLINode], name = Constants.Actors.cliName )
 
   var argInput = args.mkString(" ")
 
@@ -74,28 +74,28 @@ private[mist] object EntryPoint extends App {
     }
 
     input match {
-      case msg if msg.contains(Constants.CLI.listJobsMsg) =>
+      case msg if msg.contains(Constants.CLI.Commands.listJobs) =>
         val header = List("UID","TIME","NAMESPACE","EXT_ID","ROUTER")
         cliResponseBuilder(ListJobs(), beautifulPrintResult(header))
 
-      case msg if msg.contains(Constants.CLI.listWorkersMsg) =>
+      case msg if msg.contains(Constants.CLI.Commands.listWorkers) =>
         val header = List("NAMESPACE", "ADDRESS", "UID","BLACK_SPOT")
         cliResponseBuilder(ListWorkers(), beautifulPrintResult(header))
 
-      case msg if msg.contains(Constants.CLI.listRoutersMsg) =>
+      case msg if msg.contains(Constants.CLI.Commands.listRouters) =>
         cliResponseBuilder(ListRouters(), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopWorkerMsg) =>
-        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.stopWorkerMsg.length).trim), beautifulPrintResult())
+      case msg if msg.contains(Constants.CLI.Commands.stopWorker) =>
+        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.Commands.stopWorker.length).trim), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopJobMsg) =>
-        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.stopJobMsg.length).trim), beautifulPrintResult())
+      case msg if msg.contains(Constants.CLI.Commands.stopJob) =>
+        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.Commands.stopJob.length).trim), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.stopAllWorkersMsg) =>
+      case msg if msg.contains(Constants.CLI.Commands.stopAllWorkers) =>
         cliResponseBuilder(StopAllContexts(), beautifulPrintResult())
 
-      case msg if msg.contains(Constants.CLI.startJob) =>
-        val listCmd = msg.substring(Constants.CLI.startJob.length).trim.split(' ')
+      case msg if msg.contains(Constants.CLI.Commands.startJob) =>
+        val listCmd = msg.substring(Constants.CLI.Commands.startJob.length).trim.split(' ')
         if(listCmd.length == 3) {
           val config = "--config " + listCmd(0)
           val route = "--route " + listCmd(1)
@@ -106,21 +106,21 @@ private[mist] object EntryPoint extends App {
           println(listCmd.mkString(" "))
         }
 
-      case Constants.CLI.exitMsg =>
+      case Constants.CLI.Commands.exit =>
         system.shutdown
         sys.exit(0)
       case _ =>
         println(s" ----------------------------------------------------------------- \n" +
           s"|             Mist Command Line Interface                          | \n" +
           s" ----------------------------------------------------------------- \n" +
-          s"${Constants.CLI.startJob} <config> <router> <extId> \t start job \n" +
-          s"${Constants.CLI.listWorkersMsg} \t \t \t \t List all started workers \n" +
-          s"${Constants.CLI.listJobsMsg} \t \t \t \t List all started jobs \n" +
-          s"${Constants.CLI.listRoutersMsg} \t \t \t \t List routers \n" +
-          s"${Constants.CLI.stopAllWorkersMsg} \t \t \t \t Stop all workers \n" +
-          s"${Constants.CLI.stopWorkerMsg} <namespace> \t \t Stop worker by UID \n" +
-          s"${Constants.CLI.stopJobMsg} <extId|UID> \t \t \t Stop job by external id or UID\n" +
-          s"${Constants.CLI.exitMsg} \t \n")
+          s"${Constants.CLI.Commands.startJob} <config> <router> <extId> \t start job \n" +
+          s"${Constants.CLI.Commands.listWorkers} \t \t \t \t List all started workers \n" +
+          s"${Constants.CLI.Commands.listJobs} \t \t \t \t List all started jobs \n" +
+          s"${Constants.CLI.Commands.listRouters} \t \t \t \t List routers \n" +
+          s"${Constants.CLI.Commands.stopAllWorkers} \t \t \t \t Stop all workers \n" +
+          s"${Constants.CLI.Commands.stopWorker} <namespace> \t \t Stop worker by UID \n" +
+          s"${Constants.CLI.Commands.stopJob} <extId|UID> \t \t \t Stop job by external id or UID\n" +
+          s"${Constants.CLI.Commands.exit} \t \n")
     }
   }
 }
