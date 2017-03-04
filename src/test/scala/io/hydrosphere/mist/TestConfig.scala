@@ -63,4 +63,6 @@ object TestConfig {
   val integrationConf = testConfig.getString("mist.test.integration_conf")
   val cliConfig = if(OldVersion) testConfig.getString("mist.test.cli_conf_2_10") else testConfig.getString("mist.test.cli_conf_2_11")
   val restUIConfig = if(OldVersion) testConfig.getString("mist.test.rest_ui_2_10") else testConfig.getString("mist.test.rest_ui_2_11")
+
+  val MLBinarizer =testConfig.getString("mist.test.ml.binarizer")
 }
