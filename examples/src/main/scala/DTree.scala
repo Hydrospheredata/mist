@@ -5,11 +5,10 @@ import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
 
 
 object DTree extends MLMistJob with SQLSupport {
-  def train(): Map[String, Any] = {
-    val data = session.read.format("libsvm").load("/data/mllib/sample_libsvm_data.txt")
-
+  def train(datasetPath: String, savePath: String): Map[String, Any] = {
+    //val data = session.read.format("libsvm").load("/home/bulat/Documents/spark-2.1.0-bin-hadoop2.7//data/mllib/sample_libsvm_data.txt")
+    val data = session.read.format("libsvm").load(datasetPath)
     val Array(training, _) = data.randomSplit(Array(0.7, 0.3))
-
     val labelIndexer = new StringIndexer()
       .setInputCol("label")
       .setOutputCol("indexedLabel")
@@ -33,13 +32,14 @@ object DTree extends MLMistJob with SQLSupport {
 
     val model = pipeline.fit(training)
 
-    model.write.overwrite().save("/models/dtree")
+    //model.write.overwrite().save("models/dtree")
+    model.write.overwrite().save(savePath)
     Map.empty[String, Any]
 }
-  def serve(text: List[String]): Map[String, Any] = {
+  def serve(modelPath: String, text: List[String]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 
-    val pipeline = PipelineLoader.load("/models/dtree")
+    val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("text", text)
     )
