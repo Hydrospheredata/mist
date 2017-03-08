@@ -19,18 +19,46 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     Thread.sleep(5000)
   }
 
-  test("Local Binarizer test") {
-
-    val json = TestConfig.MLBinarizer.parseJson
+  def testServing(modelConfig: String)( predicate: ( Either[Map[String, Any], String] => Unit)): Unit = {
+    val json = modelConfig.parseJson
     val jobConfiguration = json.convertTo[ServingJobConfiguration]
     val serveJob = Runner(jobConfiguration, contextWrapper)
-    serveJob.run() match {
+    predicate(serveJob.run())
+  }
+
+  def extractResult(data: Map[String, Any]): List[Map[String, Double]] = {
+    data("result").asInstanceOf[List[Map[String, Double]]]
+  }
+
+  test("Local Binarizer test") {
+    testServing(TestConfig.LocalModels.binarizer) {
       case Left(data) =>
-        val resList = data("result").asInstanceOf[List[Map[String, Double]]]
+        val resList = extractResult(data)
         val threshold = 5.0
         resList.foreach { x =>
           val reference = if (x("feature") > threshold) 1.0 else 0.0
-          assert(reference == x("binarized_feature"))
+          assert(reference === x("binarized_feature"))
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
+  test("Local Decision Tree Classification pipeline test") {
+    testServing(TestConfig.LocalModels.treeClassifier_1) {
+      case Left(data) =>
+        val resList = extractResult(data)
+        resList foreach { map =>
+          assert(map("predictedLabel").toString.toDouble === 1.0)
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+    testServing(TestConfig.LocalModels.treeClassifier_0) {
+      case Left(data) =>
+        val resList = extractResult(data)
+        resList foreach { map =>
+          assert(map("predictedLabel").toString.toDouble === 0.0)
         }
       case Right(error) =>
         assert(false, error)

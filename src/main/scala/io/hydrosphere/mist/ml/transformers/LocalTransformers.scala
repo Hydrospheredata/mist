@@ -61,20 +61,19 @@ object LocalTransformers extends Logger {
       logger.info(localData.toString)
       localData.column(indxStr.getInputCol) match {
         case Some(column) =>
-          val newColumn = LocalDataColumn(indxStr.getOutputCol, column.data map { data =>
-            val list = data.asInstanceOf[List[Vector]]
-            val labels = indxStr.getLabels
-            // If the labels array is empty use column metadata
-            val indexer = (index: Double) => {
-              val idx = index.toInt
-              if (0 <= idx && idx < labels.length) {
-                labels(idx)
-              } else {
-                throw new SparkException(s"Unseen index: $index ??")
-              }
+          val labels = indxStr.getLabels
+          // If the labels array is empty use column metadata
+          val indexer = (index: Double) => {
+            val idx = index.toInt
+            if (0 <= idx && idx < labels.length) {
+              labels(idx)
+            } else {
+              throw new SparkException(s"Unseen index: $index ??")
             }
-            val vector = column.asInstanceOf[Vector]
-            vector.toArray.map(indexer)
+          }
+          val newColumn = LocalDataColumn(indxStr.getOutputCol, column.data map { data =>
+            val d = data.asInstanceOf[Double]
+            indexer(d)
           })
           localData.withColumn(newColumn)
         case None => localData
@@ -89,8 +88,8 @@ object LocalTransformers extends Logger {
       localData.column(vecIndx.getInputCol) match {
         case Some(column) =>
           val newColumn = LocalDataColumn(vecIndx.getOutputCol, column.data map { data =>
-            val list = data.asInstanceOf[List[Vector]]
-            list.map(transformFunc)
+            val vec = data.asInstanceOf[Vector]
+            transformFunc(vec)
           })
           localData.withColumn(newColumn)
         case None => localData
@@ -145,7 +144,11 @@ object LocalTransformers extends Logger {
           val method = classOf[DecisionTreeClassificationModel].getMethod("predict", classOf[Vector])
           method.setAccessible(true)
           val newColumn = LocalDataColumn(tree.getPredictionCol, column.data map { feature =>
-            val vector: SparseVector = feature.asInstanceOf[SVector]
+            val vector: SparseVector = feature match {
+              case v: SparseVector => v
+              case v: SVector => DataUtils.mllibVectorToMlVector(v)
+              case x => throw new IllegalArgumentException(s"$x is not a vector")
+            }
             method.invoke(tree, vector).asInstanceOf[Double]
           })
           localData.withColumn(newColumn)
@@ -190,26 +193,26 @@ object LocalTransformers extends Logger {
       logger.info(localData.toString)
       localData.column(strIndexer.getInputCol) match {
         case Some(column) =>
+          val labelToIndex = {
+            val n = strIndexer.labels.length
+            val map = new mutable.HashMap[String, Double]
+            var i = 0
+            while (i < n) {
+              map.update(strIndexer.labels(i), i)
+              i += 1
+            }
+            map
+          }
+          val indexer = (label: String) => {
+            if (labelToIndex.contains(label)) {
+              labelToIndex(label)
+            } else {
+              throw new SparkException(s"Unseen label: $label.")
+            }
+          }
           val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
-            val labelToIndex = {
-              val n = strIndexer.labels.length
-              val map = new mutable.HashMap[String, Double]
-              var i = 0
-              while (i < n) {
-                map.update(strIndexer.labels(i), i)
-                i += 1
-              }
-              map
-            }
-            val indexer = (label: String) => {
-              if (labelToIndex.contains(label)) {
-                labelToIndex(label)
-              } else {
-                throw new SparkException(s"Unseen label: $label.")
-              }
-            }
-            val list = feature.asInstanceOf[List[String]]
-            list.map(indexer)
+            val str = feature.asInstanceOf[String]
+            indexer(str)
           })
           localData.withColumn(newColumn)
         case None => localData

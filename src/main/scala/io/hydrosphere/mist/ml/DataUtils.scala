@@ -76,7 +76,7 @@ object DataUtils {
   }
 
   def isInternalNode(nodeData: Map[String, Any]): Boolean =
-    (nodeData("leftChild").asInstanceOf[java.lang.Integer] == -1) && (nodeData("rightChild").asInstanceOf[java.lang.Integer] == -1)
+    (nodeData("leftChild").asInstanceOf[java.lang.Integer] != -1) && (nodeData("rightChild").asInstanceOf[java.lang.Integer] != -1)
 
 
   def createImpurityCalculator(impurity: String, stats: Array[Double]): Object = {
@@ -93,20 +93,23 @@ object DataUtils {
   }
 
   def createSplit(data: Map[String, Any]): Split = {
-    data("leftCategoriesOrThreshold") match {
-      case doubles: Array[Double] =>
+    val cot = data("leftCategoriesOrThreshold").asInstanceOf[List[Double]]
+    data("numCategories").toString.toInt match {
+      case -1 =>
+        val ctor = classOf[ContinuousSplit].getDeclaredConstructor(classOf[Int], classOf[Double])
+        ctor.setAccessible(true)
+        ctor.newInstance(
+          data("featureIndex").asInstanceOf[java.lang.Integer],
+          cot.head.asInstanceOf[java.lang.Double]
+        )
+      case x =>
         val ctor = classOf[CategoricalSplit].getDeclaredConstructor(classOf[Int], classOf[Array[Double]], classOf[Int])
         ctor.setAccessible(true)
         ctor.newInstance(
           data("featureIndex").asInstanceOf[java.lang.Integer],
-          doubles, data("numCategories").asInstanceOf[java.lang.Integer]
+          cot.to[Array],
+          x.asInstanceOf[java.lang.Integer]
         )
-      case threshold: java.lang.Double =>
-        val ctor = classOf[ContinuousSplit].getDeclaredConstructor(classOf[Int], classOf[Double])
-        ctor.setAccessible(true)
-        ctor.newInstance(data("featureIndex").asInstanceOf[java.lang.Integer], threshold)
-      case _ =>
-        throw new IllegalArgumentException(s"Unknown split $data")
     }
   }
 

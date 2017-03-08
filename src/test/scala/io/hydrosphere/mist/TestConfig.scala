@@ -64,5 +64,10 @@ object TestConfig {
   val cliConfig = if(OldVersion) testConfig.getString("mist.test.cli_conf_2_10") else testConfig.getString("mist.test.cli_conf_2_11")
   val restUIConfig = if(OldVersion) testConfig.getString("mist.test.rest_ui_2_10") else testConfig.getString("mist.test.rest_ui_2_11")
 
-  val MLBinarizer =testConfig.getString("mist.test.ml.binarizer")
+  object LocalModels {
+    val binarizer =testConfig.getString("mist.test.ml.binarizer")
+    val treeClassifier_0 =testConfig.getString("mist.test.ml.tree-classifier_0")
+    val treeClassifier_1 =testConfig.getString("mist.test.ml.tree-classifier_1")
+  }
+
 }

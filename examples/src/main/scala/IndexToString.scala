@@ -1,24 +1,34 @@
 import io.hydrosphere.mist.lib._
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.StringIndexer
+import org.apache.spark.ml.feature.{IndexToString, StringIndexer}
 
 
-object StringIndexer extends MLMistJob with SQLSupport {
+object IndexToString extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
 
-    val df = session.createDataFrame(
-      Seq((0, "a"), (1, "b"), (2, "c"), (3, "a"), (4, "a"), (5, "c"))
-    ).toDF("id", "category")
+    val df = session.createDataFrame(Seq(
+      (0, "a"),
+      (1, "b"),
+      (2, "c"),
+      (3, "a"),
+      (4, "a"),
+      (5, "c")
+    )).toDF("id", "category")
 
     val indexer = new StringIndexer()
       .setInputCol("category")
       .setOutputCol("categoryIndex")
+      .fit(df)
 
-    val pipeline = new Pipeline().setStages(Array(indexer))
+    val converter = new IndexToString()
+      .setInputCol("categoryIndex")
+      .setOutputCol("originalCategory")
+
+    val pipeline = new Pipeline().setStages(Array(indexer, converter))
 
     val model = pipeline.fit(df)
 
-    model.write.overwrite().save(savePath)
+    model.write.overwrite().save("models/index")
     Map.empty[String, Any]
   }
 
