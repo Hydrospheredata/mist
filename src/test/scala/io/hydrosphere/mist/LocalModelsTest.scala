@@ -65,6 +65,27 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local Random Forest Classification pipeline test") {
+    testServing(TestConfig.LocalModels.forestClassifier_1) {
+      case Left(data) =>
+        val resList = extractResult(data)
+        resList foreach { map =>
+          assert(map("predictedLabel").toString.toDouble === 1.0)
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+    testServing(TestConfig.LocalModels.forestClassifier_0) {
+      case Left(data) =>
+        val resList = extractResult(data)
+        resList foreach { map =>
+          assert(map("predictedLabel").toString.toDouble === 0.0)
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 

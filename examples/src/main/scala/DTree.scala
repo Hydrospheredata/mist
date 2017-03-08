@@ -52,6 +52,6 @@ object DTree extends MLMistJob with SQLSupport {
       LocalDataColumn("features", List(constructVector(features)))
     )
     val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.toMapList)
+    Map("result" -> result.select("predictedLabel").toMapList)
   }
 }

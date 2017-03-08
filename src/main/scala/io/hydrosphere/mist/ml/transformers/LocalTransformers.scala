@@ -47,9 +47,35 @@ object LocalTransformers extends Logger {
       logger.info(localData.toString)
       localData.column(rndFrstClass.getFeaturesCol) match {
         case Some(column) =>
-          val newColumn = LocalDataColumn(rndFrstClass.getPredictionCol, column.data map { data =>
+          val cls = rndFrstClass.getClass
+          val rawPredictionCol = LocalDataColumn(rndFrstClass.getRawPredictionCol, column.data map { data =>
+            val vector = data match {
+              case v: SparseVector => v
+              case v: SVector => DataUtils.mllibVectorToMlVector(v)
+              case x => throw new IllegalArgumentException(s"$x is not a vector")
+            }
+            val predictRaw = cls.getDeclaredMethod("predictRaw", classOf[Vector])
+            predictRaw.invoke(rndFrstClass, vector)
           })
-          localData.withColumn(newColumn)
+          val probabilityCol = LocalDataColumn(rndFrstClass.getProbabilityCol, rawPredictionCol.data map { data =>
+            val vector = data match {
+              case v: DenseVector => v
+              case x => throw new IllegalArgumentException(s"$x is not a dense vector")
+            }
+            val raw2probabilityInPlace = cls.getDeclaredMethod("raw2probabilityInPlace", classOf[Vector])
+            raw2probabilityInPlace.invoke(rndFrstClass, vector.copy)
+          })
+          val predictionCol = LocalDataColumn(rndFrstClass.getPredictionCol, rawPredictionCol.data map { data =>
+            val vector = data match {
+              case v: DenseVector => v
+              case x => throw new IllegalArgumentException(s"$x is not a dense vector")
+            }
+            val raw2prediction = cls.getMethod("raw2prediction", classOf[Vector])
+            raw2prediction.invoke(rndFrstClass, vector.copy)
+          })
+          localData.withColumn(rawPredictionCol)
+            .withColumn(probabilityCol)
+            .withColumn(predictionCol)
         case None => localData
       }
     }
@@ -62,7 +88,6 @@ object LocalTransformers extends Logger {
       localData.column(indxStr.getInputCol) match {
         case Some(column) =>
           val labels = indxStr.getLabels
-          // If the labels array is empty use column metadata
           val indexer = (index: Double) => {
             val idx = index.toInt
             if (0 <= idx && idx < labels.length) {
@@ -71,9 +96,9 @@ object LocalTransformers extends Logger {
               throw new SparkException(s"Unseen index: $index ??")
             }
           }
-          val newColumn = LocalDataColumn(indxStr.getOutputCol, column.data map { data =>
-            val d = data.asInstanceOf[Double]
-            indexer(d)
+          val newColumn = LocalDataColumn(indxStr.getOutputCol, column.data map {
+              case d: Double => indexer(d)
+              case d => throw new IllegalArgumentException(s"Unknown data to index: $d")
           })
           localData.withColumn(newColumn)
         case None => localData
