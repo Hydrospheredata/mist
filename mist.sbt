@@ -36,6 +36,7 @@ lazy val mist = project.in(file("."))
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
+  .settings(PublishSettings.settings: _*)
   .settings(
     name := "mist",
     libraryDependencies ++= Seq(
@@ -85,6 +86,7 @@ lazy val mist = project.in(file("."))
 lazy val examples = project.in(file("examples"))
   .dependsOn(LocalProject("mist"))
   .settings(commonSettings: _*)
+  .settings(PublishSettings.settings: _*)
   .settings(
     name := "mist_examples",
     version := "0.8.0",
