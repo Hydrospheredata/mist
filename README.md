@@ -98,6 +98,9 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
 ```
 
+# run without docker
+`sbt -DsparkVersion=${SPARK_VERSION} mistRun`
+
 ## What's next
 
 * [Complete Getting Started Guide](/docs/getting-started/README.md)
