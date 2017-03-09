@@ -124,6 +124,49 @@ publishMavenStyle := true
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
+lazy val mistRun = taskKey[Unit]("Run mist locally")
+
+mistRun := {
+  val log = streams.value.log
+  val dir = file("spark_local")
+  if (!dir.exists())
+    IO.createDirectory(dir)
+
+  val sparkDistr = s"spark-$sparkVersion-bin-hadoop2.7.tgz"
+  val distrDir = file(s"spark_local/spark-$sparkVersion-bin-hadoop2.7")
+
+  if (!distrDir.exists()) {
+    val link = url(s"http://apache-mirror.rbc.ru/pub/apache/spark/spark-$sparkVersion/$sparkDistr")
+    log.info(s"Can not find spark locally, download from $link")
+
+    val target = dir / sparkDistr
+    IO.download(link, target)
+    IO.createDirectory(distrDir)
+    Untar.extractTarGz(target, dir)
+
+    log.info(s"Spark has been downloaded to $sparkDistr")
+  }
+
+  val jar = outputPath.in(Compile, assembly).value
+  val extraEnv = "SPARK_HOME" -> distrDir.getAbsolutePath
+  val home = baseDirectory.value
+  val ps = Process(Seq("bin/mist", "start", "master", "--jar", jar.getAbsolutePath), Some(home), extraEnv)
+  log.info(s"Running mist $ps with env $extraEnv")
+
+  val processLogger = new ProcessLogger {
+    override def error(s: => String): Unit = ConsoleOut.systemOut.println(s)
+
+    override def buffer[T](f: => T): T = f
+
+    override def info(s: => String): Unit = ConsoleOut.systemOut.println(s)
+  }
+
+  ps.!<(processLogger)
+}
+
+mistRun <<= mistRun.dependsOn(assembly)
+
+mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(examples, Compile))
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"
@@ -165,3 +208,5 @@ pomExtra := <url>https://github.com/Hydrospheredata/mist</url>
       <organizationUrl>http://hydrosphere.io/</organizationUrl>
     </developer>
   </developers>
+
+
