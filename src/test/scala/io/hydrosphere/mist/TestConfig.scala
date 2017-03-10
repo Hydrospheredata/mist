@@ -66,6 +66,7 @@ object TestConfig {
 
   object LocalModels {
     val binarizer = testConfig.getString("mist.test.ml.binarizer")
+    val pca = testConfig.getString("mist.test.ml.pca")
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")
 

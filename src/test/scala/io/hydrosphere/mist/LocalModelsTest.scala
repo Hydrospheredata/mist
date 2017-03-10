@@ -4,6 +4,7 @@ import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, ServingJobConfiguration}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import org.apache.spark.mllib.linalg.DenseVector
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -80,6 +81,26 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
         val resList = extractResult(data)
         resList foreach { map =>
           assert(map("predictedLabel").toString.toDouble === 0.0)
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
+  test("Local PCA test") {
+    testServing(TestConfig.LocalModels.pca) {
+      case Left(data) =>
+        val validation = Array(
+          List(-4.645104331781534,-1.1167972663619026,-5.524543751369387),
+          List(-6.428880535676489,-5.337951427775355,-5.524543751369389)
+        )
+        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+
+        resList zip validation foreach { x =>
+          val res = x._1("pcaFeatures").asInstanceOf[DenseVector].toArray
+          res zip x._2 foreach { y =>
+            assert(Math.abs(y._1 - y._2) < 0.000001)
+          }
         }
       case Right(error) =>
         assert(false, error)

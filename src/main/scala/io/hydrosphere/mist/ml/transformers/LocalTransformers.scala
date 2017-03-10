@@ -343,13 +343,17 @@ object LocalTransformers extends Logger {
       logger.debug(s"Local PCA")
       logger.debug(localData.toString)
 
-      println(localData.toString)
-
       localData.column(pca.getInputCol) match {
         case Some(column) =>
           val newData = column.data.map(r => {
             val pc = OldMatrices.fromML(pca.pc).asInstanceOf[OldDenseMatrix]
-            val vector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            val vec: List[Double] = r match {
+              case d: List[Any @unchecked] =>
+                val l: List[Double] = d map (_.toString.toDouble)
+                l
+              case d => throw new IllegalArgumentException(s"Unknown data type for LocalPCA: $d")
+            }
+            val vector = OldVectors.dense(vec.toArray)
             pc.transpose.multiply(vector)
           })
           localData.withColumn(LocalDataColumn(pca.getOutputCol, newData))
