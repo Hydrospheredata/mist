@@ -70,6 +70,7 @@ object TestConfig {
     val minmaxscaler = testConfig.getString("mist.test.ml.minmaxscaler")
     val standardscaler = testConfig.getString("mist.test.ml.standardscaler")
     val maxabsscaler = testConfig.getString("mist.test.ml.maxabsscaler")
+    val stringindexer = testConfig.getString("mist.test.ml.stringindexer")
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")
 

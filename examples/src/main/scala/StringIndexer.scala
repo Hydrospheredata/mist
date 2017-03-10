@@ -5,6 +5,7 @@ import org.apache.spark.ml.feature.StringIndexer
 
 object StringIndexer extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
+    assert(savePath == "src/test/resources/models/stringindexer")
 
     val df = session.createDataFrame(
       Seq((0, "a"), (1, "b"), (2, "c"), (3, "a"), (4, "a"), (5, "c"))
@@ -22,12 +23,8 @@ object StringIndexer extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
   }
 
-  def serve(modelPath: String, features: List[Double]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[String]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
-
-    val features = List(
-      "a", "b", "c", "c"
-    )
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(

@@ -171,6 +171,21 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local StringIndexer test") {
+    testServing(TestConfig.LocalModels.stringindexer) {
+      case Left(data) =>
+        val validation = Array(0.0, 2.0, 1.0)
+        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+
+        resList zip validation foreach { x =>
+          val res = x._1("categoryIndex").asInstanceOf[Double]
+          assert(res == x._2)
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 
