@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.async.mqtt
 
 
 import akka.actor.{ActorRef, Props}
-import io.hydrosphere.mist.utils.{Logger, MultiReceiveActor}
+import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.master.async.AsyncInterface.Provider
@@ -14,7 +14,7 @@ private[mist] object MqttSubscriber {
   
 }
 
-private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttActorWrapper: ActorRef) extends AsyncSubscriber with MultiReceiveActor with JobConfigurationJsonSerialization with Logger {
+private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttActorWrapper: ActorRef) extends AsyncSubscriber with MultiReceivable with JobConfigurationJsonSerialization with Logger {
   
   override val provider: Provider = AsyncInterface.Provider.Mqtt
 

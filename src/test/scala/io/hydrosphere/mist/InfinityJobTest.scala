@@ -7,8 +7,8 @@ import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import spray.json._
 import DefaultJsonProtocol._
 import io.hydrosphere.mist.jobs.MistJobConfiguration
-import io.hydrosphere.mist.master.ClusterManager
-import io.hydrosphere.mist.master.async.mqtt.{MqttSubscriber$, MQTTSubscribe}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscribe, MqttSubscriber$}
+import io.hydrosphere.mist.master.cluster.ClusterManager
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}

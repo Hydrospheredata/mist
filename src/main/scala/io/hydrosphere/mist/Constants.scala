@@ -12,6 +12,7 @@ object Constants {
     final val kafkaServiceName = "KafkaService"
     final val contextNode = "ContextNode"
     final val cliName = "CLI"
+    final val cliResponderName = "CliResponder"
   }
   
   object CLI {

@@ -99,4 +99,16 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
       job: JobDetails => statuses contains job.status
     }
   }
+
+  override def queuedInNamespace(namespace: String): List[JobDetails] = {
+    getAll.filter {
+      job => job.status == JobDetails.Status.Queued && job.configuration.namespace == namespace
+    }
+  }
+
+  override def runningInNamespace(namespace: String): List[JobDetails] = {
+    getAll.filter {
+      job => job.status == JobDetails.Status.Running && job.configuration.namespace == namespace
+    }
+  }
 }

@@ -10,6 +10,8 @@ private[mist] trait JobRepository {
   def clear(): Unit
   def update(jobDetails: JobDetails): Unit
   def filteredByStatuses(statuses: List[JobDetails.Status]): List[JobDetails]
+  def queuedInNamespace(namespace: String): List[JobDetails]
+  def runningInNamespace(namespace: String): List[JobDetails]
 }
 
 object JobRepository {

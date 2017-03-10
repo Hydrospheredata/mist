@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master
 
 import akka.actor.{Actor, ActorRef, Props}
 import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.JobQueue.{DequeueJob, EnqueueJob}
 import io.hydrosphere.mist.utils.Logger
 import org.joda.time.DateTime
@@ -32,7 +33,7 @@ class JobDispatcher extends Actor with Logger {
       jobQueueActor ! EnqueueJob(jobDetails)
 
       // Add job into history
-      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(jobDetails)
+      JobRepository().update(jobDetails)
       
       context become jobStarted(sender)
   }
@@ -41,7 +42,7 @@ class JobDispatcher extends Actor with Logger {
     case job: JobDetails => 
       logger.debug(s"Job was started at ${new DateTime(job.startTime.getOrElse(0L)).toString}")
       // Update job in history store
-      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
+      JobRepository().update(job)
       context become getResult(originalSender)
   }
   
@@ -53,7 +54,7 @@ class JobDispatcher extends Actor with Logger {
       jobQueueActor ! DequeueJob(job)
 
       // Update job in history store
-      context.actorOf(JobHistory.props()) ! JobHistory.UpdateJob(job)
+      JobRepository().update(job)
     
       originalSender ! job
   }

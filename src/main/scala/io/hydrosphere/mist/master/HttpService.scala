@@ -5,27 +5,31 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{ActorSystem, PoisonPill}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.{HttpEntity, _}
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
+import akka.util.Timeout
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
+import io.hydrosphere.mist.utils.json.{JobConfigurationJsonSerialization, JobDetailsJsonSerialization, WorkerLinkJsonSerialization}
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import io.hydrosphere.mist.utils.TypeAlias._
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.master.cluster.ClusterManager
 import spray.json.{pimpAny, pimpString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
 import scala.language.reflectiveCalls
+import scala.util.{Failure, Success}
 
 /** HTTP interface */
-private[mist] trait HttpService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with Logger {
+private[mist] trait HttpService extends Directives with SprayJsonSupport with JobConfigurationJsonSerialization with WorkerLinkJsonSerialization with JobDetailsJsonSerialization with Logger {
 
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
@@ -73,9 +77,23 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
       pathEnd {
         get {
           cmd match {
-            case "jobs" => doInternalRequestComplete(ListJobs())
-            case "workers" => doInternalRequestComplete(ListWorkers())
-            case "routers" => doInternalRequestComplete(ListRouters(extended = true))
+            case "jobs" => complete {
+              HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), JobRepository().filteredByStatuses(List(JobDetails.Status.Running, JobDetails.Status.Queued)).toJson.compactPrint))
+            }
+            case "workers" => complete {
+              implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
+              val future = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}") ? ClusterManager.GetWorkers()
+              future.recover {
+                  case error: Throwable =>
+                    HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), error.toString))
+                }
+                  .map[ToResponseMarshallable] {
+                case list: List[WorkerLink] => HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), list.toJson.compactPrint)) 
+              }
+            }
+            case "routers" => complete {
+              HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+            }
           }
         }
       }
@@ -165,14 +183,12 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
 
       future
         .recover{
-          case error: Throwable =>  HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
+          case error: Throwable => 
+            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
         }
         .map[ToResponseMarshallable] {
-          case result: Map[String, Any] =>
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result.toJson.compactPrint))
-          case result: List[Any] =>
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), result.toJson.compactPrint))
           case result: String =>
+            clusterManager ! PoisonPill
             HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Map("result"->result).toJson.compactPrint))
       }
     }

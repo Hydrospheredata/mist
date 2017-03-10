@@ -16,8 +16,9 @@ import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
-import io.hydrosphere.mist.master.async.mqtt.{MqttSubscriber$, MQTTSubscribe}
-import io.hydrosphere.mist.master.{ClusterManager, HttpService, JobRecovery}
+import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscribe, MqttSubscriber$}
+import io.hydrosphere.mist.master.cluster.ClusterManager
+import io.hydrosphere.mist.master.{HttpService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.ContextNode
 import org.scalatest._

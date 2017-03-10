@@ -8,7 +8,7 @@ import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails, JobResult}
 import io.hydrosphere.mist.master.JobDispatcher
 import io.hydrosphere.mist.utils.TypeAlias.JobResponse
-import io.hydrosphere.mist.utils.{Logger, MultiReceiveActor}
+import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.{DeserializationException, pimpString}
 
@@ -17,7 +17,7 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
-private[mist] abstract class AsyncSubscriber extends Actor with MultiReceiveActor with JobConfigurationJsonSerialization with Logger {
+private[mist] abstract class AsyncSubscriber extends Actor with MultiReceivable with JobConfigurationJsonSerialization with Logger {
   
   val publisherActor: ActorRef
   val provider: AsyncInterface.Provider

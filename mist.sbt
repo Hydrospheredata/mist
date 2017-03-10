@@ -29,6 +29,7 @@ resolvers ++= Seq(
 resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 resolvers += Resolver.bintrayRepo("cakesolutions", "maven")
+resolvers += "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 
 libraryDependencies <++= scalaVersion(akkaDependencies)
 
@@ -51,7 +52,6 @@ libraryDependencies ++= Seq(
   "org.mapdb" % "mapdb" % "3.0.3",
   "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
   "org.apache.kafka" %% "kafka" % "0.10.2.0",
-//  "net.cakesolutions" % "scala-kafka-client-akka_2.11" % "0.10.1.2" excludeAll ExclusionRule(organization = "com.typesafe.akka"),
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
   "org.flywaydb" % "flyway-core" % "4.1.1"
 )

@@ -137,4 +137,12 @@ object SqliteJobRepository extends JobRepository with JobDetailsJsonSerializatio
   override def filteredByStatuses(statuses: List[Status]): List[JobDetails] = {
     run(jobs.filter(_.status inSetBind statuses).result).toList
   }
+
+  override def queuedInNamespace(namespace: String): List[JobDetails] = {
+    run(jobs.filter(j => j.status.asColumnOf[String] === JobDetails.Status.Queued.toString && j.namespace === namespace).result).toList
+  }
+
+  override def runningInNamespace(namespace: String): List[JobDetails] = {
+    run(jobs.filter(j => j.status.asColumnOf[String] === JobDetails.Status.Running.toString && j.namespace === namespace).result).toList
+  }
 }

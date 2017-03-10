@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.async.kafka
 import akka.actor.{ActorRef, Props}
 import io.hydrosphere.mist.master.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.async.{AsyncInterface, AsyncSubscriber}
-import io.hydrosphere.mist.utils.{Logger, MultiReceiveActor}
+import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
 private[mist] object KafkaSubscriber {
@@ -12,7 +12,7 @@ private[mist] object KafkaSubscriber {
   
 }
 
-private[mist] class KafkaSubscriber(override val publisherActor: ActorRef, actorWrapper: ActorRef) extends AsyncSubscriber with MultiReceiveActor with Logger with JobConfigurationJsonSerialization {
+private[mist] class KafkaSubscriber(override val publisherActor: ActorRef, actorWrapper: ActorRef) extends AsyncSubscriber with MultiReceivable with Logger with JobConfigurationJsonSerialization {
   
   override val provider: Provider = AsyncInterface.Provider.Kafka
 

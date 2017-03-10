@@ -2,6 +2,7 @@ package io.hydrosphere.mist.cli
 
 import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
+import akka.util.Timeout
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.{Constants, MistConfig}
 
@@ -9,12 +10,11 @@ import scala.concurrent.Await
 import scala.language.{implicitConversions, postfixOps}
 import scala.sys.process._
 
-import scala.reflect.runtime.universe._
-
 
 private[mist] object EntryPoint extends App {
 
-  implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
+  implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
+  implicit val system = ActorSystem("mist-cli", MistConfig.Akka.CLI.settings)
   val cliActor = system.actorOf(Props[CLINode], name = Constants.Actors.cliName )
 
   var argInput = args.mkString(" ")
@@ -35,64 +35,67 @@ private[mist] object EntryPoint extends App {
         readLine()
       }
 
-    argInput =
-      if(argInput.nonEmpty) {
-        "exit"
-      }
-      else
-      {
-        ""
-      }
-
-    def beautifulPrintResult[T: TypeTag](header: List[String] = List())(someList: List[T]): Unit = {
-      if(someList.nonEmpty) {
-        val headerTabs = typeOf[T] match {
-          case t if t <:< typeOf[Description] => someList.asInstanceOf[List[Description]].head.fieldSizes
-          case _ => List[Int](0)
-        }
-
-        (header zip headerTabs).foreach { case (h, t) => print(h + " " * (t - h.length) + "\t") }
+    argInput = if (argInput.nonEmpty) "exit" else ""
+    
+    def prettyPrint[A <: Description](headers: List[String])(list: List[A]): Unit = {
+      
+      def printBorder(sizes: List[Int]): Unit = {
+        print("+")
+        sizes.foreach({ i => print("-" * i + "+") })
         print("\n")
-        someList.foreach({
-          case t: Description => print(t.prettyPrint)
-          case _ => print(" ")
+      }
+      
+      def printRow(sizes: List[Int], data: List[String]) = {
+        print("|")
+        data.zipWithIndex.foreach({
+          case (string, idx) => print(" " + string + " " * (sizes(idx) - string.length - 1) + "|")
         })
-      } else {
-        header foreach (h => print(h + "\t"))
         print("\n")
       }
-    }
+      
+      val columnSizes = (list.map(_.fields) :+ headers).transpose.map(_.map((_: String).length).max + 2)
 
-    def cliResponseBuilder[A](msg: A, out: (List[Any]) => Unit): Unit = {
-      implicit def anyToListAny(a: Any): List[Any] = a match {
-        case list: List[Any] => list
-        case _ => List[Any](a)
-      }
-      val future = cliActor.ask(msg)(timeout = Constants.CLI.timeoutDuration)
-      val result = Await.result(future, Constants.CLI.timeoutDuration)
-      out(result)
+      printBorder(columnSizes)
+      printRow(columnSizes, headers)
+      printBorder(columnSizes)
+      list.foreach({
+        row => printRow(columnSizes, row.fields)
+      })
+      printBorder(columnSizes)
     }
-
+    
     input match {
       case msg if msg.contains(Constants.CLI.Commands.listJobs) =>
-        val header = List("UID","TIME","NAMESPACE","EXT_ID","ROUTER")
-        cliResponseBuilder(ListJobs(), beautifulPrintResult(header))
+        val future = cliActor ? ListJobs()
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[List[JobDescription]]
+        prettyPrint(JobDescription.headers)(result)
 
       case msg if msg.contains(Constants.CLI.Commands.listWorkers) =>
-        val header = List("NAMESPACE", "ADDRESS", "UID","BLACK_SPOT")
-        cliResponseBuilder(ListWorkers(), beautifulPrintResult(header))
+        val future = cliActor ? ListWorkers()
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[List[WorkerDescription]]
+        prettyPrint(WorkerDescription.headers)(result)
 
       case msg if msg.contains(Constants.CLI.Commands.listRouters) =>
-        cliResponseBuilder(ListRouters(), beautifulPrintResult())
+        val future = cliActor.ask(ListRoutes())(timeout = Constants.CLI.timeoutDuration)
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[List[RouteDescription]]
+        prettyPrint(RouteDescription.headers)(result)
 
       case msg if msg.contains(Constants.CLI.Commands.stopWorker) =>
-        cliResponseBuilder(StopWorker(msg.substring(Constants.CLI.Commands.stopWorker.length).trim), beautifulPrintResult())
+        val uid = msg.substring(Constants.CLI.Commands.stopWorker.length).trim
+        val future = cliActor ? StopWorker(uid)
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[String]
+        println(result)
 
       case msg if msg.contains(Constants.CLI.Commands.stopJob) =>
-        cliResponseBuilder(StopJob(msg.substring(Constants.CLI.Commands.stopJob.length).trim), beautifulPrintResult())
+        val uid = msg.substring(Constants.CLI.Commands.stopJob.length).trim
+        val future = cliActor ? StopJob(uid)
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[String]
+        println(result)
 
       case msg if msg.contains(Constants.CLI.Commands.stopAllWorkers) =>
-        cliResponseBuilder(StopAllContexts(), beautifulPrintResult())
+        val future = cliActor ? StopAllWorkers()
+        val result = Await.result(future, Constants.CLI.timeoutDuration).asInstanceOf[String]
+        println(result)
 
       case msg if msg.contains(Constants.CLI.Commands.startJob) =>
         val listCmd = msg.substring(Constants.CLI.Commands.startJob.length).trim.split(' ')

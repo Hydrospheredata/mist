@@ -26,15 +26,20 @@ private[mist] class JobRecovery extends Actor with Logger {
         .groupBy(_.source)
         .foreach({
           case (source: JobDetails.Source, jobs: List[JobDetails]) => source match {
-            case s: JobDetails.Source.Async => 
-              logger.info(s"${jobs.length} jobs must be sent to ${s.provider}")
+            case s: JobDetails.Source.Async =>
               if (MistConfig.AsyncInterfaceConfig(s.provider).isOn) {
+                logger.info(s"${jobs.length} jobs must be sent to ${s.provider}")
                 jobs.foreach {
                   job => AsyncInterface.subscriber(s.provider, Some(context)) ! job
                 }
+              } else {
+                logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: ${s.provider} is off in config)")
+                jobs.foreach {
+                  job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+                }
               }
-            case _ =>
-              logger.debug(s"${jobs.length} jobs must be marked as aborted")
+            case s: JobDetails.Source =>
+              logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: $s is not async)")
               jobs.foreach {
                 job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
               }
