@@ -6,7 +6,8 @@ import org.apache.spark.ml.linalg.Vectors
 
 
 object MaxAbsScaler extends MLMistJob with SQLSupport {
-  def train(): Map[String, Any] = {
+  def train(savePath: String): Map[String, Any] = {
+    assert(savePath == "src/test/resources/models/maxabsscaler")
 
     val dataFrame = session.createDataFrame(Seq(
       (0, Vectors.dense(1.0, 0.1, -8.0)),
@@ -22,19 +23,14 @@ object MaxAbsScaler extends MLMistJob with SQLSupport {
 
     val model = pipeline.fit(dataFrame)
 
-    model.write.overwrite().save("models/maxabsscaler")
+    model.write.overwrite().save(savePath)
     Map.empty[String, Any]
   }
 
-  def serve(features: List[Double]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[Array[Double]]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 
-    val features = List(
-      Array(2.0, 0.0, 3.0),
-      Array(4.0, 0.0, 0.0)
-    )
-
-    val pipeline = PipelineLoader.load("models/maxabsscaler")
+    val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", features)
     )

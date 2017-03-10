@@ -376,7 +376,13 @@ object LocalTransformers extends Logger {
           )
 
           val newData = column.data.map(r => {
-            val vector: OldVector = OldVectors.dense(r.asInstanceOf[Array[Double]])
+            val vec: List[Double] = r match {
+              case d: List[Any @unchecked] =>
+                val l: List[Double] = d map (_.toString.toDouble)
+                l
+              case d => throw new IllegalArgumentException(s"Unknown data type for LocalStandardScaler: $d")
+            }
+            val vector: OldVector = OldVectors.dense(vec.toArray)
             scaler.transform(vector)
           })
           localData.withColumn(LocalDataColumn(standardScaler.getOutputCol, newData))
@@ -393,7 +399,13 @@ object LocalTransformers extends Logger {
         case Some(column) =>
           val maxAbsUnzero = Vectors.dense(maxAbsScaler.maxAbs.toArray.map(x => if (x == 0) 1 else x))
           val newData = column.data.map(r => {
-            val brz = DataUtils.asBreeze(r.asInstanceOf[Array[Double]]) / DataUtils.asBreeze(maxAbsUnzero.toArray)
+            val vec: List[Double] = r match {
+              case d: List[Any @unchecked] =>
+                val l: List[Double] = d map (_.toString.toDouble)
+                l
+              case d => throw new IllegalArgumentException(s"Unknown data type for LocalMaxAbsScaler: $d")
+            }
+            val brz = DataUtils.asBreeze(vec.toArray) / DataUtils.asBreeze(maxAbsUnzero.toArray)
             DataUtils.fromBreeze(brz)
           })
           localData.withColumn(LocalDataColumn(maxAbsScaler.getOutputCol, newData))

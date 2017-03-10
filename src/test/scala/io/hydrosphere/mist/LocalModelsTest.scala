@@ -5,6 +5,7 @@ import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, ServingJobConfiguration}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -119,6 +120,48 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
 
         resList zip validation foreach { x =>
           val res = x._1("scaledFeatures").asInstanceOf[Array[Double]]
+          res zip x._2 foreach { y =>
+            assert(Math.abs(y._1 - y._2) < 0.000001)
+          }
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
+  test("Local StandardScaler test") {
+    testServing(TestConfig.LocalModels.standardscaler) {
+      case Left(data) =>
+        val validation = Array(
+          List(0.5,0.0,0.6546536707079772,1.7320508075688774,0.0),
+          List(1.0,0.0,1.9639610121239315,3.464101615137755,4.330127018922194),
+          List(2.0,0.0,0.0,5.196152422706632,6.062177826491071)
+        )
+        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+
+        resList zip validation foreach { x =>
+          val res = x._1("scaledFeatures").asInstanceOf[DenseVector].toArray
+          res zip x._2 foreach { y =>
+            assert(Math.abs(y._1 - y._2) < 0.000001)
+          }
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
+  test("Local MaxAbsScaler test") {
+    testServing(TestConfig.LocalModels.maxabsscaler) {
+      case Left(data) =>
+        val validation = Array(
+          List(0.25,0.0,0.125),
+          List(0.5,0.4,0.625),
+          List(0.0,0.6,0.875)
+        )
+        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+
+        resList zip validation foreach { x =>
+          val res = x._1("scaledFeatures").asInstanceOf[NewDenseVector].toArray
           res zip x._2 foreach { y =>
             assert(Math.abs(y._1 - y._2) < 0.000001)
           }
