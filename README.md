@@ -27,10 +27,11 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 ## Features
 
 - Realtime low latency models serving/scoring
+![Mist Local Serving](http://dv9c7babquml0.cloudfront.net/docs-images/mist-model-serving.jpg)
+- Spark Contexts orchestration - Cluster of Sark Clusters: manages multiple Spark contexts in separate JVMs or Dockers
+![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
 - Exposing Apache Spark jobs through REST API
-- Spark **2.1.0** support!
-- Spark Contexts orchestration
-- Super parallel mode: multiple Spark contexts in separate JVMs or Dockers
+- Spark **2.1.0** support! 
 - HTTP & Messaging (MQTT) API
 - Scala and **Python** Spark jobs support
 - Support for Spark SQL and Hive
@@ -48,12 +49,18 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 ######Run mist   
 
+Run Docker:
 ```
 docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.1.0 mist
 ```
         
 [More about docker image](https://hub.docker.com/r/hydrosphere/mist/)
         
+Run Jar:
+```
+sbt -DsparkVersion=${SPARK_VERSION} mistRun
+```
+
 ######Run example
 
 ```
@@ -97,9 +104,6 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 # or run mist
 docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
 ```
-
-# run without docker
-`sbt -DsparkVersion=${SPARK_VERSION} mistRun`
 
 ## What's next
 
