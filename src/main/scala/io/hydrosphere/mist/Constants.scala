@@ -1,7 +1,6 @@
 package io.hydrosphere.mist
 
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration._
 
 object Constants {
   object Errors {
@@ -28,7 +27,7 @@ object Constants {
     final val startJob = "start job"
     final val noWorkersMsg = "no workers"
     final val internalUserInterfaceActorName = "InternalUIActor"
-    final val timeoutDuration = FiniteDuration(Duration("10 sec").toSeconds, TimeUnit.SECONDS)
+    final val timeoutDuration = 10.second
     final val stopAllWorkers = "All contexts are scheduled for shutdown."
   }
 }
