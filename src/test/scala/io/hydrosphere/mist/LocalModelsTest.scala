@@ -107,6 +107,27 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local MinMaxScaler test") {
+    testServing(TestConfig.LocalModels.minmaxscaler) {
+      case Left(data) =>
+        val validation = Array(
+          List(0.0,-0.01,0.0),
+          List(0.5,0.13999999999999999,0.5),
+          List(1.0,0.1,1.0)
+        )
+        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+
+        resList zip validation foreach { x =>
+          val res = x._1("scaledFeatures").asInstanceOf[Array[Double]]
+          res zip x._2 foreach { y =>
+            assert(Math.abs(y._1 - y._2) < 0.000001)
+          }
+        }
+      case Right(error) =>
+        assert(false, error)
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 

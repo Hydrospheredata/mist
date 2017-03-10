@@ -414,11 +414,15 @@ object LocalTransformers extends Logger {
 
       localData.column(minMaxScaler.getInputCol) match {
         case Some(column) =>
-
           val newData = column.data.map(r => {
             val scale = max - min
-
-            val values = r.asInstanceOf[Array[Double]]
+            val vec: List[Double] = r match {
+              case d: List[Any @unchecked] =>
+                val l: List[Double] = d map (_.toString.toDouble)
+                l
+              case d => throw new IllegalArgumentException(s"Unknown data type for LocalMinMaxScaler: $d")
+            }
+            val values = vec.toArray
             val size = values.length
             var i = 0
             while (i < size) {
