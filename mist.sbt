@@ -31,7 +31,33 @@ lazy val commonSettings = Seq(
 
 )
 
+lazy val mistApiSpark1= project.in(file("mist-api-spark1"))
+  .settings(assemblySettings)
+  .settings(commonSettings: _*)
+  .settings(PublishSettings.settings: _*)
+  .settings(
+    name := "mist-api-spark1",
+    scalaVersion := "2.10.6",
+    libraryDependencies ++= sparkDependencies("1.5.2")
+  )
+
+lazy val mistApiSpark2 = project.in(file("mist-api-spark2"))
+  .settings(assemblySettings)
+  .settings(commonSettings: _*)
+  .settings(PublishSettings.settings: _*)
+  .settings(
+    name := "mist-api-spark2",
+    scalaVersion := "2.11.8",
+    libraryDependencies ++= sparkDependencies("2.0.0")
+  )
+
+lazy val currentApi = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+  case versionRegex("1", minor) => mistApiSpark1
+  case _ => mistApiSpark1
+}
+
 lazy val mist = project.in(file("."))
+  .dependsOn(currentApi)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
@@ -39,13 +65,8 @@ lazy val mist = project.in(file("."))
   .settings(PublishSettings.settings: _*)
   .settings(
     name := "mist",
+    libraryDependencies ++= sparkDependencies(sparkVersion.value),
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-core" % sparkVersion.value % "provided",
-      "org.apache.spark" %% "spark-sql" % sparkVersion.value % "provided",
-      "org.apache.spark" %% "spark-hive" % sparkVersion.value % "provided",
-      "org.apache.spark" %% "spark-streaming" % sparkVersion.value % "provided",
-      "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "provided",
-
       "org.json4s" %% "json4s-native" % "3.2.10",
       "org.json4s" %% "json4s-jackson" % "3.2.10",
 
@@ -70,6 +91,52 @@ lazy val mist = project.in(file("."))
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
+//    dependencyClasspath in Compile <+= sparkVersion.map({
+//      case versionRegex("1", minor) => mistApiSpark1.
+//      case _ => mistApiSpark2
+//    }),
+//    (compile in Compile) <<= (compile in Compile).dependsOn(Def.settingDyn {
+//        val api = sparkVersion.value match {
+//          case versionRegex("1", minor) => mistApiSpark1
+//          case _ => mistApiSpark2
+//        }
+//        compile.in(api, Compile)
+//      }),
+//
+//    (dependencyClasspath in Compile) <+= sparkVersion.map({
+//      case versionRegex("1", minor) => mistApiSpark1
+//      case _ => mistApiSpark2
+//    }),
+
+    sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
+      val file = dir / "io" / "hydrosphere"/ "mist" / "api" / "package.scala"
+      val libPackage = version match {
+        case versionRegex("1", minor) => "io.hydrosphere.mist.lib.spark1"
+        case _ => "io.hydrosphere.mist.lib.spark2"
+      }
+      val content = s"""package io.hydrosphere.mist
+           |
+           |object mistApi {
+           |
+           |  type ContextWrapper = ${libPackage}.ContextWrapper
+           |
+           |  type MistJob = ${libPackage}.MistJob
+           |  
+           |  type MLMistJob = ${libPackage}.MLMistJob
+           |
+           |  type StreamingSupport = ${libPackage}.StreamingSupport
+           |
+           |  type SQLSupport = ${libPackage}.SQLSupport
+           |
+           |  type HiveSupport = ${libPackage}.HiveSupport
+           |
+           |}
+        """.stripMargin
+      println(s"YOYOY $dir $content")
+      IO.write(file,content)
+      Seq.empty
+    }},
+
     parallelExecution in Test := false,
 
     excludeFilter in Compile := (
@@ -90,13 +157,7 @@ lazy val examples = project.in(file("examples"))
   .settings(
     name := "mist_examples",
     version := "0.8.0",
-    libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-core" % sparkVersion.value,
-      "org.apache.spark" %% "spark-sql" % sparkVersion.value,
-      "org.apache.spark" %% "spark-hive" % sparkVersion.value,
-      "org.apache.spark" %% "spark-streaming" % sparkVersion.value,
-      "org.apache.spark" %% "spark-mllib" % sparkVersion.value
-    ),
+    libraryDependencies ++= sparkDependencies(sparkVersion.value),
 
     excludeFilter in Compile := (
       sparkVersion.value match {
@@ -155,6 +216,15 @@ def akkaDependencies(scalaVersion: String) = {
     )
   }
 }
+
+def sparkDependencies(v: String) =
+  Seq(
+    "org.apache.spark" %% "spark-core" % v % "provided",
+    "org.apache.spark" %% "spark-sql" % v % "provided",
+    "org.apache.spark" %% "spark-hive" % v % "provided",
+    "org.apache.spark" %% "spark-streaming" % v % "provided",
+    "org.apache.spark" %% "spark-mllib" % v % "provided"
+  )
 
 lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {

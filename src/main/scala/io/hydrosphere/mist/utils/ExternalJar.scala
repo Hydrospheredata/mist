@@ -63,7 +63,7 @@ class ExternalClass(className: String, private val classLoader: ClassLoader) {
   def getNewInstance: ExternalInstance = {
     new ExternalInstance(this, cls)
   }
-  
+
   def isMistJob: Boolean = cls.getInterfaces.contains(classOf[MistJob])
   def isMLJob: Boolean = cls.getInterfaces.contains(classOf[MLMistJob])
   def isStreamingJob: Boolean = cls.getInterfaces.contains(classOf[StreamingSupport])

@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.contexts
 
 import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.mistApi.ContextWrapper
 import org.apache.spark.{SparkConf, SparkContext}
 
 /** Builds spark contexts with necessary settings */

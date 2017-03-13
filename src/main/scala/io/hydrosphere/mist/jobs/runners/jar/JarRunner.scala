@@ -1,9 +1,8 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
-import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
+import io.hydrosphere.mist.lib.{ContextWrapper, MLMistJob, MistJob, StreamingSupport}
 import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
 private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {

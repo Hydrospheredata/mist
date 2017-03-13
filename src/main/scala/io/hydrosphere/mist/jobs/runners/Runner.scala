@@ -1,10 +1,10 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
+import io.hydrosphere.mist.lib.ContextWrapper
 import io.hydrosphere.mist.utils.Logger
 
 

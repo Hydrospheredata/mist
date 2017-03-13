@@ -10,6 +10,7 @@ import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.lib.ContextWrapper
 import io.hydrosphere.mist.{Constants, MistConfig}
 import org.joda.time.DateTime
 
