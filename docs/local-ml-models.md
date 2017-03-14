@@ -39,3 +39,4 @@ Clustering:
 
 Regression:
   - LogisticRegression
+  - DecisionTreeRegression

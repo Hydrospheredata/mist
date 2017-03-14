@@ -3,12 +3,13 @@ package io.hydrosphere.mist.ml.loaders
 import io.hydrosphere.mist.ml.loaders.classification.{LocalDecisionTreeClassificationModel, LocalPerceptron, LocalRandomForestClassificationModel}
 import io.hydrosphere.mist.ml.loaders.clustering.{LocalGaussianMixtureModel, LocalKMeans}
 import io.hydrosphere.mist.ml.loaders.preprocessors._
-import io.hydrosphere.mist.ml.loaders.regression.LocalLogisticRegressionModel
+import io.hydrosphere.mist.ml.loaders.regression.{LocalDecisionTreeRegressionModel, LocalLogisticRegressionModel}
 import org.apache.spark.ml.PipelineModel
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.clustering.KMeansModel
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.clustering.GaussianMixtureModel
+import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 
 import scala.language.implicitConversions
 
@@ -21,6 +22,7 @@ object ModelConversions {
     case _: LogisticRegressionModel.type  => LocalLogisticRegressionModel
     case _: PipelineModel.type  => LocalPipelineModel
     case _: DecisionTreeClassificationModel.type  => LocalDecisionTreeClassificationModel
+    case _: DecisionTreeRegressionModel.type => LocalDecisionTreeRegressionModel
     case _: RandomForestClassificationModel.type => LocalRandomForestClassificationModel
     case _: KMeansModel.type => LocalKMeans
     case _: GaussianMixtureModel.type => LocalGaussianMixtureModel

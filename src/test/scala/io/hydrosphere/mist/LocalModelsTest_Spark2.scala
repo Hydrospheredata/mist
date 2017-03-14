@@ -71,6 +71,21 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local Decision Tree Regression pipeline test") {
+    testServing(TestConfig.LocalModels.treeRegressor_1) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("prediction").toString.toDouble === 1.0)
+      }
+    }
+    testServing(TestConfig.LocalModels.treeRegressor_0) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("prediction").toString.toDouble === 0.0)
+      }
+    }
+  }
+
   test("Local Random Forest Classification pipeline test") {
     testServing(TestConfig.LocalModels.forestClassifier_1) { data =>
       val resList = extractResult[Double](data)

@@ -8,6 +8,7 @@ import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, Logi
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
+import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.mllib.feature.{HashingTF => HTF, StandardScalerModel => OldStandardScalerModel}
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
@@ -18,7 +19,6 @@ import scala.language.implicitConversions
 object LocalTransformers extends Logger {
 
   implicit class LocalPipeline(val pipeline: PipelineModel) {
-
     def transform(localData: LocalData): LocalData = {
       pipeline.stages.foldLeft(localData)((x: LocalData, y: Transformer) => y match {
         case tokenizer: Tokenizer => tokenizer.transform(x)
@@ -27,6 +27,7 @@ object LocalTransformers extends Logger {
         case logisticRegression: LogisticRegressionModel => logisticRegression.transform(x)
         case perceptron: MultilayerPerceptronClassificationModel => perceptron.transform(x)
         case classTree: DecisionTreeClassificationModel => classTree.transform(x)
+        case regTree: DecisionTreeRegressionModel => regTree.transform(x)
         case gaussianModel: GaussianMixtureModel => gaussianModel.transform(x)
         case binarizer: Binarizer => binarizer.transform(x)
         case pca: PCAModel => pca.transform(x)
@@ -155,6 +156,30 @@ object LocalTransformers extends Logger {
         }
       }
       f
+    }
+  }
+
+  implicit class LocalDecisionTreeRegressionModel(val tree: DecisionTreeRegressionModel) {
+    import io.hydrosphere.mist.ml.DataUtils._
+
+    def transform(localData: LocalData): LocalData = {
+      logger.info(s"Local DecisionTreeRegressionModel")
+      logger.info(localData.toString)
+      localData.column(tree.getFeaturesCol) match {
+        case Some(column) =>
+          val method = classOf[DecisionTreeRegressionModel].getMethod("predict", classOf[Vector])
+          method.setAccessible(true)
+          val newColumn = LocalDataColumn(tree.getPredictionCol, column.data map { feature =>
+            val vector: SparseVector = feature match {
+              case v: SparseVector => v
+              case v: SVector => DataUtils.mllibVectorToMlVector(v)
+              case x => throw new IllegalArgumentException(s"$x is not a vector")
+            }
+            method.invoke(tree, vector).asInstanceOf[Double]
+          })
+          localData.withColumn(newColumn)
+        case None => localData
+      }
     }
   }
 
@@ -429,7 +454,7 @@ object LocalTransformers extends Logger {
           val newData = column.data.map(r => {
             val scale = max - min
             val vec: List[Double] = r match {
-              case d: List[Any @unchecked] =>
+              case d: List[Any] =>
                 val l: List[Double] = d map (_.toString.toDouble)
                 l
               case d => throw new IllegalArgumentException(s"Unknown data type for LocalMinMaxScaler: $d")
