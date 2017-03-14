@@ -34,14 +34,13 @@ object MLClassification extends MLMistJob with SQLSupport {
   }
 
   def serve(text: List[String]): Map[String, Any] = {
+    import io.hydrosphere.mist.ml.ModelConversions._
 
-    import io.hydrosphere.mist.ml.transformers.LocalTransformers._
-    
     val pipeline = PipelineLoader.load(s"regression")
     val data = LocalData(
       LocalDataColumn("text", text)
     )
-    val result: LocalData = pipeline.transform(data)
+    val result: LocalData = pipeline.transform(pipeline, data)
     Map("result" -> result.select("text", "prediction").toMapList)
   }
 }
