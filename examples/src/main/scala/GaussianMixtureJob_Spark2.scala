@@ -3,10 +3,9 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.GaussianMixture
 
 
-object GaussianMixture extends MLMistJob with SQLSupport {
+object GaussianMixtureJob extends MLMistJob with SQLSupport {
   def train(): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load("jobs/data/mllib/sample_kmeans_data.txt")
-
 
     val gmm = new GaussianMixture().setK(2)
 
@@ -18,7 +17,6 @@ object GaussianMixture extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
   }
 
-  // TODO: test
   def serve(text: List[String]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.transformers.LocalTransformers._
 

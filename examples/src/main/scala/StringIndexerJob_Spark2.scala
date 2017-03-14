@@ -3,10 +3,8 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.StringIndexer
 
 
-object StringIndexer extends MLMistJob with SQLSupport {
+object StringIndexerJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
-    assert(savePath == "src/test/resources/models/stringindexer")
-
     val df = session.createDataFrame(
       Seq((0, "a"), (1, "b"), (2, "c"), (3, "a"), (4, "a"), (5, "c"))
     ).toDF("id", "category")

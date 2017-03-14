@@ -4,10 +4,8 @@ import org.apache.spark.ml.feature.PCA
 import org.apache.spark.ml.linalg.Vectors
 
 
-object PCA extends MLMistJob with SQLSupport {
+object PCAJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
-    assert(savePath == "src/test/resources/models/pca")
-
     val data = Array(
       Vectors.sparse(5, Seq((1, 1.0), (3, 7.0))),
       Vectors.dense(2.0, 0.0, 3.0, 4.0, 5.0),
@@ -24,7 +22,6 @@ object PCA extends MLMistJob with SQLSupport {
 
     val model = pipeline.fit(df)
 
-    //model.write.overwrite().save("models/pca")
     model.write.overwrite().save(savePath)
     Map.empty[String, Any]
   }

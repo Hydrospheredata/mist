@@ -3,7 +3,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer}
 
 
-object IndexToString extends MLMistJob with SQLSupport {
+object IndexToStringJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
 
     val df = session.createDataFrame(Seq(

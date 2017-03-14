@@ -1,21 +1,19 @@
 import io.hydrosphere.mist.lib._
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.MaxAbsScaler
+import org.apache.spark.ml.feature.MinMaxScaler
 import org.apache.spark.ml.linalg.Vectors
 
 
-object MaxAbsScaler extends MLMistJob with SQLSupport {
+object MinMaxScalerJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
-    assert(savePath == "src/test/resources/models/maxabsscaler")
-
     val dataFrame = session.createDataFrame(Seq(
-      (0, Vectors.dense(1.0, 0.1, -8.0)),
-      (1, Vectors.dense(2.0, 1.0, -4.0)),
-      (2, Vectors.dense(4.0, 10.0, 8.0))
+      (0, Vectors.dense(1.0, 0.1, -1.0)),
+      (1, Vectors.dense(2.0, 1.1, 1.0)),
+      (2, Vectors.dense(3.0, 10.1, 3.0))
     )).toDF("id", "features")
 
-    val scaler = new MaxAbsScaler()
+    val scaler = new MinMaxScaler()
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
 
