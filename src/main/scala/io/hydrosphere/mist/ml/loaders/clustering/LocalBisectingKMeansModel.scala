@@ -23,9 +23,9 @@ object LocalBisectingKMeansModel extends LocalModel {
     val constructor = classOf[BisectingKMeansModel].getDeclaredConstructor(classOf[String], classOf[BisectingKMeansModel])
     constructor.setAccessible(true)
 
-    constructor
-      .newInstance(metadata.uid)
-      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
-      .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
+    var inst = constructor.newInstance(metadata.uid)
+    inst = inst.set(inst.featuresCol, metadata.paramMap("featuresCol").asInstanceOf[String])
+    inst = inst.set(inst.predictionCol, metadata.paramMap("predictionCol").asInstanceOf[String])
+    inst
   }
 }

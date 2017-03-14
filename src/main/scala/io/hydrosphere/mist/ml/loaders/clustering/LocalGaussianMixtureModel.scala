@@ -15,27 +15,23 @@ import org.apache.spark.ml.linalg.{Vector, Matrix, Vectors}
   */
 object LocalGaussianMixtureModel extends LocalModel {
   override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    println(data)
-    println(metadata)
-
     val weights = data("weights").asInstanceOf[List[Double]].toArray
     val mus = data("mus").asInstanceOf[List[Vector]].toArray
     val sigmas = data("sigmas").asInstanceOf[List[Matrix]].toArray
-    val gaussians = mus.zip(sigmas).map {
+    val gaussians = mus zip sigmas map {
       case (mu, sigma) => new MultivariateGaussian(mu, sigma)
     }
 
-    val constructor = classOf[GaussianMixtureModel]
-      .getDeclaredConstructor(
+    val constructor = classOf[GaussianMixtureModel].getDeclaredConstructor(
         classOf[String],
         classOf[Array[Double]],
         classOf[Array[MultivariateGaussian]]
-      )
+    )
     constructor.setAccessible(true)
-    constructor
-      .newInstance(metadata.uid, weights, gaussians)
-      .setProbabilityCol(metadata.paramMap("probabilityCol").asInstanceOf[String])
-      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
-      .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
+    var inst = constructor.newInstance(metadata.uid, weights, gaussians)
+    inst = inst.set(inst.probabilityCol, metadata.paramMap("probabilityCol").asInstanceOf[String])
+    inst = inst.set(inst.featuresCol, metadata.paramMap("featuresCol").asInstanceOf[String])
+    inst = inst.set(inst.predictionCol, metadata.paramMap("predictionCol").asInstanceOf[String])
+    inst
   }
 }
