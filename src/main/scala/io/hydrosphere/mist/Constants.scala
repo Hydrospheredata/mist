@@ -27,7 +27,7 @@ object Constants {
     final val startJob = "start job"
     final val noWorkersMsg = "no workers"
     final val internalUserInterfaceActorName = "InternalUIActor"
-    final val timeoutDuration = 10.second
+    final val timeoutDuration = 60.second
     final val stopAllWorkers = "All contexts are scheduled for shutdown."
   }
 }
