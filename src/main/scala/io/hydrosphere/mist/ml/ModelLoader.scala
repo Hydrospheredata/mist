@@ -1,5 +1,8 @@
 package io.hydrosphere.mist.ml
 
+import java.nio.file.Files
+
+import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.utils.json.ModelMetadataJsonSerialization
 import org.apache.spark.ml.{PipelineModel, Transformer}
 
@@ -8,6 +11,8 @@ import io.hydrosphere.mist.ml.loaders.TransformerFactory
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.LogisticRegression
 import spray.json.{DeserializationException, pimpString}
+
+import scala.collection.mutable
 
 object ModelLoader extends Logger with ModelMetadataJsonSerialization {
 
@@ -45,6 +50,31 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
 //      "outputCol": "features"
 //    }
 //  }
+
+//  {
+//    "class":"org.apache.spark.ml.classification.DecisionTreeClassificationModel",
+//    "timestamp":1486760757329,
+//    "sparkVersion":"2.1.0",
+//    "uid":"dtc_8582acc89f5a",
+//    "paramMap":{
+//        "impurity":"gini",
+//        "cacheNodeIds":false,
+//        "labelCol":"label",
+//        "checkpointInterval":10,
+//        "predictionCol":"prediction",
+//        "maxBins":32,
+//        "featuresCol":"features",
+//        "seed":159147643,
+//        "minInstancesPerNode":1,
+//        "rawPredictionCol":"rawPrediction",
+//        "probabilityCol":"probability",
+//        "minInfoGain":0.0,
+//        "maxMemoryInMB":256,
+//        "maxDepth":5
+//     },
+//    "numFeatures":1000,
+//    "numClasses":2
+//  }
   
   // TODO: tests
 
@@ -70,12 +100,22 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
         throw exc
     }
   }
-  
+
+  /**
+    * method for parsing model data from "/data/" folder
+    *
+    * @param pipelineParameters
+    * @param path
+    * @return
+    */
+  def getData(pipelineParameters: Metadata, path: String) = ???
+
   def getStages(pipelineParameters: Metadata, path: String): Array[Transformer] = pipelineParameters.paramMap("stageUids").asInstanceOf[List[String]].zipWithIndex.toArray.map {
     case (uid: String, index: Int) =>
+      val currentStage = s"$path/stages/${index}_$uid"
       logger.debug(s"reading $uid stage")
-      logger.debug(s"$path/stages/${index}_$uid/metadata/part-00000")
-      val modelMetadata = Source.fromFile(s"$path/stages/${index}_$uid/metadata/part-00000").mkString
+      logger.debug(s"$currentStage/metadata/part-00000")
+      val modelMetadata = Source.fromFile(s"$currentStage/metadata/part-00000").mkString
       logger.debug(modelMetadata)
       try {
         val stageParameters = modelMetadata.parseJson.convertTo[Metadata]
@@ -83,8 +123,7 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
         ModelCache.get(stageParameters.uid) match {
           case Some(model) => model
           case None =>
-            val data = ModelDataReader.parse(s"$path/stages/${index}_$uid/data/")
-            val model = TransformerFactory(stageParameters, data)
+            val model = loadTransformer(stageParameters, currentStage)
             ModelCache.add(model)
             model
         }
@@ -93,6 +132,48 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
           logger.error(s"Deserialization error while parsing stage metadata: $exc")
           throw exc
       }
+  }
+
+  def loadTransformer(stageParameters: Metadata, path: String): Transformer = {
+    stageParameters.className match {
+      case Constants.ML.Models.randomForestClassifier =>
+        val data = ModelDataReader.parse(s"$path/data") map { kv =>
+          kv._1 -> kv._2.asInstanceOf[mutable.Map[String, Any]].toMap
+        }
+        val treesMetadata = ModelDataReader.parse(s"$path/treesMetadata") map {kv =>
+          val subMap = kv._2.asInstanceOf[Map[String, Any]]
+          var metadata = subMap("metadata").toString.parseJson.convertTo[Metadata]
+          val treeMeta = Metadata(
+            metadata.className,
+            metadata.timestamp,
+            metadata.sparkVersion,
+            metadata.uid,
+            metadata.paramMap,
+            stageParameters.numFeatures,
+            stageParameters.numClasses,
+            stageParameters.numTrees
+          )
+          kv._1 -> Map(
+            "metadata" -> treeMeta,
+            "weights" -> subMap("weights").asInstanceOf[java.lang.Double]
+          )
+        }
+        val newParams = stageParameters.paramMap + ("treesMetadata" -> treesMetadata)
+        val newMetadata = Metadata(
+          stageParameters.className,
+          stageParameters.timestamp,
+          stageParameters.sparkVersion,
+          stageParameters.uid,
+          newParams,
+          stageParameters.numFeatures,
+          stageParameters.numClasses,
+          stageParameters.numTrees
+        )
+        TransformerFactory(newMetadata, data)
+      case _ =>
+        val data = ModelDataReader.parse(s"$path/data/")
+        TransformerFactory(stageParameters, data)
+    }
   }
   
 }
