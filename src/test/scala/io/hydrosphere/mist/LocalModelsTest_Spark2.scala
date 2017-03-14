@@ -3,6 +3,7 @@ package io.hydrosphere.mist
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, ServingJobConfiguration}
+import io.hydrosphere.mist.utils.SparkUtils
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.apache.spark.mllib.linalg.DenseVector
 import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector}
@@ -22,6 +23,8 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
   }
 
   private def testServing(modelConfig: String)( predicate: (Map[String, Any] => Unit)): Unit = {
+    if(!SparkUtils.Version.areSessionsSupported)
+      cancel(s"Can't run in Spark ${SparkUtils.Version.sparkVersion}")
     val json = modelConfig.parseJson
     val jobConfiguration = json.convertTo[ServingJobConfiguration]
     val serveJob = Runner(jobConfiguration, contextWrapper)
