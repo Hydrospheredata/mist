@@ -67,10 +67,10 @@ object TestConfig {
   object LocalModels {
     val binarizer = testConfig.getString("mist.test.ml.binarizer")
     val pca = testConfig.getString("mist.test.ml.pca")
-    val minmaxscaler = testConfig.getString("mist.test.ml.minmaxscaler")
-    val standardscaler = testConfig.getString("mist.test.ml.standardscaler")
-    val maxabsscaler = testConfig.getString("mist.test.ml.maxabsscaler")
-    val stringindexer = testConfig.getString("mist.test.ml.stringindexer")
+    val minMaxScaler = testConfig.getString("mist.test.ml.minmaxscaler")
+    val standardScaler = testConfig.getString("mist.test.ml.standardscaler")
+    val maxAbsScaler = testConfig.getString("mist.test.ml.maxabsscaler")
+    val stringIndexer = testConfig.getString("mist.test.ml.stringindexer")
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")
 

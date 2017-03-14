@@ -21,168 +21,140 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     Thread.sleep(5000)
   }
 
-  def testServing(modelConfig: String)( predicate: ( Either[Map[String, Any], String] => Unit)): Unit = {
+  private def testServing(modelConfig: String)( predicate: (Map[String, Any] => Unit)): Unit = {
     val json = modelConfig.parseJson
     val jobConfiguration = json.convertTo[ServingJobConfiguration]
     val serveJob = Runner(jobConfiguration, contextWrapper)
-    predicate(serveJob.run())
+    serveJob.run() match {
+      case Left(data) => predicate(data)
+      case Right(error) => assert(false, error)
+    }
   }
 
-  def extractResult(data: Map[String, Any]): List[Map[String, Double]] = {
-    data("result").asInstanceOf[List[Map[String, Double]]]
+  private def extractResult[T](data: Map[String, Any]): List[Map[String, T]] = {
+    data("result").asInstanceOf[List[Map[String, T]]]
+  }
+
+  private def compareDoubles(data: Seq[Double], valid: Seq[Double]) = {
+    data zip valid foreach {
+      case (x: Double, y: Double) =>
+        assert(Math.abs(x - y) < 0.000001)
+    }
   }
 
   test("Local Binarizer test") {
-    testServing(TestConfig.LocalModels.binarizer) {
-      case Left(data) =>
-        val resList = extractResult(data)
-        val threshold = 5.0
-        resList.foreach { x =>
-          val reference = if (x("feature") > threshold) 1.0 else 0.0
-          assert(reference === x("binarized_feature"))
-        }
-      case Right(error) =>
-        assert(false, error)
+    testServing(TestConfig.LocalModels.binarizer) { data =>
+      val resList = extractResult[Double](data)
+      val threshold = 5.0
+      resList.foreach { x =>
+        val reference = if (x("feature") > threshold) 1.0 else 0.0
+        assert(reference === x("binarized_feature"))
+      }
     }
   }
 
   test("Local Decision Tree Classification pipeline test") {
-    testServing(TestConfig.LocalModels.treeClassifier_1) {
-      case Left(data) =>
-        val resList = extractResult(data)
-        resList foreach { map =>
-          assert(map("predictedLabel").toString.toDouble === 1.0)
-        }
-      case Right(error) =>
-        assert(false, error)
+    testServing(TestConfig.LocalModels.treeClassifier_1) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 1.0)
+      }
     }
-    testServing(TestConfig.LocalModels.treeClassifier_0) {
-      case Left(data) =>
-        val resList = extractResult(data)
-        resList foreach { map =>
-          assert(map("predictedLabel").toString.toDouble === 0.0)
-        }
-      case Right(error) =>
-        assert(false, error)
+    testServing(TestConfig.LocalModels.treeClassifier_0) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 0.0)
+      }
     }
   }
 
   test("Local Random Forest Classification pipeline test") {
-    testServing(TestConfig.LocalModels.forestClassifier_1) {
-      case Left(data) =>
-        val resList = extractResult(data)
-        resList foreach { map =>
-          assert(map("predictedLabel").toString.toDouble === 1.0)
-        }
-      case Right(error) =>
-        assert(false, error)
+    testServing(TestConfig.LocalModels.forestClassifier_1) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 1.0)
+      }
     }
-    testServing(TestConfig.LocalModels.forestClassifier_0) {
-      case Left(data) =>
-        val resList = extractResult(data)
-        resList foreach { map =>
-          assert(map("predictedLabel").toString.toDouble === 0.0)
-        }
-      case Right(error) =>
-        assert(false, error)
+    testServing(TestConfig.LocalModels.forestClassifier_0) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 0.0)
+      }
     }
   }
 
   test("Local PCA test") {
-    testServing(TestConfig.LocalModels.pca) {
-      case Left(data) =>
-        val validation = Array(
-          List(-4.645104331781534,-1.1167972663619026,-5.524543751369387),
-          List(-6.428880535676489,-5.337951427775355,-5.524543751369389)
-        )
-        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+    testServing(TestConfig.LocalModels.pca) { data =>
+      val validation = Array(
+        List(-4.645104331781534, -1.1167972663619026, -5.524543751369387),
+        List(-6.428880535676489, -5.337951427775355, -5.524543751369389)
+      )
+      val resList = extractResult[Any](data) map(x => x("pcaFeatures").asInstanceOf[DenseVector].toArray)
 
-        resList zip validation foreach { x =>
-          val res = x._1("pcaFeatures").asInstanceOf[DenseVector].toArray
-          res zip x._2 foreach { y =>
-            assert(Math.abs(y._1 - y._2) < 0.000001)
-          }
-        }
-      case Right(error) =>
-        assert(false, error)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+          compareDoubles(arr, validRow)
+      }
     }
   }
 
   test("Local MinMaxScaler test") {
-    testServing(TestConfig.LocalModels.minmaxscaler) {
-      case Left(data) =>
-        val validation = Array(
-          List(0.0,-0.01,0.0),
-          List(0.5,0.13999999999999999,0.5),
-          List(1.0,0.1,1.0)
-        )
-        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+    testServing(TestConfig.LocalModels.minMaxScaler) { data =>
+      val validation = Array(
+        List(0.0, -0.01, 0.0),
+        List(0.5, 0.13999999999999999, 0.5),
+        List(1.0, 0.1, 1.0)
+      )
+      val resList = extractResult[Any](data) map(x => x("scaledFeatures").asInstanceOf[Array[Double]])
 
-        resList zip validation foreach { x =>
-          val res = x._1("scaledFeatures").asInstanceOf[Array[Double]]
-          res zip x._2 foreach { y =>
-            assert(Math.abs(y._1 - y._2) < 0.000001)
-          }
-        }
-      case Right(error) =>
-        assert(false, error)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+          compareDoubles(arr, validRow)
+      }
     }
   }
 
   test("Local StandardScaler test") {
-    testServing(TestConfig.LocalModels.standardscaler) {
-      case Left(data) =>
-        val validation = Array(
-          List(0.5,0.0,0.6546536707079772,1.7320508075688774,0.0),
-          List(1.0,0.0,1.9639610121239315,3.464101615137755,4.330127018922194),
-          List(2.0,0.0,0.0,5.196152422706632,6.062177826491071)
-        )
-        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+    testServing(TestConfig.LocalModels.standardScaler) { data =>
+      val validation = Array(
+        List(0.5, 0.0, 0.6546536707079772, 1.7320508075688774, 0.0),
+        List(1.0, 0.0, 1.9639610121239315, 3.464101615137755, 4.330127018922194),
+        List(2.0, 0.0, 0.0, 5.196152422706632, 6.062177826491071)
+      )
+      val resList = extractResult[Any](data) map(x => x("scaledFeatures").asInstanceOf[DenseVector].toArray)
 
-        resList zip validation foreach { x =>
-          val res = x._1("scaledFeatures").asInstanceOf[DenseVector].toArray
-          res zip x._2 foreach { y =>
-            assert(Math.abs(y._1 - y._2) < 0.000001)
-          }
-        }
-      case Right(error) =>
-        assert(false, error)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+          compareDoubles(arr, validRow)
+      }
     }
   }
 
   test("Local MaxAbsScaler test") {
-    testServing(TestConfig.LocalModels.maxabsscaler) {
-      case Left(data) =>
-        val validation = Array(
-          List(0.25,0.0,0.125),
-          List(0.5,0.4,0.625),
-          List(0.0,0.6,0.875)
-        )
-        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+    testServing(TestConfig.LocalModels.maxAbsScaler) { data =>
+      val validation = Array(
+        List(0.25, 0.0, 0.125),
+        List(0.5, 0.4, 0.625),
+        List(0.0, 0.6, 0.875)
+      )
+      val resList = extractResult[Any](data) map(x => x("scaledFeatures").asInstanceOf[NewDenseVector].toArray)
 
-        resList zip validation foreach { x =>
-          val res = x._1("scaledFeatures").asInstanceOf[NewDenseVector].toArray
-          res zip x._2 foreach { y =>
-            assert(Math.abs(y._1 - y._2) < 0.000001)
-          }
-        }
-      case Right(error) =>
-        assert(false, error)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+        compareDoubles(arr, validRow)
+      }
     }
   }
 
   test("Local StringIndexer test") {
-    testServing(TestConfig.LocalModels.stringindexer) {
-      case Left(data) =>
-        val validation = Array(0.0, 2.0, 1.0)
-        val resList = data("result").asInstanceOf[List[Map[String, Any]]]
+    testServing(TestConfig.LocalModels.stringIndexer) { data =>
+      val validation = Array(0.0, 2.0, 1.0)
+      val resList = extractResult[Double](data) map(x => x("categoryIndex"))
 
-        resList zip validation foreach { x =>
-          val res = x._1("categoryIndex").asInstanceOf[Double]
-          assert(res == x._2)
-        }
-      case Right(error) =>
-        assert(false, error)
+      resList zip validation foreach {
+        case (value: Double, validVal) =>
+          assert(value === validVal)
+      }
     }
   }
 
