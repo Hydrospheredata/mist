@@ -1,8 +1,13 @@
-2016-2-8 Mist v0.9.1
+2017-3-15 Mist v0.10.0
+
+    More local transformers from mllib
+    Minor fixes in web UI
+
+2017-2-8 Mist v0.9.1
 
     Fix Logistic regression for Apache Spark 2.1.0
 
-2016-2-2 Mist v0.9.0
+2017-2-2 Mist v0.9.0
 
     Spark 2.1.0 maintenance
     Rename doStuff to execute

@@ -1,63 +1,142 @@
 import AssemblyKeys._
 import sbt.Keys._
 
-import scala.util.matching.Regex
-
-assemblySettings
-
-name := "mist"
-
-organization := "io.hydrosphere"
-
-val versionRegex = "(\\d+)\\.(\\d+).*".r
-val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-scalaVersion := {
-  sparkVersion match {
-    case versionRegex(major, minor) if major.toInt == 1 => "2.10.6"
-    case versionRegex(major, minor) if major.toInt > 1 => "2.11.8"
-    case _ => "2.11.8"
-  }
-}
-
-crossScalaVersions := Seq("2.10.6", "2.11.8")
-
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
-  Resolver.sonatypeRepo("snapshots")
-)
-resolvers += Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns)
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
-resolvers += Resolver.bintrayRepo("cakesolutions", "maven")
-resolvers += "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
-
-libraryDependencies <++= scalaVersion(akkaDependencies)
-
-libraryDependencies ++= Seq(
-  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
-  "com.typesafe" % "config" % "1.3.1",
-  "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
-  "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
-  "com.github.fge" % "json-schema-validator" % "2.2.6",
-  "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-  "org.mapdb" % "mapdb" % "3.0.3",
-  "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-  "org.apache.kafka" %% "kafka" % "0.10.2.0",
-  "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-  "org.flywaydb" % "flyway-core" % "4.1.1"
+  Resolver.sonatypeRepo("snapshots"),
+  Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns),
+  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+  "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
 
-dependencyOverrides += "com.typesafe" % "config" % "1.3.1"
+lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
+lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
+
+lazy val mlFilter = new FileFilter {
+  override def accept(f: File): Boolean = f.getPath.containsSlice("mist/ml")
+}
+
+lazy val commonSettings = Seq(
+  organization := "io.hydrosphere",
+
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
+  scalaVersion := (
+    sparkVersion.value match {
+      case versionRegex("1", minor) => "2.10.6"
+      case _ => "2.11.8"
+  }),
+
+  crossScalaVersions := Seq("2.10.6", "2.11.8")
+
+)
+
+lazy val mist = project.in(file("."))
+  .settings(assemblySettings)
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .settings(mistRunSettings: _*)
+  .settings(PublishSettings.settings: _*)
+  .settings(
+    name := "mist",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion.value % "provided",
+      "org.apache.spark" %% "spark-sql" % sparkVersion.value % "provided",
+      "org.apache.spark" %% "spark-hive" % sparkVersion.value % "provided",
+      "org.apache.spark" %% "spark-streaming" % sparkVersion.value % "provided",
+      "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "provided",
+
+      "org.json4s" %% "json4s-native" % "3.2.10",
+      "org.json4s" %% "json4s-jackson" % "3.2.10",
+
+      "com.typesafe" % "config" % "1.3.1",
+
+      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+
+      "com.github.fge" % "json-schema-validator" % "2.2.6",
+      "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
+      "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+      "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+      "org.mapdb" % "mapdb" % "3.0.2",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
+      "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
+
+      "org.scalaj" %% "scalaj-http" % "2.3.0",
+      "org.apache.kafka" %% "kafka" % "0.10.2.0",
+      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+      "org.flywaydb" % "flyway-core" % "4.1.1"
+    ),
+
+    libraryDependencies ++= akkaDependencies(scalaVersion.value),
+    dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
+
+    parallelExecution in Test := false,
+
+    excludeFilter in Compile := (
+      sparkVersion.value match {
+        case versionRegex("1", minor) => "*_Spark2.scala" || mlFilter
+        case _ => "*_Spark1.scala"
+      }
+    )
+  ).settings(
+    ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
+    ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+  )
+
+lazy val examples = project.in(file("examples"))
+  .dependsOn(LocalProject("mist"))
+  .settings(commonSettings: _*)
+  .settings(PublishSettings.settings: _*)
+  .settings(
+    name := "mist_examples",
+    version := "0.10.0",
+    libraryDependencies ++= Seq(
+      "org.apache.spark" %% "spark-core" % sparkVersion.value,
+      "org.apache.spark" %% "spark-sql" % sparkVersion.value,
+      "org.apache.spark" %% "spark-hive" % sparkVersion.value,
+      "org.apache.spark" %% "spark-streaming" % sparkVersion.value,
+      "org.apache.spark" %% "spark-mllib" % sparkVersion.value
+    ),
+
+    excludeFilter in Compile := (
+      sparkVersion.value match {
+        case versionRegex("1", minor) => "*_Spark2.scala"
+        case _ => "*_Spark1.scala"
+      }
+    )
+  )
+
+lazy val mistRunSettings = Seq(
+  mistRun := {
+    val log = streams.value.log
+    val version = sparkVersion.value
+
+    val local = file("spark_local")
+    if (!local.exists())
+      IO.createDirectory(local)
+
+    val sparkDir = local / SparkLocal.distrName(version)
+    if (!sparkDir.exists()) {
+      log.info(s"Downloading spark $version to $sparkDir")
+      SparkLocal.downloadSpark(version, local)
+    }
+
+    val jar = outputPath.in(Compile, assembly).value
+    val extraEnv = "SPARK_HOME" -> sparkDir.getAbsolutePath
+    val home = baseDirectory.value
+    val ps = Process(Seq("bin/mist", "start", "master", "--jar", jar.getAbsolutePath), Some(home), extraEnv)
+    log.info(s"Running mist $ps with env $extraEnv")
+
+    ps.!<(StdOutLogger)
+  },
+  //assembly mist and package examples before run
+  mistRun <<= mistRun.dependsOn(assembly),
+  mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(examples, Compile))
+)
 
 def akkaDependencies(scalaVersion: String) = {
   val New = """2\.11\..""".r
@@ -66,9 +145,9 @@ def akkaDependencies(scalaVersion: String) = {
     case New() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
+      "ch.qos.logback" % "logback-classic" % "1.1.7", //logback, in order to log to file
       "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1",   // needed for logback to work
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1", // needed for logback to work
       "com.typesafe.slick" %% "slick" % "3.2.0"
     )
     case _ => Seq(
@@ -83,8 +162,8 @@ def akkaDependencies(scalaVersion: String) = {
   }
 }
 
-mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
-  {
+lazy val commonAssemblySettings = Seq(
+  mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
     case m if m.startsWith("META-INF") => MergeStrategy.discard
     case PathList("javax", "servlet", xs @ _*) => MergeStrategy.first
@@ -94,76 +173,6 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
     case "reference.conf" => MergeStrategy.concat
     case PathList("org", "datanucleus", xs @ _*) => MergeStrategy.discard
     case _ => MergeStrategy.first
-  }
-}
-
-val exludes = new FileFilter {
-  def accept(f: File): Boolean = {
-    sparkVersion match {
-      case versionRegex(major, minor) if major.toInt < 2 =>
-        f.getPath.containsSlice("_Spark2.scala") || f.getPath.containsSlice("mist/ml")
-
-      case _ =>
-        f.getPath.containsSlice("_Spark1.scala")
-    }
-  }
-}
-
-excludeFilter in Compile ~= {  _ || exludes }
-
-lazy val sub = LocalProject("examples")
-
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30
-
-ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-
-parallelExecution in Test := false
-
-test in assembly := {}
-
-//Maven
-publishMavenStyle := true
-
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
-
-
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value)
-    Some("snapshots" at nexus + "content/repositories/snapshots/")
-  else
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2/")
-}
-
-publishArtifact in Test := false
-
-pomIncludeRepository := { _ => false }
-
-pomExtra := <url>https://github.com/Hydrospheredata/mist</url>
-  <licenses>
-    <license>
-      <name>Apache 2.0 License</name>
-      <url>https://github.com/Hydrospheredata/mist/LICENSE</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  <scm>
-    <url>https://github.com/Hydrospheredata/mist.git</url>
-    <connection>https://github.com/Hydrospheredata/mist.git</connection>
-  </scm>
-  <developers>
-    <developer>
-      <id>mkf-simpson</id>
-      <name>Konstantin Makarychev</name>
-      <url>https://github.com/mkf-simpson</url>
-      <organization>Hydrosphere</organization>
-      <organizationUrl>http://hydrosphere.io/</organizationUrl>
-    </developer>
-    <developer>
-      <id>leonid133</id>
-      <name>Leonid Blokhin</name>
-      <url>https://github.com/leonid133</url>
-      <organization>Hydrosphere</organization>
-      <organizationUrl>http://hydrosphere.io/</organizationUrl>
-    </developer>
-  </developers>
+  }},
+  test in assembly := {}
+)

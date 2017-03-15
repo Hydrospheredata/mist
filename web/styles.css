@@ -211,6 +211,8 @@ _:-ms-input-placeholder, :root .mist-graph {
 }
 .mist-textfield {
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 .mist-components__notice {
   width: 100%;
@@ -265,6 +267,8 @@ _:-ms-input-placeholder, :root .mist-graph {
 }
 .run-buttons {
     float: right;
+    position: relative;
+    z-index: 10;
 }
 
 .run-buttons .mdl-button {

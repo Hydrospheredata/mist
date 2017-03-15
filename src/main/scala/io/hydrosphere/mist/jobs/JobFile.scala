@@ -26,17 +26,20 @@ object JobFile {
   def apply(path: String): JobFile = {
     if (path.startsWith("hdfs://")) {
       new HDFSJobFile(path)
+    } else if(path.startsWith("mvn://")) {
+      MavenArtifactResolver.fromPath(path)
     } else {
       new LocalJobFile(path)
     }
   }
 
-  def fileType(path: String): FileType = {
-    path.split('.').drop(1).lastOption.getOrElse("") match {
-      case "jar" => JobFile.FileType.Jar
-      case "py" => JobFile.FileType.Python
-      case _ => throw new UnknownTypeException(s"Unknown file type in $path")
-    }
+  def fileType(path: String): FileType = path match {
+    case p if p.startsWith("mvn://") || p.endsWith(".jar") =>
+      JobFile.FileType.Jar
+    case p if p.endsWith(".py") =>
+      JobFile.FileType.Python
+    case _ =>
+      throw new UnknownTypeException(s"Unknown file type in $path")
   }
 
 }

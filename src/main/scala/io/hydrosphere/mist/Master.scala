@@ -1,7 +1,9 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorSystem, Props}
+import akka.event.Logging
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.master._
@@ -29,15 +31,16 @@ private[mist] object Master extends App with HttpService with Logger {
     logger.info("Creating contexts which are specified in config")
     workerManager ! ClusterManager.CreateContext(contextName)
   }
+
+  // Start HTTP server if it is on in config
+  val clientRouteLogged = DebuggingDirectives.logRequestResult("Client ReST", Logging.InfoLevel)(route)
+  if (MistConfig.Http.isOn) {
+    Http().bindAndHandle(clientRouteLogged, MistConfig.Http.host, MistConfig.Http.port)
+  }
   
   // Start CLI
   system.actorOf(CliResponder.props(), name = Constants.Actors.cliResponderName)
 
-  // Start HTTP server
-  if (MistConfig.Http.isOn) {
-    Http().bindAndHandle(route, MistConfig.Http.host, MistConfig.Http.port)
-  }
-  
   AsyncInterface.init(system)
 
   // Start MQTT subscriber

@@ -51,97 +51,97 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
         }
       }
     } ~
-    pathPrefix("api" / Segment ) { jobRoute =>
-      pathEnd {
-        post {
-          parameters('train.?, 'serve.?) { (train, serve) =>
-            entity(as[JobParameters]) { jobRequestParams =>
-              try {
-                val jobConfiguration = FullJobConfigurationBuilder()
-                  .fromRest(jobRoute, jobRequestParams)
-                  .setServing(serve.nonEmpty)
-                  .setTraining(train.nonEmpty)
-                  .build()
-                doComplete(jobConfiguration)
-              } catch {
-                case _: RouteConfig.RouteNotFoundError =>
-                  complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
-                case err: Throwable => complete(HttpResponse(StatusCodes.InternalServerError, entity = err.toString))
+      pathPrefix("api" / Segment) { jobRoute =>
+        pathEnd {
+          post {
+            parameters('train.?, 'serve.?) { (train, serve) =>
+              entity(as[JobParameters]) { jobRequestParams =>
+                try {
+                  val jobConfiguration = FullJobConfigurationBuilder()
+                    .fromRest(jobRoute, jobRequestParams)
+                    .setServing(serve.nonEmpty)
+                    .setTraining(train.nonEmpty)
+                    .build()
+                  doComplete(jobConfiguration)
+                } catch {
+                  case _: RouteConfig.RouteNotFoundError =>
+                    complete(HttpResponse(StatusCodes.BadRequest, entity = "Job route config is not valid. Unknown resource!"))
+                  case err: Throwable => complete(HttpResponse(StatusCodes.InternalServerError, entity = err.toString))
+                }
               }
             }
           }
         }
-      }
-    } ~
-    path("internal" / Segment) { cmd =>
-      pathEnd {
-        get {
-          cmd match {
-            case "jobs" => complete {
-              HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), JobRepository().filteredByStatuses(List(JobDetails.Status.Running, JobDetails.Status.Queued)).toJson.compactPrint))
-            }
-            case "workers" => complete {
-              implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
-              val future = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}") ? ClusterManager.GetWorkers()
-              future.recover {
+      } ~
+      path("internal" / Segment) { cmd =>
+        pathEnd {
+          get {
+            cmd match {
+              case "jobs" => complete {
+                HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), JobRepository().filteredByStatuses(List(JobDetails.Status.Running, JobDetails.Status.Queued)).toJson.compactPrint))
+              }
+              case "workers" => complete {
+                implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
+                val future = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}") ? ClusterManager.GetWorkers()
+                future.recover {
                   case error: Throwable =>
                     HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), error.toString))
                 }
                   .map[ToResponseMarshallable] {
-                case list: List[WorkerLink] => HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), list.toJson.compactPrint)) 
+                  case list: List[WorkerLink] => HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), list.toJson.compactPrint))
+                }
               }
-            }
-            case "routers" => complete {
-              HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+              case "routers" => complete {
+                HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+              }
             }
           }
         }
-      }
-    } ~
-    pathPrefix("ui") {
-      get {
+      } ~
+      pathPrefix("ui") {
+        get {
+          pathEnd {
+            redirect("/ui/", StatusCodes.PermanentRedirect)
+          } ~
+            pathSingleSlash {
+              getFromResource("web/index.html")
+            } ~
+            getFromResourceDirectory("web")
+        }
+      } ~
+      path("internal" / "jobs" / Segment) { cmd =>
         pathEnd {
-          redirect("/ui/", StatusCodes.PermanentRedirect)
-        } ~
-        pathSingleSlash {
-          getFromResource("web/index.html")
-        } ~
-        getFromResourceDirectory("web")
-      }
-    } ~
-    path("internal" / "jobs" / Segment) { cmd =>
-      pathEnd {
+          delete {
+            doInternalRequestComplete(StopJob(cmd))
+          }
+        }
+      } ~
+      path("internal" / "workers" / Segment) { cmd =>
+        pathEnd {
+          delete {
+            doInternalRequestComplete(StopWorker(cmd))
+          }
+        }
+      } ~
+      path("internal" / "workers") {
         delete {
-          doInternalRequestComplete(StopJob(cmd))
+          doInternalRequestComplete(StopAllWorkers())
         }
       }
-    } ~
-    path("internal" / "workers" / Segment) { cmd =>
-      pathEnd {
-        delete {
-          doInternalRequestComplete(StopWorker(cmd))
-        }
-      }
-    } ~
-    path("internal" / "workers" ) {
-      delete {
-        doInternalRequestComplete(StopAllWorkers())
-      }
-    }
   }
 
-  def doComplete(jobRequest: FullJobConfiguration): akka.http.scaladsl.server.Route =  {
+  def doComplete(jobRequest: FullJobConfiguration): akka.http.scaladsl.server.Route = {
 
     respondWithHeader(RawHeader("Content-Type", "application/json"))
 
     complete {
       logger.info(jobRequest.parameters.toString)
-      
+
       val distributor = system.actorOf(JobDispatcher.props())
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       val jobDetails = JobDetails(jobRequest, JobDetails.Source.Http)
-      if(timeDuration.isFinite()) {
+      if (timeDuration.isFinite()) {
         val future = distributor.ask(jobDetails)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
 
         future
@@ -173,23 +173,23 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
     }
   }
 
-  def doInternalRequestComplete(cmd: AdminMessage): akka.http.scaladsl.server.Route  = {
+  def doInternalRequestComplete(cmd: AdminMessage): akka.http.scaladsl.server.Route = {
     respondWithHeader(RawHeader("Content-Type", "application/json"))
-    
+
     complete {
 
       val clusterManager = system.actorOf(ClusterManager.props())
       val future = clusterManager.ask(cmd)(timeout = Constants.CLI.timeoutDuration)
 
       future
-        .recover{
-          case error: Throwable => 
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), error.toString))
+        .recover {
+          case error: Throwable =>
+            HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), error.toString))
         }
         .map[ToResponseMarshallable] {
-          case result: String =>
-            clusterManager ! PoisonPill
-            HttpResponse (entity = HttpEntity (ContentType (MediaTypes.`application/json`), Map("result"->result).toJson.compactPrint))
+        case result: String =>
+          clusterManager ! PoisonPill
+          HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), Map("result" -> result).toJson.compactPrint))
       }
     }
   }

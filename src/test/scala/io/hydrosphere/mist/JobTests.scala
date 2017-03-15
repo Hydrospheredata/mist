@@ -3,6 +3,7 @@ package  io.hydrosphere.mist
 import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.utils.SparkUtils
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
@@ -116,16 +117,6 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   val jobConfiguration_Jar = MistJobConfiguration("some.jar", "", "Jar Test Jobconfiguration", Map().empty, Option("3"))
   val contextWrapper = ContextBuilder.namedSparkContext("foo")
 
-  val versionRegex = "(\\d+)\\.(\\d+).*".r
-  val sparkVersion = util.Properties.propOrNone("sparkVersion").getOrElse("[1.5.2, )")
-
-  val checkSparkSessionLogic = {
-    sparkVersion match {
-      case versionRegex(major, minor) if major.toInt > 1 => true
-      case _ => false
-    }
-  }
-
   override def beforeAll(): Unit = {
     Thread.sleep(5000)
   }
@@ -148,7 +139,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Jar job sql") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestSparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -159,7 +150,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Jar job Hive") {
-    val json = if(checkSparkSessionLogic) {
+    val json = if(SparkUtils.Version.areSessionsSupported) {
       TestConfig.requestSparkSession.parseJson
     }
     else {
@@ -173,7 +164,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestPyspark.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -184,7 +175,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job sql") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestPysparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -195,7 +186,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job hive") {
-    val json = if(checkSparkSessionLogic) {
+    val json = if(SparkUtils.Version.areSessionsSupported) {
       TestConfig.requestPysparkSession.parseJson
     }
     else {
@@ -209,7 +200,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Jar job run") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestJar.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -221,7 +212,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Jar job sql run ") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestSparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -233,7 +224,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Jar job hive run ") {
-    val json = if(checkSparkSessionLogic) {
+    val json = if(SparkUtils.Version.areSessionsSupported) {
       TestConfig.requestSparkSession.parseJson
     }
     else {
@@ -248,7 +239,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job run") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestPyspark.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -260,7 +251,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job sql run") {
-    if(checkSparkSessionLogic)
+    if(SparkUtils.Version.areSessionsSupported)
       cancel("Can't run in Spark 2.0.0")
     val json = TestConfig.requestPysparkSql.parseJson
     val jobConfiguration = json.convertTo[FullJobConfiguration]
@@ -272,7 +263,7 @@ class JobTests extends FunSuite with Eventually with BeforeAndAfterAll with JobC
   }
 
   test("Py job hive run ") {
-    val json = if(checkSparkSessionLogic) {
+    val json = if(SparkUtils.Version.areSessionsSupported) {
       TestConfig.requestPysparkSession.parseJson
     }
     else {
