@@ -53,7 +53,7 @@ lazy val mistApiSpark2 = project.in(file("mist-api-spark2"))
 
 lazy val currentApi = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
   case versionRegex("1", minor) => mistApiSpark1
-  case _ => mistApiSpark1
+  case _ => mistApiSpark2
 }
 
 lazy val mist = project.in(file("."))
@@ -91,23 +91,6 @@ lazy val mist = project.in(file("."))
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
-//    dependencyClasspath in Compile <+= sparkVersion.map({
-//      case versionRegex("1", minor) => mistApiSpark1.
-//      case _ => mistApiSpark2
-//    }),
-//    (compile in Compile) <<= (compile in Compile).dependsOn(Def.settingDyn {
-//        val api = sparkVersion.value match {
-//          case versionRegex("1", minor) => mistApiSpark1
-//          case _ => mistApiSpark2
-//        }
-//        compile.in(api, Compile)
-//      }),
-//
-//    (dependencyClasspath in Compile) <+= sparkVersion.map({
-//      case versionRegex("1", minor) => mistApiSpark1
-//      case _ => mistApiSpark2
-//    }),
-
     sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
       val file = dir / "io" / "hydrosphere"/ "mist" / "api" / "package.scala"
       val libPackage = version match {
@@ -116,25 +99,24 @@ lazy val mist = project.in(file("."))
       }
       val content = s"""package io.hydrosphere.mist
            |
-           |object mistApi {
+           |package object api {
            |
-           |  type ContextWrapper = ${libPackage}.ContextWrapper
+           |  type ContextWrapper = $libPackage.ContextWrapper
            |
-           |  type MistJob = ${libPackage}.MistJob
+           |  type MistJob = $libPackage.MistJob
            |  
-           |  type MLMistJob = ${libPackage}.MLMistJob
+           |  type MLMistJob = $libPackage.MLMistJob
            |
-           |  type StreamingSupport = ${libPackage}.StreamingSupport
+           |  type StreamingSupport = $libPackage.StreamingSupport
            |
-           |  type SQLSupport = ${libPackage}.SQLSupport
+           |  type SQLSupport = $libPackage.SQLSupport
            |
-           |  type HiveSupport = ${libPackage}.HiveSupport
+           |  type HiveSupport = $libPackage.HiveSupport
            |
            |}
         """.stripMargin
-      println(s"YOYOY $dir $content")
       IO.write(file,content)
-      Seq.empty
+      Seq(file)
     }},
 
     parallelExecution in Test := false,

@@ -2,7 +2,6 @@ package io.hydrosphere.mist.lib.spark2
 
 import java.io.File
 
-import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql._
 import org.apache.spark.{SparkConf, SparkContext}

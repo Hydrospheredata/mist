@@ -7,10 +7,10 @@ import akka.actor.{Actor, ActorLogging, Address, Cancellable, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
+import io.hydrosphere.mist.api.ContextWrapper
+import io.hydrosphere.mist.contexts.ContextBuilder
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.ContextWrapper
 import io.hydrosphere.mist.{Constants, MistConfig}
 import org.joda.time.DateTime
 

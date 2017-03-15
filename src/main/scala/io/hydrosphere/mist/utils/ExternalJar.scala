@@ -3,7 +3,7 @@ package io.hydrosphere.mist.utils
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.api._
 
 import scala.collection.immutable.Seq
 import scala.reflect.runtime.universe._

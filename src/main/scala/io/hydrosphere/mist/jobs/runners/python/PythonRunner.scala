@@ -2,10 +2,10 @@ package io.hydrosphere.mist.jobs.runners.python
 
 import java.io.File
 
+import io.hydrosphere.mist.api.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile, MistJobConfiguration}
-import io.hydrosphere.mist.lib.ContextWrapper
 import py4j.GatewayServer
 
 import scala.sys.process._
@@ -27,7 +27,8 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
       jobConfiguration.namespace,
       jobConfiguration.parameters,
       jobConfiguration.externalId ))
-  val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
+  //TODO
+  //val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
   val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(sparkContextWrapper)
 
   override def run(): Either[Map[String, Any], String] = {
