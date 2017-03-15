@@ -35,7 +35,7 @@ object MLClassification extends MLMistJob with SQLSupport {
 
   def serve(text: List[String]): Map[String, Any] = {
 
-    import io.hydrosphere.mist.ml.transformers.LocalTransformers._
+    import io.hydrosphere.mist.lib.spark2.ml.transformers.LocalTransformers._
     
     val pipeline = PipelineLoader.load(s"regression")
     val data = LocalData(

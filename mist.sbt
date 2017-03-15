@@ -48,7 +48,13 @@ lazy val mistApiSpark2 = project.in(file("mist-api-spark2"))
   .settings(
     name := "mist-api-spark2",
     scalaVersion := "2.11.8",
-    libraryDependencies ++= sparkDependencies("2.0.0")
+    libraryDependencies ++= sparkDependencies("2.0.0"),
+    libraryDependencies ++= Seq(
+      "org.json4s" %% "json4s-native" % "3.2.10",
+      "org.apache.parquet" % "parquet-column" % "1.7.0",
+      "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
+      "org.apache.parquet" % "parquet-avro" % "1.7.0"
+    )
   )
 
 lazy val currentApi = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
@@ -96,6 +102,7 @@ lazy val mist = project.in(file("."))
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
+    // create type-alises for compatibility between spark versions
     sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
       val file = dir / "io" / "hydrosphere"/ "mist" / "api" / "package.scala"
       val libPackage = version match {

@@ -27,7 +27,26 @@ object Constants {
     final val startJob = "start job"
     final val noWorkersMsg = "no workers"
     final val internalUserInterfaceActorName = "InternalUIActor"
-    final val timeoutDuration = 10.second
+    final val timeoutDuration = 60.second
     final val stopAllWorkers = "All contexts are scheduled for shutdown."
+  }
+  object ML {
+    object Models {
+      final val randomForestClassifier = "org.apache.spark.ml.classification.RandomForestClassificationModel"
+    }
+    object Collumns {
+      final val inputCol = "inputCol"
+      final val outputCol = "outputCol"
+      final val featuresCol = "featuresCol"
+      final val predictionCol = "predictionCol"
+      final val probabilityCol = "probabilityCol"
+      final val thresholds = "thresholds"
+    }
+    object Params {
+      final val numFeatures = "numFeatures"
+      final val numClasses = "numClasses"
+    }
+    final val binary = "binary"
+    final val rootNode = "rootNode"
   }
 }

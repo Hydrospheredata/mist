@@ -20,6 +20,8 @@ import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import org.json4s.DefaultFormats
 import org.json4s.native.Json
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives.ResourceFile
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
@@ -32,7 +34,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
   implicit val materializer: ActorMaterializer
 
   // /jobs
-  def route: Flow[HttpRequest, HttpResponse, Unit] = {
+  def route = {
     path("jobs") {
       // POST /jobs
       post {
@@ -82,15 +84,13 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
       }
     } ~
     pathPrefix("ui") {
-      get {
-        pathEnd {
-          redirect("/ui/", StatusCodes.PermanentRedirect)
-        } ~
-        pathSingleSlash {
-          getFromResource("web/index.html")
-        } ~
-        getFromResourceDirectory("web")
-      }
+      pathEnd {
+        redirect("/ui/", StatusCodes.PermanentRedirect)
+      } ~
+      pathSingleSlash {
+        getFromResource("web/index.html", Default("web/index.html"), getClass.getClassLoader)
+      } ~
+      getFromResourceDirectory("web", getClass.getClassLoader)
     } ~
     path("internal" / "jobs" / Segment) { cmd =>
       pathEnd {
