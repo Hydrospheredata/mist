@@ -56,6 +56,11 @@ lazy val currentApi = util.Properties.propOrElse("sparkVersion", "1.5.2") match 
   case _ => mistApiSpark2
 }
 
+lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+  case versionRegex("1", minor) => examplesSpark1
+  case _ => examplesSpark2
+}
+
 lazy val mist = project.in(file("."))
   .dependsOn(currentApi)
   .settings(assemblySettings)
@@ -149,6 +154,26 @@ lazy val examples = project.in(file("examples"))
     )
   )
 
+lazy val examplesSpark1 = project.in(file("examples-spark1"))
+  .dependsOn(mistApiSpark1)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "mist-examples-spark1",
+    scalaVersion := "2.10.6",
+    version := "0.9.0",
+    libraryDependencies ++= sparkDependencies(sparkVersion.value)
+  )
+
+lazy val examplesSpark2 = project.in(file("examples-spark2"))
+  .dependsOn(mistApiSpark2)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "mist-examples-spark2",
+    scalaVersion := "2.11.8",
+    version := "0.9.0",
+    libraryDependencies ++= sparkDependencies(sparkVersion.value)
+  )
+
 lazy val mistRunSettings = Seq(
   mistRun := {
     val log = streams.value.log
@@ -174,7 +199,7 @@ lazy val mistRunSettings = Seq(
   },
   //assembly mist and package examples before run
   mistRun <<= mistRun.dependsOn(assembly),
-  mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(examples, Compile))
+  mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
 )
 
 def akkaDependencies(scalaVersion: String) = {
