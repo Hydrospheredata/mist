@@ -31,9 +31,8 @@ private[mist] object Master extends App with HTTPService with Logger {
   }
 
   // Start HTTP server if it is on in config
-  val clientRouteLogged = DebuggingDirectives.logRequestResult("Client ReST", Logging.InfoLevel)(route)
   if (MistConfig.HTTP.isOn) {
-    Http().bindAndHandle(clientRouteLogged, MistConfig.HTTP.host, MistConfig.HTTP.port)
+    Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
   }
 
   // Start MQTT subscriber if it is on in config

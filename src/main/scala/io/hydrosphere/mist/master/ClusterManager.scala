@@ -138,6 +138,7 @@ private[mist] class ClusterManager extends Actor with Logger {
       val javaMap = config.root().unwrapped()
 
       val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
+      println(scalaMap)
 
       if (extended) {
         sender ! scalaMap.map {

@@ -199,7 +199,18 @@ lazy val mistRunSettings = Seq(
     val jar = outputPath.in(Compile, assembly).value
     val extraEnv = "SPARK_HOME" -> sparkDir.getAbsolutePath
     val home = baseDirectory.value
-    val ps = Process(Seq("bin/mist", "start", "master", "--jar", jar.getAbsolutePath), Some(home), extraEnv)
+
+    val config = if (version.startsWith("1."))
+      "default_spark1.conf"
+    else
+      "default_spark2.conf"
+
+    val args = Seq(
+      "bin/mist", "start", "master",
+        "--jar", jar.getAbsolutePath,
+        "--config", s"configs/$config"
+    )
+    val ps = Process(args, Some(home), extraEnv)
     log.info(s"Running mist $ps with env $extraEnv")
 
     ps.!<(StdOutLogger)
