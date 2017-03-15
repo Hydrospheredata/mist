@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.lib.spark2.ml.parquet
+package io.hydrosphere.mist.lib.spark2.ml.reader
 
 import parquet.io.api.{GroupConverter, RecordMaterializer}
 import parquet.schema.MessageType

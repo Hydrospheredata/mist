@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.utils.parquet
+package io.hydrosphere.mist.lib.spark2.ml.reader
 
 import parquet.schema.{OriginalType, Type}
 

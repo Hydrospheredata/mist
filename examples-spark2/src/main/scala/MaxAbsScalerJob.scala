@@ -1,19 +1,19 @@
-import io.hydrosphere.mist.lib._
-
+import io.hydrosphere.mist.lib.spark2._
+import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.MinMaxScaler
+import org.apache.spark.ml.feature.MaxAbsScaler
 import org.apache.spark.ml.linalg.Vectors
 
+object MaxAbsScalerJob extends MLMistJob with SQLSupport {
 
-object MinMaxScalerJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
     val dataFrame = session.createDataFrame(Seq(
-      (0, Vectors.dense(1.0, 0.1, -1.0)),
-      (1, Vectors.dense(2.0, 1.1, 1.0)),
-      (2, Vectors.dense(3.0, 10.1, 3.0))
+      (0, Vectors.dense(1.0, 0.1, -8.0)),
+      (1, Vectors.dense(2.0, 1.0, -4.0)),
+      (2, Vectors.dense(4.0, 10.0, 8.0))
     )).toDF("id", "features")
 
-    val scaler = new MinMaxScaler()
+    val scaler = new MaxAbsScaler()
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
 
@@ -26,8 +26,7 @@ object MinMaxScalerJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Array[Double]]): Map[String, Any] = {
-    import io.hydrosphere.mist.lib.spark2.ml.transformers.LocalTransformers._
-
+    import LocalTransformers._
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", features)

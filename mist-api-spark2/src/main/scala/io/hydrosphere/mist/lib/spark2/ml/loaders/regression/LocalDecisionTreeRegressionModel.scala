@@ -2,7 +2,6 @@ package io.hydrosphere.mist.lib.spark2.ml.loaders.regression
 
 import io.hydrosphere.mist.lib.spark2.ml.{Metadata, DataUtils}
 import io.hydrosphere.mist.lib.spark2.ml.loaders.LocalModel
-import io.hydrosphere.mist.ml.Metadata
 import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.ml.tree.Node
 

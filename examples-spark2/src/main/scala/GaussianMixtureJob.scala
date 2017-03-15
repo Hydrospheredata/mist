@@ -1,4 +1,5 @@
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.lib.spark2._
+import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.GaussianMixture
 
@@ -18,8 +19,7 @@ object GaussianMixtureJob extends MLMistJob with SQLSupport {
   }
 
   def serve(text: List[String]): Map[String, Any] = {
-    import io.hydrosphere.mist.lib.spark2.ml.transformers.LocalTransformers._
-
+    import LocalTransformers._
     val pipeline = PipelineLoader.load("models/gaussian_mixture")
     val data = LocalData(
       LocalDataColumn("text", text)

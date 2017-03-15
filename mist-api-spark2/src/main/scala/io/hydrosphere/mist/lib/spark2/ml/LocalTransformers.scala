@@ -1,8 +1,6 @@
-package io.hydrosphere.mist.lib.spark2.ml.transformers
+package io.hydrosphere.mist.lib.spark2.ml
 
-import io.hydrosphere.mist.lib.spark2.ml.DataUtils
-import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.lib.spark2.{LocalData, LocalDataColumn}
 import org.apache.spark.SparkException
 import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, LogisticRegressionModel, MultilayerPerceptronClassificationModel, RandomForestClassificationModel}
 import org.apache.spark.ml.clustering.GaussianMixtureModel
@@ -16,7 +14,7 @@ import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector
 import scala.collection.mutable
 import scala.language.implicitConversions
 
-object LocalTransformers extends Logger {
+object LocalTransformers {
 
   implicit class LocalPipeline(val pipeline: PipelineModel) {
     def transform(localData: LocalData): LocalData = {
@@ -44,8 +42,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalRandomForestClassificationModel(val rndFrstClass: RandomForestClassificationModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local RandomForestClassificationModel")
-      logger.info(localData.toString)
       localData.column(rndFrstClass.getFeaturesCol) match {
         case Some(column) =>
           val cls = rndFrstClass.getClass
@@ -84,8 +80,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalIndexToString(val indxStr: IndexToString) {
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local IndexToString")
-      logger.info(localData.toString)
       localData.column(indxStr.getInputCol) match {
         case Some(column) =>
           val labels = indxStr.getLabels
@@ -109,8 +103,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalVectorIndexerModel(val vecIndx: VectorIndexerModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local VectorIndexerModel")
-      logger.info(localData.toString)
       localData.column(vecIndx.getInputCol) match {
         case Some(column) =>
           val newColumn = LocalDataColumn(vecIndx.getOutputCol, column.data map { data =>
@@ -160,11 +152,8 @@ object LocalTransformers extends Logger {
   }
 
   implicit class LocalDecisionTreeRegressionModel(val tree: DecisionTreeRegressionModel) {
-    import DataUtils._
 
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local DecisionTreeRegressionModel")
-      logger.info(localData.toString)
       localData.column(tree.getFeaturesCol) match {
         case Some(column) =>
           val method = classOf[DecisionTreeRegressionModel].getMethod("predict", classOf[Vector])
@@ -184,11 +173,8 @@ object LocalTransformers extends Logger {
   }
 
   implicit class LocalDecisionTreeClassificationModel(val tree: DecisionTreeClassificationModel) {
-    import DataUtils._
 
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local DecisionTreeClassificationModel")
-      logger.info(localData.toString)
       localData.column(tree.getFeaturesCol) match {
         case Some(column) =>
           val method = classOf[DecisionTreeClassificationModel].getMethod("predict", classOf[Vector])
@@ -209,8 +195,6 @@ object LocalTransformers extends Logger {
   
   implicit class LocalTokenizer(val tokenizer: Tokenizer) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local Tokenizer")
-      logger.debug(localData.toString)
       localData.column(tokenizer.getInputCol) match {
         case Some(column) =>
           val method = classOf[Tokenizer].getMethod("createTransformFunc")
@@ -225,8 +209,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalHashingTF(val hashingTF: HashingTF) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local HashingTF")
-      logger.debug(localData.toString)
       localData.column(hashingTF.getInputCol) match {
         case Some(column) =>
           val htf = new HTF(hashingTF.getNumFeatures).setBinary(hashingTF.getBinary)
@@ -239,8 +221,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalStringIndexer(val strIndexer: StringIndexerModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.info(s"Local StringIndexer")
-      logger.info(localData.toString)
       localData.column(strIndexer.getInputCol) match {
         case Some(column) =>
           val labelToIndex = {
@@ -273,8 +253,6 @@ object LocalTransformers extends Logger {
   implicit class LocalMultilayerPerceptronClassificationModel(val perceptron: MultilayerPerceptronClassificationModel) {
 
     def transform(localData: LocalData): LocalData = {
-      logger.debug("Local MultilayerPerceptronClassificationModel")
-      logger.debug(localData.toString)
       localData.column(perceptron.getFeaturesCol) match {
         case Some(column) =>
           val method = classOf[MultilayerPerceptronClassificationModel].getMethod("predict", classOf[Vector])
@@ -294,8 +272,6 @@ object LocalTransformers extends Logger {
     import DataUtils._
 
     def transform(localData: LocalData): LocalData = {
-      logger.debug("Local LogisticRegression")
-      logger.debug(localData.toString)
       localData.column(logisticRegression.getFeaturesCol) match {
         case Some(column) =>
           var newData = localData
@@ -332,8 +308,6 @@ object LocalTransformers extends Logger {
   // TODO: test
   implicit class LocalGaussianMixtureModel(val gaussianModel: GaussianMixtureModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug("Local GaussianMixture")
-      logger.debug(localData.toString)
       localData.column(gaussianModel.getFeaturesCol) match {
         case Some(column) =>
           val predictMethod = classOf[GaussianMixtureModel].getMethod("predict", classOf[Vector])
@@ -349,8 +323,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalBinarizer(val binarizer: Binarizer) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local Binarizer")
-      logger.debug(localData.toString)
       localData.column(binarizer.getInputCol) match {
         case Some(column) =>
           val trashhold: Double = binarizer.getThreshold
@@ -365,9 +337,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalPCA(val pca: PCAModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local PCA")
-      logger.debug(localData.toString)
-
       localData.column(pca.getInputCol) match {
         case Some(column) =>
           val newData = column.data.map(r => {
@@ -389,8 +358,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalStandardScaler(val standardScaler: StandardScalerModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local StandardScaler")
-      logger.debug(localData.toString)
       localData.column(standardScaler.getInputCol) match {
         case Some(column) =>
           val scaler = new OldStandardScalerModel(
@@ -418,8 +385,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalMaxAbsScaler(val maxAbsScaler: MaxAbsScalerModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local MaxAbsScaler")
-      logger.debug(localData.toString)
       localData.column(maxAbsScaler.getInputCol) match {
         case Some(column) =>
           val maxAbsUnzero = Vectors.dense(maxAbsScaler.maxAbs.toArray.map(x => if (x == 0) 1 else x))
@@ -441,9 +406,6 @@ object LocalTransformers extends Logger {
 
   implicit class LocalMinMaxScaler(val minMaxScaler: MinMaxScalerModel) {
     def transform(localData: LocalData): LocalData = {
-      logger.debug(s"Local MinMaxScaler")
-      logger.debug(localData.toString)
-
       val originalRange = (DataUtils.asBreeze(minMaxScaler.originalMax.toArray) - DataUtils.asBreeze(minMaxScaler.originalMin.toArray)).toArray
       val minArray = minMaxScaler.originalMin.toArray
       val min = minMaxScaler.getMin

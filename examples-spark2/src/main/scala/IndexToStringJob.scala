@@ -1,11 +1,11 @@
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.lib.spark2._
+import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer}
 
-
 object IndexToStringJob extends MLMistJob with SQLSupport {
-  def train(savePath: String): Map[String, Any] = {
 
+  def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, "a"),
       (1, "b"),
@@ -33,8 +33,7 @@ object IndexToStringJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Double]): Map[String, Any] = {
-    import io.hydrosphere.mist.lib.spark2.ml.transformers.LocalTransformers._
-
+    import LocalTransformers._
     val features = List(
       "a", "b", "c", "c"
     )

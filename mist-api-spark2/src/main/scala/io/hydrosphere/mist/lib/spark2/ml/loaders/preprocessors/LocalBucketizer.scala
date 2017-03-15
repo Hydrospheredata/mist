@@ -2,7 +2,6 @@ package io.hydrosphere.mist.lib.spark2.ml.loaders.preprocessors
 
 import io.hydrosphere.mist.lib.spark2.ml.Metadata
 import io.hydrosphere.mist.lib.spark2.ml.loaders.LocalModel
-import io.hydrosphere.mist.utils.SparkUtils
 import org.apache.spark.ml.{Estimator, Transformer}
 import org.apache.spark.ml.feature.Bucketizer
 

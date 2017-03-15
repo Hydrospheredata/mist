@@ -1,11 +1,11 @@
-package io.hydrosphere.mist.utils.parquet
+package io.hydrosphere.mist.lib.spark2.ml.reader
 
 import java.nio.charset.{Charset, CharsetDecoder}
 
-import scala.collection.JavaConversions._
-
 import parquet.io.api.{Binary, Converter, GroupConverter, PrimitiveConverter}
 import parquet.schema.{GroupType, OriginalType, Type}
+
+import scala.collection.JavaConversions._
 
 class SimpleRecordConverter(schema: GroupType, name: String, parent: SimpleRecordConverter) extends GroupConverter {
   val UTF8: Charset = Charset.forName("UTF-8")

@@ -1,10 +1,10 @@
-package io.hydrosphere.mist.utils.parquet
+package io.hydrosphere.mist.lib.spark2.ml.reader
 
 import java.util
 
 import org.apache.hadoop.conf.Configuration
-import parquet.hadoop.api.{InitContext, ReadSupport}
 import parquet.hadoop.api.ReadSupport.ReadContext
+import parquet.hadoop.api.{InitContext, ReadSupport}
 import parquet.io.api.RecordMaterializer
 import parquet.schema.MessageType
 

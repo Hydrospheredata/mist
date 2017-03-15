@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.lib.spark2.ml.loaders.classification
 
 import io.hydrosphere.mist.lib.spark2.ml.{Metadata, DataUtils}
-import io.hydrosphere.mist.ml.Metadata
 import io.hydrosphere.mist.lib.spark2.ml.loaders.LocalModel
 import org.apache.spark.ml.classification.NaiveBayesModel
 import org.apache.spark.ml.linalg.{Matrix, Vector}

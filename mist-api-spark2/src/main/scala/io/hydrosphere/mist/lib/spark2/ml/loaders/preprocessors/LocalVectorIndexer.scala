@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.lib.spark2.ml.loaders.preprocessors
 
 import io.hydrosphere.mist.lib.spark2.ml.{Metadata, DataUtils}
-import io.hydrosphere.mist.ml.DataUtils
 import io.hydrosphere.mist.lib.spark2.ml.loaders.LocalModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.VectorIndexerModel

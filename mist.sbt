@@ -168,7 +168,7 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
     name := "mist-examples-spark1",
     scalaVersion := "2.10.6",
     version := "0.9.0",
-    libraryDependencies ++= sparkDependencies(sparkVersion.value)
+    libraryDependencies ++= sparkDependencies("1.5.2")
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
@@ -178,7 +178,7 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
     name := "mist-examples-spark2",
     scalaVersion := "2.11.8",
     version := "0.9.0",
-    libraryDependencies ++= sparkDependencies(sparkVersion.value)
+    libraryDependencies ++= sparkDependencies("2.0.0")
   )
 
 lazy val mistRunSettings = Seq(

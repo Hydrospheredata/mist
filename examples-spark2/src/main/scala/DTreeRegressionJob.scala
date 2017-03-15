@@ -1,10 +1,9 @@
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.lib.spark2._
+import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.clustering.BisectingKMeans
-import org.apache.spark.ml.feature.{Binarizer, VectorIndexer}
-import org.apache.spark.ml.linalg.{Vector, Vectors}
+import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.regression.DecisionTreeRegressor
-
+import org.apache.spark.ml.linalg.{Vector, Vectors}
 
 object DTreeRegressionJob extends MLMistJob with SQLSupport {
   def constructVector(params: Map[String, Any]): Vector = {
@@ -41,8 +40,7 @@ object DTreeRegressionJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
-    import io.hydrosphere.mist.lib.spark2.ml.transformers.LocalTransformers._
-
+    import LocalTransformers._
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", List(constructVector(features)))

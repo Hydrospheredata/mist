@@ -2,9 +2,10 @@ package io.hydrosphere.mist.lib.spark2.ml
 
 import java.io.File
 
+import reader._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import parquet.format.converter.ParquetMetadataConverter._
+import parquet.format.converter.ParquetMetadataConverter.NO_FILTER
 import parquet.hadoop.{ParquetFileReader, ParquetReader}
 import parquet.schema.MessageType
 
