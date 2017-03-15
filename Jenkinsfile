@@ -53,7 +53,7 @@ def test_mist(slaveName,sparkVersion) {
           hdfs.stop()
         }
 
-        if (tag == 'release') {
+        if (tag.startsWith("v")) {
           stage('Public in Maven') {
             sh "sbt publishSigned -DsparkVersion=${sparkVersion}"
             sh "sbt sonatypeRelease"
