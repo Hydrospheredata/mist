@@ -7,7 +7,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -25,6 +25,7 @@ import akka.http.scaladsl.server.directives.FileAndResourceDirectives.ResourceFi
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 
 /** HTTP interface */
@@ -34,7 +35,7 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
   implicit val materializer: ActorMaterializer
 
   // /jobs
-  def route = {
+  def route: Route = {
     path("jobs") {
       // POST /jobs
       post {
@@ -115,20 +116,20 @@ private[mist] trait HTTPService extends Directives with SprayJsonSupport with Jo
 
   def doComplete(jobRequest: FullJobConfiguration): akka.http.scaladsl.server.Route =  {
 
-    respondWithHeader(RawHeader("Content-Type", "application/json"))
-
     complete {
+      respondWithHeader(RawHeader("Content-Type", "application/json"))
+      
       logger.info(jobRequest.parameters.toString)
 
       val workerManagerActor = system.actorSelection(s"akka://mist/user/${Constants.Actors.clusterManagerName}")
 
       val timeDuration = MistConfig.Contexts.timeout(jobRequest.namespace)
       if(timeDuration.isFinite()) {
-        val future = workerManagerActor.ask(jobRequest)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS))
+        val future = workerManagerActor.ask(jobRequest)(timeout = FiniteDuration(1.minute.toMinutes, TimeUnit.MINUTES))
 
         future
           .recover {
-            case _: AskTimeoutException => Right(Constants.Errors.jobTimeOutError)
+            case _: AskTimeoutException => Right("HTTP request is timed out")
             case error: Throwable => Right(error.toString)
           }
           .map[ToResponseMarshallable] {
