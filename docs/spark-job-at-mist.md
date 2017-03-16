@@ -1,6 +1,6 @@
 ## Spark Job at Mist
 
-######Mist Scala Spark Job 
+###### Mist Scala Spark Job 
 
 In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
 
@@ -48,7 +48,7 @@ object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
 
 Inside `execute` method you can write any code you want as it is an ordinary Apache Spark application.
 
-######Building Mist jobs
+###### Building Mist jobs
 
 Add Mist as dependency in your `build.sbt`:
 
@@ -69,7 +69,7 @@ Maven dependency:
 Link for direct download if you don't use a dependency manager:
 * http://central.maven.org/maven2/io/hydrosphere/mist/
 
-######Mist Python Spark Job 
+###### Mist Python Spark Job 
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/reousrces/mist), extend MistJob class and implement method `def execute(self)`: 
 

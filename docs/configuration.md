@@ -1,4 +1,4 @@
-##Configuration
+## Configuration
 
 _See configuration examples in [config directory](https://github.com/Hydrospheredata/mist/tree/master/configs)_
 
