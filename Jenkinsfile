@@ -55,8 +55,8 @@ def test_mist(slaveName,sparkVersion) {
 
         if (tag.startsWith("v")) {
           stage('Public in Maven') {
-            sh "sbt publishSigned -DsparkVersion=${sparkVersion}"
-            sh "sbt sonatypeRelease"
+            sh "${env.WORKSPACE}/sbt/sbt publishSigned -DsparkVersion=${sparkVersion}"
+            sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
           }
 
           stage('Public in DockerHub') {
