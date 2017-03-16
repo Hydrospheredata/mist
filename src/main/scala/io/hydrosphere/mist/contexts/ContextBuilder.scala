@@ -10,7 +10,7 @@ private[mist] object ContextBuilder {
   /** Build contexts with namespace
     *
     * @param namespace namespace
-    * @return [[io.hydrosphere.mist.lib.spark1.ContextWrapper]] with prepared context
+    * @return [[io.hydrosphere.mist.api.ContextWrapper]] with prepared context
     */
   def namedSparkContext(namespace: String): ContextWrapper = {
 
