@@ -197,7 +197,12 @@ lazy val mistRunSettings = Seq(
     }
 
     val jar = outputPath.in(Compile, assembly).value
-    val extraEnv = "SPARK_HOME" -> sparkDir.getAbsolutePath
+
+    val sparkHome = sparkDir.getAbsolutePath
+    val extraEnv = Seq(
+      "SPARK_HOME" -> sparkDir.getAbsolutePath,
+      "PYTHONPATH" -> s"${baseDirectory.value}/src/main/python:$sparkHome/python:`readlink -f $${SPARK_HOME}/python/lib/py4j*`:$${PYTHONPATH}"
+    )
     val home = baseDirectory.value
 
     val config = if (version.startsWith("1."))
@@ -210,7 +215,7 @@ lazy val mistRunSettings = Seq(
         "--jar", jar.getAbsolutePath,
         "--config", s"configs/$config"
     )
-    val ps = Process(args, Some(home), extraEnv)
+    val ps = Process(args, Some(home), extraEnv: _*)
     log.info(s"Running mist $ps with env $extraEnv")
 
     ps.!<(StdOutLogger)
