@@ -40,6 +40,7 @@ object LocalTransformers extends Logger {
         case ohe: OneHotEncoder => ohe.transform(x)
         case ngram: NGram => ngram.transform(x)
         case swr: StopWordsRemover => swr.transform(x)
+        case normalizer: Normalizer => normalizer.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -547,6 +548,25 @@ object LocalTransformers extends Logger {
             }
           })
           localData.withColumn(LocalDataColumn(swr.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalNormalizer(val normalizer: Normalizer) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local Normalizer")
+      logger.debug(localData.toString)
+
+      localData.column(normalizer.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[Normalizer].getMethod("createTransformFunc")
+          val newData = column.data.map(r => {
+            val row = r.asInstanceOf[List[Any]].map(_.toString.toDouble).toArray
+            val vector: Vector = Vectors.dense(row)
+            method.invoke(normalizer).asInstanceOf[Vector => Vector](vector)
+          })
+          localData.withColumn(LocalDataColumn(normalizer.getOutputCol, newData))
         case None => localData
       }
     }

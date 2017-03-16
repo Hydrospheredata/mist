@@ -64,6 +64,7 @@ object TestConfig {
     val oneHotEncoder = testConfig.getString("mist.test.ml.onehotencoder")
     val ngram = testConfig.getString("mist.test.ml.ngram")
     val stopwordsremover = testConfig.getString("mist.test.ml.stopwordsremover")
+    val normalizer = testConfig.getString("mist.test.ml.normalizer")
 
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")

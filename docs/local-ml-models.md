@@ -17,6 +17,7 @@ Preprocessing:
   - [NGram](./../examples/src/main/scala/NgramJob_Spark2.scala)
   - [OneHotEncoder](./../examples/src/main/scala/OneHotEncoderJob_Spark2.scala)
   - [PCA](./../examples/src/main/scala/PCAJob_Spark2.scala)
+  - [Normalizer](./../examples/src/main/scala/NormalizerJob_Spark2.scala)
   
 Classification:
   - [DecisionTreeClassification](./../examples/src/main/scala/DTreeClassificationJob_Spark2.scala)

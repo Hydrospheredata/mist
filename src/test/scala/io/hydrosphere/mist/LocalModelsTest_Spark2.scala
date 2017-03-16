@@ -216,6 +216,17 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local Normalizer test") {
+    testServing(TestConfig.LocalModels.normalizer) { data =>
+      val validation = Array(List(0.4,0.2,-0.4), List(0.5,0.25,0.25), List(0.25,0.625,0.125))
+      val resList = extractResult[Any](data) map(x => x("normFeatures").asInstanceOf[NewDenseVector].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+      }
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 

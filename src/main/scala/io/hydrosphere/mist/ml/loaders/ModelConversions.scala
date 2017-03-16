@@ -36,6 +36,7 @@ object ModelConversions {
     case _: OneHotEncoder.type => LocalOneHotEncoder
     case _: NGram.type  => LocalNGram
     case _: StopWordsRemover.type => LocalStopWordsRemover
+    case _: Normalizer.type => LocalNormalizer
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }
