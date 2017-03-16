@@ -38,6 +38,8 @@ object LocalTransformers extends Logger {
         case indxStr: IndexToString => indxStr.transform(x)
         case rndFrstClass: RandomForestClassificationModel => rndFrstClass.transform(x)
         case ohe: OneHotEncoder => ohe.transform(x)
+        case ngram: NGram => ngram.transform(x)
+        case swr: StopWordsRemover => swr.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -504,6 +506,47 @@ object LocalTransformers extends Logger {
             }
           })
           localData.withColumn(LocalDataColumn(ohe.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalNGram(val ngram: NGram) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local NGram")
+      logger.debug(localData.toString)
+
+      localData.column(ngram.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[NGram].getMethod("createTransformFunc")
+          val newData = column.data.map(r => {
+            method.invoke(ngram).asInstanceOf[Seq[String] => Seq[String]](r.asInstanceOf[Seq[String]])
+          })
+          localData.withColumn(LocalDataColumn(ngram.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalStopWordsRemover(val swr: StopWordsRemover) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local StopWordsRemover")
+      logger.debug(localData.toString)
+
+      val stopWordsSet = swr.getStopWords
+      val toLower = (s: String) => if (s != null) s.toLowerCase else s
+      val lowerStopWords = stopWordsSet.map(toLower(_)).toSet
+
+      localData.column(swr.getInputCol) match {
+        case Some(column) =>
+          val newData = column.data.map(r => {
+            if (swr.getCaseSensitive) {
+              r.asInstanceOf[List[String]].filter(s => !stopWordsSet.contains(s))
+            } else {
+              r.asInstanceOf[List[String]].filter(s => !lowerStopWords.contains(toLower(s)))
+            }
+          })
+          localData.withColumn(LocalDataColumn(swr.getOutputCol, newData))
         case None => localData
       }
     }

@@ -9,7 +9,7 @@ import org.apache.spark.ml.feature.NGram
 object LocalNGram extends LocalModel {
   override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
     new NGram(metadata.uid)
-        .setN(metadata.paramMap("N").asInstanceOf[Int])
+        .setN(metadata.paramMap("n").asInstanceOf[Int])
         .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
         .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }

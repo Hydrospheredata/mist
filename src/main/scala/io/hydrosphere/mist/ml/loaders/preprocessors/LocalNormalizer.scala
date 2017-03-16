@@ -11,6 +11,6 @@ object LocalNormalizer extends LocalModel {
     new Normalizer(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-      .setP(metadata.paramMap("P").asInstanceOf[Double])
+      .setP(metadata.paramMap("p").asInstanceOf[Double])
   }
 }

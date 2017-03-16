@@ -34,6 +34,8 @@ object ModelConversions {
     case _: MinMaxScalerModel.type => LocalMinMaxScaler
     case _: IndexToString.type => LocalIndexToString
     case _: OneHotEncoder.type => LocalOneHotEncoder
+    case _: NGram.type  => LocalNGram
+    case _: StopWordsRemover.type => LocalStopWordsRemover
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }

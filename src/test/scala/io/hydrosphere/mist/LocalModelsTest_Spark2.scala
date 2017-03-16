@@ -45,6 +45,12 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  private def compareStrings(data: Seq[String], valid: Seq[String]) = {
+    data zip valid foreach {
+      case (x: String, y: String) => assert(x == y)
+    }
+  }
+
   test("Local Binarizer test") {
     testServing(TestConfig.LocalModels.binarizer) { data =>
       val resList = extractResult[Double](data)
@@ -176,7 +182,7 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
-  test("Local OneHotEncoder test") {
+  test("Local OneHotEncoder pipeline test") {
     testServing(TestConfig.LocalModels.oneHotEncoder) { data =>
       val validation = Array(List(1.0, 0.0), List(0.0, 0.0), List(0.0, 1.0), List(1.0, 0.0))
       val resList = extractResult[Any](data) map(x => x("categoryVec").asInstanceOf[NewSparceVector].toArray)
@@ -184,6 +190,28 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
       resList zip validation foreach {
         case (arr: Array[Double], validRow: List[Double]) =>
           compareDoubles(arr, validRow)
+      }
+    }
+  }
+
+  test("Local NGram test") {
+    testServing(TestConfig.LocalModels.ngram) { data =>
+      val validation = Array(List("Provectus team", "team is", "is awesome"))
+      val resList = extractResult[Any](data) map(x => x("ngrams").asInstanceOf[Seq[String]].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[String], validRow: List[String]) => compareStrings(arr, validRow)
+      }
+    }
+  }
+
+  test("Local StopWordsRemover test") {
+    testServing(TestConfig.LocalModels.stopwordsremover) { data =>
+      val validation = Array(List("saw", "red", "balloon"), List("Mary", "little", "lamb"))
+      val resList = extractResult[Any](data) map(x => x("filtered").asInstanceOf[Seq[String]].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[String], validRow: List[String]) => compareStrings(arr, validRow)
       }
     }
   }
