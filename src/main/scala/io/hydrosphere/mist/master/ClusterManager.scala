@@ -174,7 +174,7 @@ private[mist] class ClusterManager extends Actor with Logger {
     })).flatMap({
       case Success(info) => Some(info)
       case Failure(e) =>
-        logger.warn("Can not build job info", e)
+        logger.error("Can not build job info", e)
         None
     }).toMap
   }
@@ -189,50 +189,6 @@ private[mist] class ClusterManager extends Actor with Logger {
       else
         //TODO: maybe use scala.collections.JavaConversions ?
         sender() ! Collections.asScalaRecursively(config.root().unwrapped())
-
-//    case ListRouters(extended) =>
-//      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
-//      val javaMap = config.root().unwrapped()
-//
-//      val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
-//
-//      if (extended) {
-//        sender ! scalaMap.map {
-//          case (key: String, value: Map[String, Any]) =>
-//            if (JobFile.fileType(value("path").asInstanceOf[String]) == JobFile.FileType.Python) {
-//              key -> (Map("isPython" -> true) ++ value)
-//            } else {
-//              val jobFile = JobFile(value("path").asInstanceOf[String])
-//              if (!jobFile.exists) {
-//                return null
-//              }
-//
-//              val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
-//              val inst = externalClass.getNewInstance
-//
-//              def methodInfo(methodName: String): Map[String, Map[String, String]] = {
-//                try {
-//                  Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
-//                    Map(arg.name -> arg.tpe.toString)
-//                  }.toMap[String, String]
-//                  )
-//                } catch {
-//                  case _: Throwable => Map.empty[String, Map[String, String]]
-//                }
-//              }
-//
-//              val classInfo = Map(
-//                "isMLJob" -> externalClass.isMLJob,
-//                "isStreamingJob" -> externalClass.isStreamingJob,
-//                "isSqlJob" -> externalClass.isSqlJob,
-//                "isHiveJob" -> externalClass.isHiveJob
-//              )
-//              key -> (classInfo ++ value ++ methodInfo("execute") ++ methodInfo("train") ++ methodInfo("serve"))
-//            }
-//        }
-//      } else {
-//        sender ! scalaMap
-//      }
 
     case message: StopJob =>
       val originalSender = sender
