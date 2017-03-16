@@ -7,11 +7,11 @@ import akka.actor.{Actor, AddressFromURIString, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberRemoved, UnreachableMember}
 import akka.pattern.ask
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.utils.{Collections, ExternalJar, ExternalMethodArgument, Logger}
+import io.hydrosphere.mist.utils._
 import io.hydrosphere.mist.worker.{JobDescriptionSerializable, LocalNode, WorkerDescription}
 import io.hydrosphere.mist.{Constants, MistConfig, Worker}
 
@@ -21,7 +21,7 @@ import scala.concurrent._
 import scala.concurrent.duration.FiniteDuration
 import scala.language.postfixOps
 import scala.sys.process._
-import scala.util.{Failure, Success}
+import scala.util.{Try, Failure, Success}
 
 /** Manages context repository */
 private[mist] class ClusterManager extends Actor with Logger {
@@ -131,52 +131,108 @@ private[mist] class ClusterManager extends Actor with Logger {
     } else { startNewWorkerWithName(name) }
   }
 
+  //TODO: move it out of here
+  private def methodInfo(inst: ExternalInstance, methodName: String): Map[String, Map[String, String]] = {
+    try {
+      Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
+        Map(arg.name -> arg.tpe.toString)
+      }.toMap[String, String]
+      )
+    } catch {
+      case _: Throwable => Map.empty[String, Map[String, String]]
+    }
+  }
+
+  //TODO: move it out of here
+  private def buildJobInfo(job: JobDefinition, file: JobFile): Map[String, Any] = {
+    val fileType = JobFile.fileType(job.path)
+    fileType match {
+      case JobFile.FileType.Python =>
+        Map("isPython" -> true)
+
+      case JobFile.FileType.Jar =>
+        val externalClass = ExternalJar(file.file).getExternalClass(job.className)
+        val inst = externalClass.getNewInstance
+        val classInfo = Map(
+          "isMLJob" -> externalClass.isMLJob,
+          "isStreamingJob" -> externalClass.isStreamingJob,
+          "isSqlJob" -> externalClass.isSqlJob,
+          "isHiveJob" -> externalClass.isHiveJob
+        )
+        classInfo ++ methodInfo(inst, "execute") ++ methodInfo(inst, "train") ++ methodInfo(inst, "serve")
+    }
+  }
+
+  private def extendedRoutesList(config: Config): Map[String, Map[String, Any]] = {
+    val definitions = JobDefinition.parseConfig(config)
+    definitions.map(_.flatMap(job => Try {
+      val jobFile = JobFile(job.path)
+      //TODO: call file here, to throw exception if file not nound
+      jobFile.file
+      val info = buildJobInfo(job, jobFile)
+      job.name -> info
+    })).flatMap({
+      case Success(info) => Some(info)
+      case Failure(e) =>
+        logger.warn("Can not build job info", e)
+        None
+    }).toMap
+  }
+
   override def receive: Receive = {
 
     case ListRouters(extended) =>
-      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
-      val javaMap = config.root().unwrapped()
+      val f = new File(MistConfig.HTTP.routerConfigPath)
+      val config = ConfigFactory.parseFile(f).resolve()
+      if (extended)
+        sender() ! extendedRoutesList(config)
+      else
+        //TODO: maybe use scala.collections.JavaConversions ?
+        sender() ! Collections.asScalaRecursively(config.root().unwrapped())
 
-      val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
-      println(scalaMap)
-
-      if (extended) {
-        sender ! scalaMap.map {
-          case (key: String, value: Map[String, Any]) =>
-            if (JobFile.fileType(value("path").asInstanceOf[String]) == JobFile.FileType.Python) {
-              key -> (Map("isPython" -> true) ++ value)
-            } else {
-              val jobFile = JobFile(value("path").asInstanceOf[String])
-              if (!jobFile.exists) {
-                return null
-              }
-
-              val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
-              val inst = externalClass.getNewInstance
-
-              def methodInfo(methodName: String): Map[String, Map[String, String]] = {
-                try {
-                  Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
-                    Map(arg.name -> arg.tpe.toString)
-                  }.toMap[String, String]
-                  )
-                } catch {
-                  case _: Throwable => Map.empty[String, Map[String, String]]
-                }
-              }
-
-              val classInfo = Map(
-                "isMLJob" -> externalClass.isMLJob,
-                "isStreamingJob" -> externalClass.isStreamingJob,
-                "isSqlJob" -> externalClass.isSqlJob,
-                "isHiveJob" -> externalClass.isHiveJob
-              )
-              key -> (classInfo ++ value ++ methodInfo("execute") ++ methodInfo("train") ++ methodInfo("serve"))
-            }
-        }
-      } else {
-        sender ! scalaMap
-      }
+//    case ListRouters(extended) =>
+//      val config = ConfigFactory.parseFile(new File(MistConfig.HTTP.routerConfigPath))
+//      val javaMap = config.root().unwrapped()
+//
+//      val scalaMap: Map[String, Any] = Collections.asScalaRecursively(javaMap)
+//
+//      if (extended) {
+//        sender ! scalaMap.map {
+//          case (key: String, value: Map[String, Any]) =>
+//            if (JobFile.fileType(value("path").asInstanceOf[String]) == JobFile.FileType.Python) {
+//              key -> (Map("isPython" -> true) ++ value)
+//            } else {
+//              val jobFile = JobFile(value("path").asInstanceOf[String])
+//              if (!jobFile.exists) {
+//                return null
+//              }
+//
+//              val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
+//              val inst = externalClass.getNewInstance
+//
+//              def methodInfo(methodName: String): Map[String, Map[String, String]] = {
+//                try {
+//                  Map(methodName -> inst.getMethod(methodName).arguments.flatMap { arg: ExternalMethodArgument =>
+//                    Map(arg.name -> arg.tpe.toString)
+//                  }.toMap[String, String]
+//                  )
+//                } catch {
+//                  case _: Throwable => Map.empty[String, Map[String, String]]
+//                }
+//              }
+//
+//              val classInfo = Map(
+//                "isMLJob" -> externalClass.isMLJob,
+//                "isStreamingJob" -> externalClass.isStreamingJob,
+//                "isSqlJob" -> externalClass.isSqlJob,
+//                "isHiveJob" -> externalClass.isHiveJob
+//              )
+//              key -> (classInfo ++ value ++ methodInfo("execute") ++ methodInfo("train") ++ methodInfo("serve"))
+//            }
+//        }
+//      } else {
+//        sender ! scalaMap
+//      }
 
     case message: StopJob =>
       val originalSender = sender
