@@ -33,6 +33,7 @@ object ModelConversions {
     case _: MaxAbsScalerModel.type => LocalMaxAbsScaler
     case _: MinMaxScalerModel.type => LocalMinMaxScaler
     case _: IndexToString.type => LocalIndexToString
+    case _: OneHotEncoder.type => LocalOneHotEncoder
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }

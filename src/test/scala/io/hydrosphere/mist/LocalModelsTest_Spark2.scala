@@ -6,7 +6,7 @@ import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, Ser
 import io.hydrosphere.mist.utils.SparkUtils
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.apache.spark.mllib.linalg.DenseVector
-import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector}
+import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector, SparseVector => NewSparceVector}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -172,6 +172,18 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
       resList zip validation foreach {
         case (value: Double, validVal) =>
           assert(value === validVal)
+      }
+    }
+  }
+
+  test("Local OneHotEncoder test") {
+    testServing(TestConfig.LocalModels.oneHotEncoder) { data =>
+      val validation = Array(List(1.0, 0.0), List(0.0, 0.0), List(0.0, 1.0), List(1.0, 0.0))
+      val resList = extractResult[Any](data) map(x => x("categoryVec").asInstanceOf[NewSparceVector].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+          compareDoubles(arr, validRow)
       }
     }
   }

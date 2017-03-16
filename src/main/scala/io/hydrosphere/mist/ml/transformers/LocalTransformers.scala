@@ -37,6 +37,7 @@ object LocalTransformers extends Logger {
         case vecIndx: VectorIndexerModel => vecIndx.transform(x)
         case indxStr: IndexToString => indxStr.transform(x)
         case rndFrstClass: RandomForestClassificationModel => rndFrstClass.transform(x)
+        case ohe: OneHotEncoder => ohe.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -472,6 +473,37 @@ object LocalTransformers extends Logger {
             values
           })
           localData.withColumn(LocalDataColumn(minMaxScaler.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalOneHotEncoder(val ohe: OneHotEncoder) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local OneHotEncoder")
+      logger.debug(localData.toString)
+
+      val oneValue = Array(1.0)
+      val emptyValues = Array.empty[Double]
+      val emptyIndices = Array.empty[Int]
+
+      localData.column(ohe.getInputCol) match {
+        case Some(column) =>
+          val col = column.data.asInstanceOf[List[Double]]
+          col.foreach(x =>
+            assert(x >= 0.0 && x == x.toInt,
+              s"Values from column ${ohe.getInputCol} must be indices, but got $x.")
+          )
+
+          val size = col.max.toInt
+          val newData = col.map(r => {
+            if (r < size) {
+              Vectors.sparse(size, Array(r.toInt), oneValue)
+            } else {
+              Vectors.sparse(size, emptyIndices, emptyValues)
+            }
+          })
+          localData.withColumn(LocalDataColumn(ohe.getOutputCol, newData))
         case None => localData
       }
     }
