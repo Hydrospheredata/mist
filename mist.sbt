@@ -31,7 +31,7 @@ lazy val commonSettings = Seq(
 
 )
 
-lazy val mistApiSpark1= project.in(file("mist-api-spark1"))
+lazy val mistLibSpark1= project.in(file("mist-lib-spark1"))
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
@@ -41,7 +41,7 @@ lazy val mistApiSpark1= project.in(file("mist-api-spark1"))
     libraryDependencies ++= sparkDependencies("1.5.2")
   )
 
-lazy val mistApiSpark2 = project.in(file("mist-api-spark2"))
+lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
@@ -57,9 +57,9 @@ lazy val mistApiSpark2 = project.in(file("mist-api-spark2"))
     )
   )
 
-lazy val currentApi = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
-  case versionRegex("1", minor) => mistApiSpark1
-  case _ => mistApiSpark2
+lazy val currentLib = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+  case versionRegex("1", minor) => mistLibSpark1
+  case _ => mistLibSpark2
 }
 
 lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
@@ -68,7 +68,7 @@ lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") m
 }
 
 lazy val mist = project.in(file("."))
-  .dependsOn(currentApi)
+  .dependsOn(currentLib)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
@@ -116,7 +116,7 @@ lazy val mist = project.in(file("."))
            |  type ContextWrapper = $libPackage.ContextWrapper
            |
            |  type MistJob = $libPackage.MistJob
-           |  
+           |
            |  type MLMistJob = $libPackage.MLMistJob
            |
            |  type StreamingSupport = $libPackage.StreamingSupport
@@ -162,7 +162,7 @@ lazy val examples = project.in(file("examples"))
   )
 
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
-  .dependsOn(mistApiSpark1)
+  .dependsOn(mistLibSpark1)
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
@@ -172,7 +172,7 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
-  .dependsOn(mistApiSpark2)
+  .dependsOn(mistLibSpark2)
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
