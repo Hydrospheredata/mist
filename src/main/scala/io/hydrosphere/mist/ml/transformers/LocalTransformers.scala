@@ -41,6 +41,8 @@ object LocalTransformers extends Logger {
         case ngram: NGram => ngram.transform(x)
         case swr: StopWordsRemover => swr.transform(x)
         case normalizer: Normalizer => normalizer.transform(x)
+        case pex: PolynomialExpansion => pex.transform(x)
+        case dct: DCT => dct.transform(x)
         case _ => throw new Exception(s"Unknown pipeline stage: ${y.getClass}")
       })
     }
@@ -567,6 +569,44 @@ object LocalTransformers extends Logger {
             method.invoke(normalizer).asInstanceOf[Vector => Vector](vector)
           })
           localData.withColumn(LocalDataColumn(normalizer.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalPolynomialExpansion(val pex: PolynomialExpansion) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local PolynomialExpansion")
+      logger.debug(localData.toString)
+
+      localData.column(pex.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[PolynomialExpansion].getMethod("createTransformFunc")
+          val newData = column.data.map(r => {
+            val row = r.asInstanceOf[List[Any]].map(_.toString.toDouble).toArray
+            val vector: Vector = Vectors.dense(row)
+            method.invoke(pex).asInstanceOf[Vector => Vector](vector)
+          })
+          localData.withColumn(LocalDataColumn(pex.getOutputCol, newData))
+        case None => localData
+      }
+    }
+  }
+
+  implicit class LocalDCT(val dct: DCT) {
+    def transform(localData: LocalData): LocalData = {
+      logger.debug(s"Local PolynomialExpansion")
+      logger.debug(localData.toString)
+
+      localData.column(dct.getInputCol) match {
+        case Some(column) =>
+          val method = classOf[DCT].getMethod("createTransformFunc")
+          val newData = column.data.map(r => {
+            val row = r.asInstanceOf[List[Any]].map(_.toString.toDouble).toArray
+            val vector: Vector = Vectors.dense(row)
+            method.invoke(dct).asInstanceOf[Vector => Vector](vector)
+          })
+          localData.withColumn(LocalDataColumn(dct.getOutputCol, newData))
         case None => localData
       }
     }

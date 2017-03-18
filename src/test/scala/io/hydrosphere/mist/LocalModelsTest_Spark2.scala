@@ -227,6 +227,34 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local PolynomialExpansion test") {
+    testServing(TestConfig.LocalModels.polynomialExpansion) { data =>
+      val validation = Array(
+        List(2.0,4.0,8.0,1.0,2.0,4.0,1.0,2.0,1.0),
+        List(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),
+        List(3.0,9.0,27.0,-1.0,-3.0,-9.0,1.0,3.0,-1.0)
+      )
+      val resList = extractResult[Any](data) map(x => x("polyFeatures").asInstanceOf[NewDenseVector].toArray)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+      }
+    }
+  }
+
+  test("Local DCT test") {
+    testServing(TestConfig.LocalModels.dct) { data =>
+      val validation = Array(
+        List(1.0,-1.1480502970952693,2.0000000000000004,-2.7716385975338604),
+        List(-1.0,3.378492794482933,-7.000000000000001,2.9301512653149677),
+        List(4.0,9.304453421915744,11.000000000000002,1.5579302036357163)
+      )
+      val resList = extractResult[Any](data) map(x => x("featuresDCT").asInstanceOf[NewDenseVector].toArray)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+      }
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 

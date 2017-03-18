@@ -65,6 +65,8 @@ object TestConfig {
     val ngram = testConfig.getString("mist.test.ml.ngram")
     val stopwordsremover = testConfig.getString("mist.test.ml.stopwordsremover")
     val normalizer = testConfig.getString("mist.test.ml.normalizer")
+    val polynomialExpansion = testConfig.getString("mist.test.ml.polynomialexpansion")
+    val dct = testConfig.getString("mist.test.ml.dct")
 
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")

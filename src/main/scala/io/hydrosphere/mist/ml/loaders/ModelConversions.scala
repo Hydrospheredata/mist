@@ -37,6 +37,8 @@ object ModelConversions {
     case _: NGram.type  => LocalNGram
     case _: StopWordsRemover.type => LocalStopWordsRemover
     case _: Normalizer.type => LocalNormalizer
+    case _: PolynomialExpansion.type => LocalPolynomialExpansion
+    case _: DCT.type => LocalDCT
     case _ => throw new Exception(s"Unknown transformer: ${m.getClass}")
   }
 }
