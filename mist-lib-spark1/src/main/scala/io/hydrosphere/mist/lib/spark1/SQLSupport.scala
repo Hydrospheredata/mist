@@ -7,8 +7,8 @@ trait SQLSupport extends ContextSupport {
 
   protected def sqlContext: SQLContext = _sqlContext
 
-  override private[mist] def setup(sc: ContextWrapper): Unit = {
-    super.setup(sc)
-    _sqlContext = sc.sqlContext
+  override private[mist] def setup(conf: SetupConfiguration): Unit = {
+    super.setup(conf)
+    _sqlContext = new SQLContext(conf.context)
   }
 }

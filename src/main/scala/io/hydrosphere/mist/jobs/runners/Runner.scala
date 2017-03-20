@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.jobs.runners
 
 import io.hydrosphere.mist.api.ContextWrapper
+import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
@@ -39,7 +40,7 @@ private[mist] object Runner {
     val Initialized, Running, Stopped, Aborted = Value
   }
 
-  def apply(configuration: FullJobConfiguration, contextWrapper: ContextWrapper): Runner = {
+  def apply(configuration: FullJobConfiguration, namedContext: NamedContext): Runner = {
     val jobFile = JobFile(configuration.path)
 
     JobFile.fileType(configuration.path) match {

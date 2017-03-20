@@ -8,7 +8,7 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
 import io.hydrosphere.mist.api.ContextWrapper
-import io.hydrosphere.mist.contexts.ContextBuilder
+import io.hydrosphere.mist.contexts.{NamedContext, ContextBuilder}
 import io.hydrosphere.mist.jobs.FullJobConfiguration
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -30,7 +30,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
   val nodeAddress: Address = cluster.selfAddress
 
-  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
+  lazy val namedContext = NamedContext(namespace)
 
   private val workerDowntime: Duration = MistConfig.Contexts.downtime(namespace)
 

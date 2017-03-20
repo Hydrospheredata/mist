@@ -38,7 +38,12 @@ lazy val mistLibSpark1= project.in(file("mist-lib-spark1"))
   .settings(
     name := "mist-api-spark1",
     scalaVersion := "2.10.6",
-    libraryDependencies ++= sparkDependencies("1.5.2")
+    libraryDependencies ++= sparkDependencies("1.5.2"),
+
+    libraryDependencies ++= Seq(
+      "org.apache.kafka" % "kafka-clients" % "0.8.2.0",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
+    )
   )
 
 lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
@@ -113,7 +118,7 @@ lazy val mist = project.in(file("."))
            |
            |package object api {
            |
-           |  type ContextWrapper = $libPackage.ContextWrapper
+           |  type SetupConfiguration = $libPackage.SetupConfiguration
            |
            |  type MistJob = $libPackage.MistJob
            |

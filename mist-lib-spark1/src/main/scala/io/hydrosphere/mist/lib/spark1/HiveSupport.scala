@@ -8,8 +8,8 @@ trait HiveSupport extends ContextSupport {
 
   protected def hiveContext: HiveContext = _hiveContext
 
-  override private[mist] def setup(sc: ContextWrapper): Unit = {
-    super.setup(sc)
-    _hiveContext = sc.hiveContext
+  override private[mist] def setup(conf: SetupConfiguration): Unit = {
+    super.setup(conf)
+    _hiveContext = new HiveContext(conf.context)
   }
 }

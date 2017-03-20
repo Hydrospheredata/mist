@@ -1,11 +1,15 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
 import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
-private[mist] class JarRunner(override val configuration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+private[mist] class JarRunner(
+  override val configuration: FullJobConfiguration,
+  jobFile: JobFile,
+  namedContext: NamedContext) extends Runner {
 
   // TODO: remove nullable contextWrapper
   if (contextWrapper != null) {
