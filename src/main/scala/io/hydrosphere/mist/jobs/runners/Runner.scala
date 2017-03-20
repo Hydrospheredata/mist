@@ -1,32 +1,20 @@
 package io.hydrosphere.mist.jobs.runners
 
-import io.hydrosphere.mist.api.ContextWrapper
-import io.hydrosphere.mist.contexts.NamedContext
-import io.hydrosphere.mist.jobs.runners.Runner.Status.Status
+import io.hydrosphere.mist.contexts.ContextWrapper
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile}
+import io.hydrosphere.mist.jobs.{JobDetails, JobFile}
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 
 
 private[mist] trait Runner extends Logger {
 
-  final val id: String = java.util.UUID.randomUUID.toString
+  val job: JobDetails
 
-  protected var _status = Runner.Status.Initialized
-
-  /** Status getter
-    *
-    * @return [[Status]]
-    */
-  def status: Status = _status
-
-  val configuration : FullJobConfiguration
-
-  def run(): Either[Map[String, Any], String]
+  def run(): JobResponseOrError
 
   def stop(): Unit = {
-    _status = Runner.Status.Stopped
     stopStreaming()
   }
 
@@ -35,18 +23,13 @@ private[mist] trait Runner extends Logger {
 
 private[mist] object Runner {
 
-  object Status extends Enumeration {
-    type Status = Value
-    val Initialized, Running, Stopped, Aborted = Value
-  }
+  def apply(job: JobDetails, contextWrapper: ContextWrapper): Runner = {
+    val jobFile = JobFile(job.configuration.path)
 
-  def apply(configuration: FullJobConfiguration, namedContext: NamedContext): Runner = {
-    val jobFile = JobFile(configuration.path)
-
-    JobFile.fileType(configuration.path) match {
-      case JobFile.FileType.Jar => new JarRunner(configuration, jobFile, contextWrapper)
-      case JobFile.FileType.Python => new PythonRunner(configuration, jobFile, contextWrapper)
-      case _ => throw new Exception(s"Unknown file type in ${configuration.path}")
+    JobFile.fileType(job.configuration.path) match {
+      case JobFile.FileType.Jar => new JarRunner(job, jobFile, contextWrapper)
+      case JobFile.FileType.Python => new PythonRunner(job, jobFile, contextWrapper)
+      case _ => throw new Exception(s"Unknown file type in ${job.configuration.path}")
     }
 
   }

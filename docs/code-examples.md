@@ -2,7 +2,7 @@
 
 * [Scala examples](https://github.com/Hydrospheredata/mist/tree/master/examples/src/main/scala)
 
-Package examples into `examples/target/scala-2.10/mist_examples_2.10-0.8.0.jar`: 
+Package examples into `examples/target/scala-2.10/mist_examples_2.10-0.10.0.jar`: 
 
 ```sh
 ./sbt/sbt "project examples" package

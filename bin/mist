@@ -226,7 +226,7 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${config_file}" "$jar_file"
+        java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.Master
     fi
 
     if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
@@ -242,9 +242,9 @@ then
         fi
         if [ "$route" == '' ]
         then
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
+            java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.JobEntryPoint "${app}" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${route}" "${parameters}" "${external_id}"
+            java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.JobEntryPoint "${app}" "${route}" "${parameters}" "${external_id}"
         fi
     fi
 
@@ -253,7 +253,7 @@ then
     ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
 elif [ "${cmd}" == 'cli' ]
 then
-    java -cp "$jar_file" io.hydrosphere.mist.CLI "${app}"
+    java -cp "$jar_file" io.hydrosphere.mist.cli.EntryPoint "${app}"
 else
     echo "${help}"
 fi

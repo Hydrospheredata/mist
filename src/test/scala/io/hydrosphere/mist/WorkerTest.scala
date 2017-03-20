@@ -15,8 +15,10 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.mqtt.{MQTTServiceActor, MQTTSubscribe}
-import io.hydrosphere.mist.master.{ClusterManager, HTTPService, JobRecovery}
+import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscribe, MqttSubscriber$}
+import io.hydrosphere.mist.master.cluster.ClusterManager
+import io.hydrosphere.mist.master.{HttpService, JobRecovery}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.ContextNode
 import org.scalatest._
@@ -81,7 +83,7 @@ class ActorForWorkerTest extends Actor with ActorLogging {
 }
 
 class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfterAll with ScalaFutures
-  with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HTTPService {
+  with Matchers with JobConfigurationJsonSerialization with DefaultJsonProtocol with HttpService {
 
   val systemM = ActorSystem("mist", MistConfig.Akka.Main.settings)
   val systemW = ActorSystem("mist", MistConfig.Akka.Worker.settings)
@@ -89,10 +91,10 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
   override implicit val system = systemM
   override implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  Http().bindAndHandle(route, MistConfig.HTTP.host, MistConfig.HTTP.port)
+  Http().bindAndHandle(route, MistConfig.Http.host, MistConfig.Http.port)
   val clientHTTP = Http(systemM)
 
-  val mqttActor = systemM.actorOf(Props(classOf[MQTTServiceActor]))
+  val mqttActor = systemM.actorOf(Props(classOf[MqttSubscriber]))
   mqttActor ! MQTTSubscribe
   MQTTTest.subscribe(systemM)
 
@@ -154,7 +156,7 @@ class ClusterManagerTest extends WordSpecLike with Eventually with BeforeAndAfte
       "started" in {
         systemM.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
         Thread.sleep(5000)
-        lazy val configurationRepository: ConfigurationRepository = MistConfig.Recovery.recoveryTypeDb match {
+        lazy val configurationRepository: JobRepository = MistConfig.Recovery.recoveryTypeDb match {
           case "MapDb" => InMapDbJobConfigurationRepository
           case _ => InMemoryJobConfigurationRepository
         }

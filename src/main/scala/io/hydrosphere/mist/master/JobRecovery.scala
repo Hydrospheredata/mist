@@ -1,58 +1,50 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.Actor
-import io.hydrosphere.mist.master.mqtt.{MQTTPubSub, MQTTPubSubActor}
-import io.hydrosphere.mist.jobs.{ConfigurationRepository, FullJobConfiguration}
+import akka.actor.{Actor, Props}
 import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.master.JobRecovery.StartRecovery
+import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.utils.Logger
-import org.json4s.jackson.Serialization
-import scala.collection.mutable
 
-case object StartRecovery
-
-case object TryRecoveryNext{
- var _collection: mutable.Map[String, FullJobConfiguration] = scala.collection.mutable.Map[String, FullJobConfiguration]()
+private[mist] object JobRecovery {
+  
+  sealed trait Message
+  case object StartRecovery extends Message
+  
+  def props(): Props = Props(classOf[JobRecovery])
+  
 }
-case object JobStarted{
-  var jobStartedCount = 0
-}
-case object JobCompleted
 
-// TODO: add abstract async interface instead of mqtt-specific one
-private[mist] class JobRecovery(configurationRepository :ConfigurationRepository) extends Actor with MQTTPubSubActor with Logger {
-
-  private implicit val formats = org.json4s.DefaultFormats
+private[mist] class JobRecovery extends Actor with Logger {
 
   override def receive: Receive = {
-
     case StartRecovery =>
-      TryRecoveryNext._collection = configurationRepository.getAll
-      logger.info(s"${TryRecoveryNext._collection.size} loaded from MapDb ")
-      configurationRepository.clear()
-      this.self ! TryRecoveryNext
-
-    case TryRecoveryNext =>
-
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        if (TryRecoveryNext._collection.nonEmpty) {
-          val job_configuration = TryRecoveryNext._collection.last
-          val json = Serialization.write(job_configuration._2)
-          logger.info(s"send $json")
-          TryRecoveryNext._collection.remove(TryRecoveryNext._collection.last._1)
-          pubsub ! new MQTTPubSub.Publish(json.getBytes("utf-8"))
-        }
-      }
-
-    case JobStarted =>
-      JobStarted.jobStartedCount += 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveryNext
-      }
-
-    case JobCompleted =>
-      JobStarted.jobStartedCount -= 1
-      if (JobStarted.jobStartedCount < MistConfig.Recovery.recoveryMultilimit) {
-        this.self ! TryRecoveryNext
-      }
+      JobRepository()
+        .filteredByStatuses(List(JobDetails.Status.Running, JobDetails.Status.Queued, JobDetails.Status.Initialized))
+        .groupBy(_.source)
+        .foreach({
+          case (source: JobDetails.Source, jobs: List[JobDetails]) => source match {
+            case s: JobDetails.Source.Async =>
+              if (MistConfig.AsyncInterfaceConfig(s.provider).isOn) {
+                logger.info(s"${jobs.length} jobs must be sent to ${s.provider}")
+                jobs.foreach {
+                  job => AsyncInterface.subscriber(s.provider, Some(context)) ! job
+                }
+              } else {
+                logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: ${s.provider} is off in config)")
+                jobs.foreach {
+                  job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+                }
+              }
+            case s: JobDetails.Source =>
+              logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: $s is not async)")
+              jobs.foreach {
+                job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+              }
+          }
+        })
   }
+  
 }

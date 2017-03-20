@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.worker.CLINode
+import io.hydrosphere.mist.cli.CLINode
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.{BeforeAndAfterAll, WordSpecLike}
@@ -17,7 +17,7 @@ import scala.sys.process._
 class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
-  lazy val cliActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.CLI.cliActorName)
+  lazy val cliActor: ActorRef = system.actorOf(Props[CLINode], name = Constants.Actors.cliName)
 
   val timeoutAssert: Timeout = timeout(90 seconds)
 
@@ -90,7 +90,7 @@ class CLITest extends WordSpecLike with BeforeAndAfterAll with Eventually {
 
     "list routers" in {
       eventually(timeoutAssert, interval(10 seconds)) {
-        assert(cliAsserter(ListRouters(), equal(List[Any]("streaming-1", "streaming-2", "streaming-3"))))
+        assert(cliAsserter(ListRoutes(), equal(List[Any]("streaming-1", "streaming-2", "streaming-3"))))
       }
     }
 

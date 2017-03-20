@@ -1,15 +1,17 @@
-package io.hydrosphere.mist.worker
+package io.hydrosphere.mist.cli
 
 import java.util.concurrent.Executors._
 
-import akka.actor.{Actor, Address}
+import akka.actor.{Actor, ActorRef, Address}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import akka.pattern.ask
+import akka.util.Timeout
 import io.hydrosphere.mist.Messages._
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.{Constants, MistConfig}
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutorService}
 import scala.util.{Failure, Random, Success}
 
 class CLINode extends Actor {
@@ -18,10 +20,12 @@ class CLINode extends Actor {
 
   private val cluster = Cluster(context.system)
 
-  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.clusterManagerName
+  private val serverAddress = Random.shuffle[String, List](MistConfig.Akka.Worker.serverList).head + "/user/" + Constants.Actors.cliResponderName
   private val serverActor = cluster.system.actorSelection(serverAddress)
 
   val nodeAddress: Address = cluster.selfAddress
+  
+  private implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration) 
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
@@ -32,10 +36,13 @@ class CLINode extends Actor {
   }
 
   def cliResponder[A](el: A, originalSender: akka.actor.ActorRef): Unit = {
-    val future = serverActor.ask(el)(timeout = Constants.CLI.timeoutDuration)
+    val future = serverActor ? el
     future.andThen {
-      case Success(result: Map[String, Any]) => originalSender ! result
+      case Success(result: Map[_, _]) => originalSender ! result
       case Success(result: String) => originalSender ! result
+      case Success(result: List[JobDetails]) => originalSender ! result.map {
+        job: JobDetails => JobDescription(job)
+      }
       case Success(result: List[Any]) => originalSender ! result
       case Failure(error: Throwable) => originalSender ! error
     }(ExecutionContext.global)
@@ -54,13 +61,16 @@ class CLINode extends Actor {
       sender ! Constants.CLI.stopAllWorkers
 
     case ListJobs() =>
-      cliResponder(ListJobs(), sender)
+      serverActor ! ListJobs()
+      context become result(sender)
 
     case ListWorkers() =>
-      cliResponder(ListWorkers(), sender)
+      serverActor ! ListWorkers()
+      context become result(sender)
 
-    case message: ListRouters =>
-      cliResponder(message, sender)
+    case ListRoutes() =>
+      serverActor ! ListRoutes()
+      context become result(sender)
 
     case MemberExited(member) =>
       if (member.address == cluster.selfAddress) {
@@ -72,5 +82,12 @@ class CLINode extends Actor {
         cluster.down(nodeAddress)
         sys.exit(0)
       }
+  }
+  
+  def result(originalSender: ActorRef): Receive = {
+    case response: List[_] =>
+      originalSender ! response
+    case response: String =>
+      originalSender ! response
   }
 }

@@ -10,8 +10,6 @@ private[mist] object Messages {
   
   sealed trait StopAllMessage
 
-  case class CreateContext(namespace: String)
-
   case class StopAllContexts() extends StopAllMessage
 
   case class RemoveContext(contextIdentifier: String) extends RemovingMessage
@@ -32,7 +30,7 @@ private[mist] object Messages {
 
   case class ListWorkers() extends AdminMessage
 
-  case class ListRouters(extended: Boolean = false) extends AdminMessage
+  case class ListRoutes() extends AdminMessage
 
   case class ListJobs() extends AdminMessage
 

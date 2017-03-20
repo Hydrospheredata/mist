@@ -14,9 +14,9 @@ object MqttSuccessObj{
 object MQTTTest{
   def publish(message: String): Unit = {
     val persistence = new MemoryPersistence
-    val client = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+    val client = new MqttClient(s"tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}", MqttClient.generateClientId, persistence)
     client.connect()
-    val msgTopic = client.getTopic(MistConfig.MQTT.publishTopic)
+    val msgTopic = client.getTopic(MistConfig.Mqtt.publishTopic)
     val mqMessage = new MqttMessage(message.getBytes("utf-8"))
     msgTopic.publish(mqMessage)
     println(s"Publishing Data Test, Topic : ${msgTopic.getName}, Message : $mqMessage")
@@ -24,9 +24,9 @@ object MQTTTest{
 
   def subscribe(actorSystem: ActorSystem): Unit = {
     val persistence = new MemoryPersistence
-    val mqttClient = new MqttClient(s"tcp://${MistConfig.MQTT.host}:${MistConfig.MQTT.port}", MqttClient.generateClientId, persistence)
+    val mqttClient = new MqttClient(s"tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}", MqttClient.generateClientId, persistence)
     mqttClient.connect()
-    mqttClient.subscribe(MistConfig.MQTT.subscribeTopic)
+    mqttClient.subscribe(MistConfig.Mqtt.subscribeTopic)
     val callback = new MqttCallback {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         println("Receiving Data Test, Topic : %s, Message : %s".format(topic, message))

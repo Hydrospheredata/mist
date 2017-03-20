@@ -5,7 +5,8 @@ resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
   Resolver.sonatypeRepo("snapshots"),
   Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns),
-  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+  "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+  "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
@@ -101,7 +102,10 @@ lazy val mist = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
       "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
 
-      "org.scalaj" %% "scalaj-http" % "2.3.0"
+      "org.scalaj" %% "scalaj-http" % "2.3.0",
+      "org.apache.kafka" %% "kafka" % "0.10.2.0",
+      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+      "org.flywaydb" % "flyway-core" % "4.1.1"
     ),
 
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
@@ -231,23 +235,25 @@ lazy val mistRunSettings = Seq(
 )
 
 def akkaDependencies(scalaVersion: String) = {
-  val Old = """2\.10\..""".r
+  val New = """2\.11\..""".r
 
   scalaVersion match {
-    case Old() => Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
-      "org.slf4j" % "slf4j-api" % "1.7.5",
-      "ch.qos.logback" % "logback-classic" % "1.0.3",
-      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
-      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
-    )
-    case _ => Seq(
+    case New() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "ch.qos.logback" % "logback-classic" % "1.1.7",  //logback, in order to log to file
+      "ch.qos.logback" % "logback-classic" % "1.1.7", //logback, in order to log to file
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1", // needed for logback to work
+      "com.typesafe.slick" %% "slick" % "3.2.0"
+    )
+    case _ => Seq(
+      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
+      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
+      "org.slf4j" % "slf4j-api" % "1.7.22",
+      "ch.qos.logback" % "logback-classic" % "1.0.3",
+      "com.typesafe" %% "scalalogging-slf4j" % "1.0.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"   // needed for logback to work
+      "com.typesafe.slick" %% "slick" % "3.1.1"
     )
   }
 }
