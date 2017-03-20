@@ -7,7 +7,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.{HttpEntity, _}
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -19,6 +19,7 @@ import io.hydrosphere.mist.utils.json.{JobConfigurationJsonSerialization, JobDet
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import io.hydrosphere.mist.utils.TypeAlias._
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.cluster.ClusterManager
 import spray.json.{pimpAny, pimpString}
@@ -35,7 +36,7 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
   implicit val materializer: ActorMaterializer
 
   // /jobs
-  def route = {
+  def route: Route = {
     path("jobs") {
       // POST /jobs
       post {
@@ -92,7 +93,11 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
                 }
               }
               case "routers" => complete {
-                HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+                try {
+                  HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+                } catch {
+                  case exc: Throwable => HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentType(MediaTypes.`application/json`), exc.getMessage)) 
+                }
               }
             }
           }
@@ -104,9 +109,9 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
             redirect("/ui/", StatusCodes.PermanentRedirect)
           } ~
             pathSingleSlash {
-              getFromResource("web/index.html")
+              getFromResource("web/index.html", Default("web/index.html"), getClass.getClassLoader)
             } ~
-            getFromResourceDirectory("web")
+            getFromResourceDirectory("web", getClass.getClassLoader)
         }
       } ~
       path("internal" / "jobs" / Segment) { cmd =>
