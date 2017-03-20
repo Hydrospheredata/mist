@@ -7,7 +7,7 @@ object StreamingTextSearch extends MistJob with StreamingSupport {
   def execute(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
 
-    val ssc = createStreamingContext
+    val ssc = streamingContext
 
     val rddQueue = new mutable.Queue[RDD[String]]()
 

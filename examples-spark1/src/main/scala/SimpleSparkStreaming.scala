@@ -10,7 +10,7 @@ object SimpleSparkStreaming extends MistJob with StreamingSupport {
     * @return result of the job
     */
   def execute(): Map[String, Any] = {
-    val ssc = createStreamingContext
+    val ssc = streamingContext
     val rddQueue = new mutable.Queue[RDD[Int]]()
 
     val inputStream = ssc.queueStream(rddQueue)

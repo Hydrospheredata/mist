@@ -3,13 +3,17 @@ package io.hydrosphere.mist.contexts
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.lib.spark1.SetupConfiguration
+import org.apache.spark.streaming.Duration
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
 
 class NamedContext(
   context: SparkContext,
-  namespace: String
+  namespace: String,
+  streamingDuration: Duration,
+  publisherConnectionString: String
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -20,6 +24,10 @@ class NamedContext(
       context.addJar(jarPath)
       jars += jarAbsolutePath
     }
+  }
+
+  def setupConfiguration: SetupConfiguration = {
+    SetupConfiguration(context, streamingDuration, publisherConnectionString)
   }
 
   def stop(): Unit = {
@@ -40,7 +48,11 @@ object NamedContext {
     for (keyValue: List[String] <- sparkConfSettings) {
       sparkConf.set(keyValue.head, keyValue(1))
     }
+
+    val duration = MistConfig.Contexts.streamingDuration(namespace)
+
     val context = new SparkContext(sparkConf)
-    new NamedContext(context, namespace)
+    //TODO:!!!
+    new NamedContext(context, namespace, duration, "")
   }
 }

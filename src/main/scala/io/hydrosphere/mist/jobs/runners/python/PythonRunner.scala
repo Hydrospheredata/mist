@@ -2,7 +2,7 @@ package io.hydrosphere.mist.jobs.runners.python
 
 import java.io.File
 
-import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
 import io.hydrosphere.mist.jobs.{JobDetails, JobFile}
@@ -11,16 +11,17 @@ import py4j.GatewayServer
 
 import scala.sys.process._
 
-class PythonRunner(override val job: JobDetails, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+class PythonRunner(override val job: JobDetails, jobFile: JobFile, context: NamedContext) extends Runner {
 
   override def stopStreaming(): Unit = sparkStreamingWrapper.stopStreaming()
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
-  val sparkContextWrapper: ContextWrapper = contextWrapper
+  val sparkContextWrapper: NamedContext = context
   val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(job.configuration)
-  val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
-  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(sparkContextWrapper)
+  //TODO ????
+  //val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration)
 
   override def run(): JobResponseOrError = {
     try {

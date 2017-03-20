@@ -4,16 +4,18 @@ import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.lib.{MLMistJob, MistJob, StreamingSupport}
 import io.hydrosphere.mist.utils.TypeAlias.{JobResponse, JobResponseOrError}
 import io.hydrosphere.mist.utils.{ExternalInstance, ExternalJar}
 
-private[mist] class JarRunner(override val job: JobDetails, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
+class JarRunner(
+  override val job: JobDetails,
+  jobFile: JobFile,
+  context: NamedContext) extends Runner {
 
   // TODO: remove nullable contextWrapper
-  if (contextWrapper != null) {
+  if (context!= null) {
     // We must add user jar into spark context
-    contextWrapper.addJar(jobFile.file.getPath)
+    context.addJar(jobFile.file.getPath)
   }
 
   val externalInstance: ExternalInstance = ExternalJar(jobFile.file.getAbsolutePath)
@@ -24,10 +26,10 @@ private[mist] class JarRunner(override val job: JobDetails, jobFile: JobFile, co
     try {
       val result = job.configuration.action match {
         case JobConfiguration.Action.Execute =>
-          externalInstance.objectRef.asInstanceOf[MistJob].setup(contextWrapper)
+          externalInstance.objectRef.asInstanceOf[MistJob].setup(context.setupConfiguration)
           Left(externalInstance.getMethod("execute").run(job.configuration.parameters).asInstanceOf[JobResponse])
         case JobConfiguration.Action.Train =>
-          externalInstance.objectRef.asInstanceOf[MLMistJob].setup(contextWrapper)
+          externalInstance.objectRef.asInstanceOf[MLMistJob].setup(context.setupConfiguration)
           Left(externalInstance.getMethod("train").run(job.configuration.parameters).asInstanceOf[JobResponse])
         case JobConfiguration.Action.Serve =>
           Left(externalInstance.getMethod("serve").run(job.configuration.parameters).asInstanceOf[JobResponse])

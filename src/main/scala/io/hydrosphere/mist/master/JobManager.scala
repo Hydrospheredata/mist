@@ -1,10 +1,8 @@
 package io.hydrosphere.mist.master
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.{Actor, ActorRef, Props}
-import io.hydrosphere.mist.{Constants, MistConfig}
-import io.hydrosphere.mist.jobs.{JobConfiguration, JobDetails}
+import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.master.cluster.ClusterManager.GetWorker
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.LocalNode
@@ -20,7 +18,7 @@ private[mist] object JobManager {
 private[mist] class JobManager extends Actor with Logger {
   
   override def receive: Receive = {
-    case JobManager.StartJob(jobDetails) if jobDetails.configuration.action == JobConfiguration.Action.Serve =>
+    case JobManager.StartJob(jobDetails) if jobDetails.configuration.action == io.hydrosphere.mist.jobs.JobConfiguration.Action.Serve =>
       val localNodeActor = context.actorOf(Props(classOf[LocalNode]))
       localNodeActor ! jobDetails
       context become gettingResults(sender)

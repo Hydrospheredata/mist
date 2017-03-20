@@ -2,15 +2,17 @@ package io.hydrosphere.mist.worker
 
 import java.util.concurrent.Executors.newFixedThreadPool
 import java.util.concurrent.TimeUnit
-import akka.actor.{Actor, ActorLogging, Address, Cancellable,Props}
+
+import akka.actor.{Actor, ActorLogging, Address, Cancellable, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
+import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import io.hydrosphere.mist.{Constants, MistConfig}
+
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService, Future, Promise}
@@ -27,7 +29,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
   val nodeAddress: Address = cluster.selfAddress
 
-  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
+  lazy val contextWrapper: NamedContext = NamedContext(namespace)
 
   private val workerDowntime: Duration = MistConfig.Contexts.downtime(namespace)
 

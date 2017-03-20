@@ -3,7 +3,7 @@ package io.hydrosphere.mist.utils
 import java.io.File
 import java.net.{URL, URLClassLoader}
 
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponse}
 
 import scala.collection.immutable.Seq

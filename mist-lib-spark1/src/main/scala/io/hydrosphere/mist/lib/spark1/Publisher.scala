@@ -32,7 +32,7 @@ object Publisher {
       case Some(m) =>
         val groups = m.subgroups
         buildPublisher(groups.head, groups.last, sc)
-      case None => throw new IllegalAccessException(s"Can not instancieate publisher for $connectionString")
+      case None => throw new IllegalAccessException(s"Can not instantiate publisher for $connectionString")
     }
   }
 
