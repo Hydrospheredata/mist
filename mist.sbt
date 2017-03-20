@@ -89,7 +89,7 @@ lazy val examples = project.in(file("examples"))
   .settings(PublishSettings.settings: _*)
   .settings(
     name := "mist_examples",
-    version := "0.8.0",
+    version := "0.10.0",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-core" % sparkVersion.value,
       "org.apache.spark" %% "spark-sql" % sparkVersion.value,

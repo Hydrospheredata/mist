@@ -42,12 +42,12 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 ## Getting Started with Mist
 
-######Dependencies
+###### Dependencies
 - jdk = 8
 - spark >= 1.5.2 (earlier versions were not tested)
 - MQTT Server (optional)
 
-######Run mist   
+###### Run mist   
 
 Run Docker:
 ```
@@ -61,7 +61,7 @@ Run Jar:
 sbt -DsparkVersion=${SPARK_VERSION} mistRun
 ```
 
-######Run example
+###### Run example
 
 ```
 sbt "project examples" package
@@ -128,6 +128,7 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 | 0.7.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.8.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | 0.9.1          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
+| 0.10.0         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 | master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
 
 
