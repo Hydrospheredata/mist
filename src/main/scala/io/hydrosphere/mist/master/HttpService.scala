@@ -93,7 +93,11 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
                 }
               }
               case "routers" => complete {
-                HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+                try {
+                  HttpResponse(entity = HttpEntity(ContentType(MediaTypes.`application/json`), RouteConfig.info.toJson.compactPrint))
+                } catch {
+                  case exc: Throwable => HttpResponse(StatusCodes.InternalServerError, entity = HttpEntity(ContentType(MediaTypes.`application/json`), exc.getMessage)) 
+                }
               }
             }
           }

@@ -61,7 +61,7 @@ private[mist] object RouteConfig extends Logger {
         } else {
           val jobFile = JobFile(value("path").asInstanceOf[String])
           if (!jobFile.exists) {
-            return null
+            throw new Exception(s"File ${value("path")} in `$key` not found")
           }
 
           val externalClass = ExternalJar(jobFile.file).getExternalClass(value("className").asInstanceOf[String])
