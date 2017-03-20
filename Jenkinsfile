@@ -5,8 +5,11 @@ parallel (
     Spark_1_6_2 : {
       test_mist("aws-slave-02","1.6.2")
     },
+    Spark_2_0_2 : {
+      test_mist("aws-slave-03","2.0.2")
+    },
     Spark_2_1_0 : {
-      test_mist("aws-slave-03","2.1.0")
+      test_mist("aws-slave-04","2.1.0")
     }
 )
 
@@ -30,8 +33,7 @@ def test_mist(slaveName,sparkVersion) {
           def mosquitto = docker.image('ansi/mosquitto:latest').run()
           def hdfs = docker.image('hydrosphere/hdfs:latest').run(" -v ${env.WORKSPACE}:/usr/share/mist -e SPARK_VERSION=${sparkVersion}","start")
           echo 'Testing Mist with Spark version: ' + sparkVersion
-          def mistId = sh(returnStdout: true, script: "docker create --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
-            sh "docker cp ${env.WORKSPACE}/. ${mistId}:/usr/share/mist"
+          def mistId = sh(returnStdout: true, script: "docker create -v ${env.WORKSPACE}:/usr/share/mist --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
             sh "docker start ${mistId}"
             sh "docker logs -f ${mistId}"
 
@@ -51,10 +53,10 @@ def test_mist(slaveName,sparkVersion) {
           hdfs.stop()
         }
 
-        if (tag == 'release') {
+        if (tag.startsWith("v")) {
           stage('Public in Maven') {
-            sh "sbt publishSigned -DsparkVersion=${sparkVersion}"
-            sh "sbt sonatypeRelease"
+            sh "${env.WORKSPACE}/sbt/sbt publishSigned -DsparkVersion=${sparkVersion}"
+            sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
           }
 
           stage('Public in DockerHub') {

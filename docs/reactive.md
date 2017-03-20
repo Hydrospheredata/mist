@@ -7,7 +7,7 @@ Method **publish** is a simple and unified abstraction to be used for streaming 
 
 Please note that usually it does not make sense to start streaming job from HTTP request. You could use [Mist CLI] (https://github.com/Hydrospheredata/mist/blob/master/bin/mist) to start particular streaming job. 
 
-######Reactive Scala job
+###### Reactive Scala job
 
 ```scala
 import io.hydrosphere.mist.lib.{MqttPublisher, MistJob}
@@ -27,7 +27,7 @@ object MyStreamingMistJob extends MistJob with MqttPublisher {
 }
 ```
 
-######Reactive Python job 
+###### Reactive Python job 
 
 ```python
 from mist.mist_job import *
