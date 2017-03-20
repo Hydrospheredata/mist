@@ -7,7 +7,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.{HttpEntity, _}
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern.{AskTimeoutException, ask}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
@@ -35,7 +35,7 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
   implicit val materializer: ActorMaterializer
 
   // /jobs
-  def route: Flow[HttpRequest, HttpResponse, Unit] = {
+  def route: Route = {
     path("jobs") {
       // POST /jobs
       post {
