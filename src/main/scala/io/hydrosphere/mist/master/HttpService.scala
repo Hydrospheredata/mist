@@ -19,6 +19,7 @@ import io.hydrosphere.mist.utils.json.{JobConfigurationJsonSerialization, JobDet
 import io.hydrosphere.mist.{Constants, MistConfig, RouteConfig}
 import io.hydrosphere.mist.utils.TypeAlias._
 import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.cluster.ClusterManager
 import spray.json.{pimpAny, pimpString}
@@ -104,9 +105,9 @@ private[mist] trait HttpService extends Directives with SprayJsonSupport with Jo
             redirect("/ui/", StatusCodes.PermanentRedirect)
           } ~
             pathSingleSlash {
-              getFromResource("web/index.html")
+              getFromResource("web/index.html", Default("web/index.html"), getClass.getClassLoader)
             } ~
-            getFromResourceDirectory("web")
+            getFromResourceDirectory("web", getClass.getClassLoader)
         }
       } ~
       path("internal" / "jobs" / Segment) { cmd =>
