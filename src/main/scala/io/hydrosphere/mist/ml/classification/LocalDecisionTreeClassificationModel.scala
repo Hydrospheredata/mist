@@ -1,8 +1,7 @@
 package io.hydrosphere.mist.ml.classification
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
-import io.hydrosphere.mist.utils.DataUtils
+import io.hydrosphere.mist.ml.{DataUtils, LocalModel, LocalTypedTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.DecisionTreeClassificationModel
 import org.apache.spark.ml.tree.Node

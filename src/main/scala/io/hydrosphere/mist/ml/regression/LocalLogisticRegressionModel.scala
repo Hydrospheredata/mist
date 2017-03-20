@@ -54,7 +54,7 @@ object LocalLogisticRegressionModel extends LocalTypedTransformer[LogisticRegres
   }
 
   override def transformTyped(logisticRegression: LogisticRegressionModel, localData: LocalData): LocalData = {
-    import io.hydrosphere.mist.utils.DataUtils._
+    import io.hydrosphere.mist.ml.DataUtils._
 
     localData.column(logisticRegression.getFeaturesCol) match {
       case Some(column) =>

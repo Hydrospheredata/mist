@@ -1,8 +1,7 @@
 package io.hydrosphere.mist.ml.regression
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
-import io.hydrosphere.mist.utils.DataUtils
+import io.hydrosphere.mist.ml.{DataUtils, LocalModel, LocalTypedTransformer, Metadata}
 import org.apache.spark.ml.linalg.{SparseVector, Vector}
 import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.ml.tree.Node

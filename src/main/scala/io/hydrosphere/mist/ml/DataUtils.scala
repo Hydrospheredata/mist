@@ -1,7 +1,6 @@
-package io.hydrosphere.mist.utils
+package io.hydrosphere.mist.ml
 
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
-import io.hydrosphere.mist.ml.Metadata
 import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
 import org.apache.spark.ml.tree._
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}

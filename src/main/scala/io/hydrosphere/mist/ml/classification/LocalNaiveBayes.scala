@@ -1,8 +1,7 @@
 package io.hydrosphere.mist.ml.classification
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalTypedTransformer, Metadata}
-import io.hydrosphere.mist.utils.DataUtils
+import io.hydrosphere.mist.ml.{DataUtils, LocalTypedTransformer, Metadata}
 import org.apache.spark.ml.classification.NaiveBayesModel
 import org.apache.spark.ml.linalg.{Matrix, Vector}
 
