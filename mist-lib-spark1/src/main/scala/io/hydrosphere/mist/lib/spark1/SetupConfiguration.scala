@@ -6,6 +6,7 @@ import org.apache.spark.streaming.Duration
 case class SetupConfiguration(
   context: SparkContext,
   streamingDuration: Duration,
-  publisherConnectionString: String
+  publisherConnectionString: String,
+  publisherTopic: String
 )
 

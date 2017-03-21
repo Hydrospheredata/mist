@@ -21,17 +21,19 @@ object GlobalPublisher {
   import scala.collection.JavaConversions._
 
   val connectionStringR = "(kafka|mqtt)://(.*)".r
+
+  //TODO: if there is no global publisher configuration??
   /**
     *
     * @param connectionString
     *   kafka - kafka://bootstrap.servers
     *   mqtt -  mqtt://connectionUrl
     */
-  def create(connectionString: String, sc: SparkContext): GlobalPublisher = {
+  def create(connectionString: String, topic: String, sc: SparkContext): GlobalPublisher = {
     connectionStringR.findFirstMatchIn(connectionString) match {
       case Some(m) =>
         val groups = m.subgroups
-        buildPublisher(groups.head, groups.last, sc)
+        buildPublisher(groups.head, groups.last, topic, sc)
       case None =>
         throw new IllegalAccessException(s"Can not instantiate publisher for $connectionString")
     }
@@ -40,39 +42,49 @@ object GlobalPublisher {
   private def buildPublisher(
     protocol: String,
     connection: String,
+    topic: String,
     sc: SparkContext
   ): GlobalPublisher = {
-    //TODO
-    val topic = "test_topic"
-    protocol match {
+    val sink = protocol match {
       case "kafka" =>
-        val sink = KafkaSink(connection)
-        val bc = sc.broadcast(sink)
-        new KafkaGlobalPublisher(bc, topic)
+        KafkaSink(connection)
 
       case "mqtt" =>
-        val sink = MqttSink(connection)
-        val bc = sc.broadcast(sink)
-        new MqttGlobalPublisher(bc, topic)
+        MqttSink(connection)
     }
+    val bc = sc.broadcast(sink)
+    new BcPublisher(bc, topic)
   }
 
-  class KafkaGlobalPublisher(sink: Broadcast[KafkaSink], topic: String) extends GlobalPublisher {
+  trait Sink extends Serializable {
 
-    override def publish(bytes: Array[Byte]): Unit =
-      sink.value.send(topic, bytes)
+    def send(topic: String, bytes: Array[Byte]): Unit
 
-    override private[mist] def close(): Unit =
-      sink.destroy()
+    def close(): Unit
   }
 
-  class KafkaSink(create: () => KafkaProducer[String, Array[Byte]]) extends Serializable {
+  class KafkaSink(create: () => KafkaProducer[String, Array[Byte]]) extends Sink {
 
     lazy val producer = create()
 
     def send(topic: String, bytes: Array[Byte]): Unit = producer.send(new ProducerRecord(topic, bytes))
+
+    override def close(): Unit = producer.close()
   }
 
+
+  class MqttSink(create: () => MqttClient) extends Sink {
+
+    lazy val producer = create()
+
+    def send(topic: String, bytes: Array[Byte]): Unit =
+      producer.publish(topic, new MqttMessage(bytes))
+
+    override def close(): Unit = {
+      producer.disconnect()
+      producer.close()
+    }
+  }
 
   object KafkaSink {
     def apply(bootstrapServers: String): KafkaSink = {
@@ -90,25 +102,6 @@ object GlobalPublisher {
     }
   }
 
-  class MqttGlobalPublisher(sink: Broadcast[MqttSink], topic: String) extends GlobalPublisher {
-
-    override def publish(bytes: Array[Byte]): Unit =
-      sink.value.send(topic, bytes)
-
-    override private[mist] def close(): Unit = {
-      sink.value.producer.disconnect()
-      sink.destroy()
-    }
-  }
-
-  class MqttSink(create: () => MqttClient) extends Serializable {
-
-    lazy val producer = create()
-
-    def send(topic: String, bytes: Array[Byte]): Unit =
-      producer.publish(topic, new MqttMessage(bytes))
-  }
-
   object MqttSink {
 
     def apply(connectionUrl: String): MqttSink = {
@@ -123,6 +116,16 @@ object GlobalPublisher {
         client
       }
       new MqttSink(f)
+    }
+  }
+
+  class BcPublisher(sink: Broadcast[Sink], topic: String) extends GlobalPublisher with Serializable {
+
+    override def publish(bytes: Array[Byte]): Unit = sink.value.send(topic, bytes)
+
+    override private[mist] def close(): Unit = {
+      sink.value.close()
+      sink.destroy()
     }
   }
 }
