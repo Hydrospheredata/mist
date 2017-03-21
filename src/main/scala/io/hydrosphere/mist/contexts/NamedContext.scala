@@ -4,6 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.api.SetupConfiguration
+import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.streaming.Duration
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -35,6 +36,13 @@ class NamedContext(
       publisherTopic = publisherTopic
     )
   }
+
+  //TODO: can we call that inside python directly using setupConfiguration?
+  // python support
+  def sparkConf: SparkConf = context.getConf
+
+  // python support
+  def javaContext: JavaSparkContext = new JavaSparkContext(context)
 
   def stop(): Unit = {
     context.stop()
