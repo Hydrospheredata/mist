@@ -1,16 +1,16 @@
 from mist.mist_job import *
 
-class SimpleStreaming(MistJob, WithStreamingContext, WithMQTTPublisher):
+class SimpleStreaming(MistJob, WithStreamingContext, WithPublisher):
 
     def execute(self, parameters):
         import time
 
         def takeAndPublish(time, rdd):
             taken = rdd.take(11)
-            self.mqtt.publish("-------------------------------------------")
-            self.mqtt.publish("Time: %s" % time)
-            self.mqtt.publish("-------------------------------------------")
-            self.mqtt.publish(str(taken))
+            self.publisher.publish("-------------------------------------------")
+            self.publisher.publish("Time: %s" % time)
+            self.publisher.publish("-------------------------------------------")
+            self.publisher.publish(str(taken))
 
         ssc = self.streaming_context
         type(ssc)

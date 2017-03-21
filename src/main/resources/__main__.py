@@ -20,7 +20,6 @@ from pyspark.serializers import MarshalSerializer, PickleSerializer
 
 from mist.mist_job import *
 from mist.context_wrapper import ContextWrapper
-from mist.publisher_wrapper import PublisherWrapper
 
 def to_python_types(any):
     python_any = any
@@ -54,8 +53,6 @@ java_import(_gateway.jvm, 'java.util.*')
 context_wrapper = ContextWrapper()
 context_wrapper.set_context(_gateway)
 
-publisher_wrapper = PublisherWrapper()
-
 configuration_wrapper = _entry_point.configurationWrapper()
 error_wrapper = _entry_point.errorWrapper()
 path = configuration_wrapper.path()
@@ -87,15 +84,14 @@ except ImportError:
     if issubclass(class_, WithHiveSupport):
         context_wrapper.set_hive_context(_gateway)
 
-if issubclass(class_, WithMqttPublisher):
-    publisher_wrapper.set_mqtt(_gateway)
+if issubclass(class_, WithPublisher):
+    context_wrapper.init_publisher(_gateway)
 
 if issubclass(class_, WithStreamingContext):
     context_wrapper.set_streaming_context(_gateway)
 
 try:
     instance.setup(context_wrapper)
-    instance.set_publisher(publisher_wrapper)
     # TODO: train/serve
     result = instance.execute(**to_python_types(parameters))
     data_wrapper.set(result)

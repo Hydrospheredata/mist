@@ -18,13 +18,13 @@ class PythonRunner(override val job: JobDetails, jobFile: JobFile, context: Name
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
   val sparkContextWrapper: NamedContext = context
+  val globalPublisherWrapper: GlobalPublisherWrapper = new GlobalPublisherWrapper()
   val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(job.configuration)
-  //TODO ????
-  //val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
   val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration)
 
   override def run(): JobResponseOrError = {
     try {
+
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
 

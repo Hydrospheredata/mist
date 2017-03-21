@@ -141,6 +141,9 @@ lazy val mist = project.in(file("."))
            |  type HiveSupport = $libPackage.HiveSupport
            |
            |  type Publisher = $libPackage.Publisher
+           |
+           |  type GlobalPublisher = $libPackage.GlobalPublisher
+           |  val GlobalPublisher = $libPackage.GlobalPublisher
            |}
         """.stripMargin
       IO.write(file,content)
