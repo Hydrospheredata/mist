@@ -159,23 +159,6 @@ lazy val mist = project.in(file("."))
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
   )
 
-lazy val examples = project.in(file("examples"))
-  .dependsOn(LocalProject("mist"))
-  .settings(commonSettings: _*)
-  .settings(PublishSettings.settings: _*)
-  .settings(
-    name := "mist_examples",
-    version := "0.8.0",
-    libraryDependencies ++= sparkDependencies(sparkVersion.value),
-
-    excludeFilter in Compile := (
-      sparkVersion.value match {
-        case versionRegex("1", minor) => "*_Spark2.scala"
-        case _ => "*_Spark1.scala"
-      }
-    )
-  )
-
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .dependsOn(mistLibSpark1)
   .settings(commonSettings: _*)
