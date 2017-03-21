@@ -9,6 +9,7 @@ trait SessionSupport extends ContextSupport {
   def session: SparkSession = _session
 
   override private[mist] def setup(conf: SetupConfiguration): Unit = {
+    super.setup(conf)
     val enableHive = this.isInstanceOf[HiveSupport]
 
     var builder = SparkSession

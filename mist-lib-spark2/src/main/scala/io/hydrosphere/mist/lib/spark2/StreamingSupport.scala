@@ -2,7 +2,7 @@ package io.hydrosphere.mist.lib.spark2
 
 import org.apache.spark.streaming._
 
-trait StreamingSupport extends SessionSupport {
+trait StreamingSupport extends ContextSupport {
 
   private[mist] var _ssc: StreamingContext = _
 
