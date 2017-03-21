@@ -13,12 +13,28 @@ parallel (
     }
 )
 
+node("aws-slave-04") {
+    stage('Fix permissions') {
+        fix_permissions()
+    }
+
+    stage('Public in Maven') {
+        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=1.5.2 'set pgpPassphrase := Some(Array())' publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=2.1.0 'set pgpPassphrase := Some(Array())' publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
+    }
+}
+
 def test_mist(slaveName,sparkVersion) {
   node(slaveName) {
     wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
       try {
         stage('Clone project ' + sparkVersion) {
           checkout scm
+        }
+
+        stage('Fix permissions') {
+            fix_permissions()
         }
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
@@ -54,11 +70,6 @@ def test_mist(slaveName,sparkVersion) {
         }
 
         if (tag.startsWith("v")) {
-          stage('Public in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt publishSigned -DsparkVersion=${sparkVersion}"
-            sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
-          }
-
           stage('Public in DockerHub') {
             build_image(sparkVersion)
           }
@@ -86,4 +97,8 @@ def build_image(sparkVersion) {
     echo 'Pushing Mist with Spark version: ' + sparkVersion
     mistImg.push()
   }
+}
+
+def fix_permissions(){
+    sh "sudo chown -R ubuntu:ubuntu ${env.WORKSPACE}"
 }
