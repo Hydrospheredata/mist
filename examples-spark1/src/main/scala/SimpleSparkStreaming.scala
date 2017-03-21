@@ -3,7 +3,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object SimpleSparkStreaming extends MistJob with StreamingSupport {
+object SimpleSparkStreaming extends MistJob with StreamingSupport with Publisher {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
@@ -18,11 +18,11 @@ object SimpleSparkStreaming extends MistJob with StreamingSupport {
     val reducedStream = mappedStream.reduceByKey(_ + _)
 
     reducedStream.foreachRDD{ (rdd, time) =>
-      println(Map(
+      publisher.publish(Map(
         "time" -> time,
         "length" -> rdd.collect().length,
         "collection" -> rdd.collect().toList.toString
-      ))
+      ).toString())
     }
 
     ssc.start()

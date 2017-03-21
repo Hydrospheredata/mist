@@ -50,9 +50,18 @@ object NamedContext {
     }
 
     val duration = MistConfig.Contexts.streamingDuration(namespace)
+    val publisherConf = globalPublisherConfiguration()
 
     val context = new SparkContext(sparkConf)
-    //TODO:!!!
-    new NamedContext(context, namespace, duration, "")
+    new NamedContext(context, namespace, duration, publisherConf)
+  }
+
+  private def globalPublisherConfiguration(): String = {
+    if (MistConfig.Kafka.isOn)
+      s"kafka://${MistConfig.Kafka.host}:${MistConfig.Kafka.port}"
+    else if (MistConfig.Mqtt.isOn)
+      s"mqtt://tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}"
+    else
+      ""
   }
 }
