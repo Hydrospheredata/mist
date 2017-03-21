@@ -4,6 +4,22 @@ import org.apache.spark.sql.SparkSession
 
 trait SessionSupport extends ContextSupport {
 
-  def session: SparkSession
+  private var _session: SparkSession = _
 
+  def session: SparkSession = _session
+
+  override private[mist] def setup(conf: SetupConfiguration): Unit = {
+    val enableHive = this.isInstanceOf[HiveSupport]
+
+    var builder = SparkSession
+      .builder()
+      .appName(conf.context.appName)
+      .config(conf.context.getConf)
+
+    if (enableHive) {
+      builder = builder.enableHiveSupport()
+    }
+
+    _session = builder.getOrCreate()
+  }
 }

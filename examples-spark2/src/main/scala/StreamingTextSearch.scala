@@ -3,11 +3,11 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with StreamingSupport {
+object StreamingTextSearch extends MistJob with StreamingSupport with Publisher {
   def execute(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
 
-    val ssc = createStreamingContext
+    val ssc = streamingContext
 
     val rddQueue = new mutable.Queue[RDD[String]]()
 
@@ -16,11 +16,11 @@ object StreamingTextSearch extends MistJob with StreamingSupport {
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
 
     filtredStream.foreachRDD{ (rdd, time) =>
-      println(Map(
+      publisher.publish(Map(
         "time" -> time,
         "length" -> rdd.collect().length,
         "collection" -> rdd.collect().toList.toString
-      ))
+      ).toString())
     }
 
     ssc.start()

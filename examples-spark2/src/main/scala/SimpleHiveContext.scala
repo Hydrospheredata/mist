@@ -14,6 +14,10 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
     df.printSchema()
     df.createOrReplaceTempView("people")
 
-    Map("result" -> session.sql("SELECT AVG(age) AS avg_age FROM people").collect())
+    val result = session.sql("SELECT AVG(age) AS avg_age FROM people")
+      .collect()
+      .map(r => r.getDouble(0).toString)
+
+    Map("result" -> result)
   }
 }

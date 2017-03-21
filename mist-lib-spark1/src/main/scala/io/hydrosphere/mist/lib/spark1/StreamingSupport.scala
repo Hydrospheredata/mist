@@ -8,7 +8,7 @@ trait StreamingSupport extends ContextSupport {
 
   def streamingContext: StreamingContext = _ssc
 
-  override  private[mist] def setup(conf: SetupConfiguration): Unit = {
+  override private[mist] def setup(conf: SetupConfiguration): Unit = {
     super.setup(conf)
     _ssc = StreamingContext.getActiveOrCreate(() => {
       new StreamingContext(conf.context, conf.streamingDuration)

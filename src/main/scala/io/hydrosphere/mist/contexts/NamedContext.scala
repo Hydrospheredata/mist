@@ -3,7 +3,7 @@ package io.hydrosphere.mist.contexts
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.lib.spark1.SetupConfiguration
+import io.hydrosphere.mist.api.SetupConfiguration
 import org.apache.spark.streaming.Duration
 import org.apache.spark.{SparkConf, SparkContext}
 

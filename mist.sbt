@@ -60,7 +60,12 @@ lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
       "org.apache.parquet" % "parquet-column" % "1.7.0",
       "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
       "org.apache.parquet" % "parquet-avro" % "1.7.0"
-    )
+    ),
+
+    libraryDependencies ++= Seq(
+      "org.apache.kafka" % "kafka-clients" % "0.8.2.0",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
+      )
   )
 
 lazy val currentLib = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
@@ -123,6 +128,7 @@ lazy val mist = project.in(file("."))
            |package object api {
            |
            |  type SetupConfiguration = $libPackage.SetupConfiguration
+           |  val SetupConfiguration = $libPackage.SetupConfiguration
            |
            |  type MistJob = $libPackage.MistJob
            |
