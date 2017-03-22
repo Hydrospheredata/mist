@@ -6,7 +6,7 @@ import org.apache.spark.ml.feature.MaxAbsScalerModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.linalg.{DenseVector, Vector, Vectors}
 
-class LocalMaxAbsScaler(override val sparkTransformer: MaxAbsScalerModel) extends LocalTransformer[MaxAbsScalerModel] {
+class LocalMaxAbsScalerModel(override val sparkTransformer: MaxAbsScalerModel) extends LocalTransformer[MaxAbsScalerModel] {
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
@@ -27,7 +27,7 @@ class LocalMaxAbsScaler(override val sparkTransformer: MaxAbsScalerModel) extend
   }
 }
 
-object LocalMaxAbsScaler extends LocalModel[MaxAbsScalerModel] {
+object LocalMaxAbsScalerModel extends LocalModel[MaxAbsScalerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): MaxAbsScalerModel = {
     val maxAbsList = data("maxAbs").
       asInstanceOf[Map[String, Any]].
@@ -43,5 +43,5 @@ object LocalMaxAbsScaler extends LocalModel[MaxAbsScalerModel] {
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }
 
-  override implicit def getTransformer(transformer: MaxAbsScalerModel): LocalTransformer[MaxAbsScalerModel] = new LocalMaxAbsScaler(transformer)
+  override implicit def getTransformer(transformer: MaxAbsScalerModel): LocalTransformer[MaxAbsScalerModel] = new LocalMaxAbsScalerModel(transformer)
 }

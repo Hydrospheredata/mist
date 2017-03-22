@@ -8,7 +8,7 @@ import org.apache.spark.mllib.feature.{StandardScalerModel => OldStandardScalerM
 import org.apache.spark.mllib.linalg.{Vector => OldVector, Vectors => OldVectors}
 import org.apache.spark.ml.linalg.{DenseVector, Vector}
 
-class LocalStandardScaler(override val sparkTransformer: StandardScalerModel) extends LocalTransformer[StandardScalerModel] {
+class LocalStandardScalerModel(override val sparkTransformer: StandardScalerModel) extends LocalTransformer[StandardScalerModel] {
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
@@ -35,7 +35,7 @@ class LocalStandardScaler(override val sparkTransformer: StandardScalerModel) ex
   }
 }
 
-object LocalStandardScaler extends LocalModel[StandardScalerModel] {
+object LocalStandardScalerModel extends LocalModel[StandardScalerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): StandardScalerModel = {
     val constructor = classOf[StandardScalerModel].getDeclaredConstructor(classOf[String], classOf[Vector], classOf[Vector])
     constructor.setAccessible(true)
@@ -51,5 +51,5 @@ object LocalStandardScaler extends LocalModel[StandardScalerModel] {
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }
 
-  override implicit def getTransformer(transformer: StandardScalerModel): LocalTransformer[StandardScalerModel] = new LocalStandardScaler(transformer)
+  override implicit def getTransformer(transformer: StandardScalerModel): LocalTransformer[StandardScalerModel] = new LocalStandardScalerModel(transformer)
 }

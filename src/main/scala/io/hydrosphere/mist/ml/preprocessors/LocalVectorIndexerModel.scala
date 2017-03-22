@@ -6,7 +6,7 @@ import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.VectorIndexerModel
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 
-class LocalVectorIndexer(override val sparkTransformer: VectorIndexerModel) extends LocalTransformer[VectorIndexerModel] {
+class LocalVectorIndexerModel(override val sparkTransformer: VectorIndexerModel) extends LocalTransformer[VectorIndexerModel] {
   override def transform(localData: LocalData): LocalData = {
     val transformFunc: Vector => Vector = {
       val sortedCatFeatureIndices = sparkTransformer.categoryMaps.keys.toArray.sorted
@@ -57,7 +57,7 @@ class LocalVectorIndexer(override val sparkTransformer: VectorIndexerModel) exte
   }
 }
 
-object LocalVectorIndexer extends LocalModel[VectorIndexerModel] {
+object LocalVectorIndexerModel extends LocalModel[VectorIndexerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): VectorIndexerModel = {
     val ctor = classOf[VectorIndexerModel].getDeclaredConstructor(
       classOf[String],
@@ -75,5 +75,5 @@ object LocalVectorIndexer extends LocalModel[VectorIndexerModel] {
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }
 
-  override implicit def getTransformer(transformer: VectorIndexerModel): LocalTransformer[VectorIndexerModel] = new LocalVectorIndexer(transformer)
+  override implicit def getTransformer(transformer: VectorIndexerModel): LocalTransformer[VectorIndexerModel] = new LocalVectorIndexerModel(transformer)
 }

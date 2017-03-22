@@ -7,7 +7,7 @@ import org.apache.spark.mllib.clustering.{KMeansModel => MLlibKMeans}
 import org.apache.spark.mllib.linalg.{Vector => MLlibVec}
 
 //TODO
-object LocalKMeans extends LocalModel[KMeansModel] {
+object LocalKMeansModel extends LocalModel[KMeansModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): KMeansModel = ???
 //  {
 //    val parentConstructor = classOf[MLlibKMeans].getDeclaredConstructor(classOf[Array[MLlibVec]])

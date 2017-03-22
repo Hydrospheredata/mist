@@ -8,7 +8,7 @@ import org.apache.spark.ml.Transformer
 
 import scala.collection.mutable
 
-class LocalStringIndexer(override val sparkTransformer: StringIndexerModel) extends LocalTransformer[StringIndexerModel] {
+class LocalStringIndexerModel(override val sparkTransformer: StringIndexerModel) extends LocalTransformer[StringIndexerModel] {
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
@@ -39,7 +39,7 @@ class LocalStringIndexer(override val sparkTransformer: StringIndexerModel) exte
   }
 }
 
-object LocalStringIndexer extends LocalModel[StringIndexerModel] {
+object LocalStringIndexerModel extends LocalModel[StringIndexerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): StringIndexerModel = {
     new StringIndexerModel(metadata.uid, data("labels").asInstanceOf[List[String]].to[Array])
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
@@ -47,5 +47,5 @@ object LocalStringIndexer extends LocalModel[StringIndexerModel] {
       .setHandleInvalid(metadata.paramMap("handleInvalid").asInstanceOf[String])
   }
 
-  override implicit def getTransformer(transformer: StringIndexerModel): LocalTransformer[StringIndexerModel] = new LocalStringIndexer(transformer)
+  override implicit def getTransformer(transformer: StringIndexerModel): LocalTransformer[StringIndexerModel] = new LocalStringIndexerModel(transformer)
 }

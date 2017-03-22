@@ -7,7 +7,7 @@ import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
 
-class LocalPCA(override val sparkTransformer: PCAModel) extends LocalTransformer[PCAModel] {
+class LocalPCAModel(override val sparkTransformer: PCAModel) extends LocalTransformer[PCAModel] {
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
@@ -28,7 +28,7 @@ class LocalPCA(override val sparkTransformer: PCAModel) extends LocalTransformer
   }
 }
 
-object LocalPCA extends LocalModel[PCAModel] {
+object LocalPCAModel extends LocalModel[PCAModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): PCAModel = {
     val constructor = classOf[PCAModel].getDeclaredConstructor(classOf[String], classOf[DenseMatrix], classOf[DenseVector])
     constructor.setAccessible(true)
@@ -59,5 +59,5 @@ object LocalPCA extends LocalModel[PCAModel] {
     }
   }
 
-  override implicit def getTransformer(transformer: PCAModel): LocalTransformer[PCAModel] = new LocalPCA(transformer)
+  override implicit def getTransformer(transformer: PCAModel): LocalTransformer[PCAModel] = new LocalPCAModel(transformer)
 }

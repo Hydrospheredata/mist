@@ -6,7 +6,7 @@ import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, Ser
 import io.hydrosphere.mist.utils.SparkUtils
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import org.apache.spark.mllib.linalg.DenseVector
-import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector}
+import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector, SparseVector => NewSparceVector}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
 import spray.json.{DefaultJsonProtocol, pimpString}
@@ -42,6 +42,12 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     data zip valid foreach {
       case (x: Double, y: Double) =>
         assert(Math.abs(x - y) < 0.000001)
+    }
+  }
+
+  private def compareStrings(data: Seq[String], valid: Seq[String]) = {
+    data zip valid foreach {
+      case (x: String, y: String) => assert(x == y)
     }
   }
 
@@ -172,6 +178,79 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
       resList zip validation foreach {
         case (value: Double, validVal) =>
           assert(value === validVal)
+      }
+    }
+  }
+
+  test("Local OneHotEncoder pipeline test") {
+    testServing(TestConfig.LocalModels.oneHotEncoder) { data =>
+      val validation = Array(List(1.0, 0.0), List(0.0, 0.0), List(0.0, 1.0), List(1.0, 0.0))
+      val resList = extractResult[Any](data) map(x => x("categoryVec").asInstanceOf[NewSparceVector].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) =>
+          compareDoubles(arr, validRow)
+      }
+    }
+  }
+
+  test("Local NGram test") {
+    testServing(TestConfig.LocalModels.ngram) { data =>
+      val validation = Array(List("Provectus team", "team is", "is awesome"))
+      val resList = extractResult[Any](data) map(x => x("ngrams").asInstanceOf[Seq[String]].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[String], validRow: List[String]) => compareStrings(arr, validRow)
+      }
+    }
+  }
+
+  test("Local StopWordsRemover test") {
+    testServing(TestConfig.LocalModels.stopwordsremover) { data =>
+      val validation = Array(List("saw", "red", "balloon"), List("Mary", "little", "lamb"))
+      val resList = extractResult[Any](data) map(x => x("filtered").asInstanceOf[Seq[String]].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[String], validRow: List[String]) => compareStrings(arr, validRow)
+      }
+    }
+  }
+
+  test("Local Normalizer test") {
+    testServing(TestConfig.LocalModels.normalizer) { data =>
+      val validation = Array(List(0.4,0.2,-0.4), List(0.5,0.25,0.25), List(0.25,0.625,0.125))
+      val resList = extractResult[Any](data) map(x => x("normFeatures").asInstanceOf[NewDenseVector].toArray)
+
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+      }
+    }
+  }
+
+  test("Local PolynomialExpansion test") {
+    testServing(TestConfig.LocalModels.polynomialExpansion) { data =>
+      val validation = Array(
+        List(2.0,4.0,8.0,1.0,2.0,4.0,1.0,2.0,1.0),
+        List(0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0),
+        List(3.0,9.0,27.0,-1.0,-3.0,-9.0,1.0,3.0,-1.0)
+      )
+      val resList = extractResult[Any](data) map(x => x("polyFeatures").asInstanceOf[NewDenseVector].toArray)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+      }
+    }
+  }
+
+  test("Local DCT test") {
+    testServing(TestConfig.LocalModels.dct) { data =>
+      val validation = Array(
+        List(1.0,-1.1480502970952693,2.0000000000000004,-2.7716385975338604),
+        List(-1.0,3.378492794482933,-7.000000000000001,2.9301512653149677),
+        List(4.0,9.304453421915744,11.000000000000002,1.5579302036357163)
+      )
+      val resList = extractResult[Any](data) map(x => x("featuresDCT").asInstanceOf[NewDenseVector].toArray)
+      resList zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
       }
     }
   }

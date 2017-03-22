@@ -6,7 +6,7 @@ import org.apache.spark.ml.feature.MinMaxScalerModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.linalg.{DenseVector, Vector}
 
-class LocalMinMaxScaler(override val sparkTransformer: MinMaxScalerModel) extends LocalTransformer[MinMaxScalerModel] {
+class LocalMinMaxScalerModel(override val sparkTransformer: MinMaxScalerModel) extends LocalTransformer[MinMaxScalerModel] {
   override def transform(localData: LocalData): LocalData = {
     val originalRange = (DataUtils.asBreeze(sparkTransformer.originalMax.toArray) - DataUtils.asBreeze(sparkTransformer.originalMin.toArray)).toArray
     val minArray = sparkTransformer.originalMin.toArray
@@ -41,7 +41,7 @@ class LocalMinMaxScaler(override val sparkTransformer: MinMaxScalerModel) extend
   }
 }
 
-object LocalMinMaxScaler extends LocalModel[MinMaxScalerModel] {
+object LocalMinMaxScalerModel extends LocalModel[MinMaxScalerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): MinMaxScalerModel = {
     val originalMinList = data("originalMin").
       asInstanceOf[Map[String, Any]].
@@ -64,5 +64,5 @@ object LocalMinMaxScaler extends LocalModel[MinMaxScalerModel] {
       .setMax(metadata.paramMap("max").toString.toDouble)
   }
 
-  override implicit def getTransformer(transformer: MinMaxScalerModel): LocalTransformer[MinMaxScalerModel] = new LocalMinMaxScaler(transformer)
+  override implicit def getTransformer(transformer: MinMaxScalerModel): LocalTransformer[MinMaxScalerModel] = new LocalMinMaxScalerModel(transformer)
 }
