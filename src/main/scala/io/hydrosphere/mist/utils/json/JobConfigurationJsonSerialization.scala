@@ -5,11 +5,11 @@ import spray.json.{DeserializationException, JsString, JsValue, RootJsonFormat}
 
 private[mist] trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
   
-  implicit object ConfigurationActionSupport extends RootJsonFormat[JobConfiguration.Action] {
-    override def write(obj: JobConfiguration.Action): JsValue = JsString(obj.toString)
+  implicit object ConfigurationActionSupport extends RootJsonFormat[Action] {
+    override def write(obj: Action): JsValue = JsString(obj.toString)
 
-    override def read(json: JsValue): JobConfiguration.Action = json match {
-      case JsString(str) => JobConfiguration.Action(str)
+    override def read(json: JsValue): Action = json match {
+      case JsString(str) => Action(str)
       case _ => throw DeserializationException("JobConfiguration.Action must be a string")
     }
   }

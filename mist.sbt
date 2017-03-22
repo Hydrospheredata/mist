@@ -99,10 +99,13 @@ lazy val mist = project.in(file("."))
       "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
 
       "com.github.fge" % "json-schema-validator" % "2.2.6",
+
+      "com.holdenkarau" %% "spark-testing-base" % s"${sparkVersion.value}_0.3.3" % "test",
       "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+
       "org.mapdb" % "mapdb" % "3.0.2",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
       "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
@@ -110,7 +113,8 @@ lazy val mist = project.in(file("."))
       "org.scalaj" %% "scalaj-http" % "2.3.0",
       "org.apache.kafka" %% "kafka" % "0.10.2.0",
       "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-      "org.flywaydb" % "flyway-core" % "4.1.1"
+      "org.flywaydb" % "flyway-core" % "4.1.1",
+      "org.typelevel" %% "cats" % "0.9.0"
     ),
 
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
@@ -129,6 +133,8 @@ lazy val mist = project.in(file("."))
            |
            |  type SetupConfiguration = $libPackage.SetupConfiguration
            |  val SetupConfiguration = $libPackage.SetupConfiguration
+           |
+           |  type ContextSupport = $libPackage.ContextSupport
            |
            |  type MistJob = $libPackage.MistJob
            |

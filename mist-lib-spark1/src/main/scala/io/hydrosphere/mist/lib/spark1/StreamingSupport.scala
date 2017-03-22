@@ -15,8 +15,8 @@ trait StreamingSupport extends ContextSupport {
     })
   }
 
-  override private[mist] def stopStreaming(): Unit = {
-    super.stopStreaming()
+  override private[mist] def stop(): Unit = {
+    super.stop()
     _ssc.stop(stopSparkContext = false, stopGracefully = true)
   }
 

@@ -12,5 +12,5 @@ trait ContextSupport {
     _context = conf.context
   }
 
-  private[mist] def stopStreaming(): Unit = {}
+  private[mist] def stop(): Unit = {}
 }

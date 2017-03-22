@@ -67,15 +67,15 @@ object JobDetails {
 }
 
 case class JobDetails(
-                       configuration: FullJobConfiguration,
-                       source: JobDetails.Source,
-                       jobId: String = UUID.randomUUID().toString,
-                       startTime: Option[Long] = None,
-                       endTime: Option[Long] = None,
-                       jobResult: Option[JobResponseOrError] = None,
-                       status: JobDetails.Status = JobDetails.Status.Initialized
-                     )
-{
+  configuration: FullJobConfiguration,
+  source: JobDetails.Source,
+  jobId: String = UUID.randomUUID().toString,
+  startTime: Option[Long] = None,
+  endTime: Option[Long] = None,
+  jobResult: Option[JobResponseOrError] = None,
+  status: JobDetails.Status = JobDetails.Status.Initialized
+) {
+
   override def equals(that: Any): Boolean = that match {
     case t: JobDetails => t.jobId == jobId
     case _ => false

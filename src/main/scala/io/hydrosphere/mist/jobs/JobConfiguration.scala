@@ -8,26 +8,23 @@ import spray.json.{DeserializationException, pimpString}
 
 sealed trait JobConfiguration
 
-object JobConfiguration {
-  sealed trait Action
-  
-  object Action {
+sealed trait Action
+object Action {
 
-    def apply(string: String): Action = string match {
-      case "execute" => Execute
-      case "train" => Train
-      case "serve" => Serve
-    }
-    
-    case object Execute extends Action {
-      override def toString: String = "execute"
-    }
-    case object Train extends Action {
-      override def toString: String = "train"
-    }
-    case object Serve extends Action {
-      override def toString: String = "serve"
-    }
+  def apply(string: String): Action = string match {
+    case "execute" => Execute
+    case "train" => Train
+    case "serve" => Serve
+  }
+
+  case object Execute extends Action {
+    override def toString: String = "execute"
+  }
+  case object Train extends Action {
+    override def toString: String = "train"
+  }
+  case object Serve extends Action {
+    override def toString: String = "serve"
   }
 }
 
@@ -38,7 +35,7 @@ case class FullJobConfiguration(
   parameters: JobParameters,
   externalId: Option[String],
   route: Option[String],
-  action: JobConfiguration.Action = JobConfiguration.Action.Execute
+  action: Action = Action.Execute
 ) extends JobConfiguration
 
 case class RestificatedJobConfiguration(
@@ -55,17 +52,17 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
   private var _parameters: JobParameters = Map()
   private var _externalId: Option[String] = None
   private var _route: Option[String] = None
-  private var _action: JobConfiguration.Action = JobConfiguration.Action.Execute
+  private var _action: Action = Action.Execute
   
   private var _builtJob: FullJobConfiguration = _
 
   def setTraining(training: Boolean): FullJobConfigurationBuilder = {
-    _action = if (training) JobConfiguration.Action.Train else _action
+    _action = if (training) Action.Train else _action
     this
   }
 
   def setServing(serving: Boolean): FullJobConfigurationBuilder = {
-    _action = if (serving) JobConfiguration.Action.Serve else _action
+    _action = if (serving) Action.Serve else _action
     this
   }
   
@@ -132,9 +129,9 @@ class FullJobConfigurationBuilder extends JobConfigurationJsonSerialization with
         logger.debug(s"Try to parse restificated request")
         val restificatedRequest = json.parseJson.convertTo[RestificatedJobConfiguration]
         if (restificatedRequest.route.endsWith("?train")) {
-          _action = JobConfiguration.Action.Train
+          _action = Action.Train
         } else if (restificatedRequest.route.endsWith("?serve")) {
-          _action = JobConfiguration.Action.Serve
+          _action = Action.Serve
         }
         _route = Some(restificatedRequest.route)
         _parameters = restificatedRequest.parameters

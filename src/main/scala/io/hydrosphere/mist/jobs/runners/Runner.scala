@@ -8,17 +8,14 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 
 
-private[mist] trait Runner extends Logger {
+trait Runner extends Logger {
 
   val job: JobDetails
 
   def run(): JobResponseOrError
 
-  def stop(): Unit = {
-    stopStreaming()
-  }
+  def stop(): Unit
 
-  def stopStreaming(): Unit
 }
 
 private[mist] object Runner {

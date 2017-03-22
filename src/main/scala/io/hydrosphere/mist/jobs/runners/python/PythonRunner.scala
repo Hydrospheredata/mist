@@ -11,9 +11,15 @@ import py4j.GatewayServer
 
 import scala.sys.process._
 
-class PythonRunner(override val job: JobDetails, jobFile: JobFile, context: NamedContext) extends Runner {
+class PythonRunner(
+  override val job: JobDetails,
+  jobFile: JobFile,
+  context: NamedContext) extends Runner {
 
-  override def stopStreaming(): Unit = sparkStreamingWrapper.stopStreaming()
+  //TODO: stop is kill??
+  override def stop(): Unit = {
+
+  }
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
