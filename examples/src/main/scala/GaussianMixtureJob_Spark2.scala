@@ -18,13 +18,13 @@ object GaussianMixtureJob extends MLMistJob with SQLSupport {
   }
 
   def serve(text: List[String]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.ModelConversions._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load("models/gaussian_mixture")
     val data = LocalData(
       LocalDataColumn("text", text)
     )
-    val result: LocalData = pipeline.transform(pipeline, data)
+    val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("text", "prediction").toMapList)
   }
 }

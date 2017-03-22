@@ -43,13 +43,13 @@ object DTreeClassificationJob extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
 }
   def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.ModelConversions._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", List(constructVector(features)))
     )
-    val result: LocalData = pipeline.transform(pipeline, data)
+    val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("predictedLabel").toMapList)
   }
 }

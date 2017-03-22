@@ -1,15 +1,27 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.HashingTF
 import org.apache.spark.mllib.feature.{HashingTF => HTF}
 
 import scala.collection.mutable
 
-object LocalHashingTF extends LocalTypedTransformer[HashingTF] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+class LocalHashingTF(override val sparkTransformer: HashingTF) extends LocalTransformer[HashingTF] {
+  override def transform(localData: LocalData): LocalData = {
+    localData.column(sparkTransformer.getInputCol) match {
+      case Some(column) =>
+        val htf = new HTF(sparkTransformer.getNumFeatures).setBinary(sparkTransformer.getBinary)
+        val newData = column.data.map((m) => htf.transform(m.asInstanceOf[mutable.WrappedArray[String]]))
+        localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
+      case None => localData
+    }
+  }
+}
+
+object LocalHashingTF extends LocalModel[HashingTF] {
+  override def load(metadata: Metadata, data: Map[String, Any]): HashingTF = {
     new HashingTF(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
@@ -17,13 +29,5 @@ object LocalHashingTF extends LocalTypedTransformer[HashingTF] {
       .setNumFeatures(metadata.paramMap("numFeatures").asInstanceOf[Int])
   }
 
-  override def transformTyped(hashingTF: HashingTF, localData: LocalData): LocalData = {
-    localData.column(hashingTF.getInputCol) match {
-      case Some(column) =>
-        val htf = new HTF(hashingTF.getNumFeatures).setBinary(hashingTF.getBinary)
-        val newData = column.data.map((m) => htf.transform(m.asInstanceOf[mutable.WrappedArray[String]]))
-        localData.withColumn(LocalDataColumn(hashingTF.getOutputCol, newData))
-      case None => localData
-    }
-  }
+  override implicit def getTransformer(transformer: HashingTF): LocalTransformer[HashingTF] = new LocalHashingTF(transformer)
 }

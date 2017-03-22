@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.ml.clustering
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.clustering.KMeansModel
 import org.apache.spark.mllib.clustering.{KMeansModel => MLlibKMeans}
 import org.apache.spark.mllib.linalg.{Vector => MLlibVec}
 
 //TODO
-object LocalKMeans extends LocalTypedTransformer[KMeansModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): KMeansModel = ???
+object LocalKMeans extends LocalModel[KMeansModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): KMeansModel = ???
 //  {
 //    val parentConstructor = classOf[MLlibKMeans].getDeclaredConstructor(classOf[Array[MLlibVec]])
 //    parentConstructor.setAccessible(true)
@@ -21,5 +21,5 @@ object LocalKMeans extends LocalTypedTransformer[KMeansModel] {
 //      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
 //      .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
 //  }
-  override def transformTyped(transformer: KMeansModel, localData: LocalData): LocalData = ???
+  override implicit def getTransformer(transformer: KMeansModel): LocalTransformer[KMeansModel] = ???
 }

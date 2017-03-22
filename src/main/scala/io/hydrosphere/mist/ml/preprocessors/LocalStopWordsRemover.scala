@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalModel, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.StopWordsRemover
 
 
-object LocalStopWordsRemover extends LocalModel {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+object LocalStopWordsRemover extends LocalModel[StopWordsRemover] {
+  override def load(metadata: Metadata, data: Map[String, Any]): StopWordsRemover = {
     var remover = new StopWordsRemover(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
@@ -18,5 +18,5 @@ object LocalStopWordsRemover extends LocalModel {
     remover
   }
 
-  override def transform(sparkTransformer: Transformer, localData: LocalData): LocalData = ???
+  override implicit def getTransformer(transformer: StopWordsRemover): LocalTransformer[StopWordsRemover] = ???
 }

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.ml.clustering
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.stat.distribution.MultivariateGaussian
@@ -13,8 +13,23 @@ import org.apache.spark.ml.linalg.{Matrix, Vector, Vectors}
   *
   * @author IceKhan
   */
-object LocalGaussianMixtureModel extends LocalTypedTransformer[GaussianMixtureModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+class LocalGaussianMixtureModel(override val sparkTransformer: GaussianMixtureModel) extends LocalTransformer[GaussianMixtureModel] {
+  override def transform(localData: LocalData): LocalData = {
+    localData.column(sparkTransformer.getFeaturesCol) match {
+      case Some(column) =>
+        val predictMethod = classOf[GaussianMixtureModel].getMethod("predict", classOf[Vector])
+        predictMethod.setAccessible(true)
+        val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data map { feature =>
+          predictMethod.invoke(sparkTransformer, feature.asInstanceOf[Vector]).asInstanceOf[Int]
+        })
+        localData.withColumn(newColumn)
+      case None => localData
+    }
+  }
+}
+
+object LocalGaussianMixtureModel extends LocalModel[GaussianMixtureModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): GaussianMixtureModel = {
     val weights = data("weights").asInstanceOf[List[Double]].toArray
     val mus = data("mus").asInstanceOf[List[Vector]].toArray
     val sigmas = data("sigmas").asInstanceOf[List[Matrix]].toArray
@@ -35,16 +50,6 @@ object LocalGaussianMixtureModel extends LocalTypedTransformer[GaussianMixtureMo
     inst
   }
 
-  override def transformTyped(gaussianModel: GaussianMixtureModel, localData: LocalData): LocalData = {
-    localData.column(gaussianModel.getFeaturesCol) match {
-      case Some(column) =>
-        val predictMethod = classOf[GaussianMixtureModel].getMethod("predict", classOf[Vector])
-        predictMethod.setAccessible(true)
-        val newColumn = LocalDataColumn(gaussianModel.getPredictionCol, column.data map { feature =>
-          predictMethod.invoke(gaussianModel, feature.asInstanceOf[Vector]).asInstanceOf[Int]
-        })
-        localData.withColumn(newColumn)
-      case None => localData
-    }
-  }
+
+  override implicit def getTransformer(transformer: GaussianMixtureModel): LocalTransformer[GaussianMixtureModel] = new LocalGaussianMixtureModel(transformer)
 }

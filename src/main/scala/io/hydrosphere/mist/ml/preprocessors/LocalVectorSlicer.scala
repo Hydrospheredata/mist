@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalModel, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.feature.VectorSlicer
 import org.apache.spark.ml.Transformer
 
 
-object LocalVectorSlicer extends LocalModel {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+object LocalVectorSlicer extends LocalModel[VectorSlicer] {
+  override def load(metadata: Metadata, data: Map[String, Any]): VectorSlicer = {
     var slicer = new VectorSlicer(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
@@ -18,5 +18,5 @@ object LocalVectorSlicer extends LocalModel {
     slicer
   }
 
-  override def transform(sparkTransformer: Transformer, localData: LocalData): LocalData = ???
+  override implicit def getTransformer(transformer: VectorSlicer): LocalTransformer[VectorSlicer] = ???
 }

@@ -12,8 +12,8 @@ object TransformerFactory {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
     val module = runtimeMirror.staticModule(metadata.className + "$")
     val obj = runtimeMirror.reflectModule(module)
-    val localModel: LocalModel = obj.instance
-    localModel.localLoad(metadata, data)
+    val localModel = obj.instance
+    localModel.load(metadata, data)
   }
   
 }

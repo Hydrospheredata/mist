@@ -1,30 +1,23 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.SparkException
 import org.apache.spark.ml.feature.StringIndexerModel
 import org.apache.spark.ml.Transformer
 
 import scala.collection.mutable
 
-object LocalStringIndexer extends LocalTypedTransformer[StringIndexerModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    new StringIndexerModel(metadata.uid, data("labels").asInstanceOf[List[String]].to[Array])
-      .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
-      .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-      .setHandleInvalid(metadata.paramMap("handleInvalid").asInstanceOf[String])
-  }
-
-  override def transformTyped(strIndexer: StringIndexerModel, localData: LocalData): LocalData = {
-    localData.column(strIndexer.getInputCol) match {
+class LocalStringIndexer(override val sparkTransformer: StringIndexerModel) extends LocalTransformer[StringIndexerModel] {
+  override def transform(localData: LocalData): LocalData = {
+    localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
         val labelToIndex = {
-          val n = strIndexer.labels.length
+          val n = sparkTransformer.labels.length
           val map = new mutable.HashMap[String, Double]
           var i = 0
           while (i < n) {
-            map.update(strIndexer.labels(i), i)
+            map.update(sparkTransformer.labels(i), i)
             i += 1
           }
           map
@@ -36,7 +29,7 @@ object LocalStringIndexer extends LocalTypedTransformer[StringIndexerModel] {
             throw new SparkException(s"Unseen label: $label.")
           }
         }
-        val newColumn = LocalDataColumn(strIndexer.getOutputCol, column.data map { feature =>
+        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, column.data map { feature =>
           val str = feature.asInstanceOf[String]
           indexer(str)
         })
@@ -44,4 +37,15 @@ object LocalStringIndexer extends LocalTypedTransformer[StringIndexerModel] {
       case None => localData
     }
   }
+}
+
+object LocalStringIndexer extends LocalModel[StringIndexerModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): StringIndexerModel = {
+    new StringIndexerModel(metadata.uid, data("labels").asInstanceOf[List[String]].to[Array])
+      .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
+      .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
+      .setHandleInvalid(metadata.paramMap("handleInvalid").asInstanceOf[String])
+  }
+
+  override implicit def getTransformer(transformer: StringIndexerModel): LocalTransformer[StringIndexerModel] = new LocalStringIndexer(transformer)
 }

@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.ml.clustering
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.clustering.LDAModel
 import org.apache.spark.ml.Transformer
 
 
 
-object LocalLDA extends LocalTypedTransformer[LDAModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = ???
+object LocalLDA extends LocalModel[LDAModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): LDAModel = ???
 //  {
 //    val constructor = classOf[LDA].getDeclaredConstructor(classOf[String])
 //    constructor.setAccessible(true)
@@ -33,5 +33,5 @@ object LocalLDA extends LocalTypedTransformer[LDAModel] {
 //
 //    lda
 //  }
-  override def transformTyped(transformer: LDAModel, localData: LocalData): LocalData = ???
+  override implicit def getTransformer(transformer: LDAModel): LocalTransformer[LDAModel] = ???
 }

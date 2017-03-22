@@ -1,5 +1,6 @@
 import io.hydrosphere.mist.lib._
-import org.apache.spark.ml.Pipeline
+import io.hydrosphere.mist.ml.{LocalModel, LocalPipelineModel}
+import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.feature.Binarizer
 
 
@@ -22,14 +23,14 @@ object BinarizerJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Double]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.ModelConversions._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("feature", features)
     )
 
-    val result: LocalData = pipeline.transform(pipeline, data)
+    val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("feature", "binarized_feature").toMapList)
   }
 }

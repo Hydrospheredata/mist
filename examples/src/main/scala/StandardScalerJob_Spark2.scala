@@ -28,14 +28,14 @@ object StandardScalerJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Array[Double]]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.ModelConversions._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", features)
     )
 
-    val result: LocalData = pipeline.transform(pipeline, data)
+    val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("features", "scaledFeatures").toMapList)
   }
 }

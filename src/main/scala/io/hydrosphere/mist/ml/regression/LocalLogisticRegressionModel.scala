@@ -3,14 +3,51 @@ package io.hydrosphere.mist.ml.regression
 import java.lang.Boolean
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.linalg.{Matrix, SparseMatrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 
-object LocalLogisticRegressionModel extends LocalTypedTransformer[LogisticRegressionModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+class LocalLogisticRegressionModel(override val sparkTransformer: LogisticRegressionModel) extends LocalTransformer[LogisticRegressionModel] {
+  override def transform(localData: LocalData): LocalData = {
+    import io.hydrosphere.mist.ml.DataUtils._
+
+    localData.column(sparkTransformer.getFeaturesCol) match {
+      case Some(column) =>
+        var newData = localData
+        val predict = classOf[LogisticRegressionModel].getMethod("predict", classOf[Vector])
+        if (sparkTransformer.getPredictionCol.nonEmpty) {
+          val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data.map(m => {
+            val vector: SparseVector = m.asInstanceOf[SVector]
+            predict.invoke(sparkTransformer, vector)
+          }))
+          newData = newData.withColumn(newColumn)
+        }
+        val predictRaw = classOf[LogisticRegressionModel].getMethod("predictRaw", classOf[Vector])
+        if (sparkTransformer.getRawPredictionCol.nonEmpty) {
+          val newColumn = LocalDataColumn(sparkTransformer.getRawPredictionCol, column.data.map(m => {
+            val vector: SparseVector = m.asInstanceOf[SVector]
+            predictRaw.invoke(sparkTransformer, vector)
+          }))
+          newData = newData.withColumn(newColumn)
+        }
+        val predictProbability = classOf[LogisticRegressionModel].getMethod("predictProbability", classOf[AnyRef])
+        if (sparkTransformer.getProbabilityCol.nonEmpty) {
+          val newColumn = LocalDataColumn(sparkTransformer.getProbabilityCol, column.data.map(m => {
+            val vector: SparseVector = m.asInstanceOf[SVector]
+            predictProbability.invoke(sparkTransformer, vector)
+          }))
+          newData = newData.withColumn(newColumn)
+        }
+        newData
+      case None => localData
+    }
+  }
+}
+
+object LocalLogisticRegressionModel extends LocalModel[LogisticRegressionModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): LogisticRegressionModel = {
     if (data.contains("coefficients")) {
       // Spark 2.0
       val constructor = classOf[LogisticRegressionModel].getDeclaredConstructor(classOf[String], classOf[Vector], classOf[Double])
@@ -53,38 +90,5 @@ object LocalLogisticRegressionModel extends LocalTypedTransformer[LogisticRegres
     }
   }
 
-  override def transformTyped(logisticRegression: LogisticRegressionModel, localData: LocalData): LocalData = {
-    import io.hydrosphere.mist.ml.DataUtils._
-
-    localData.column(logisticRegression.getFeaturesCol) match {
-      case Some(column) =>
-        var newData = localData
-        val predict = classOf[LogisticRegressionModel].getMethod("predict", classOf[Vector])
-        if (logisticRegression.getPredictionCol.nonEmpty) {
-          val newColumn = LocalDataColumn(logisticRegression.getPredictionCol, column.data.map(m => {
-            val vector: SparseVector = m.asInstanceOf[SVector]
-            predict.invoke(logisticRegression, vector)
-          }))
-          newData = newData.withColumn(newColumn)
-        }
-        val predictRaw = classOf[LogisticRegressionModel].getMethod("predictRaw", classOf[Vector])
-        if (logisticRegression.getRawPredictionCol.nonEmpty) {
-          val newColumn = LocalDataColumn(logisticRegression.getRawPredictionCol, column.data.map(m => {
-            val vector: SparseVector = m.asInstanceOf[SVector]
-            predictRaw.invoke(logisticRegression, vector)
-          }))
-          newData = newData.withColumn(newColumn)
-        }
-        val predictProbability = classOf[LogisticRegressionModel].getMethod("predictProbability", classOf[AnyRef])
-        if (logisticRegression.getProbabilityCol.nonEmpty) {
-          val newColumn = LocalDataColumn(logisticRegression.getProbabilityCol, column.data.map(m => {
-            val vector: SparseVector = m.asInstanceOf[SVector]
-            predictProbability.invoke(logisticRegression, vector)
-          }))
-          newData = newData.withColumn(newColumn)
-        }
-        newData
-      case None => localData
-    }
-  }
+  override implicit def getTransformer(transformer: LogisticRegressionModel): LocalTransformer[LogisticRegressionModel] = new LocalLogisticRegressionModel(transformer)
 }

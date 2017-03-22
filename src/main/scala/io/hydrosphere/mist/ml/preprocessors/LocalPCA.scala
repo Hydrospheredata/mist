@@ -1,14 +1,35 @@
 package io.hydrosphere.mist.ml.preprocessors
 
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.feature.PCAModel
 import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, Vectors}
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
 
-object LocalPCA extends LocalTypedTransformer[PCAModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+class LocalPCA(override val sparkTransformer: PCAModel) extends LocalTransformer[PCAModel] {
+  override def transform(localData: LocalData): LocalData = {
+    localData.column(sparkTransformer.getInputCol) match {
+      case Some(column) =>
+        val newData = column.data.map(r => {
+          val pc = OldMatrices.fromML(sparkTransformer.pc).asInstanceOf[OldDenseMatrix]
+          val vec: List[Double] = r match {
+            case d: List[Any @unchecked] =>
+              val l: List[Double] = d map (_.toString.toDouble)
+              l
+            case d => throw new IllegalArgumentException(s"Unknown data type for LocalPCA: $d")
+          }
+          val vector = OldVectors.dense(vec.toArray)
+          pc.transpose.multiply(vector)
+        })
+        localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
+      case None => localData
+    }
+  }
+}
+
+object LocalPCA extends LocalModel[PCAModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): PCAModel = {
     val constructor = classOf[PCAModel].getDeclaredConstructor(classOf[String], classOf[DenseMatrix], classOf[DenseVector])
     constructor.setAccessible(true)
     if (data.contains("explainedVariance")) {
@@ -38,22 +59,5 @@ object LocalPCA extends LocalTypedTransformer[PCAModel] {
     }
   }
 
-  override def transformTyped(pca: PCAModel, localData: LocalData): LocalData = {
-    localData.column(pca.getInputCol) match {
-      case Some(column) =>
-        val newData = column.data.map(r => {
-          val pc = OldMatrices.fromML(pca.pc).asInstanceOf[OldDenseMatrix]
-          val vec: List[Double] = r match {
-            case d: List[Any @unchecked] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
-            case d => throw new IllegalArgumentException(s"Unknown data type for LocalPCA: $d")
-          }
-          val vector = OldVectors.dense(vec.toArray)
-          pc.transpose.multiply(vector)
-        })
-        localData.withColumn(LocalDataColumn(pca.getOutputCol, newData))
-      case None => localData
-    }
-  }
+  override implicit def getTransformer(transformer: PCAModel): LocalTransformer[PCAModel] = new LocalPCA(transformer)
 }

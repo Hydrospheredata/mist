@@ -1,38 +1,20 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{DataUtils, LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml._
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.VectorIndexerModel
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
 
-
-object LocalVectorIndexer extends LocalTypedTransformer[VectorIndexerModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
-    val ctor = classOf[VectorIndexerModel].getDeclaredConstructor(
-      classOf[String],
-      classOf[Int],
-      classOf[Map[Int, Map[Double, Int]]]
-    )
-    ctor.setAccessible(true)
-    ctor
-      .newInstance(
-        metadata.uid,
-        data("numFeatures").asInstanceOf[java.lang.Integer],
-        DataUtils.flatConvertMap(data("categoryMaps").asInstanceOf[Map[String, Any]])
-      )
-      .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
-      .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-  }
-
-  override def transformTyped(vecIndx: VectorIndexerModel, localData: LocalData): LocalData = {
+class LocalVectorIndexer(override val sparkTransformer: VectorIndexerModel) extends LocalTransformer[VectorIndexerModel] {
+  override def transform(localData: LocalData): LocalData = {
     val transformFunc: Vector => Vector = {
-      val sortedCatFeatureIndices = vecIndx.categoryMaps.keys.toArray.sorted
-      val localVectorMap = vecIndx.categoryMaps
-      val localNumFeatures = vecIndx.numFeatures
+      val sortedCatFeatureIndices = sparkTransformer.categoryMaps.keys.toArray.sorted
+      val localVectorMap = sparkTransformer.categoryMaps
+      val localNumFeatures = sparkTransformer.numFeatures
       val f: Vector => Vector = { (v: Vector) =>
         assert(v.size == localNumFeatures, "VectorIndexerModel expected vector of length" +
-          s" $vecIndx.numFeatures but found length ${v.size}")
+          s" $sparkTransformer.numFeatures but found length ${v.size}")
         v match {
           case dv: DenseVector =>
             val tmpv = dv.copy
@@ -63,9 +45,9 @@ object LocalVectorIndexer extends LocalTypedTransformer[VectorIndexerModel] {
       }
       f
     }
-    localData.column(vecIndx.getInputCol) match {
+    localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
-        val newColumn = LocalDataColumn(vecIndx.getOutputCol, column.data map { data =>
+        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, column.data map { data =>
           val vec = data.asInstanceOf[Vector]
           transformFunc(vec)
         })
@@ -73,4 +55,25 @@ object LocalVectorIndexer extends LocalTypedTransformer[VectorIndexerModel] {
       case None => localData
     }
   }
+}
+
+object LocalVectorIndexer extends LocalModel[VectorIndexerModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): VectorIndexerModel = {
+    val ctor = classOf[VectorIndexerModel].getDeclaredConstructor(
+      classOf[String],
+      classOf[Int],
+      classOf[Map[Int, Map[Double, Int]]]
+    )
+    ctor.setAccessible(true)
+    ctor
+      .newInstance(
+        metadata.uid,
+        data("numFeatures").asInstanceOf[java.lang.Integer],
+        DataUtils.flatConvertMap(data("categoryMaps").asInstanceOf[Map[String, Any]])
+      )
+      .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
+      .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
+  }
+
+  override implicit def getTransformer(transformer: VectorIndexerModel): LocalTransformer[VectorIndexerModel] = new LocalVectorIndexer(transformer)
 }

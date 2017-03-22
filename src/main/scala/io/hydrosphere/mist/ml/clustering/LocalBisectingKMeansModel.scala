@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.ml.clustering
 
 import io.hydrosphere.mist.lib.LocalData
-import io.hydrosphere.mist.ml.{LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.clustering.BisectingKMeansModel
 
@@ -15,8 +15,8 @@ import org.apache.spark.ml.clustering.BisectingKMeansModel
   *   metadata from "/data/" folder
   *   {"class":"org.apache.spark.mllib.clustering.BisectingKMeansModel","version":"1.0","rootId":-1}
   */
-object LocalBisectingKMeansModel extends LocalModel {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+object LocalBisectingKMeansModel extends LocalModel[BisectingKMeansModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): BisectingKMeansModel = {
     val metaFromData: Map[String, Any] = Map("rootId" -> -1) // TODO: change it to data from parquet file
     val rootId = metaFromData.get("rootId")
 
@@ -29,5 +29,5 @@ object LocalBisectingKMeansModel extends LocalModel {
     inst
   }
 
-  override def transform(sparkTransformer: Transformer, localData: LocalData): LocalData = ???
+  override implicit def getTransformer(transformer: BisectingKMeansModel): LocalTransformer[BisectingKMeansModel] = ???
 }

@@ -1,14 +1,34 @@
 package io.hydrosphere.mist.ml.preprocessors
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
-import io.hydrosphere.mist.ml.{DataUtils, LocalModel, LocalTypedTransformer, Metadata}
+import io.hydrosphere.mist.ml._
 import org.apache.spark.ml.feature.MaxAbsScalerModel
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.linalg.{DenseVector, Vector, Vectors}
 
+class LocalMaxAbsScaler(override val sparkTransformer: MaxAbsScalerModel) extends LocalTransformer[MaxAbsScalerModel] {
+  override def transform(localData: LocalData): LocalData = {
+    localData.column(sparkTransformer.getInputCol) match {
+      case Some(column) =>
+        val maxAbsUnzero = Vectors.dense(sparkTransformer.maxAbs.toArray.map(x => if (x == 0) 1 else x))
+        val newData = column.data.map(r => {
+          val vec: List[Double] = r match {
+            case d: List[Any @unchecked] =>
+              val l: List[Double] = d map (_.toString.toDouble)
+              l
+            case d => throw new IllegalArgumentException(s"Unknown data type for LocalMaxAbsScaler: $d")
+          }
+          val brz = DataUtils.asBreeze(vec.toArray) / DataUtils.asBreeze(maxAbsUnzero.toArray)
+          DataUtils.fromBreeze(brz)
+        })
+        localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
+      case None => localData
+    }
+  }
+}
 
-object LocalMaxAbsScaler extends LocalTypedTransformer[MaxAbsScalerModel] {
-  override def localLoad(metadata: Metadata, data: Map[String, Any]): Transformer = {
+object LocalMaxAbsScaler extends LocalModel[MaxAbsScalerModel] {
+  override def load(metadata: Metadata, data: Map[String, Any]): MaxAbsScalerModel = {
     val maxAbsList = data("maxAbs").
       asInstanceOf[Map[String, Any]].
       getOrElse("values", List()).
@@ -23,22 +43,5 @@ object LocalMaxAbsScaler extends LocalTypedTransformer[MaxAbsScalerModel] {
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }
 
-  override def transformTyped(maxAbsScaler: MaxAbsScalerModel, localData: LocalData): LocalData = {
-    localData.column(maxAbsScaler.getInputCol) match {
-      case Some(column) =>
-        val maxAbsUnzero = Vectors.dense(maxAbsScaler.maxAbs.toArray.map(x => if (x == 0) 1 else x))
-        val newData = column.data.map(r => {
-          val vec: List[Double] = r match {
-            case d: List[Any @unchecked] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
-            case d => throw new IllegalArgumentException(s"Unknown data type for LocalMaxAbsScaler: $d")
-          }
-          val brz = DataUtils.asBreeze(vec.toArray) / DataUtils.asBreeze(maxAbsUnzero.toArray)
-          DataUtils.fromBreeze(brz)
-        })
-        localData.withColumn(LocalDataColumn(maxAbsScaler.getOutputCol, newData))
-      case None => localData
-    }
-  }
+  override implicit def getTransformer(transformer: MaxAbsScalerModel): LocalTransformer[MaxAbsScalerModel] = new LocalMaxAbsScaler(transformer)
 }
