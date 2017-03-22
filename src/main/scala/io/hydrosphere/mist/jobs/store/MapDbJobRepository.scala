@@ -9,10 +9,10 @@ import io.hydrosphere.mist.utils.json.JobDetailsJsonSerialization
 import spray.json._
 
 
-private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJsonSerialization with Logger {
+class MapDbJobRepository(filePath: String) extends JobRepository with JobDetailsJsonSerialization with Logger {
   // Db
   private lazy val db = DBMaker
-    .fileDB(MistConfig.History.filePath)
+    .fileDB(filePath)
     .fileLockDisable
     .closeOnJvmShutdown
     .checksumHeaderBypass()
@@ -112,3 +112,5 @@ private[mist] object MapDbJobRepository extends JobRepository with JobDetailsJso
     }
   }
 }
+
+object MapDbJobRepository extends MapDbJobRepository(MistConfig.History.filePath)

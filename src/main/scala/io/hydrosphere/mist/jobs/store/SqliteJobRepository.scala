@@ -16,10 +16,10 @@ import scala.concurrent.duration._
 import scala.language.{implicitConversions, postfixOps}
 
 
-object SqliteJobRepository extends JobRepository with JobDetailsJsonSerialization with Logger {
+class SqliteJobRepository(filePath: String) extends JobRepository with JobDetailsJsonSerialization with Logger {
 
   private val db = {
-    val jdbcPath = s"jdbc:sqlite:${MistConfig.History.filePath}"
+    val jdbcPath = s"jdbc:sqlite:$filePath"
     val flyway = new Flyway ()
     flyway.setLocations("/db/migrations")
     flyway.setDataSource(jdbcPath, null, null)
@@ -146,3 +146,5 @@ object SqliteJobRepository extends JobRepository with JobDetailsJsonSerializatio
     run(jobs.filter(j => j.status.asColumnOf[String] === JobDetails.Status.Running.toString && j.namespace === namespace).result).toList
   }
 }
+
+object SqliteJobRepository extends SqliteJobRepository(MistConfig.History.filePath)
