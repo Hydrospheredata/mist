@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.jobs.runners
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.Paths
 
 import com.holdenkarau.spark.testing.SharedSparkContext
 import io.hydrosphere.mist.api._
@@ -9,7 +9,6 @@ import io.hydrosphere.mist.jobs.runners.jar.{JvmJobInstance, JvmJobLoader}
 import org.apache.spark.streaming.Duration
 import org.scalatest.{FunSpec, Inside, Matchers}
 
-import scala.io.Source
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
@@ -17,14 +16,19 @@ class JvmRunnerSpec extends FunSpec with SharedSparkContext with Matchers with I
 
   val classLoader = getClass.getClassLoader
 
-  describe("JvmJobLoader") {
+  describe("jvm job loader") {
 
     it("should load MistJob") {
       val r = JvmJobLoader.load(className(MultiplyJob), Action.Execute, classLoader)
       r.isSuccess shouldBe true
 
       val instance = r.get
-      instance.arguments shouldBe Map("numbers" -> typeOf[List[Int]])
+
+      val arguments = instance.arguments
+      inside(arguments.get("numbers")) {
+        case Some(tpe) =>
+          tpe =:= typeOf[List[Int]] shouldBe true
+      }
     }
 
     it("should fail to load invalid job") {
