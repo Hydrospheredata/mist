@@ -60,7 +60,7 @@ class MapDbJobRepository(filePath: String) extends JobRepository with JobDetails
 
   override def get(jobId: String): Option[JobDetails] = {
     try {
-      Some(new String(map.get(jobId)).parseJson.convertTo[JobDetails])
+      Option(map.get(jobId)).map(bytes => new String(bytes).parseJson.convertTo[JobDetails])
     }
     catch {
       case e: Exception =>
