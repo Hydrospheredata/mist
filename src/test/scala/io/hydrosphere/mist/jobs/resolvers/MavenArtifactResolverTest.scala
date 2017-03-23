@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.jobs
+package io.hydrosphere.mist.jobs.resolvers
 
 import java.nio.file.{Files, Paths}
 
@@ -46,7 +46,7 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
       val url = s"http://localhost:$port/artifactory/libs-release-local"
       val artifact = MavenArtifact("mist_examples", "mist_examples_2.10", "0.10.0")
       val resolver = MavenArtifactResolver(url, artifact, "target")
-      resolver.file
+      resolver.resolve
     })
 
     val file = Await.result(future, Duration.Inf)

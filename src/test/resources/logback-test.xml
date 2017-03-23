@@ -7,7 +7,7 @@
     </appender>
 
     <logger name="org.apache.spark.util" level="ERROR"/>
-    <logger name="org.apache.hadoop.util" level="ERROR"/>
+    <logger name="org.apache.hadoop" level="ERROR"/>
 
     <root level="WARN">
         <appender-ref ref="sout" />

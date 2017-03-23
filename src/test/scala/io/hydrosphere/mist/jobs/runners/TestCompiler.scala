@@ -71,6 +71,6 @@ object JarPackager {
       target.write(buffer, 0, count)
     }
     target.closeEntry()
-    in.close
+    in.close()
   }
 }
