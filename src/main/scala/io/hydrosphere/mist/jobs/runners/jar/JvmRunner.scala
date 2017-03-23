@@ -22,14 +22,13 @@ import scala.util.Try
   */
 class JvmJobInstance(clazz: Class[_], method: Method) {
 
-  def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, JobResponse] = {
+  def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, JobResponse] =
     for {
-      instance <- Either.catchNonFatal(createInstance(conf))
       args     <- validateParams(params)
+      instance <- Either.catchNonFatal(createInstance(conf))
       response <- Either.catchNonFatal(invokeMethod(instance, args))
       _        <- Either.catchNonFatal(instance.stop())
     } yield response
-  }
 
   private def createInstance(conf: SetupConfiguration): ContextSupport = {
     val i = clazz.getField("MODULE$").get(null).asInstanceOf[ContextSupport]
@@ -37,11 +36,8 @@ class JvmJobInstance(clazz: Class[_], method: Method) {
     i
   }
 
-  private def invokeMethod(inst: ContextSupport, args: Seq[AnyRef]): JobResponse = {
-    println(inst)
-    println(args)
+  private def invokeMethod(inst: ContextSupport, args: Seq[AnyRef]): JobResponse =
     method.invoke(inst, args: _*).asInstanceOf[JobResponse]
-  }
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
     val validated: Seq[Either[Throwable, Any]] = arguments.toSeq.map({ case (name, tpe) =>
@@ -71,6 +67,7 @@ class JvmJobInstance(clazz: Class[_], method: Method) {
     val symbol = runtimeMirror(clazz.getClassLoader).classSymbol(clazz).toType.member(termName)
     symbol.asMethod.paramss.head.map(s => s.name.toString -> s.typeSignature).toMap
   }
+
 }
 
 object JvmJobLoader {
