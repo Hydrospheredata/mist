@@ -38,7 +38,7 @@ class JobRoutesSpec extends FunSpec with Matchers {
     }
   }
 
-  describe("job defenition") {
+  describe("job definition") {
 
     it("should parse jobs from config") {
       val cfg = ConfigFactory.parseString(

@@ -97,13 +97,15 @@ lazy val mist = project.in(file("."))
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
 
       "com.github.fge" % "json-schema-validator" % "2.2.6",
 
-      "com.holdenkarau" %% "spark-testing-base" % s"${sparkVersion.value}_0.3.3" % "test",
       "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+
+      "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
       "org.scala-lang" % "scala-library" % scalaVersion.value % "test",
@@ -121,6 +123,7 @@ lazy val mist = project.in(file("."))
     ),
 
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
+    libraryDependencies ++= miniClusterDependencies,
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
     // create type-alises for compatibility between spark versions
@@ -268,6 +271,15 @@ def sparkDependencies(v: String) =
     "org.apache.spark" %% "spark-streaming" % v % "provided",
     "org.apache.spark" %% "spark-mllib" % v % "provided"
   )
+
+lazy val miniClusterDependencies = Seq(
+  "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
+  "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests" ,
+  "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests" ,
+  "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
+  "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
+  "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
+  "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4")
 
 lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {

@@ -40,16 +40,9 @@ class JvmJobInstance(clazz: Class[_], method: Method) {
     method.invoke(inst, args: _*).asInstanceOf[JobResponse]
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
-    val validated: Seq[Either[Throwable, Any]] = arguments.toSeq.map({ case (name, tpe) =>
-      val param: Option[Any] = params.get(name)
-      param match {
-        // ignore optional arguments if they not presented
-        case x if tpe.erasure =:= typeOf[Option[Any]] => Right(param)
-        case Some(x) => Right(x)
-        case None =>
-          val msg = s"Missing argument name: $name, type: $tpe"
-          Left(new IllegalArgumentException(msg))
-      }
+    val validated: Seq[Either[Throwable, Any]] = arguments.toSeq.map({case (name, tpe) =>
+      val param = params.get(name)
+      validateParam(tpe, name, param)
     })
 
     if (validated.exists(_.isLeft)) {
@@ -59,6 +52,17 @@ class JvmJobInstance(clazz: Class[_], method: Method) {
     } else {
       val p = validated.collect({case Right(x) => x.asInstanceOf[AnyRef]})
       Right(p)
+    }
+  }
+
+  private def validateParam(tpe: Type, name: String, value: Option[Any]): Either[Throwable, Any] = {
+    value match {
+      // ignore optional arguments if they not presented
+      case x if tpe.erasure =:= typeOf[Option[Any]] => Right(value)
+      case Some(x) => Right(x)
+      case None =>
+        val msg = s"Missing argument name: $name, type: $tpe"
+        Left(new IllegalArgumentException(msg))
     }
   }
 

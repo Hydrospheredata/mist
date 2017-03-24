@@ -2,17 +2,31 @@ package io.hydrosphere.mist.jobs.runners
 
 import java.nio.file.Paths
 
-import com.holdenkarau.spark.testing.SharedSparkContext
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.runners.jar.{JvmJobInstance, JvmJobLoader}
 import org.apache.spark.streaming.Duration
-import org.scalatest.{FunSpec, Inside, Matchers}
+import org.apache.spark.{SparkConf, SparkContext}
+import org.scalatest.{BeforeAndAfterAll, FunSpec, Inside, Matchers}
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
-class JvmRunnerSpec extends FunSpec with SharedSparkContext with Matchers with Inside {
+class JvmRunnerSpec extends FunSpec with Matchers with Inside with BeforeAndAfterAll {
+
+  val conf = new SparkConf()
+    .setMaster("local[2]")
+    .setAppName("test")
+
+  var sc: SparkContext = _
+
+  override def beforeAll = {
+    sc = new SparkContext(conf)
+  }
+
+  override def afterAll = {
+    sc.stop()
+  }
 
   val classLoader = getClass.getClassLoader
 
@@ -64,6 +78,7 @@ class JvmRunnerSpec extends FunSpec with SharedSparkContext with Matchers with I
 
 
   describe("mist job instance") {
+
 
     it("should execute") {
       val instance = instanceFor[MultiplyJob.type]
