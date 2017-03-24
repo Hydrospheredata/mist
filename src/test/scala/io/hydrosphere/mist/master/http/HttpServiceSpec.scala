@@ -32,7 +32,7 @@ class HttpServiceSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
   describe("api") {
 
-    import FailFastCirceSupport._
+    import JsonCodecs._
     import io.circe.generic.auto._
 
 

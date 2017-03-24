@@ -18,7 +18,8 @@ class HDFSResolverSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   }
 
   override def afterAll = {
-    cluster.shutdown()
+    //TODO!!
+    //cluster.shutdown()
   }
 
   it("should copy file from hdfs") {

@@ -106,20 +106,12 @@ class HttpApi(master: ClusterMaster) extends Logger with JsonCodecs {
 
   val route: Route = {
     pathPrefix("internal") {
-      get {
-        path("jobs") {
-          complete(master.jobsStatuses())
-        }
-
-        path("workers") {
-          complete(master.workers())
-        }
-
-        path("routers") {
-
-        }
+      path("jobs") {
+        get { complete(master.jobsStatuses()) }
+      } ~
+      path("workers") {
+        get { complete(master.workers()) }
       }
-
     }
   }
 //
