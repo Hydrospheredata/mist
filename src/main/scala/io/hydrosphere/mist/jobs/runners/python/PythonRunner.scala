@@ -2,37 +2,35 @@ package io.hydrosphere.mist.jobs.runners.python
 
 import java.io.File
 
-import io.hydrosphere.mist.contexts.ContextWrapper
+import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.runners.python.wrappers._
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobFile, MistJobConfiguration}
+import io.hydrosphere.mist.jobs.{JobDetails, JobFile}
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import py4j.GatewayServer
 
 import scala.sys.process._
 
-class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, contextWrapper: ContextWrapper) extends Runner {
-  override val configuration: FullJobConfiguration = jobConfiguration
+class PythonRunner(
+  override val job: JobDetails,
+  jobFile: JobFile,
+  context: NamedContext) extends Runner {
 
-  _status = Runner.Status.Initialized
+  //TODO: stop is kill??
+  override def stop(): Unit = {
 
-  override def stopStreaming(): Unit = sparkStreamingWrapper.stopStreaming()
+  }
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
-  val sparkContextWrapper: ContextWrapper = contextWrapper
-  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(
-    MistJobConfiguration(
-      jobFile.file.getPath,
-      jobConfiguration.className,
-      jobConfiguration.namespace,
-      jobConfiguration.parameters,
-      jobConfiguration.externalId ))
-  val mqttPublisher: MqttPublisherWrapper = new MqttPublisherWrapper
-  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(sparkContextWrapper)
+  val sparkContextWrapper: NamedContext = context
+  val globalPublisherWrapper: GlobalPublisherWrapper = new GlobalPublisherWrapper()
+  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(job.configuration)
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration)
 
-  override def run(): Either[Map[String, Any], String] = {
-    _status = Runner.Status.Running
+  override def run(): JobResponseOrError = {
     try {
+
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
 
@@ -62,13 +60,10 @@ class PythonRunner(jobConfiguration: FullJobConfiguration, jobFile: JobFile, con
         logger.info(" Exiting due to broken pipe from Python driver")
       }
 
-      _status = Runner.Status.Stopped
-
       Left(dataWrapper.get)
     } catch {
       case e: Throwable =>
         logger.error(e.getMessage, e)
-        _status = Runner.Status.Aborted
         Right(e.toString)
     }
   }

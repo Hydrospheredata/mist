@@ -1,17 +1,15 @@
 package io.hydrosphere.mist.jobs.runners.python.wrappers
 
-import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.contexts.ContextWrapper
-import io.hydrosphere.mist.lib.StreamingSupport
+import io.hydrosphere.mist.api._
 import org.apache.spark.streaming.api.java.JavaStreamingContext
 
-private[mist] class SparkStreamingWrapper(contextWrapper: ContextWrapper) extends StreamingSupport {
-  _sc = contextWrapper.context
+private[mist] class SparkStreamingWrapper(config: SetupConfiguration) extends StreamingSupport {
+
+  _context = config.context
+  
   def setStreamingContext(ssc: JavaStreamingContext): Unit = {
     _ssc = ssc.ssc
   }
 
-  def getDurationSeconds: Int = {
-    (MistConfig.Contexts.streamingDuration(_sc.appName).milliseconds/1000).toInt
-  }
+  def getDurationSeconds: Int = (config.streamingDuration.milliseconds / 1000).toInt
 }

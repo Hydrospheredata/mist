@@ -12,8 +12,10 @@
             <Pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</Pattern>
         </layout>
     </appender>
+    
+    <logger name="slick" level="warn" />
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="sout" />
         <appender-ref ref="log4j" />
     </root>

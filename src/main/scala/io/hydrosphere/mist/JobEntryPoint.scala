@@ -3,6 +3,7 @@ package io.hydrosphere.mist
 import akka.actor.ActorSystem
 import io.hydrosphere.mist.jobs.FullJobConfigurationBuilder
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.worker.JobRunnerNode
 import spray.json.pimpString
@@ -17,7 +18,7 @@ private[mist] object JobEntryPoint extends App with Logger with JobConfiguration
         .setClassName(args(2))
         .setNamespace(args(3))
         .setExternalId(Some(args(4)))
-        .setParameters(args(5).toString.parseJson.convertTo[Map[String, Any]])
+        .setParameters(args(5).toString.parseJson.convertTo[JobParameters])
         .build()
       system.actorOf(JobRunnerNode.props(jobConfiguration))
     } else if (args.length == 5) {
@@ -32,7 +33,7 @@ private[mist] object JobEntryPoint extends App with Logger with JobConfiguration
     } else if (args.length == 2 || args.length == 3 || args.length == 4) {
       val jobRoute = args(1)
       val jobRequestParams = if (args.length == 3) {
-        args(2).toString.parseJson.convertTo[Map[String, Any]]
+        args(2).toString.parseJson.convertTo[JobParameters]
       } else {
         Map.empty[String, Any]
       }

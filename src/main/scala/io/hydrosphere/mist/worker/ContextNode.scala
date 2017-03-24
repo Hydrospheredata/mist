@@ -7,11 +7,11 @@ import akka.actor.{Actor, ActorLogging, Address, Cancellable, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.Messages._
-import io.hydrosphere.mist.contexts.{ContextBuilder, ContextWrapper}
-import io.hydrosphere.mist.jobs.FullJobConfiguration
+import io.hydrosphere.mist.contexts.NamedContext
+import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import io.hydrosphere.mist.{Constants, MistConfig}
-import org.joda.time.DateTime
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -29,7 +29,7 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
 
   val nodeAddress: Address = cluster.selfAddress
 
-  lazy val contextWrapper: ContextWrapper = ContextBuilder.namedSparkContext(namespace)
+  lazy val contextWrapper: NamedContext = NamedContext(namespace)
 
   private val workerDowntime: Duration = MistConfig.Contexts.downtime(namespace)
 
@@ -54,28 +54,19 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
     cluster.unsubscribe(self)
   }
 
-  lazy val jobDescriptions: ArrayBuffer[JobDescription] = ArrayBuffer.empty[JobDescription]
+  private val jobDescriptions: ArrayBuffer[JobDetails] = ArrayBuffer.empty[JobDetails]
 
-  type NamedActors = (JobDescription,  () => Unit)
-  lazy val namedJobCancellations: ArrayBuffer[(JobDescription, () => Unit)] = ArrayBuffer.empty[NamedActors]
+  type NamedActors = (JobDetails,  () => Unit)
+  lazy val namedJobCancellations: ArrayBuffer[(JobDetails, () => Unit)] = ArrayBuffer.empty[NamedActors]
 
   override def receive: Receive = {
 
-    case jobRequest: FullJobConfiguration =>
+    case jobRequest: JobDetails =>
       if (cancellableWatchDog.nonEmpty) { cancellableWatchDog.get.cancel() }
-      log.info(s"[WORKER] received JobRequest: $jobRequest")
+      log.info(s"[WORKER] received JobDetails: $jobRequest")
       val originalSender = sender
 
-      lazy val runner = Runner(jobRequest, contextWrapper)
-
-      def getUID: () => String = { () => {runner.id} }
-
-      val jobDescription = new JobDescription( getUID,
-        new DateTime().toString,
-        jobRequest.namespace,
-        jobRequest.externalId,
-        jobRequest.route
-      )
+      val runner = Runner(jobRequest, contextWrapper)
 
       def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
         val p = Promise[T]
@@ -88,43 +79,36 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
         (cancellation, first)
       }
 
-      val runnerFuture: Future[Either[Map[String, Any], String]] = Future {
-        if(MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-          serverActor ! AddJobToRecovery(runner.id, runner.configuration)
-        }
-        log.info(s"${jobRequest.namespace}#${runner.id} is running")
+      val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.Running)
+      originalSender ! startedJobDetails
+      val runnerFuture: Future[JobResponseOrError] = Future {
+        log.info(s"${jobRequest.configuration.namespace}#${jobRequest.jobId} is running")
 
         runner.run()
       }(executionContext)
 
       val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
-        jobDescriptions -= jobDescription
-        if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-          serverActor ! RemoveJobFromRecovery(runner.id)
-        }
+        jobDescriptions -= jobRequest
         runner.stop()
-        originalSender ! Right("Canceled")
+        originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Aborted).withJobResult(Right("Canceled"))
       }
 
-      jobDescriptions += jobDescription
+      jobDescriptions += jobRequest
 
-      namedJobCancellations += ((jobDescription, cancel))
+      namedJobCancellations += ((jobRequest, cancel))
 
       cancellableRunnerFuture
         .recover {
-          case e: Throwable => originalSender ! Right(e.toString)
+          case e: Throwable => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(e.toString))
         }(ExecutionContext.global)
         .andThen {
           case _ =>
-            jobDescriptions -= jobDescription
+            jobDescriptions -= jobRequest
             if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
-            if (MistConfig.Contexts.timeout(jobRequest.namespace).isFinite()) {
-              serverActor ! RemoveJobFromRecovery(runner.id)
-            }
         }(ExecutionContext.global)
         .andThen {
-          case Success(result: Either[Map[String, Any], String]) => originalSender ! result
-          case Failure(error: Throwable) => originalSender ! Right(error.toString)
+          case Success(result: JobResponseOrError) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
+          case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(error.toString))
         }(ExecutionContext.global)
 
     case StopWhenAllDo =>
@@ -136,25 +120,19 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
       })(executionContext)
 
     case ListJobs =>
-      val jobDescriptionsSerializable = jobDescriptions.map(
-        job => new JobDescriptionSerializable(job.uid(),
-          job.time, job.namespace,
-          job.externalId,
-          job.router)).toList
-
-      sender ! jobDescriptionsSerializable
+      sender ! jobDescriptions
 
     case StopJob(jobIdentifier) =>
       val originalSender = sender
       val future: Future[List[String]] = Future {
         val stopResponse = ArrayBuffer.empty[String]
         jobDescriptions.foreach {
-          jobDescription: JobDescription => {
-            if (jobIdentifier == jobDescription.externalId.getOrElse("None") || jobIdentifier == jobDescription.uid()) {
-              stopResponse += s"Job ${jobDescription.externalId.getOrElse("")} ${jobDescription.uid()}" +
-                " is scheduled for shutdown. It may take a while."
+          jobDescription: JobDetails => {
+            if (jobIdentifier == jobDescription.configuration.externalId.getOrElse("None") || jobIdentifier == jobDescription.jobId) {
+              stopResponse += s"Job ${jobDescription.configuration.externalId.getOrElse("")} ${jobDescription.jobId}" +
+                " is scheduled for shutdown. It can take a while."
               namedJobCancellations
-                .filter(namedJobCancellation => namedJobCancellation._1.uid() == jobDescription.uid())
+                .filter(namedJobCancellation => namedJobCancellation._1.jobId == jobDescription.jobId)
                 .foreach(namedJobCancellation => namedJobCancellation._2())
             }
           }
