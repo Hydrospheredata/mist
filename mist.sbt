@@ -89,14 +89,22 @@ lazy val mist = project.in(file("."))
     name := "mist",
     libraryDependencies ++= sparkDependencies(sparkVersion.value),
     libraryDependencies ++= Seq(
+      compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
+
       "org.json4s" %% "json4s-native" % "3.2.10",
-      "org.json4s" %% "json4s-jackson" % "3.2.10",
 
       "com.typesafe" % "config" % "1.3.1",
 
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+
       "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+
+      "io.circe" %% "circe-core" % "0.7.0",
+      "io.circe" %% "circe-jawn" % "0.7.0",
+      "io.circe" %% "circe-parser" % "0.7.0",
+      "io.circe" %% "circe-generic" % "0.7.0",
+
       "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
 
       "com.github.fge" % "json-schema-validator" % "2.2.6",
@@ -113,7 +121,7 @@ lazy val mist = project.in(file("."))
 
       "org.mapdb" % "mapdb" % "3.0.2",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-      "org.apache.hadoop" % "hadoop-client" % "2.7.3" intransitive(),
+      "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
 
       "org.scalaj" %% "scalaj-http" % "2.3.0",
       "org.apache.kafka" %% "kafka" % "0.10.2.0",

@@ -3,8 +3,7 @@ package io.hydrosphere.mist
 import java.io.File
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory}
-import io.hydrosphere.mist.jobs.JobFile
-import io.hydrosphere.mist.master.JobDefinition
+import io.hydrosphere.mist.jobs.{JobDefinition, JobFile}
 import io.hydrosphere.mist.utils._
 
 import scala.util.{Failure, Success, Try}

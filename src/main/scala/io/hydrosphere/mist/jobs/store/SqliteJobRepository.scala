@@ -3,7 +3,6 @@ package io.hydrosphere.mist.jobs.store
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.JobDetails.Status
-import io.hydrosphere.mist.master.JobConfiguration
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponseOrError}
 import io.hydrosphere.mist.utils.json.JobDetailsJsonSerialization

@@ -6,12 +6,14 @@ import io.hydrosphere.mist.master.async.AsyncInterface.Provider
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import org.joda.time.DateTime
 
+
+
 object JobDetails {
   
   sealed trait Status
-  
+
   object Status {
-    
+
     def apply(string: String): Status = string match {
       case "Initialized" => Initialized
       case "Queued" => Queued
@@ -41,7 +43,7 @@ object JobDetails {
     }
 
   }
-  
+
   sealed trait Source
   
   object Source {
@@ -81,27 +83,18 @@ case class JobDetails(
     case _ => false
   }
   
-  def withStartTime(time: Long): JobDetails = {
-    JobDetails(configuration, source, jobId, Some(time), endTime, jobResult, status)
-  }
-  
-  def starts(): JobDetails = {
-    withStartTime(new DateTime().getMillis)
-  }
-  
-  def withEndTime(time: Long): JobDetails = {
-    JobDetails(configuration, source, jobId, startTime, Some(time), jobResult, status)
-  }
-  
-  def ends(): JobDetails = {
-    withEndTime(new DateTime().getMillis)
-  }
-  
-  def withJobResult(result: JobResponseOrError): JobDetails = {
-    JobDetails(configuration, source, jobId, startTime, endTime, Some(result), status)
-  }
+  def withStartTime(time: Long): JobDetails = copy(startTime = Some(time))
 
-  def withStatus(status: JobDetails.Status): JobDetails = {
-    JobDetails(configuration, source, jobId, startTime, endTime, jobResult, status)
-  }
+  def starts(): JobDetails = withStartTime(new DateTime().getMillis)
+
+  def withEndTime(time: Long): JobDetails = copy(endTime = Some(time))
+  
+  def ends(): JobDetails = withEndTime(new DateTime().getMillis)
+
+  def withJobResult(result: JobResponseOrError): JobDetails =
+    copy(jobResult = Some(result))
+
+  def withStatus(status: JobDetails.Status): JobDetails =
+    copy(status = status)
 }
+
