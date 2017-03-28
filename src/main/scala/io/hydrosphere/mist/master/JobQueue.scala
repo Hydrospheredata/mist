@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, ActorRefFactory, Props}
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.store.JobRepository
@@ -12,11 +12,12 @@ object JobQueue {
   case class EnqueueJob(jobDetails: JobDetails)
   case class DequeueJob(jobDetails: JobDetails)
 
-  def props(): Props = Props(classOf[JobQueue])
+  def props()(implicit parentContext: ActorRefFactory): Props = 
+    Props(classOf[JobQueue], parentContext.actorOf(JobManager.props()), JobRepository())
   
 }
 
-class JobQueue extends Actor with Logger {
+class JobQueue(jobManager: ActorRef, store: JobRepository) extends Actor with Logger {
 
   import io.hydrosphere.mist.master.JobQueue.EnqueueJob
 
@@ -29,7 +30,7 @@ class JobQueue extends Actor with Logger {
   override def receive: Receive = {
     case EnqueueJob(job) =>
       val queuedJob = job.withStatus(JobDetails.Status.Queued)
-      JobRepository().update(queuedJob)
+      store.update(queuedJob)
       logger.debug(s"Adding job to `${queuedJob.configuration.namespace}` queue")
       startJobs(queuedJob.configuration.namespace)
       context become dequeueJob(sender)
@@ -45,16 +46,16 @@ class JobQueue extends Actor with Logger {
   }
   
   private def startJobs(namespace: String): Unit = {
-    var namespaceQueue = JobRepository().queuedInNamespace(namespace)
-    var runningJobs = JobRepository().runningInNamespace(namespace)
+    var namespaceQueue = store.queuedInNamespace(namespace)
+    var runningJobs = store.runningInNamespace(namespace)
     while (runningJobs.length < MistConfig.Contexts.maxParallelJobs(namespace)) {
       if (namespaceQueue.nonEmpty) {
         val queuedJob = namespaceQueue.head
         namespaceQueue = namespaceQueue diff List(queuedJob)
         val job = queuedJob.withStatus(JobDetails.Status.Running)
         logger.debug(s"Starting job in $namespace. ${runningJobs.length} jobs are started")
-        JobRepository().update(job)
-        context.actorOf(JobManager.props()) ! JobManager.StartJob(job)
+        store.update(job)
+        jobManager ! JobManager.StartJob(job)
         runningJobs = runningJobs :+ job
       } else {
         return

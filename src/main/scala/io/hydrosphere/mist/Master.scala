@@ -54,9 +54,6 @@ private[mist] object Master extends App with HttpService with Logger {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }
 
-  // Start Job Queue Actor
-  system.actorOf(JobQueue.props())
-
   // Start job recovery
   system.actorOf(JobRecovery.props()) ! JobRecovery.StartRecovery
 
