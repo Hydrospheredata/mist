@@ -33,7 +33,7 @@ object IndexToStringJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Double]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.transformers.LocalTransformers._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val features = List(
       "a", "b", "c", "c"

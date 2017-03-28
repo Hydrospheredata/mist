@@ -1,13 +1,9 @@
 package io.hydrosphere.mist.ml
 
-import org.apache.spark.ml.classification.DecisionTreeClassificationModel
-import org.apache.spark.ml.linalg.{Matrices, Matrix, SparseVector, Vector, Vectors}
-import org.apache.spark.ml.tree._
-import java.util
-
-import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
-import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
+import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
+import org.apache.spark.ml.tree._
+import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 
 
 object DataUtils {

@@ -26,7 +26,7 @@ object MaxAbsScalerJob extends MLMistJob with SQLSupport {
   }
 
   def serve(modelPath: String, features: List[Array[Double]]): Map[String, Any] = {
-    import io.hydrosphere.mist.ml.transformers.LocalTransformers._
+    import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(

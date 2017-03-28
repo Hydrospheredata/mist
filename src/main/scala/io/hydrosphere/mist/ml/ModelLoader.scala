@@ -7,7 +7,7 @@ import io.hydrosphere.mist.utils.json.ModelMetadataJsonSerialization
 import org.apache.spark.ml.{PipelineModel, Transformer}
 
 import scala.io.Source
-import io.hydrosphere.mist.ml.loaders.TransformerFactory
+import TransformerFactory._
 import io.hydrosphere.mist.utils.Logger
 import org.apache.spark.ml.classification.LogisticRegression
 import spray.json.{DeserializationException, pimpString}
