@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorRef, ActorRefFactory, Props}
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.JobQueue.{DequeueJob, EnqueueJob}
@@ -11,14 +11,14 @@ import scala.language.postfixOps
 
 object JobDispatcher {
   
-  def props(): Props = Props(classOf[JobDispatcher])
+  def props()(implicit parentContext: ActorRefFactory): Props = 
+    Props(classOf[JobDispatcher], JobQueue.props(), JobRepository())
   
 }
 
-class JobDispatcher extends Actor with Logger {
+class JobDispatcher(jobQueue: ActorRef, store: JobRepository) extends Actor with Logger {
 
-  private val jobQueueActor: ActorRef = context.actorOf(JobQueue.props())
-
+  private implicit val parentContext = context
 
   override def preStart(): Unit = {
     super.preStart()
@@ -30,10 +30,10 @@ class JobDispatcher extends Actor with Logger {
       logger.debug(s"Received new JobDetails: $jobDetails")
       
       // Add job into queue
-      jobQueueActor ! EnqueueJob(jobDetails)
+      jobQueue ! EnqueueJob(jobDetails)
 
       // Add job into history
-      JobRepository().update(jobDetails)
+      store.update(jobDetails)
       
       context become jobStarted(sender)
   }
@@ -42,7 +42,7 @@ class JobDispatcher extends Actor with Logger {
     case job: JobDetails => 
       logger.debug(s"Job was started at ${new DateTime(job.startTime.getOrElse(0L)).toString}")
       // Update job in history store
-      JobRepository().update(job)
+      store.update(job)
       context become getResult(originalSender)
   }
   
@@ -51,10 +51,10 @@ class JobDispatcher extends Actor with Logger {
       val time = job.endTime.getOrElse(0L) - job.startTime.getOrElse(0L)
       logger.debug(s"Job finished at ${new DateTime(job.endTime.getOrElse(0L)).toString} (${time}ms): $job)")
       // Remove job from queue
-      jobQueueActor ! DequeueJob(job)
+      jobQueue ! DequeueJob(job)
 
       // Update job in history store
-      JobRepository().update(job)
+      store.update(job)
     
       originalSender ! job
   }
