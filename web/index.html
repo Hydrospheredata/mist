@@ -118,8 +118,23 @@
         <tbody>
           {{#jobs}}
           <tr id="row-{{uid}}">
-            <td class="mdl-data-table__cell--non-numeric">
+            <td class="mdl-data-table__cell--non-numeric" title="UID">
               {{uid}}
+            </td>
+             <td class="mdl-data-table__cell--non-numeric" title="Time">
+               {{time}}
+            </td>
+            <td class="mdl-data-table__cell--non-numeric" title="Namespace">
+              {{namespace}}
+            </td>
+            <td class="mdl-data-table__cell--non-numeric" title="Router">
+              {{router}}
+            </td>
+            <td class="mdl-data-table__cell--non-numeric" title="Address">
+              {{address}}
+            </td>
+            <td class="mdl-data-table__cell--non-numeric" title="BlackSpot">
+              {{blackSpot}}
             </td>
             <td>
               <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{uid}}" data-callback="{{callback}}">
