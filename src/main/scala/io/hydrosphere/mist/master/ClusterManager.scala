@@ -251,8 +251,6 @@ private[mist] class ClusterManager extends Actor with Logger {
       val originalSender = sender
       startNewWorkerWithName(jobRequest.namespace)
 
-      MistConfig.reload()
-
       workers.registerCallbackForName(jobRequest.namespace, {
         case WorkerLink(uid, name, address, false) =>
           val remoteActor = cluster.system.actorSelection(s"$address/user/$name")
