@@ -1,17 +1,36 @@
 package io.hydrosphere.mist.master.http
 
-import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller}
 import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.JobDetails.Status
+import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.utils.json.AnyJsonFormatSupport
+import spray.json._
 
-trait JsonCodecs extends FailFastCirceSupport {
+trait JsonCodecs extends SprayJsonSupport
+  with DefaultJsonProtocol
+  with AnyJsonFormatSupport {
 
-  import io.circe._
+  implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
+    override def write(obj: Status): JsValue = JsString(obj.toString)
 
-  implicit val encodeJobStatus: Encoder[JobDetails.Status] =
-    Encoder.instance(s => Json.fromString(s.toString))
+    override def read(json: JsValue): Status = json match {
+      case JsString(str) => JobDetails.Status(str)
+      case _ => throw DeserializationException("JobDetails.Status must be a string")
+    }
+  }
 
-  implicit val decodeJobStatus: Decoder[JobDetails.Status] =
-    Decoder.decodeString.map(s => JobDetails.Status(s))
+  implicit val jobExecutionStatusF = jsonFormat3(JobExecutionStatus)
+  implicit val httpJobArgF: RootJsonFormat[HttpJobArg] =
+    jsonFormat(HttpJobArg.apply, "type", "args")
+
+  implicit val httpJobInfoF = rootFormat(lazyFormat(
+    jsonFormat(HttpJobInfo.apply,
+      "execute", "train", "serve",
+      "isHiveJob", "isSqlJob","isStreamingJob", "isMLJob", "isPython")))
+
+  implicit val workerLinkF = jsonFormat4(WorkerLink)
 
 }
 

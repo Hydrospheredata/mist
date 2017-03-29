@@ -89,8 +89,6 @@ lazy val mist = project.in(file("."))
     name := "mist",
     libraryDependencies ++= sparkDependencies(sparkVersion.value),
     libraryDependencies ++= Seq(
-      compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
-
       "org.json4s" %% "json4s-native" % "3.2.10",
 
       "com.typesafe" % "config" % "1.3.1",
@@ -100,14 +98,7 @@ lazy val mist = project.in(file("."))
 
       "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
 
-      "io.circe" %% "circe-core" % "0.7.0",
-      "io.circe" %% "circe-jawn" % "0.7.0",
-      "io.circe" %% "circe-parser" % "0.7.0",
-      "io.circe" %% "circe-generic" % "0.7.0",
-
       "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
-
-      "com.github.fge" % "json-schema-validator" % "2.2.6",
 
       "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",

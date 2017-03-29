@@ -61,7 +61,7 @@ class JobRoutesSpec extends FunSpec with Matchers {
       job shouldBe JobDefinition("my-job", "jar_path.jar", "MyJob", "namespace")
     }
 
-    it("should parse more thatn jone jobs") {
+    it("should parse more than one jobs") {
       val cfg = ConfigFactory.parseString(
         """
           |my-job1 {

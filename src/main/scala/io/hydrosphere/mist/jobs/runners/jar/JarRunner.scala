@@ -19,7 +19,7 @@ class JarRunner(
     val action = job.configuration.action
     val params = job.configuration.parameters
 
-    val load = JvmJobLoader.loadFromJar(clazz, action, jobFile.file)
+    val load = JobsLoader.fromJar(jobFile.file).loadJobInstance(clazz, action)
     val result = Either.fromTry(load).flatMap(instance => {
       instance.run(context.setupConfiguration, params)
     })

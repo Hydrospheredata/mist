@@ -1,6 +1,6 @@
-package io.hydrosphere.mist.jobs.runners
+package io.hydrosphere.mist.jobs.runners.jar
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 
 class TestCompiler(outputDir: String) {
 
