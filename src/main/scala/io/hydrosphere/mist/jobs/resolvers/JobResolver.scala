@@ -16,6 +16,21 @@ trait JobResolver {
   /**
     * @return local file path
     */
-  def resolve: File
+  def resolve(): File
 
+}
+
+object JobResolver {
+
+  //TODO: should be provided from config
+  private val saveDirectory = "/tmp"
+
+  def fromPath(path: String): JobResolver = {
+    if (path.startsWith("hdfs://"))
+      new HDFSResolver(path, saveDirectory)
+    else if(path.startsWith("mvn://"))
+      MavenArtifactResolver.fromPath(path)
+    else
+      new LocalResolver(path)
+  }
 }

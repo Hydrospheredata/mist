@@ -46,7 +46,7 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
       val url = s"http://localhost:$port/artifactory/libs-release-local"
       val artifact = MavenArtifact("mist_examples", "mist_examples_2.10", "0.10.0")
       val resolver = MavenArtifactResolver(url, artifact, "target")
-      resolver.resolve
+      resolver.resolve()
     })
 
     val file = Await.result(future, Duration.Inf)

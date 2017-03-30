@@ -24,7 +24,7 @@ class HDFSResolver(
     fileSystem.exists(new Path(uri))
   }
 
-  override def resolve: File = {
+  override def resolve(): File = {
     if (!exists) {
       throw new JobFile.NotFoundException(s"file $path not found")
     }

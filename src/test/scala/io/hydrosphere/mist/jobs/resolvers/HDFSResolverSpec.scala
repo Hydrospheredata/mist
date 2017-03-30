@@ -33,7 +33,7 @@ class HDFSResolverSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     val resolver = new HDFSResolver(filePath, "target")
     resolver.exists shouldBe true
 
-    val file = resolver.resolve
+    val file = resolver.resolve()
     val bytes = Files.readAllBytes(Paths.get(file.getPath))
 
     new String(bytes) shouldBe content

@@ -1,17 +1,10 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
-import java.io.File
-import java.lang.reflect.Method
-import java.net.URLClassLoader
-
+import cats.implicits._
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.utils.TypeAlias.JobResponse
 
-import cats.implicits._
-
 import scala.reflect.runtime.universe._
-import scala.util.Try
 
 /**
   * Job instance for Scala

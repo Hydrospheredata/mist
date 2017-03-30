@@ -183,31 +183,30 @@ window.WebMist = {
   
   __updateCodeMirror: function (route) {
         var settings = this.routerInfo.filter(function (m) { return m.name === route })[0];
-        function make(t) { 
-          if (t == "String") {
+        function make(type) {
+          var t = type.name
+          var args = type.args
+          if (t == "MString") {
               return "string";
           } 
-          if (t.startsWith("Map")) { 
+          if (t.startsWith("MMap")) {
               var newObj = {}; 
-              var types = t.match(/^Map\[(.*?),(.*?)\]$/).slice(1); 
-              newObj[make(types[0])] = make(types[1]); 
+              newObj[make(args[0])] = make(args[1]);
               return newObj; 
           } 
-          if (t == "scala.Int") { 
+          if (t == "MInt") {
               return Math.round(Math.random() * 10);
           } 
-          if (t == "scala.Double") {
+          if (t == "MDouble") {
               return Math.random() * 10; 
           } 
-          if (t.startsWith("scala.List")) { 
+          if (t.startsWith("MList")) {
               var list = []; 
-              var types = t.match(/^scala.List\[(.*)\]$/).slice(1); 
-              list.push(make(types[0])); 
+              list.push(make(args[0]));
               return list; 
           } 
-          if (t.startsWith("scala.Option")) { 
-              var types = t.match(/^scala.Option\[(.*)\]$/).slice(1);
-              return make(types[0]); 
+          if (t.startsWith("MOption")) {
+              return make(args[0]);
           } 
         }
         var generatedObject = {};

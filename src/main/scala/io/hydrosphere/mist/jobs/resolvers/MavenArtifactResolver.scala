@@ -23,7 +23,7 @@ case class MavenArtifactResolver(
     resp.code == 200
   }
 
-  override def resolve: File = {
+  override def resolve(): File = {
     val content = download(jarUlr)
     if (validateContent(content)) {
       val localPath = Paths.get(targetDirectory, artifact.jarName)

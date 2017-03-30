@@ -11,7 +11,7 @@ class LocalResolver(path: String) extends JobResolver {
     file.exists() && !file.isDirectory
   }
 
-  override def resolve: File = {
+  override def resolve(): File = {
     if (!exists) {
       throw new JobFile.NotFoundException(s"file $path not found")
     }
