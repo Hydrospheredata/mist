@@ -61,6 +61,29 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     }
   }
 
+  it("should stop worker") {
+    val master = mock(classOf[MasterService])
+    val api = new HttpApi(master).route
+
+    when(master.stopWorker(any[String])).thenReturn(Future.successful(()))
+
+    Delete("/internal/workers/id") ~> api ~> check {
+      status === StatusCodes.OK
+    }
+  }
+
+  it("should stop workers") {
+    val master = mock(classOf[MasterService])
+    val api = new HttpApi(master).route
+
+    when(master.stopAllWorkers()).thenReturn(Future.successful(()))
+
+    Delete("/internal/workers") ~> api ~> check {
+      status === StatusCodes.OK
+    }
+  }
+
+
   it("should serve routes") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route

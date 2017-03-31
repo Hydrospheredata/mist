@@ -5,7 +5,7 @@ import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern._
 import akka.util.Timeout
 import com.typesafe.config.Config
-import io.hydrosphere.mist.Messages.{StopJob, StopWorker}
+import io.hydrosphere.mist.Messages.{StopAllWorkers, StopJob, StopWorker}
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
@@ -70,6 +70,11 @@ class MasterService(
     f.mapTo[List[WorkerLink]]
   }
 
+  def stopAllWorkers(): Future[Unit] = {
+    val f = managerRef ? StopAllWorkers()
+    f.map(_ => ())
+  }
+
   //TODO: if job id unknown??
   def stopJob(id: String): Future[Unit] = {
     val f = managerRef ? StopJob(id)
@@ -98,11 +103,7 @@ class MasterService(
     val jobDetails = JobDetails(configuration, JobDetails.Source.Http)
 
     val future = distributor.ask(jobDetails)(timeout = 1.minute)
-    val request = future.recover {
-      case _: AskTimeoutException => Right("Job timeout error")
-      case error: Throwable => Right(error.toString)
-    }.mapTo[JobDetails].map(details => {
-
+    val request = future.mapTo[JobDetails].map(details => {
       val result = details.jobResult.getOrElse(Right("Empty result"))
       result match {
         case Left(payload: JobResponse) =>
@@ -143,9 +144,18 @@ class HttpApi(master: MasterService) extends Logger {
     path("internal" / "workers") {
       get { complete(master.workers()) }
     } ~
-    path("internal" / "workers"/ Segment) { workerId =>
+    path("internal" / "workers") {
+      delete { completeU {
+        logger.info("STOP ALL")
+        master.stopAllWorkers()
+      }}
+    } ~
+    path("internal" / "workers" / Segment) { workerId =>
       delete {
-        completeU { master.stopWorker(workerId) }
+        completeU {
+          logger.info("STOP CERTAIN")
+          master.stopWorker(workerId)
+        }
       }
     } ~
     path("internal" / "routers") {

@@ -13,14 +13,7 @@ trait JsonCodecs extends SprayJsonSupport
   with AnyJsonFormatSupport
   with JobDetailsJsonSerialization {
 
-//  implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
-//    override def write(obj: Status): JsValue = JsString(obj.toString)
-//
-//    override def read(json: JsValue): Status = json match {
-//      case JsString(str) => JobDetails.Status(str)
-//      case _ => throw DeserializationException("JobDetails.Status must be a string")
-//    }
-//  }
+  implicit val printer = CompactPrinter
 
   implicit val jobExecutionStatusF = jsonFormat3(JobExecutionStatus)
   implicit val httpJobArgF: RootJsonFormat[HttpJobArg] =
