@@ -3,8 +3,9 @@ package io.hydrosphere.mist.master.http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.jobs.runners.jar._
-import io.hydrosphere.mist.jobs.{JvmJobInfo, JobDefinition, PyJobInfo}
+import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import org.mockito.Mockito._
 import org.mockito.Matchers._
 import org.scalatest.{FunSpec, Matchers}
@@ -74,7 +75,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     )
     when(master.listRoutes()).thenReturn(Seq(pyInfo, jvmInfo))
 
-    Get("/internal/routes") ~> api ~> check {
+    Get("/internal/routers") ~> api ~> check {
       status === StatusCodes.OK
 
       responseAs[Map[String, HttpJobInfo]] should contain allOf(
@@ -85,6 +86,20 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
           )
         )
       )
+    }
+  }
+
+  it("should start job") {
+    val master = mock(classOf[MasterService])
+    val api = new HttpApi(master).route
+    when(master.startJob(any[String], any[Action], any[JobParameters]))
+      .thenReturn(Future.successful(
+        JobResult.success(Map("yoyo" -> "hello"),
+        FullJobConfiguration("", "", "", Map.empty, None, None, Action.Execute))
+      ))
+
+    Post("/api/my-job", Map("Hello" -> "123")) ~> api ~> check {
+      status === StatusCodes.OK
     }
   }
 

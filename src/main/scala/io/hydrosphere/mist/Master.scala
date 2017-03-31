@@ -1,14 +1,18 @@
 package io.hydrosphere.mist
 
+import java.io.File
+
 import akka.actor.{ActorSystem, Props}
 import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.directives.DebuggingDirectives
 import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.master.cluster.{CliResponder, ClusterManager}
+import io.hydrosphere.mist.master.http.{HttpUi, HttpApi, MasterService, JobRoutes}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
@@ -37,6 +41,17 @@ private[mist] object Master extends App with HttpService with Logger {
   if (MistConfig.Http.isOn) {
     Http().bindAndHandle(clientRouteLogged, MistConfig.Http.host, MistConfig.Http.port)
   }
+
+  //TODO: why router confighuration in http??
+  val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
+  val jobRoutes = new JobRoutes(routeConfig)
+  val masterService = new MasterService(workerManager, jobRoutes, system)
+
+  val api = new HttpApi(masterService)
+  val http = HttpUi.route ~ api.route
+  val route2 = DebuggingDirectives.logRequestResult("NEW REST", Logging.InfoLevel)(http)
+  Http().bindAndHandle(route2, "localhost", 8080)
+
 
   // Start CLI
   system.actorOf(CliResponder.props(), name = Constants.Actors.cliResponderName)

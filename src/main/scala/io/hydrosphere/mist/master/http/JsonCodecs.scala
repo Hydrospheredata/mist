@@ -5,21 +5,22 @@ import akka.http.scaladsl.marshalling.{Marshal, Marshaller}
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.WorkerLink
-import io.hydrosphere.mist.utils.json.AnyJsonFormatSupport
+import io.hydrosphere.mist.utils.json.{JobDetailsJsonSerialization, AnyJsonFormatSupport}
 import spray.json._
 
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol
-  with AnyJsonFormatSupport {
+  with AnyJsonFormatSupport
+  with JobDetailsJsonSerialization {
 
-  implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
-    override def write(obj: Status): JsValue = JsString(obj.toString)
-
-    override def read(json: JsValue): Status = json match {
-      case JsString(str) => JobDetails.Status(str)
-      case _ => throw DeserializationException("JobDetails.Status must be a string")
-    }
-  }
+//  implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
+//    override def write(obj: Status): JsValue = JsString(obj.toString)
+//
+//    override def read(json: JsValue): Status = json match {
+//      case JsString(str) => JobDetails.Status(str)
+//      case _ => throw DeserializationException("JobDetails.Status must be a string")
+//    }
+//  }
 
   implicit val jobExecutionStatusF = jsonFormat3(JobExecutionStatus)
   implicit val httpJobArgF: RootJsonFormat[HttpJobArg] =

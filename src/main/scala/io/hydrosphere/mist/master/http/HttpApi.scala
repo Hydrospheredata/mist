@@ -1,8 +1,6 @@
 package io.hydrosphere.mist.master.http
 
-import akka.actor.{ActorRef, ActorSelection}
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.actor.{PoisonPill, ActorSystem, ActorRef}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.pattern._
 import akka.util.Timeout
@@ -11,10 +9,10 @@ import io.hydrosphere.mist.Messages.{StopJob, StopWorker}
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
-import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.master.{JobDispatcher, WorkerLink}
 import io.hydrosphere.mist.master.cluster.ClusterManager
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.utils.TypeAlias.{JobResponseOrError, JobParameters}
+import io.hydrosphere.mist.utils.TypeAlias.{JobResponse, JobParameters, JobResponseOrError}
 
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
@@ -50,7 +48,8 @@ class JobRoutes(config: Config) extends Logger {
 
 class MasterService(
   managerRef: ActorRef,
-  jobRoutes: JobRoutes
+  jobRoutes: JobRoutes,
+  system: ActorSystem
 ) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -85,16 +84,52 @@ class MasterService(
 
   def listRoutes(): Seq[JobInfo] = jobRoutes.listInfos()
 
-  def startJob(id: String, params: JobParameters): Future[JobResponseOrError] = {
+  //TODO: why we need full configuration ??
+  //TODO: for starting job we need only id, action, and params
+  def startJob(id: String, action: Action, params: JobParameters): Future[JobResult] = {
+    val initial = FullJobConfigurationBuilder().fromRest(id, params)
+    val builder = action match {
+      case Action.Serve => initial.setServing(true)
+      case Action.Train => initial.setTraining(true)
+      case Action.Execute => initial
+    }
+    val configuration = builder.build()
+    val distributor = system.actorOf(JobDispatcher.props())
+    val jobDetails = JobDetails(configuration, JobDetails.Source.Http)
 
+    val future = distributor.ask(jobDetails)(timeout = 1.minute)
+    val request = future.recover {
+      case _: AskTimeoutException => Right("Job timeout error")
+      case error: Throwable => Right(error.toString)
+    }.mapTo[JobDetails].map(details => {
+
+      val result = details.jobResult.getOrElse(Right("Empty result"))
+      result match {
+        case Left(payload: JobResponse) =>
+          JobResult.success(payload, configuration)
+        case Right(error: String) =>
+          JobResult.failure(error, configuration)
+      }
+    }).recover {
+      case _: AskTimeoutException =>
+        JobResult.failure("Job timeout error", configuration)
+      case error: Throwable =>
+        JobResult.failure(error.getMessage, configuration)
+    }
+
+    request.onComplete(_ => distributor ! PoisonPill)
+
+    request
   }
 
 }
 
 
-class HttpApi(master: MasterService) extends Logger with JsonCodecs {
+class HttpApi(master: MasterService) extends Logger {
 
   import Directives._
+  import JsonCodecs._
+  import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 
   val route: Route = {
     path("internal" / "jobs") {
@@ -113,7 +148,7 @@ class HttpApi(master: MasterService) extends Logger with JsonCodecs {
         completeU { master.stopWorker(workerId) }
       }
     } ~
-    path("internal" / "routes") {
+    path("internal" / "routers") {
       get {
         complete {
           val result = master.listRoutes()
@@ -126,7 +161,16 @@ class HttpApi(master: MasterService) extends Logger with JsonCodecs {
     path("api" / Segment) { jobId =>
       post { parameters('train.?, 'serve.?) { (train, serve) =>
         entity(as[JobParameters]) { jobParams =>
+          complete {
+            val action = if (train.isDefined)
+              Action.Train
+            else if (serve.isDefined)
+              Action.Serve
+            else
+              Action.Execute
 
+            master.startJob(jobId, action, jobParams)
+          }
         }
       }}
     }

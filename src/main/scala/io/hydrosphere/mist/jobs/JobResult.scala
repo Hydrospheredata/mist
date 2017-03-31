@@ -9,4 +9,30 @@ import io.hydrosphere.mist.utils.TypeAlias.JobResponse
   * @param errors possible error list
   * @param request user request
   */
-private[mist] case class JobResult(success: Boolean, payload: JobResponse, errors: List[String], request: FullJobConfiguration)
+case class JobResult(
+  success: Boolean,
+  payload: JobResponse,
+  errors: List[String],
+  request: FullJobConfiguration)
+
+object JobResult {
+
+  def success(payload: JobResponse, request: FullJobConfiguration): JobResult = {
+    JobResult(
+      success = true,
+      payload = payload,
+      errors = List.empty,
+      request = request)
+  }
+
+  def failure(errors: List[String], request: FullJobConfiguration): JobResult = {
+    JobResult(
+      success = false,
+      payload = Map.empty,
+      errors = errors,
+      request = request)
+  }
+
+  def failure(error: String, request: FullJobConfiguration): JobResult =
+    failure(List(error), request)
+}

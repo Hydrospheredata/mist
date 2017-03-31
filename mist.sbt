@@ -92,6 +92,7 @@ lazy val mist = project.in(file("."))
       "org.json4s" %% "json4s-native" % "3.2.10",
 
       "com.typesafe" % "config" % "1.3.1",
+      "joda-time" % "joda-time" % "2.5",
 
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",

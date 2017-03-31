@@ -183,13 +183,13 @@ window.WebMist = {
   
   __updateCodeMirror: function (route) {
         var settings = this.routerInfo.filter(function (m) { return m.name === route })[0];
-        function make(type) {
-          var t = type.name
-          var args = type.args
+        function make(paramType) {
+          var t = paramType.type
+          var args = paramType.args
           if (t == "MString") {
               return "string";
           } 
-          if (t.startsWith("MMap")) {
+          if (t == "MMap") {
               var newObj = {}; 
               newObj[make(args[0])] = make(args[1]);
               return newObj; 
@@ -200,12 +200,12 @@ window.WebMist = {
           if (t == "MDouble") {
               return Math.random() * 10; 
           } 
-          if (t.startsWith("MList")) {
+          if (t == "MList") {
               var list = []; 
               list.push(make(args[0]));
               return list; 
           } 
-          if (t.startsWith("MOption")) {
+          if (t == "MOption") {
               return make(args[0]);
           } 
         }
