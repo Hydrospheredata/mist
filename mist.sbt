@@ -107,9 +107,6 @@ lazy val mist = project.in(file("."))
 
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-//      "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
-//      "org.scala-lang" % "scala-library" % scalaVersion.value % "test",
-//      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "test",
 
       "org.mapdb" % "mapdb" % "3.0.2",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
