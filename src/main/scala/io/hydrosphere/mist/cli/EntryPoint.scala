@@ -10,8 +10,7 @@ import scala.concurrent.Await
 import scala.language.{implicitConversions, postfixOps}
 import scala.sys.process._
 
-
-private[mist] object EntryPoint extends App {
+object EntryPoint extends App {
 
   implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
   implicit val system = ActorSystem("mist-cli", MistConfig.Akka.CLI.settings)

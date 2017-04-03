@@ -38,16 +38,12 @@ class CLINode extends Actor {
   def cliResponder[A](el: A, originalSender: akka.actor.ActorRef): Unit = {
     val future = serverActor ? el
     future.andThen {
-      case Success(result: Map[_, _]) => originalSender ! result
-      case Success(result: String) => originalSender ! result
-      case Success(result: List[JobDetails]) => originalSender ! result.map {
-        job: JobDetails => JobDescription(job)
-      }
-      case Success(result: List[Any]) => originalSender ! result
-      case Failure(error: Throwable) => originalSender ! error
+      case Success(r) => originalSender ! r
+      case Failure(e) => originalSender ! e
     }(ExecutionContext.global)
   }
 
+  // TODO: responder only in one method?
   override def receive: Receive = {
     case StopWorker(workerIdentifier) =>
       serverActor ! RemoveContext(workerIdentifier)

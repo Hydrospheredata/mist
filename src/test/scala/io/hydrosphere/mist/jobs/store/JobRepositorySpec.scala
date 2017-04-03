@@ -3,7 +3,7 @@ package io.hydrosphere.mist.jobs.store
 
 import java.nio.file.{Files, Paths}
 
-import io.hydrosphere.mist.jobs.{Action, FullJobConfiguration, JobConfiguration, JobDetails}
+import io.hydrosphere.mist.jobs.{Action, JobExecutionParams, JobConfiguration, JobDetails}
 import io.hydrosphere.mist.utils.TypeAlias._
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FlatSpecLike, Matchers}
 
@@ -57,7 +57,7 @@ trait JobRepositorySpec extends FlatSpecLike with Matchers with BeforeAndAfter {
   private def fixtureJobDetails(
     jobId: String,
     status: JobDetails.Status = JobDetails.Status.Initialized): JobDetails = {
-    val conf = FullJobConfiguration(
+    val conf = JobExecutionParams(
       path = "path",
       className = "com.yoyo.MyClass",
       namespace = "namespace",

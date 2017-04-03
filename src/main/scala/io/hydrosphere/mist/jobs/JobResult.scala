@@ -13,11 +13,11 @@ case class JobResult(
   success: Boolean,
   payload: JobResponse,
   errors: List[String],
-  request: FullJobConfiguration)
+  request: JobExecutionParams)
 
 object JobResult {
 
-  def success(payload: JobResponse, request: FullJobConfiguration): JobResult = {
+  def success(payload: JobResponse, request: JobExecutionParams): JobResult = {
     JobResult(
       success = true,
       payload = payload,
@@ -25,7 +25,7 @@ object JobResult {
       request = request)
   }
 
-  def failure(errors: List[String], request: FullJobConfiguration): JobResult = {
+  def failure(errors: List[String], request: JobExecutionParams): JobResult = {
     JobResult(
       success = false,
       payload = Map.empty,
@@ -33,6 +33,6 @@ object JobResult {
       request = request)
   }
 
-  def failure(error: String, request: FullJobConfiguration): JobResult =
+  def failure(error: String, request: JobExecutionParams): JobResult =
     failure(List(error), request)
 }

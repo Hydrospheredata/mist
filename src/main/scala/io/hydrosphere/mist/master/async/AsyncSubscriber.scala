@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorRef}
 import akka.pattern.ask
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails, JobResult}
+import io.hydrosphere.mist.jobs.{JobExecutionRequest, JobDetails, JobResult}
 import io.hydrosphere.mist.master.JobDispatcher
 import io.hydrosphere.mist.utils.TypeAlias.JobResponse
 import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
@@ -17,7 +17,10 @@ import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
-private[mist] abstract class AsyncSubscriber extends Actor with MultiReceivable with JobConfigurationJsonSerialization with Logger {
+abstract class AsyncSubscriber extends Actor
+  with MultiReceivable
+  with JobConfigurationJsonSerialization
+  with Logger {
   
   val publisherActor: ActorRef
   val provider: AsyncInterface.Provider
@@ -30,30 +33,33 @@ private[mist] abstract class AsyncSubscriber extends Actor with MultiReceivable 
       processJob(jobDetails)
   }
 
+  //TODO: not implemented!
   def processIncomingMessage(message: String): Unit = {
-    try {
-      try {
-        message.parseJson.convertTo[JobResult]
-        logger.debug(s"Try to parse job result")
-        throw IncomingMessageIsJobResult
-      } catch {
-        case _: DeserializationException => //pass
-      }
-      val jobCreatingRequest = FullJobConfigurationBuilder().fromJson(message).build()
-      logger.info(s"Received new request: $jobCreatingRequest")
-      // Run job asynchronously
-      val jobDetails = JobDetails(jobCreatingRequest, JobDetails.Source.Async(provider))
-      processJob(jobDetails)
-    } catch {
-      case _: spray.json.JsonParser.ParsingException =>
-        logger.error(s"Bad JSON: $message")
-      case _: DeserializationException =>
-        logger.error(s"DeserializationException: Bad type in Json: $message")
-      case IncomingMessageIsJobResult =>
-        logger.debug("Received job result as incoming message")
-      case e: Throwable =>
-        logger.error(e.toString)
-    }
+//    try {
+//      try {
+//        message.parseJson.convertTo[JobResult]
+//        logger.debug(s"Try to parse job result")
+//        throw IncomingMessageIsJobResult
+//      } catch {
+//        case _: DeserializationException => //pass
+//      }
+//      //val jobCreatingRequest = FullJobConfigurationBuilder().fromJson(message).build()
+//      val jobCreatingRequest = message.parseJson.convertTo[JobExecutionRequest]
+//      logger.info(s"Received new request: $jobCreatingRequest")
+//
+//      // Run job asynchronously
+//      val jobDetails = JobDetails(jobCreatingRequest, JobDetails.Source.Async(provider))
+//      processJob(jobDetails)
+//    } catch {
+//      case _: spray.json.JsonParser.ParsingException =>
+//        logger.error(s"Bad JSON: $message")
+//      case _: DeserializationException =>
+//        logger.error(s"DeserializationException: Bad type in Json: $message")
+//      case IncomingMessageIsJobResult =>
+//        logger.debug("Received job result as incoming message")
+//      case e: Throwable =>
+//        logger.error(e.toString)
+//    }
   }
   
   def processJob(jobDetails: JobDetails): Unit = {

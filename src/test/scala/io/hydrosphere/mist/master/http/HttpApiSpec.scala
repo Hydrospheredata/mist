@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.jobs.runners.jar._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import org.mockito.Mockito._
 import org.mockito.Matchers._
@@ -16,18 +16,24 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
   import JsonCodecs._
 
-  it("should serve jobs route") {
+  it("should serve active jobs") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
 
-    val activeJobs = Map("job1" -> JobExecutionStatus())
-    when(master.jobsStatuses()).thenReturn(activeJobs)
+    when(master.activeJobs()).thenReturn(
+      List(
+        JobDetails(
+          JobExecutionParams("path", "MyClass", "namespace", JobParameters.empty, None, None),
+          JobDetails.Source.Http
+        )
+      )
+    )
 
     Get("/internal/jobs") ~> api ~> check {
       status === StatusCodes.OK
 
       val r = responseAs[Map[String, JobExecutionStatus]]
-      r shouldBe Map("job1" -> JobExecutionStatus())
+      r.values should contain (JobExecutionStatus())
     }
   }
 
@@ -96,7 +102,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
       JobDefinition("scalajob", "path_to_jar.jar", "ScalaJob", "namespace"),
       JobsLoader.Common.loadJobClass(testJobClass.getClass.getCanonicalName).get
     )
-    when(master.listRoutes()).thenReturn(Seq(pyInfo, jvmInfo))
+    when(master.listRoutesInfo()).thenReturn(Seq(pyInfo, jvmInfo))
 
     Get("/internal/routers") ~> api ~> check {
       status === StatusCodes.OK
@@ -118,7 +124,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     when(master.startJob(any[String], any[Action], any[JobParameters]))
       .thenReturn(Future.successful(
         JobResult.success(Map("yoyo" -> "hello"),
-        FullJobConfiguration("", "", "", Map.empty, None, None, Action.Execute))
+        JobExecutionParams("", "", "", Map.empty, None, None, Action.Execute))
       ))
 
     Post("/api/my-job", Map("Hello" -> "123")) ~> api ~> check {

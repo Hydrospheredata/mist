@@ -69,7 +69,7 @@ object JobDetails {
 }
 
 case class JobDetails(
-  configuration: FullJobConfiguration,
+  configuration: JobExecutionParams,
   source: JobDetails.Source,
   jobId: String = UUID.randomUUID().toString,
   startTime: Option[Long] = None,

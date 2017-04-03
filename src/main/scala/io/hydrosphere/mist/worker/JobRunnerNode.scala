@@ -5,13 +5,13 @@ import java.util.concurrent.Executors.newFixedThreadPool
 import akka.actor.{Actor, ActorLogging, Address, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobDetails}
+import io.hydrosphere.mist.jobs.{JobExecutionParams, JobDetails}
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutorService}
 import scala.util.Random
 
-class JobRunnerNode(jobRequest: FullJobConfiguration) extends Actor with ActorLogging {
+class JobRunnerNode(jobRequest: JobExecutionParams) extends Actor with ActorLogging {
 
   val executionContext: ExecutionContextExecutorService = ExecutionContext.fromExecutorService(newFixedThreadPool(MistConfig.Settings.threadNumber))
 
@@ -51,5 +51,5 @@ class JobRunnerNode(jobRequest: FullJobConfiguration) extends Actor with ActorLo
 }
 
 object JobRunnerNode {
-  def props(jobConfiguration: FullJobConfiguration): Props = Props(classOf[JobRunnerNode], jobConfiguration)
+  def props(jobConfiguration: JobExecutionParams): Props = Props(classOf[JobRunnerNode], jobConfiguration)
 }

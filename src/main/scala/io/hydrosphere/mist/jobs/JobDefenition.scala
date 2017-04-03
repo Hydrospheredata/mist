@@ -11,7 +11,7 @@ import scala.util._
   * @param className - entryPoint
   * @param nameSpace - job context namespace
   */
-case class JobConfiguration2(
+case class JobConfiguration(
   path: String,
   className: String,
   nameSpace: String
@@ -27,9 +27,9 @@ case class JobDefinition(
   nameSpace: String
 )
 
-object JobConfiguration2 {
+object JobConfiguration {
 
-  def fromConfig(config: Config): Try[JobConfiguration2] = {
+  def fromConfig(config: Config): Try[JobConfiguration] = {
     val extracted = Try {
       Seq(
         config.getString("path"),
@@ -39,7 +39,7 @@ object JobConfiguration2 {
     }
     extracted.flatMap({
       case path :: className :: namespace :: Nil =>
-        Success(JobConfiguration2(path, className, namespace))
+        Success(JobConfiguration(path, className, namespace))
       case _ =>
         val msg = s"Parse job configuration failed, invalid config $config"
         Failure(new IllegalArgumentException(msg))
@@ -51,7 +51,7 @@ object JobDefinition {
 
   import scala.collection.JavaConversions._
 
-  def apply(name: String, configuration: JobConfiguration2): JobDefinition =
+  def apply(name: String, configuration: JobConfiguration): JobDefinition =
     JobDefinition(
       name,
       configuration.path,
@@ -63,7 +63,7 @@ object JobDefinition {
     config.root().keySet()
       .map(name => {
         val part = config.getConfig(name)
-        val parsed = JobConfiguration2.fromConfig(part)
+        val parsed = JobConfiguration.fromConfig(part)
         parsed.map(c => JobDefinition(name, c))
       }).toList
   }

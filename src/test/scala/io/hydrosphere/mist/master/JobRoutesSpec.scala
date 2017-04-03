@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.jobs.{JobConfiguration2, JobDefinition, JobConfiguration}
+import io.hydrosphere.mist.jobs.{JobConfiguration$, JobDefinition, JobConfiguration}
 import org.scalatest.{Matchers, FunSpec}
 
 import scala.util._
@@ -18,12 +18,12 @@ class JobRoutesSpec extends FunSpec with Matchers {
          |  namespace = "namespace"
       """.stripMargin)
 
-      val parsed = JobConfiguration2.fromConfig(cfg)
-      parsed shouldBe Success(JobConfiguration2("jar_path.jar", "MyJob1", "namespace"))
+      val parsed = JobConfiguration.fromConfig(cfg)
+      parsed shouldBe Success(JobConfiguration("jar_path.jar", "MyJob1", "namespace"))
     }
 
     it("should be failed with no params") {
-      val failure = JobConfiguration2.fromConfig(ConfigFactory.empty())
+      val failure = JobConfiguration.fromConfig(ConfigFactory.empty())
       failure.isFailure shouldBe true
     }
 
@@ -34,7 +34,7 @@ class JobRoutesSpec extends FunSpec with Matchers {
           |  className = null
           |  namespace = "namespace"
         """.stripMargin)
-      val failure = JobConfiguration2.fromConfig(cfg)
+      val failure = JobConfiguration.fromConfig(cfg)
       failure.isFailure shouldBe true
     }
   }

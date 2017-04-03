@@ -14,14 +14,8 @@ private[mist] trait JobConfigurationJsonSerialization extends AnyJsonFormatSuppo
     }
   }
 
-  implicit val fullJobConfigurationJsonFormat: RootJsonFormat[FullJobConfiguration] = jsonFormat7(FullJobConfiguration)
-  implicit val restificatedJobConfigurationJsonFormat: RootJsonFormat[RestificatedJobConfiguration] = jsonFormat3(RestificatedJobConfiguration)
+  implicit val jobExecutonRequestF = jsonFormat4(JobExecutionRequest)
+  implicit val jobExecParamsF: RootJsonFormat[JobExecutionParams] = jsonFormat7(JobExecutionParams.apply)
   implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult.apply)
-
-  sealed trait JobConfigError
-
-  case class NoRouteError(reason: String) extends JobConfigError
-
-  case class ConfigError(reason: String) extends JobConfigError
 
 }

@@ -11,7 +11,7 @@ import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.master.cluster.{CliResponder, ClusterManager}
-import io.hydrosphere.mist.master.http.{HttpApi, HttpUi, JobRoutes, MasterService}
+import io.hydrosphere.mist.master.http.{HttpApi, HttpUi}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
@@ -37,20 +37,22 @@ object Master extends App with Logger {
   }
 
   // Start HTTP server if it is on in config
+  val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
+  val jobRoutes = new JobRoutes(routeConfig)
+  val masterService = new MasterService(workerManager, jobRoutes, system)
+
   //TODO: why router configuration in http??
   if (MistConfig.Http.isOn) {
-    val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
-    val jobRoutes = new JobRoutes(routeConfig)
-    val masterService = new MasterService(workerManager, jobRoutes, system)
 
     val api = new HttpApi(masterService)
     val http = HttpUi.route ~ api.route
     Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
   }
 
-
   // Start CLI
-  system.actorOf(CliResponder.props(), name = Constants.Actors.cliResponderName)
+  system.actorOf(
+    CliResponder.props(masterService),
+    name = Constants.Actors.cliResponderName)
 
   AsyncInterface.init(system)
 
@@ -60,7 +62,6 @@ object Master extends App with Logger {
   }
 
   // Start Kafka subscriber
-  logger.debug(MistConfig.Kafka.isOn.toString)
   if (MistConfig.Kafka.isOn) {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }
