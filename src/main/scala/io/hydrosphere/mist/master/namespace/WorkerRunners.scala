@@ -1,7 +1,12 @@
-package io.hydrosphere.mist.master.cluster
+package io.hydrosphere.mist.master.namespace
+
+import java.io.File
+import java.nio.file.Paths
+
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.{MistConfig, Worker}
 
 import scala.language.postfixOps
-import io.hydrosphere.mist.{MistConfig, Worker}
 
 case class WorkerSettings(
   name: String,
@@ -12,12 +17,38 @@ case class WorkerSettings(
 
 trait WorkerRunner {
 
-  protected def run(settings: WorkerSettings): Unit
+  def run(settings: WorkerSettings): Unit
 
   def start(settings: WorkerSettings): Unit = {
     new Thread(new Runnable {
       override def run(): Unit = WorkerRunner.this.run(settings)
     }).start()
+  }
+}
+
+class NewWorkerRunner(sparkHome: String) extends WorkerRunner with Logger {
+
+  import scala.sys.process._
+
+  override def run(settings: WorkerSettings): Unit = {
+    val jarPath = getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath
+    val cmd = Seq(
+      Paths.get(sparkHome, "bin", "spark-submit").toString,
+      "--class", "io.hydrosphere.mist.Worker2",
+      "--driver-java-options",
+      s"""-Dconfig.file=${settings.configFilePath} -Dakka.cluster.roles.1=worker-${settings.name}""",
+      jarPath.toString,
+      settings.name
+    )
+    logger.info(s"Try starting worker with cmd $cmd")
+    val code = cmd.!(new ProcessLogger {
+      override def buffer[T](f: => T): T = f
+
+      override def out(s: => String): Unit = ()
+
+      override def err(s: => String): Unit = ()
+    })
+    logger.info(s"Worker ${settings.name} is stopped with code $code")
   }
 }
 

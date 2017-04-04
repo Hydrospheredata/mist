@@ -39,7 +39,10 @@ object Master extends App with Logger {
   // Start HTTP server if it is on in config
   val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
   val jobRoutes = new JobRoutes(routeConfig)
-  val masterService = new MasterService(workerManager, jobRoutes, system)
+  val masterService = new MasterService(
+    workerManager,
+    jobRoutes,
+    system)
 
   //TODO: why router configuration in http??
   if (MistConfig.Http.isOn) {

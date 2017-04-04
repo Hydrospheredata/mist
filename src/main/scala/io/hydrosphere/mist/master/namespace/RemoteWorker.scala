@@ -1,60 +1,23 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.master.namespace
 
-import java.util.Date
-
-import akka.actor.{ActorRef, Actor, ActorSelection, RootActorPath}
-import akka.cluster.ClusterEvent.{MemberEvent, MemberExited, MemberUp}
-import akka.cluster.{Cluster, Member}
+import akka.actor._
+import akka.cluster._
 import io.hydrosphere.mist.Messages.StopJob
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.master.JobManager.StartJob
-import io.hydrosphere.mist.master.RemoveWorker._
-import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.master.JobManager._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 
 import scala.collection.mutable
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import RemoteWorker._
+
 import scala.util.{Failure, Success}
-
-class Namespace(name: String) {
-
-
-}
-
-
-class RemoteWorkerFrontend(name: String) extends Actor {
-
-  val cluster = Cluster(context.system)
-
-  var worker: Option[ActorSelection] = None
-
-  override def preStart(): Unit = cluster.subscribe(self, classOf[MemberEvent])
-
-  def noWorker: Receive = {
-
-  }
-
-  def withWorker: Receive = {
-
-  }
-
-  def handleMemberEvent: Receive = {
-    case MemberUp(member) if isMyWorker(member) =>
-      val selection = cluster.system.actorSelection(RootActorPath(member.address) / "user"/ workerName)
-      worker = Some(selection)
-
-    case MemberExited(member) if isMyWorker(member) =>
-      worker = None
-  }
-
-  private def isMyWorker(member: Member): Boolean =
-    member.hasRole(workerName)
-
-  private def workerName: String = s"worker-$name"
-}
 
 case class ExecutionUnit(
   requester: ActorRef,
@@ -63,8 +26,8 @@ case class ExecutionUnit(
 
 class RemoteWorker(
   name: String,
-  maxJobs: Int = 1
-) extends Actor with Logger {
+  maxJobs: Int
+) extends Actor with ActorLogging {
 
   import java.util.concurrent.Executors.newFixedThreadPool
 
@@ -79,17 +42,17 @@ class RemoteWorker(
 
   override def receive: Receive = {
     case StartJob(details) =>
-      logger.info(s"Starting job: $details")
+      log.info(s"Starting job: $details")
       val id = details.jobId
       val f = startJob(details)
       activeJobs += id -> ExecutionUnit(sender(), f)
       sender() ! JobStarted(id)
 
     case StopJob(id) =>
-      logger.warn("Stop job id not implemented!")
+      log.warning("Stop job id not implemented!")
 
-    case x: JobStatus =>
-      logger.info(s"Jon execution done. Result $x")
+    case x: JobResponse =>
+      log.info(s"Jon execution done. Result $x")
       activeJobs.get(x.id) match {
 
         case Some(unit) =>
@@ -97,13 +60,12 @@ class RemoteWorker(
           activeJobs -= x.id
 
         case None =>
-          logger.warn(s"Corrupted worker state, unexpected receiving $x")
+          log.warning(s"Corrupted worker state, unexpected receiving {}", x)
       }
-      target ! x
   }
 
   private def startJob(details: JobDetails): Future[JobResponseOrError] = {
-    logger.info(s"Starting job: $details")
+    log.info(s"Starting job: $details")
     val id = details.jobId
 
     val future = Future({
@@ -130,16 +92,18 @@ class RemoteWorker(
     cluster.system.actorSelection(s"$address/user/namespace-$name" )
   }
 }
+object RemoteWorker {
 
-object RemoveWorker {
+  def props(name: String): Props =
+    Props(classOf[RemoteWorker], name, 10)
 
   // internal messages
-  sealed trait JobStatus {
+  sealed trait JobResponse {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: Map[String, Any]) extends JobStatus
-  case class JobFailure(id: String, error: String) extends JobStatus
+  case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
+  case class JobFailure(id: String, error: String) extends JobResponse
 
-  case class JobStarted(id: String) extends JobStatus
+  case class JobStarted(id: String) extends JobResponse
 }
