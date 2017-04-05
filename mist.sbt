@@ -93,7 +93,9 @@ lazy val mist = project.in(file("."))
 
       "com.typesafe" % "config" % "1.3.1",
       "joda-time" % "joda-time" % "2.5",
-      "ch.qos.logback" % "logback-classic" % "1.0.7",
+      "org.slf4j" % "slf4j-api" % "1.7.5",
+      "org.slf4j" % "slf4j-log4j12" % "1.7.5",
+      //"ch.qos.logback" % "logback-classic" % "1.0.7",
 
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
@@ -109,7 +111,7 @@ lazy val mist = project.in(file("."))
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
 
-      "org.mapdb" % "mapdb" % "3.0.2",
+      "org.mapdb" % "mapdb" % "1.0.9",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
       "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
 
@@ -121,7 +123,7 @@ lazy val mist = project.in(file("."))
     ),
 
     libraryDependencies ++= akkaDependencies(scalaVersion.value),
-    //libraryDependencies ++= miniClusterDependencies,
+    libraryDependencies ++= miniClusterDependencies,
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
     // create type-alises for compatibility between spark versions
@@ -265,21 +267,18 @@ def sparkDependencies(v: String) =
     "org.apache.spark" %% "spark-mllib" % v % "provided"
   )
 
-//lazy val miniClusterDependencies =
-//  Seq(
-//    "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
-//    "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
-//    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests" ,
-//    "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
-//    "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
-//    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
-//    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4"
-//  ).map(_.excludeAll(ExclusionRule(organization = "org.mortbay.jetty")))
+lazy val miniClusterDependencies =
+  Seq(
+    "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
+    "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
+    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests" ,
+    "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
+    "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
+    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
+    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4"
+  ).map(_.exclude("javax.servlet", "servlet-api"))
 
 lazy val commonAssemblySettings = Seq(
-  excludedJars in assembly <<= (fullClasspath in assembly) map { _ filter { cp =>
-    List("slf4j-log4j", "log4j-1.2", "commons-cli").exists(cp.data.getName.startsWith)
-  }},
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
     case m if m.startsWith("META-INF") => MergeStrategy.discard

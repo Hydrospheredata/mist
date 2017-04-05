@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import java.io.File
+import java.util.logging.LogManager
 
 import akka.actor.{ActorSystem, Props}
 import akka.http.scaladsl.Http

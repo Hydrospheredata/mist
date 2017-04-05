@@ -11,7 +11,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import scala.collection.mutable
 
 class NamedContext(
-  context: SparkContext,
+  val context: SparkContext,
   namespace: String,
   streamingDuration: Duration,
   publisherConnectionString: String,
