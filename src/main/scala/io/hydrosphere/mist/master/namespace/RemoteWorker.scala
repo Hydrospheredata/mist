@@ -3,12 +3,9 @@ package io.hydrosphere.mist.master.namespace
 import java.io.File
 
 import akka.actor._
-import akka.cluster.Cluster
 import cats.implicits._
 import io.hydrosphere.mist.contexts.NamedContext
-import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{JobExecutionParams, JobDetails, Action}
-import io.hydrosphere.mist.jobs.runners.Runner
+import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.runners.jar.JobsLoader
 import io.hydrosphere.mist.master.namespace.RemoteWorker._
 
@@ -49,22 +46,6 @@ object JobRunner {
     }
   }
 
-  val Old = new JobRunner {
-    override def run(params: JobParams, context: NamedContext): Either[String, Map[String, Any]] = {
-      val jDetails = JobDetails(
-        JobExecutionParams(
-          path = params.filePath,
-          className = params.className,
-          namespace = "fixture",
-          parameters = params.arguments,
-          externalId = None,
-          route = None
-        ), Source.Http
-      )
-      val runner = Runner(jDetails, context)
-      runner.run().swap
-    }
-  }
 }
 
 class RemoteWorker(
@@ -78,7 +59,6 @@ class RemoteWorker(
 
   val activeJobs = mutable.Map[String, ExecutionUnit]()
 
-  //val namedContext = NamedContext(name)
   implicit val jobsContext = ExecutionContext.fromExecutorService(newFixedThreadPool(maxJobs))
 
   override def receive: Receive = {
@@ -119,7 +99,7 @@ class RemoteWorker(
     log.info(s"Starting job: $id")
 
     val future = Future {
-      //namedContext.context.setJobGroup(req.id, req.id)
+      namedContext.context.setJobGroup(req.id, req.id)
       runner.run(req.params, namedContext)
     }
 

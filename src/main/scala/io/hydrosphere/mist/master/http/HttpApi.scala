@@ -75,6 +75,7 @@ class HttpApi(master: MasterService) extends Logger {
     path("api" / Segment) { jobId =>
       post { parameters('train.?, 'serve.?) { (train, serve) =>
         entity(as[JobParameters]) { jobParams =>
+
           complete {
             val action = if (train.isDefined)
               Action.Train
