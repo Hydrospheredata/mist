@@ -1,55 +1,105 @@
 package io.hydrosphere.mist.master.namespace
 
+import java.io.File
+
 import akka.actor._
-import akka.cluster._
-import io.hydrosphere.mist.Messages.StopJob
-import io.hydrosphere.mist.MistConfig
+import akka.cluster.Cluster
+import cats.implicits._
 import io.hydrosphere.mist.contexts.NamedContext
-import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.jobs.{JobExecutionParams, JobDetails, Action}
 import io.hydrosphere.mist.jobs.runners.Runner
-import io.hydrosphere.mist.master.JobManager._
-import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
+import io.hydrosphere.mist.jobs.runners.jar.JobsLoader
+import io.hydrosphere.mist.master.namespace.RemoteWorker._
 
 import scala.collection.mutable
 import scala.concurrent._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import RemoteWorker._
-
 import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
   requester: ActorRef,
-  promise: Future[JobResponseOrError]
+  promise: Future[Either[String, Map[String, Any]]]
 )
+
+trait JobRunner {
+
+  def run(params: JobParams, context: NamedContext): Either[String, Map[String, Any]]
+
+}
+
+object JobRunner {
+
+  //TODO: only jar
+  val Basic = new JobRunner {
+    override def run(
+      params: JobParams,
+      context: NamedContext): Either[String, Map[String, Any]] = {
+      import params._
+
+      val file = new File(filePath)
+      if (!file.exists()) {
+        Left(s"Can not found file: $filePath")
+      } else {
+        context.addJar(params.filePath)
+        val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
+        Either.fromTry(load).flatMap(instance => {
+          instance.run(context.setupConfiguration, arguments)
+        }).leftMap(_.getMessage)
+      }
+    }
+  }
+
+  val Old = new JobRunner {
+    override def run(params: JobParams, context: NamedContext): Either[String, Map[String, Any]] = {
+      val jDetails = JobDetails(
+        JobExecutionParams(
+          path = params.filePath,
+          className = params.className,
+          namespace = "fixture",
+          parameters = params.arguments,
+          externalId = None,
+          route = None
+        ), Source.Http
+      )
+      val runner = Runner(jDetails, context)
+      runner.run().swap
+    }
+  }
+}
 
 class RemoteWorker(
   name: String,
+  namedContext: NamedContext,
+  runner: JobRunner,
   maxJobs: Int
 ) extends Actor with ActorLogging {
 
   import java.util.concurrent.Executors.newFixedThreadPool
 
-  val cluster = Cluster(context.system)
-  val target = targetAddress()
-
   val activeJobs = mutable.Map[String, ExecutionUnit]()
 
-  val jobsContext = ExecutionContext.fromExecutorService(newFixedThreadPool(maxJobs))
-
-  val sparkContext = NamedContext(name)
+  //val namedContext = NamedContext(name)
+  implicit val jobsContext = ExecutionContext.fromExecutorService(newFixedThreadPool(maxJobs))
 
   override def receive: Receive = {
-    case StartJob(details) =>
-      log.info(s"Starting job: $details")
-      val id = details.jobId
-      val f = startJob(details)
-      activeJobs += id -> ExecutionUnit(sender(), f)
-      sender() ! JobStarted(id)
+    case req @ RunJobRequest(id, params) =>
+      if (activeJobs.size == maxJobs) {
+        sender() ! WorkerIsBusy(id)
+      } else {
+        val future = startJob(req)
+        activeJobs += id -> ExecutionUnit(sender(), future)
+        sender() ! JobStarted(id)
+      }
 
-    case StopJob(id) =>
-      log.warning("Stop job id not implemented!")
+    // TODO: test
+    case CancelJobRequest(id) =>
+      activeJobs.get(id) match {
+        case Some(u) =>
+          namedContext.context.cancelJobGroup(id)
+          sender() ! JobIsCancelled(id)
+        case None =>
+          log.warning(s"Can not cancel unknown job $id")
+      }
 
     case x: JobResponse =>
       log.info(s"Jon execution done. Result $x")
@@ -64,20 +114,20 @@ class RemoteWorker(
       }
   }
 
-  private def startJob(details: JobDetails): Future[JobResponseOrError] = {
-    log.info(s"Starting job: $details")
-    val id = details.jobId
+  private def startJob(req: RunJobRequest): Future[Either[String, Map[String, Any]]] = {
+    val id = req.id
+    log.info(s"Starting job: $id")
 
-    val future = Future({
-      val runner = Runner(details, sparkContext)
-      runner.run()
-    })(jobsContext)
+    val future = Future {
+      //namedContext.context.setJobGroup(req.id, req.id)
+      runner.run(req.params, namedContext)
+    }
 
     future.onComplete({
       case Success(result) =>
         result match {
-          case Right(error) => self ! JobFailure(id, error)
-          case Left(value) => self ! JobSuccess(id, value)
+          case Left(error) => self ! JobFailure(id, error)
+          case Right(value) => self ! JobSuccess(id, value)
         }
 
       case Failure(e) =>
@@ -87,15 +137,51 @@ class RemoteWorker(
     future
   }
 
-  private def targetAddress(): ActorSelection = {
-    val address = MistConfig.Akka.Worker.serverList.head
-    cluster.system.actorSelection(s"$address/user/namespace-$name" )
+  override def postStop(): Unit = {
+    namedContext.stop()
   }
+
 }
 object RemoteWorker {
 
-  def props(name: String): Props =
-    Props(classOf[RemoteWorker], name, 10)
+  def props(name: String, context: NamedContext): Props =
+    Props(classOf[RemoteWorker],
+      name, context, JobRunner.Basic, 10)
+
+
+  case class RunJobRequest(
+    id: String,
+    params: JobParams
+  )
+
+  case class JobParams(
+    filePath: String,
+    className: String,
+    arguments: Map[String, Any],
+    action: Action
+  )
+
+  sealed trait RunJobResponse {
+    val id: String
+    val time: Long
+  }
+
+  case class JobStarted(
+    id: String,
+    time: Long = System.currentTimeMillis()
+  ) extends RunJobResponse
+
+  case class WorkerIsBusy(
+    id: String,
+    time: Long = System.currentTimeMillis()
+  ) extends RunJobResponse
+
+
+  case class CancelJobRequest(id: String)
+  case class JobIsCancelled(
+    id: String,
+    time: Long = System.currentTimeMillis()
+  )
 
   // internal messages
   sealed trait JobResponse {
@@ -105,5 +191,4 @@ object RemoteWorker {
   case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
-  case class JobStarted(id: String) extends JobResponse
 }

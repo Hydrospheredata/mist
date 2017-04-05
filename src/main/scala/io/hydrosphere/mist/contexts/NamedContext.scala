@@ -62,7 +62,10 @@ object NamedContext {
     for (keyValue: List[String] <- sparkConfSettings) {
       sparkConf.set(keyValue.head, keyValue(1))
     }
+    NamedContext(namespace, sparkConf)
+  }
 
+  def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
     val duration = MistConfig.Contexts.streamingDuration(namespace)
     //TODO: if there is no global publisher configuration??
     val publisherConf = globalPublisherConfiguration()

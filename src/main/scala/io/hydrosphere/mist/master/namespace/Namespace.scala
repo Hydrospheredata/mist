@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.namespace
 
 import java.io.File
+import java.util.UUID
 
 import akka.pattern._
 import akka.actor._
@@ -29,11 +30,19 @@ class Namespace(
   var jobExecutor: ActorRef = _
 
   def startJob(execParams: JobExecutionParams): Future[JobResult] = onExecutor { ref =>
-    val jobDetails = JobDetails(execParams, JobDetails.Source.Http)
-    logger.info("TRY run job")
+    val request = RunJobRequest(
+      id = s"$name-${execParams.className}-${UUID.randomUUID().toString}",
+      JobParams(
+        filePath = execParams.path,
+        className = execParams.className,
+        arguments = execParams.parameters,
+        action = execParams.action
+      )
+    )
+
     val promise = Promise[JobResult]
     implicit val timeout = Timeout(30.seconds)
-    ref.ask(jobDetails)
+    ref.ask(request)
       .mapTo[ExecutionInfo].flatMap(_.promise.future).onComplete({
         case Success(r) =>
             promise.success(JobResult.success(r, execParams))
@@ -63,14 +72,14 @@ class Namespace(
 }
 
 case class ExecutionInfo(
-  details: JobDetails,
+  request: RunJobRequest,
   promise: Promise[Map[String, Any]]
 )
 
 object ExecutionInfo {
 
-  def apply(details: JobDetails): ExecutionInfo =
-    ExecutionInfo(details, Promise[Map[String, Any]])
+  def apply(req: RunJobRequest): ExecutionInfo =
+    ExecutionInfo(req, Promise[Map[String, Any]])
 
 }
 
@@ -91,23 +100,26 @@ class NamespaceJobExecutor(
   override def receive: Actor.Receive = noWorker
 
   private def noWorker: Receive = {
-    case d: JobDetails =>
-      val info = ExecutionInfo(d)
+    case r: RunJobRequest =>
+      val info = ExecutionInfo(r)
       queue += info
       sender() ! info
 
     case MemberUp(member) if isMyWorker(member) =>
-      log.info(s"Member is up sending jobs $queue")
+      log.info(s"Worker for is up sending jobs ${queue.size}")
       val worker = toWorkerRef(member)
       sendQueued(worker)
       context become withWorker(worker)
-
   }
 
   private def withWorker(w: ActorSelection): Receive = {
-    case d: JobDetails if running.size < maxRunningJobs =>
-      val info = ExecutionInfo(d)
-      sendJob(w, info)
+    case r: RunJobRequest =>
+      val info = ExecutionInfo(r)
+      if (running.size < maxRunningJobs) {
+        sendJob(w, info)
+      } else {
+        queue += info
+      }
       sender() ! info
 
     case started: JobStarted =>
@@ -151,15 +163,13 @@ class NamespaceJobExecutor(
       if queue.nonEmpty
     } yield {
       val info = queue.dequeue()
-      worker ! StartJob(info.details)
-      running += info.details.jobId -> info
-      log.info(s"I SEND $info")
+      sendJob(worker, info)
     }
   }
 
   private def sendJob(to: ActorSelection, info: ExecutionInfo): Unit = {
-    to ! StartJob(info.details)
-    running += info.details.jobId -> info
+    to ! info.request
+    running += info.request.id -> info
   }
 
   private def toWorkerRef(member: Member): ActorSelection = {
