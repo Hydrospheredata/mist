@@ -55,6 +55,8 @@ object ModelDataReader {
       nodes += nodeData("id").toString -> nodeData
     } else if (map.contains("treeID") && map.contains("metadata")) { // ensemble metadata structure detected
       acc += map("treeID").toString -> map
+    } else if (map.contains("clusterIdx") && map.contains("clusterCenter")) { // clusters detected
+      acc += map("clusterIdx").toString -> map("clusterCenter")
     } else {
       acc ++= map
     }

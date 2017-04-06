@@ -137,26 +137,28 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
   def loadTransformer(stageParameters: Metadata, path: String): Transformer = {
     stageParameters.className match {
       case Constants.ML.Models.randomForestClassifier =>
-        val data = ModelDataReader.parse(s"$path/data") map { kv =>
-          kv._1 -> kv._2.asInstanceOf[mutable.Map[String, Any]].toMap
+        val data = ModelDataReader.parse(s"$path/data") map {
+          case (key: String, value: Any) =>
+            key -> value.asInstanceOf[mutable.Map[String, Any]].toMap
         }
-        val treesMetadata = ModelDataReader.parse(s"$path/treesMetadata") map {kv =>
-          val subMap = kv._2.asInstanceOf[Map[String, Any]]
-          var metadata = subMap("metadata").toString.parseJson.convertTo[Metadata]
-          val treeMeta = Metadata(
-            metadata.className,
-            metadata.timestamp,
-            metadata.sparkVersion,
-            metadata.uid,
-            metadata.paramMap,
-            stageParameters.numFeatures,
-            stageParameters.numClasses,
-            stageParameters.numTrees
-          )
-          kv._1 -> Map(
-            "metadata" -> treeMeta,
-            "weights" -> subMap("weights").asInstanceOf[java.lang.Double]
-          )
+        val treesMetadata = ModelDataReader.parse(s"$path/treesMetadata") map {
+          case (key: String, value: Any) =>
+            val subMap = value.asInstanceOf[Map[String, Any]]
+            val metadata = subMap("metadata").toString.parseJson.convertTo[Metadata]
+            val treeMeta = Metadata(
+              metadata.className,
+              metadata.timestamp,
+              metadata.sparkVersion,
+              metadata.uid,
+              metadata.paramMap,
+              stageParameters.numFeatures,
+              stageParameters.numClasses,
+              stageParameters.numTrees
+            )
+            key -> Map(
+              "metadata" -> treeMeta,
+              "weights" -> subMap("weights").asInstanceOf[java.lang.Double]
+            )
         }
         val newParams = stageParameters.paramMap + ("treesMetadata" -> treesMetadata)
         val newMetadata = Metadata(
