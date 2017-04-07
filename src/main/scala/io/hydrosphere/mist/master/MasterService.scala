@@ -15,6 +15,7 @@ import scala.concurrent.Future
 
 class MasterService(
   managerRef: ActorRef,
+  managerRef2: ActorRef,
   val jobRoutes: JobRoutes,
   system: ActorSystem
 ) extends Logger {
@@ -28,7 +29,7 @@ class MasterService(
 
   private val namespaces = {
     val uniq = jobRoutes.listDefinition().map(_.nameSpace).toSet
-    uniq.map(id => id -> new Namespace(id, system)).toMap
+    uniq.map(id => id -> new Namespace(id, managerRef2)).toMap
   }
 
   def activeJobs(): List[JobDetails] = {

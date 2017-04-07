@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.time.LocalDateTime
-
 import akka.actor.{Actor, ActorRef, Props}
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.store.JobRepository

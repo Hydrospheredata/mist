@@ -7,10 +7,11 @@ import cats.implicits._
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.runners.jar.JobsLoader
-import io.hydrosphere.mist.master.namespace.RemoteWorker._
+import io.hydrosphere.mist.master.namespace.WorkerActor._
 
 import scala.collection.mutable
 import scala.concurrent._
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
@@ -27,7 +28,7 @@ trait JobRunner {
 object JobRunner {
 
   //TODO: only jar
-  val Basic = new JobRunner {
+  val ScalaRunner = new JobRunner {
     override def run(
       params: JobParams,
       context: NamedContext): Either[String, Map[String, Any]] = {
@@ -48,7 +49,7 @@ object JobRunner {
 
 }
 
-class RemoteWorker(
+class WorkerActor(
   name: String,
   namedContext: NamedContext,
   runner: JobRunner,
@@ -92,6 +93,10 @@ class RemoteWorker(
         case None =>
           log.warning(s"Corrupted worker state, unexpected receiving {}", x)
       }
+
+    case ReceiveTimeout if activeJobs.isEmpty =>
+      log.info(s"There is no activity on worker: $name. Stopping")
+      context.stop(self)
   }
 
   private def startJob(req: RunJobRequest): Future[Either[String, Map[String, Any]]] = {
@@ -117,17 +122,20 @@ class RemoteWorker(
     future
   }
 
+  override def preStart(): Unit = {
+    context.setReceiveTimeout(15.second)
+  }
+
   override def postStop(): Unit = {
     namedContext.stop()
+    jobsContext.shutdown()
   }
 
 }
-object RemoteWorker {
+object WorkerActor {
 
   def props(name: String, context: NamedContext): Props =
-    Props(classOf[RemoteWorker],
-      name, context, JobRunner.Basic, 10)
-
+    Props(classOf[WorkerActor], name, context, JobRunner.ScalaRunner, 10)
 
   case class RunJobRequest(
     id: String,
@@ -171,4 +179,6 @@ object RemoteWorker {
   case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
+
+  case class WorkerRegistration(name: String, adress: Address)
 }

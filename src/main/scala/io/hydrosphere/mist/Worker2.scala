@@ -1,11 +1,13 @@
 package io.hydrosphere.mist
 
+import akka.cluster.Cluster
 import io.hydrosphere.mist.contexts.NamedContext
-import io.hydrosphere.mist.master.namespace.RemoteWorker
+import io.hydrosphere.mist.master.namespace.{ClusterWorker, WorkerActor}
 import akka.actor.ActorSystem
 import org.apache.spark.SparkConf
 
 object Worker2 extends App {
+
   val name = args(0)
 
   val sparkConf = new SparkConf()
@@ -19,7 +21,11 @@ object Worker2 extends App {
   val context = NamedContext(name, sparkConf)
 
   val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
-  val props = RemoteWorker.props(name, context)
+
+  val props = ClusterWorker.props(
+    name = name,
+    workerProps = WorkerActor.props(name, context)
+  )
   system.actorOf(props, s"worker-$name")
 
 }

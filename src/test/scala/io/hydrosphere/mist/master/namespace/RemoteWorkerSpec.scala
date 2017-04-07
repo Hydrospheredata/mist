@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.Action
-import io.hydrosphere.mist.master.namespace.RemoteWorker._
+import io.hydrosphere.mist.master.namespace.WorkerActor._
 import org.apache.spark.SparkConf
 import org.scalatest._
 
@@ -34,7 +34,7 @@ class RemoteWorkerSpec extends TestKit(ActorSystem("WorkerSpec"))
     val runner = SuccessRunner(Map("answer" -> 42))
 
     val worker = system.actorOf(
-      Props(classOf[RemoteWorker], "test", context, runner, 10)
+      Props(classOf[WorkerActor], "test", context, runner, 10)
     )
 
     worker ! RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
@@ -49,7 +49,7 @@ class RemoteWorkerSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should respond failure") {
     val runner = FailureRunner("Expected error")
     val worker = system.actorOf(
-      Props(classOf[RemoteWorker], "test", context, runner, 10)
+      Props(classOf[WorkerActor], "test", context, runner, 10)
     )
 
     worker ! RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
@@ -65,7 +65,7 @@ class RemoteWorkerSpec extends TestKit(ActorSystem("WorkerSpec"))
     val runner = SuccessRunner(Map("yoyo" -> "hey"))
 
     val worker = system.actorOf(
-      Props(classOf[RemoteWorker], "test", context, runner, 2)
+      Props(classOf[WorkerActor], "test", context, runner, 2)
     )
 
     worker ! RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute))

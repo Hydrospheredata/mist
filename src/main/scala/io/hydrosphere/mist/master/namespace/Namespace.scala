@@ -1,17 +1,13 @@
 package io.hydrosphere.mist.master.namespace
 
-import java.io.File
 import java.util.UUID
 
-import akka.pattern._
 import akka.actor._
-import akka.cluster.ClusterEvent._
-import akka.cluster.{Cluster, Member}
+import akka.pattern._
 import akka.util.Timeout
-import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.jobs.{JobDetails, JobExecutionParams, JobResult}
-import io.hydrosphere.mist.master.JobManager.StartJob
-import io.hydrosphere.mist.master.namespace.RemoteWorker._
+import io.hydrosphere.mist.jobs.{JobExecutionParams, JobResult}
+import io.hydrosphere.mist.master.namespace.WorkerActor._
+import io.hydrosphere.mist.master.namespace.WorkersManager.{WorkerCommand, WorkerDown, WorkerUp}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.mutable
@@ -21,15 +17,12 @@ import scala.util.{Failure, Success}
 
 class Namespace(
   name: String,
-  system: ActorSystem
+  workersManager: ActorRef
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  @volatile
-  var jobExecutor: ActorRef = _
-
-  def startJob(execParams: JobExecutionParams): Future[JobResult] = onExecutor { ref =>
+  def startJob(execParams: JobExecutionParams): Future[JobResult] = {
     val request = RunJobRequest(
       id = s"$name-${execParams.className}-${UUID.randomUUID().toString}",
       JobParams(
@@ -41,11 +34,14 @@ class Namespace(
     )
 
     val promise = Promise[JobResult]
+    // that timeout only for obtaining execution info
     implicit val timeout = Timeout(30.seconds)
-    ref.ask(request)
-      .mapTo[ExecutionInfo].flatMap(_.promise.future).onComplete({
+
+    workersManager.ask(WorkerCommand(name, request))
+      .mapTo[ExecutionInfo]
+      .flatMap(_.promise.future).onComplete({
         case Success(r) =>
-            promise.success(JobResult.success(r, execParams))
+          promise.success(JobResult.success(r, execParams))
         case Failure(e) =>
           promise.success(JobResult.failure(e.getMessage, execParams))
     })
@@ -53,22 +49,6 @@ class Namespace(
     promise.future
   }
 
-  private def onExecutor[T](f: ActorRef => T): T = {
-    if (jobExecutor == null) {
-      val settings = WorkerSettings(
-        name = name,
-        runOptions = MistConfig.Contexts.runOptions(name),
-        configFilePath = System.getProperty("config.file"),
-        jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
-
-      )
-      //TODO ???
-      val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
-      new NewWorkerRunner(sparkHome).start(settings)
-      jobExecutor = system.actorOf(NamespaceJobExecutor.props(name, 10), s"namespace-$name")
-    }
-    f(jobExecutor)
-  }
 }
 
 case class ExecutionInfo(
@@ -88,12 +68,6 @@ class NamespaceJobExecutor(
   maxRunningJobs: Int
 ) extends Actor with ActorLogging {
 
-  val cluster = Cluster(context.system)
-
-  override def preStart(): Unit = {
-    cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
-  }
-
   var queue = mutable.Queue[ExecutionInfo]()
   var running = mutable.HashMap[String, ExecutionInfo]()
 
@@ -105,11 +79,10 @@ class NamespaceJobExecutor(
       queue += info
       sender() ! info
 
-    case MemberUp(member) if isMyWorker(member) =>
-      log.info(s"Worker for is up sending jobs ${queue.size}")
-      val worker = toWorkerRef(member)
+    case WorkerUp(worker) =>
       sendQueued(worker)
       context become withWorker(worker)
+
   }
 
   private def withWorker(w: ActorSelection): Receive = {
@@ -147,13 +120,9 @@ class NamespaceJobExecutor(
       sendQueued(w)
       log.info(s"Job ${failure.id} is failed")
 
-    case MemberExited(member) if isMyWorker(member) =>
+    case WorkerDown =>
+      log.info(s"Worker is down $name")
       context become noWorker
-
-    case UnreachableMember(member) if isMyWorker(member) =>
-      log.info(s"Worker is unreachable $member")
-      context become noWorker
-
   }
 
   private def sendQueued(worker: ActorSelection): Unit = {
@@ -171,15 +140,6 @@ class NamespaceJobExecutor(
     to ! info.request
     running += info.request.id -> info
   }
-
-  private def toWorkerRef(member: Member): ActorSelection = {
-    cluster.system.actorSelection(RootActorPath(member.address) / "user"/ workerName)
-  }
-
-  private def isMyWorker(member: Member): Boolean =
-    member.hasRole(workerName)
-
-  private def workerName: String = s"worker-$name"
 
 }
 
