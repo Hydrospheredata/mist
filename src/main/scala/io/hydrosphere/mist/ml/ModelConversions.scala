@@ -1,9 +1,9 @@
 package io.hydrosphere.mist.ml
 
-import io.hydrosphere.mist.ml.classification.{LocalDecisionTreeClassificationModel, LocalMultilayerPerceptronClassificationModel, LocalNaiveBayes, LocalRandomForestClassificationModel}
-import io.hydrosphere.mist.ml.clustering.{LocalBisectingKMeansModel, LocalGaussianMixtureModel, LocalKMeansModel}
+import io.hydrosphere.mist.ml.classification._
+import io.hydrosphere.mist.ml.clustering._
 import io.hydrosphere.mist.ml.preprocessors._
-import io.hydrosphere.mist.ml.regression.{LocalDecisionTreeRegressionModel, LocalLogisticRegressionModel}
+import io.hydrosphere.mist.ml.regression._
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.clustering._
@@ -33,6 +33,7 @@ object ModelConversions {
         // Preprocessing
       case _: Binarizer.type => LocalBinarizer
       case _: Bucketizer.type => LocalBucketizer
+      case _: CountVectorizerModel.type => LocalCountVectorizerModel
       case _: DCT.type => LocalDCT
       case _: ElementwiseProduct.type => LocalElementwiseProduct
       case _: HashingTF.type => LocalHashingTF
@@ -53,6 +54,7 @@ object ModelConversions {
       case _: VectorAssembler.type => LocalVectorAssembler
       case _: VectorIndexerModel.type => LocalVectorIndexerModel
       case _: VectorSlicer.type => LocalVectorSlicer
+      case _: Word2VecModel.type => LocalWord2VecModel
 
         // Regression
       case _: LogisticRegressionModel.type => LocalLogisticRegressionModel

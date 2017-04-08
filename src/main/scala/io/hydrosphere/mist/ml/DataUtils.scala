@@ -2,12 +2,36 @@ package io.hydrosphere.mist.ml
 
 import breeze.linalg.{DenseVector => BDV, SparseVector => BSV, Vector => BV}
 import org.apache.spark.ml.linalg.{DenseVector, Matrices, Matrix, SparseVector, Vector, Vectors}
+import org.apache.spark.ml.param.{Param, Params}
 import org.apache.spark.ml.tree._
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
 
 
 object DataUtils {
   implicit def mllibVectorToMlVector(v: SVector): SparseVector = new SparseVector(v.size, v.indices, v.values)
+
+  implicit class TypedMap(val parquetMap: Map[String, Any]) {
+    /**
+      * Parquet map looks like
+      * Map (
+      *   key_value -> Map(
+      *     key -> foo
+      *     value -> bar
+      *   )
+      * )
+      *
+      * this class transforms it to Map(foo -> bar)
+      */
+    def toScalaMap[K, V]: Map[K, V] = {
+      parquetMap.map {
+        case (_: String, v: Any) =>
+          val valueMap = v.asInstanceOf[Map[String, Any]]
+          val key = valueMap("key").asInstanceOf[K]
+          val value = valueMap("value").asInstanceOf[V]
+          key -> value
+      }
+    }
+  }
 
   def constructMatrix(params: Map[String, Any]): Matrix = {
     val numRows = params("numRows").asInstanceOf[Int]
@@ -110,19 +134,18 @@ object DataUtils {
   }
 
   def flatConvertMap(map: Map[String, Any]): Map[Int, Map[Double, Int]] = {
-    println(map)
     val res = map.map { kv =>
       val subMap = kv._2.asInstanceOf[Map[String, Any]]
       val key = subMap("key").asInstanceOf[Int]
-      val value = subMap("value").asInstanceOf[Map[String, Any]].map { subKv =>
-        val ssubMap = subKv._2.asInstanceOf[Map[String, Any]]
-        val subKey = ssubMap("key").asInstanceOf[Double]
-        val subValue = ssubMap("value").asInstanceOf[Int]
-        subKey -> subValue
-      }
-      key -> value
+      val value = subMap("value").asInstanceOf[Map[String, Any]]
+//      val value = subMap("value").asInstanceOf[Map[String, Any]].map { subKv =>
+//        val ssubMap = subKv._2.asInstanceOf[Map[String, Any]]
+//        val subKey = ssubMap("key").asInstanceOf[Double]
+//        val subValue = ssubMap("value").asInstanceOf[Int]
+//        subKey -> subValue
+//      }
+      key -> value.toScalaMap[Double, Int]
     }
-    println(res)
     res
   }
 

@@ -6,6 +6,7 @@ Mist experimentally supports local serving of your ML pipelines.
 
 Preprocessing:
   - [Binarizer](./../examples/src/main/scala/BinarizerJob_Spark2.scala)
+  - [CountVectorizerModel](./../examples/src/main/scala/CountVectorizerJob_Spark2.scala)
   - [StandardScaler](./../examples/src/main/scala/StandardScalerJob_Spark2.scala)
   - [StopWordsRemover](./../examples/src/main/scala/StopWordsRemoverJob_Spark2.scala)
   - [StringIndexer](./../examples/src/main/scala/StringIndexerJob_Spark2.scala)
@@ -21,7 +22,8 @@ Preprocessing:
   - [VectorIndexer](./../examples/src/main/scala/DTreeRegressionJob_Spark2.scala)
   - [PolynomialExpansion](./../examples/src/main/scala/PolynomialExpansionJob_Spark2.scala)
   - [Discrete Cosine Transform](./../examples/src/main/scala/DCTJob_Spark2.scala)
-  
+  - [Word2VecModel](./../examples/src/main/scala/Word2VecJob_Spark2.scala)
+
 Classification:
   - [DecisionTreeClassification](./../examples/src/main/scala/DTreeClassificationJob_Spark2.scala)
   - [RandomForestClassification](./../examples/src/main/scala/RandomForestClassificationJob_Spark2.scala)
@@ -29,3 +31,6 @@ Classification:
 Regression:
   - [LogisticRegression](./../examples/src/main/scala/MLClassification_Spark2.scala)
   - [DecisionTreeRegression](./../examples/src/main/scala/DTreeRegressionJob_Spark2.scala)
+
+Clusterisation:
+  - [KMeansModel](./../examples/src/main/scala/KMeansJob_Spark2.scala)
