@@ -1,10 +1,9 @@
-package io.hydrosphere.mist.ml.regression
+package io.hydrosphere.mist.ml.classification
 
 import java.lang.Boolean
 
 import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
-import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.classification.LogisticRegressionModel
 import org.apache.spark.ml.linalg.{Matrix, SparseMatrix, SparseVector, Vector, Vectors}
 import org.apache.spark.mllib.linalg.{SparseVector => SVector}
