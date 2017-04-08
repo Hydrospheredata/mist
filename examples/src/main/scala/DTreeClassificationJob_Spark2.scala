@@ -5,14 +5,6 @@ import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 
 object DTreeClassificationJob extends MLMistJob with SQLSupport {
-  def constructVector(params: Map[String, Any]): Vector = {
-    Vectors.sparse(
-      params("size").asInstanceOf[Int],
-      params("indices").asInstanceOf[List[Int]].toArray[Int],
-      params("values").asInstanceOf[List[Int]].map(_.toDouble).toArray[Double] // why Int? I pass Double though
-    )
-  }
-
   def train(datasetPath: String, savePath: String): Map[String, Any] = {
     val data = session.read.format("libsvm").load(datasetPath)
     val Array(training, _) = data.randomSplit(Array(0.7, 0.3))
@@ -42,12 +34,12 @@ object DTreeClassificationJob extends MLMistJob with SQLSupport {
     model.write.overwrite().save(savePath)
     Map.empty[String, Any]
 }
-  def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
-      LocalDataColumn("features", List(constructVector(features)))
+      LocalDataColumn("features", features.map(_.toArray).map(Vectors.dense))
     )
     val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("predictedLabel").toMapList)

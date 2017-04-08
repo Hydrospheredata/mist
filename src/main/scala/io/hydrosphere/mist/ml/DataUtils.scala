@@ -48,11 +48,15 @@ object DataUtils {
   }
 
   def constructVector(params: Map[String, Any]): Vector = {
-    Vectors.sparse(
-      params("size").asInstanceOf[Int],
-      params("indices").asInstanceOf[List[Int]].toArray[Int],
-      params("values").asInstanceOf[List[Double]].toArray[Double]
-    )
+    if (params.contains("size")) {
+      Vectors.sparse(
+        params("size").asInstanceOf[Int],
+        params("indices").asInstanceOf[List[Int]].toArray[Int],
+        params("values").asInstanceOf[List[Double]].toArray[Double]
+      )
+    } else {
+      Vectors.dense(params("values").asInstanceOf[List[Double]].toArray[Double])
+    }
   }
 
   def createNode(nodeId: Int, metadata: Metadata, treeData: Map[String, Any]): Node = {

@@ -27,9 +27,10 @@ Preprocessing:
 Classification:
   - [DecisionTreeClassification](./../examples/src/main/scala/DTreeClassificationJob_Spark2.scala)
   - [RandomForestClassification](./../examples/src/main/scala/RandomForestClassificationJob_Spark2.scala)
+  - [LogisticRegression](./../examples/src/main/scala/MLClassification_Spark2.scala)
 
 Regression:
-  - [LogisticRegression](./../examples/src/main/scala/MLClassification_Spark2.scala)
+  - [LinearRegression](./../examples/src/main/scala/LinearRegressionJob_Spark2.scala)
   - [DecisionTreeRegression](./../examples/src/main/scala/DTreeRegressionJob_Spark2.scala)
 
 Clusterisation:

@@ -32,7 +32,7 @@ object CountVectorizerJob extends MLMistJob with SQLSupport {
     )
   }
 
-  def serve(modelPath: String, features: List[List[String]]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)

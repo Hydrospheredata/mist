@@ -24,6 +24,7 @@ object ModelConversions {
       case _: MultilayerPerceptronClassificationModel.type => LocalMultilayerPerceptronClassificationModel
       case _: NaiveBayes.type => LocalNaiveBayes
       case _: RandomForestClassificationModel.type => LocalRandomForestClassificationModel
+      case _: LogisticRegressionModel.type => LocalLogisticRegressionModel
 
         // Clustering models
       case _: BisectingKMeansModel.type => LocalBisectingKMeansModel
@@ -57,8 +58,8 @@ object ModelConversions {
       case _: Word2VecModel.type => LocalWord2VecModel
 
         // Regression
-      case _: LogisticRegressionModel.type => LocalLogisticRegressionModel
       case _: DecisionTreeRegressionModel.type => LocalDecisionTreeRegressionModel
+      case _: LinearRegressionModel.type => LocalLinearRegressionModel
 
       case _ => throw new Exception(s"Unknown model: ${m.getClass}")
     }
