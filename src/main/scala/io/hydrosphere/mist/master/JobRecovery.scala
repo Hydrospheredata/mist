@@ -13,15 +13,15 @@ private[mist] object JobRecovery {
   sealed trait Message
   case object StartRecovery extends Message
   
-  def props(): Props = Props(classOf[JobRecovery])
+  def props(): Props = Props(classOf[JobRecovery], JobRepository())
   
 }
 
-private[mist] class JobRecovery extends Actor with Logger {
+private[mist] class JobRecovery(store: JobRepository) extends Actor with Logger {
 
   override def receive: Receive = {
     case StartRecovery =>
-      JobRepository()
+      store
         .filteredByStatuses(List(JobDetails.Status.Running, JobDetails.Status.Queued, JobDetails.Status.Initialized))
         .groupBy(_.source)
         .foreach({
@@ -35,13 +35,13 @@ private[mist] class JobRecovery extends Actor with Logger {
               } else {
                 logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: ${s.provider} is off in config)")
                 jobs.foreach {
-                  job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+                  job => store.update(job.withStatus(JobDetails.Status.Aborted))
                 }
               }
             case s: JobDetails.Source =>
               logger.debug(s"${jobs.length} jobs must be marked as aborted (cause: $s is not async)")
               jobs.foreach {
-                job => JobRepository().update(job.withStatus(JobDetails.Status.Aborted))
+                job => store.update(job.withStatus(JobDetails.Status.Aborted))
               }
           }
         })

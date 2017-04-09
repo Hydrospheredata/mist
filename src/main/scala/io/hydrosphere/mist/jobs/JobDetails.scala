@@ -8,7 +8,17 @@ import org.joda.time.DateTime
 
 object JobDetails {
   
-  sealed trait Status
+  sealed trait Status {
+    val isFinished: Boolean
+  }
+  
+  sealed trait Finished {
+    val isFinished = true
+  }
+  
+  sealed trait NotFinished {
+    val isFinished = false
+  }
   
   object Status {
     
@@ -21,22 +31,22 @@ object JobDetails {
       case "Error" => Error
     }
 
-    case object Initialized extends Status {
+    case object Initialized extends Status with NotFinished {
       override def toString: String = "Initialized"
     }
-    case object Queued extends Status {
+    case object Queued extends Status with NotFinished {
       override def toString: String = "Queued"
     }
-    case object Running extends Status {
+    case object Running extends Status with NotFinished {
       override def toString: String = "Running"
     }
-    case object Stopped extends Status {
+    case object Stopped extends Status with Finished {
       override def toString: String = "Stopped"
     }
-    case object Aborted extends Status {
+    case object Aborted extends Status with Finished {
       override def toString: String = "Aborted"
     }
-    case object Error extends Status {
+    case object Error extends Status with Finished {
       override def toString: String = "Error"
     }
 

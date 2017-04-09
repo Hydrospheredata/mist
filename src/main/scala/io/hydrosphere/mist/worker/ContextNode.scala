@@ -66,8 +66,6 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
       log.info(s"[WORKER] received JobDetails: $jobRequest")
       val originalSender = sender
 
-      val runner = Runner(jobRequest, contextWrapper)
-
       def cancellable[T](f: Future[T])(cancellationCode: => Unit): (() => Unit, Future[T]) = {
         val p = Promise[T]
         val first = Future firstCompletedOf Seq(p.future, f)
@@ -79,37 +77,45 @@ class ContextNode(namespace: String) extends Actor with ActorLogging {
         (cancellation, first)
       }
 
-      val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.Running)
-      originalSender ! startedJobDetails
-      val runnerFuture: Future[JobResponseOrError] = Future {
-        log.info(s"${jobRequest.configuration.namespace}#${jobRequest.jobId} is running")
+      try {
+        val runner = Runner(jobRequest, contextWrapper)
 
-        runner.run()
-      }(executionContext)
+        val startedJobDetails = jobRequest.starts().withStatus(JobDetails.Status.Running)
+        originalSender ! startedJobDetails
+        val runnerFuture: Future[JobResponseOrError] = Future {
+          log.info(s"${jobRequest.configuration.namespace}#${jobRequest.jobId} is running")
 
-      val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
-        jobDescriptions -= jobRequest
-        runner.stop()
-        originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Aborted).withJobResult(Right("Canceled"))
+          runner.run()
+        }(executionContext)
+
+        val (cancel, cancellableRunnerFuture) = cancellable(runnerFuture) {
+          jobDescriptions -= jobRequest
+          runner.stop()
+          originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Aborted).withJobResult(Right("Canceled"))
+        }
+
+        jobDescriptions += jobRequest
+
+        namedJobCancellations += ((jobRequest, cancel))
+
+        cancellableRunnerFuture
+          .recover {
+            case e: Throwable => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(e.toString))
+          }(ExecutionContext.global)
+          .andThen {
+            case _ =>
+              jobDescriptions -= jobRequest
+              if (jobDescriptions.isEmpty) {
+                cancellableWatchDog = scheduleDowntime(workerDowntime)
+              }
+          }(ExecutionContext.global)
+          .andThen {
+            case Success(result: JobResponseOrError) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
+            case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(error.toString))
+          }(ExecutionContext.global)
+      } catch {
+        case exc: Throwable => originalSender ! jobRequest.ends().withStatus(JobDetails.Status.Stopped).withJobResult(Right(exc.toString))
       }
-
-      jobDescriptions += jobRequest
-
-      namedJobCancellations += ((jobRequest, cancel))
-
-      cancellableRunnerFuture
-        .recover {
-          case e: Throwable => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(e.toString))
-        }(ExecutionContext.global)
-        .andThen {
-          case _ =>
-            jobDescriptions -= jobRequest
-            if(jobDescriptions.isEmpty) { cancellableWatchDog = scheduleDowntime(workerDowntime) }
-        }(ExecutionContext.global)
-        .andThen {
-          case Success(result: JobResponseOrError) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Stopped).withJobResult(result)
-          case Failure(error: Throwable) => originalSender ! startedJobDetails.ends().withStatus(JobDetails.Status.Error).withJobResult(Right(error.toString))
-        }(ExecutionContext.global)
 
     case StopWhenAllDo =>
       context.system.scheduler.schedule(FiniteDuration(0, TimeUnit.SECONDS),

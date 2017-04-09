@@ -12,7 +12,7 @@ import scala.language.postfixOps
 object JobDispatcher {
   
   def props()(implicit parentContext: ActorRefFactory): Props = 
-    Props(classOf[JobDispatcher], JobQueue.props(), JobRepository())
+    Props(classOf[JobDispatcher], parentContext.actorOf(JobQueue.props()), JobRepository())
   
 }
 
@@ -39,15 +39,7 @@ class JobDispatcher(jobQueue: ActorRef, store: JobRepository) extends Actor with
   }
   
   def jobStarted(originalSender: ActorRef): Receive = {
-    case job: JobDetails => 
-      logger.debug(s"Job was started at ${new DateTime(job.startTime.getOrElse(0L)).toString}")
-      // Update job in history store
-      store.update(job)
-      context become getResult(originalSender)
-  }
-  
-  def getResult(originalSender: ActorRef): Receive = {
-    case job: JobDetails =>
+    case job: JobDetails if job.status.isFinished =>
       val time = job.endTime.getOrElse(0L) - job.startTime.getOrElse(0L)
       logger.debug(s"Job finished at ${new DateTime(job.endTime.getOrElse(0L)).toString} (${time}ms): $job)")
       // Remove job from queue
@@ -55,8 +47,13 @@ class JobDispatcher(jobQueue: ActorRef, store: JobRepository) extends Actor with
 
       // Update job in history store
       store.update(job)
-    
+
       originalSender ! job
+
+    case job: JobDetails =>
+      logger.debug(s"Job was started at ${new DateTime(job.startTime.getOrElse(0L)).toString}")
+      // Update job in history store
+      store.update(job)
   }
 
   override def postStop(): Unit = {

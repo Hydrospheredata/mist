@@ -13,6 +13,7 @@ Usage:
       --runner <runner>               "local" or "docker" start workers locally or in separate dockers accordingly
       --docker-host <host>            docker daemon host (only for docker runner)
       --docker-port <docker>          docker daemon port (only for docker runner)
+      --java-args <args>              arguments for java i.e. "-Xmx2048m -Xms256m -Dsettings.value=1"
 
   Run single Mist job:
   ./mist start job
@@ -46,6 +47,7 @@ runner="local"
 external_id=""
 run_options=""
 parameters="{}"
+java_arguments=""
 
 if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$2" == "--help" ] || [ "$2" == "-h" ]
 then
@@ -133,6 +135,11 @@ do
       route="$2"
       shift
       ;;
+      
+    --java-args)
+      java_arguments="$2"
+      shift
+      ;;
 
   esac
 
@@ -145,8 +152,8 @@ then
     MAX_VERSION_FILE=""
     for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
     do
-        a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
-        if [[ ${a} > ${MAX_VERSION} ]]
+        a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|' | sed 's|0\{1,\}||') 
+        if [[ ${a} -gt ${MAX_VERSION} ]]
         then
             MAX_VERSION=${a}
             MAX_VERSION_FILE=${jar}
@@ -188,8 +195,8 @@ then
         fi
         if [ "${runner}" == 'local' ]
         then
-            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
+            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${java_arguments} ${run_options} "$jar_file" ${namespace}
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file} ${java_arguments}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
             if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
@@ -226,7 +233,8 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.Master
+        echo java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.Master
+        java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.Master
     fi
 
     if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
