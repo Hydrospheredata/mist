@@ -56,6 +56,8 @@ object ModelConversions {
       case _: VectorIndexerModel.type => LocalVectorIndexerModel
       case _: VectorSlicer.type => LocalVectorSlicer
       case _: Word2VecModel.type => LocalWord2VecModel
+      case _: IDFModel.type => LocalIDF
+      case _: NaiveBayesModel.type => LocalNaiveBayes
 
         // Regression
       case _: DecisionTreeRegressionModel.type => LocalDecisionTreeRegressionModel

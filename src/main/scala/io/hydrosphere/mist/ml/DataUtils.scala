@@ -36,14 +36,28 @@ object DataUtils {
   def constructMatrix(params: Map[String, Any]): Matrix = {
     val numRows = params("numRows").asInstanceOf[Int]
     val numCols = params("numCols").asInstanceOf[Int]
-    val values = params("values").asInstanceOf[Array[Double]]
+    val values = params("values").asInstanceOf[List[Double]].toArray
 
     if (params.contains("colPtrs")) {
       val colPtrs = params("colPtrs").asInstanceOf[Array[Int]]
       val rowIndices = params("rowIndices").asInstanceOf[Array[Int]]
-      Matrices.sparse(numRows, numCols, colPtrs, rowIndices, values)
+      val matrix = Matrices.sparse(numRows, numCols, colPtrs, rowIndices, values)
+
+      if (params.keySet.contains("isTransposed")) {
+        val isTransposed = matrix.getClass.getDeclaredField("isTransposed")
+        isTransposed.setAccessible(true)
+        isTransposed.setBoolean(matrix, params("isTransposed").asInstanceOf[Boolean])
+      }
+      matrix
     } else {
-      Matrices.dense(numRows, numCols, values)
+      val matrix = Matrices.dense(numRows, numCols, values)
+
+      if (params.keySet.contains("isTransposed")) {
+        val isTransposed = matrix.getClass.getDeclaredField("isTransposed")
+        isTransposed.setAccessible(true)
+        isTransposed.setBoolean(matrix, params("isTransposed").asInstanceOf[Boolean])
+      }
+      matrix
     }
   }
 

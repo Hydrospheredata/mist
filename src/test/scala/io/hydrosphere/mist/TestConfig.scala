@@ -68,6 +68,8 @@ object TestConfig {
     val polynomialExpansion = testConfig.getString("mist.test.ml.polynomialexpansion")
     val dct = testConfig.getString("mist.test.ml.dct")
 
+    val naiveBayes = testConfig.getString("mist.test.ml.naivebayes")
+
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")
 
