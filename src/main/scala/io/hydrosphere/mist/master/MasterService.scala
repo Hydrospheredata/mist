@@ -7,7 +7,7 @@ import io.hydrosphere.mist.Messages.{StopAllWorkers, StopJob, StopWorker}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.cluster.ClusterManager
-import io.hydrosphere.mist.master.namespace.Namespace
+import io.hydrosphere.mist.master.namespace.{WorkersManager, Namespace}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias._
 
@@ -36,9 +36,9 @@ class MasterService(
     JobRepository().filteredByStatuses(activeStatuses)
   }
 
-  def workers(): Future[List[WorkerLink]] = {
-    val f = managerRef ? ClusterManager.GetWorkers()
-    f.mapTo[List[WorkerLink]]
+  def workers(): Future[List[String]] = {
+    val f = managerRef2 ? WorkersManager.GetWorkers
+    f.mapTo[List[String]]
   }
 
   def stopAllWorkers(): Future[Unit] = {
@@ -53,9 +53,9 @@ class MasterService(
   }
 
   //TODO: if worker id unknown??
-  def stopWorker(id: String): Future[Unit] = {
-    val f = managerRef ? StopWorker(id)
-    f.map(_ => ())
+  def stopWorker(id: String): Future[String] = {
+    managerRef2 ! StopWorker(id)
+    Future.successful(id)
   }
 
   def listRoutesInfo(): Seq[JobInfo] = jobRoutes.listInfos()
@@ -83,27 +83,6 @@ class MasterService(
         logger.info("WTF?")
         Future.failed(new IllegalStateException("WTF"))
     }
-//    val jobDetails = JobDetails(execParams, JobDetails.Source.Http)
-//    val distributor = system.actorOf(JobDispatcher.props())
-//    val future = distributor.ask(jobDetails)(timeout = 1.minute)
-//    val request = future.mapTo[JobDetails].map(details => {
-//      val result = details.jobResult.getOrElse(Right("Empty result"))
-//      result match {
-//        case Left(payload: JobResponse) =>
-//          JobResult.success(payload, execParams)
-//        case Right(error: String) =>
-//          JobResult.failure(error, execParams)
-//      }
-//    }).recover {
-//      case _: AskTimeoutException =>
-//        JobResult.failure("Job timeout error", execParams)
-//      case error: Throwable =>
-//        JobResult.failure(error.getMessage, execParams)
-//    }
-//
-//    request.onComplete(_ => distributor ! PoisonPill)
-//
-//    request
   }
 
 }

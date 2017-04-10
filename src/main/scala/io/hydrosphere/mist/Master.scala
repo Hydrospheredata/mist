@@ -13,7 +13,7 @@ import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.master.cluster.{CliResponder, ClusterManager}
 import io.hydrosphere.mist.master.http.{HttpApi, HttpUi}
-import io.hydrosphere.mist.master.namespace.WorkersManager
+import io.hydrosphere.mist.master.namespace.{LocalWorkerRunner, WorkersManager}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
@@ -41,7 +41,9 @@ object Master extends App with Logger {
   // Start HTTP server if it is on in config
   val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
   val jobRoutes = new JobRoutes(routeConfig)
-  val workersManager2 = system.actorOf(Props(classOf[WorkersManager]), "workers-manager")
+  val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
+  val workerRunner = new LocalWorkerRunner(sparkHome)
+  val workersManager2 = system.actorOf(WorkersManager.props(workerRunner), "workers-manager")
   val masterService = new MasterService(
     workerManager,
     workersManager2,

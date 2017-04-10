@@ -105,8 +105,8 @@ window.WebMist = {
     this.showLoader();
     Mist.workers(function(data) {
       this.hideLoader();
-      var template = document.getElementById('jobs').innerHTML;
-      this.render(template, {"jobs": data, "uid": function() {return this.namespace}, callback: "killWorker" });
+      var template = document.getElementById('workers').innerHTML;
+      this.render(template, {"workers": data, callback: "killWorker" });
     }.bind(this));
   },
 

@@ -45,7 +45,7 @@ case class Started(
   * @param workerRunner - interface for spawning workers processes
   */
 class WorkersManager(
-  frontendFactory: String => ActorRef,
+  frontendFactory: (String, ActorContext) => ActorRef,
   workerRunner: WorkerRunner
 )extends Actor with ActorLogging {
 
@@ -59,7 +59,7 @@ class WorkersManager(
       state.frontend forward entry
 
     case GetWorkers =>
-      val aliveWorkers = workerStates.collect({case (name, x:Started) => name})
+      val aliveWorkers = workerStates.collect({case (name, x:Started) => name}).toList
       sender() ! aliveWorkers
 
     case StopWorker(name) =>
@@ -71,15 +71,11 @@ class WorkersManager(
       })
 
     case r @ WorkerRegistration(name, address) =>
-      workerStates.get(name) match {
-        case Some(s) =>
-          val backend = cluster.system.actorSelection(RootActorPath(address) / "user" / s"worker-$name")
-          workerStates += name -> Started(s.frontend, address, backend)
-          s.frontend ! WorkerUp(backend)
-
-        case None =>
-          log.info(s"Received unexpected registration $r")
-      }
+      val s = getWorkerState(name)
+      val backend = cluster.system.actorSelection(RootActorPath(address) / "user" / s"worker-$name")
+      workerStates += name -> Started(s.frontend, address, backend)
+      s.frontend ! WorkerUp(backend)
+      log.info(s"Worker with $name is registered on $address")
 
     case UnreachableMember(m) =>
       workerNameFromMember(m).foreach(name => {
@@ -157,6 +153,13 @@ class WorkersManager(
 }
 
 object WorkersManager {
+
+  def props(workerRunner: WorkerRunner): Props = {
+    val frontendFactory = (name: String, context: ActorContext) => {
+      context.actorOf(NamespaceJobExecutor.props(name, 10), s"frontend-$name")
+    }
+    Props(classOf[WorkersManager], frontendFactory, workerRunner)
+  }
 
   case class WorkerCommand(name: String, message: Any)
 

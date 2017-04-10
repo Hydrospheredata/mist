@@ -53,6 +53,7 @@ class WorkerActor(
   name: String,
   namedContext: NamedContext,
   runner: JobRunner,
+  idleTimeout: Duration,
   maxJobs: Int
 ) extends Actor with ActorLogging {
 
@@ -123,7 +124,7 @@ class WorkerActor(
   }
 
   override def preStart(): Unit = {
-    context.setReceiveTimeout(15.second)
+    context.setReceiveTimeout(idleTimeout)
   }
 
   override def postStop(): Unit = {
@@ -134,8 +135,13 @@ class WorkerActor(
 }
 object WorkerActor {
 
-  def props(name: String, context: NamedContext): Props =
-    Props(classOf[WorkerActor], name, context, JobRunner.ScalaRunner, 10)
+  def props(
+    name: String,
+    context: NamedContext,
+    idleTimeout: Duration,
+    maxJobs: Int
+  ): Props =
+    Props(classOf[WorkerActor], name, context, JobRunner.ScalaRunner, idleTimeout, 10)
 
   case class RunJobRequest(
     id: String,

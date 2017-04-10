@@ -31,14 +31,14 @@ class CliResponder(masterService: MasterService) extends Actor with Logger {
       sender ! description
 
     case ListWorkers() =>
-      val originalSender = sender()
-      masterService.workers().onComplete {
-        case Success(workers) =>
-          originalSender ! workers.map(WorkerDescription(_))
-        case Failure(e) =>
-          logger.error("Error on getting workers for CLI", e)
-          originalSender ! List.empty[WorkerDescription]
-      }
+//      val originalSender = sender()
+//      masterService.workers().onComplete {
+//        case Success(workers) =>
+//          originalSender ! workers.map(WorkerDescription(_))
+//        case Failure(e) =>
+//          logger.error("Error on getting workers for CLI", e)
+//          originalSender ! List.empty[WorkerDescription]
+//      }
 
     case ListJobs() =>
       sender ! masterService.activeJobs().map(JobDescription(_))

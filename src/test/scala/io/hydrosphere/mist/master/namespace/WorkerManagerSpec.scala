@@ -1,54 +1,79 @@
 package io.hydrosphere.mist.master.namespace
 
-import akka.actor.Actor.Receive
-import akka.actor.{Address, Actor, Props, ActorSystem}
-import akka.cluster.Cluster
+import akka.pattern._
+import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
+import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.master.namespace.ClusterWorker.WorkerRegistration
-import io.hydrosphere.mist.master.namespace.WorkerActor.{JobParams, JobSuccess, JobStarted, RunJobRequest}
-import io.hydrosphere.mist.master.namespace.WorkersManager.WorkerCommand
-import org.scalatest.{FunSpecLike, FunSpec}
+import io.hydrosphere.mist.master.namespace.WorkerActor.{JobParams, JobStarted, JobSuccess, RunJobRequest}
+import io.hydrosphere.mist.master.namespace.WorkerManagerSpec._
+import io.hydrosphere.mist.master.namespace.WorkersManager.{GetWorkers, WorkerCommand}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{FunSpecLike, Matchers}
 
-import WorkerManagerSpec._
-
-import scala.concurrent.Promise
+import scala.concurrent.duration._
+import scala.util.Success
 
 class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with ImplicitSender
-  with FunSpecLike {
+  with FunSpecLike
+  with Matchers
+  with Eventually {
 
   val NothingRunner = new WorkerRunner {
     override def run(settings: WorkerSettings): Unit = {}
   }
 
+  implicit override val patienceConfig =
+    PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(5, Millis)))
 
-  it("should yoyo") {
-    val frontendFactory = (name: String) => {
-      system.actorOf(Props(classOf[FrontendFixture]))
-    }
-
-    val manager = system.actorOf(
-      Props(classOf[WorkersManager],
-        frontendFactory,
-        NothingRunner))
+  it("should connect frond and back") {
+    val manager = system.actorOf(WorkersManager.props(NothingRunner))
 
     val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
     manager ! WorkerCommand("test", RunJobRequest("id", params))
 
-    expectMsgType[ExecutionInfo]
+    val info = receiveOne(1.second).asInstanceOf[ExecutionInfo]
+    info.request.id shouldBe "id"
+    info.promise.future.isCompleted shouldBe false
+
+    // create fixture for backend worker
+    system.actorOf(Props(classOf[WorkerFixture]), "worker-test")
+    manager ! WorkerRegistration("test", Address("akka.tcp", systemName, "127.0.0.1", 2551))
+
+    eventually(timeout(Span(5, Seconds))) {
+      info.promise.future.isCompleted shouldBe true
+      info.promise.future.value shouldBe Some(Success(Map("r" -> "ok")))
+    }
   }
 
-  class FrontendFixture extends Actor {
-    override def receive: Actor.Receive = {
-      case r @ RunJobRequest(id, params) =>
-        val result = Promise[Map[String, Any]]
-        result.success(Map("r" -> "ok"))
+  it("should return active workers") {
+    val manager = system.actorOf(WorkersManager.props(NothingRunner))
 
-        val jobDone = ExecutionInfo(r, result)
-        //sender() ! jobDone
+    manager ! GetWorkers
+    expectMsg(List.empty[String])
+
+    manager ! WorkerRegistration("test1", Address("akka.tcp", systemName, "127.0.0.1", 2551))
+    manager ! WorkerRegistration("test2", Address("akka.tcp", systemName, "127.0.0.1", 2551))
+
+    manager ! GetWorkers
+    expectMsgPF(){
+      case workers: List[_] =>
+        workers should contain allOf("test1", "test2")
     }
+  }
+
+}
+
+class WorkerFixture extends Actor {
+
+  override def receive: Actor.Receive = {
+    case r @ RunJobRequest(id, params) =>
+      sender() ! JobStarted(id)
+      sender() ! JobSuccess(id, Map("r" -> "ok"))
   }
 }
 

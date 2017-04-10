@@ -46,12 +46,11 @@ class ClusterWorker(
       context.stop(self)
       cluster.system.shutdown()
 
+    case x if !x.isInstanceOf[MemberEvent] =>
+      worker forward x
+
     case x =>
-      if (x.isInstanceOf[MemberEvent]) {
-        log.info(s"MEMBER EVENT! $x")
-      } else {
-        worker forward x
-      }
+      log.debug(s"Worker interface received $x")
   }
 
   private def toManagerSelection(address: Address): ActorSelection =

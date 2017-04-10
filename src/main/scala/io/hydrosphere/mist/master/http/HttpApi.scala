@@ -30,6 +30,8 @@ class HttpApi(master: MasterService) extends Logger {
   import JsonCodecs._
   import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   val route: Route = {
     path("internal" / "jobs") {
       get { complete {
@@ -50,15 +52,13 @@ class HttpApi(master: MasterService) extends Logger {
     } ~
     path("internal" / "workers") {
       delete { completeU {
-        logger.info("STOP ALL")
         master.stopAllWorkers()
       }}
     } ~
     path("internal" / "workers" / Segment) { workerId =>
       delete {
-        completeU {
-          logger.info("STOP CERTAIN")
-          master.stopWorker(workerId)
+        complete {
+          master.stopWorker(workerId).map(_ => Map("id" -> workerId ))
         }
       }
     } ~

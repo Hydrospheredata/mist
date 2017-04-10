@@ -55,9 +55,8 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
     when(master.workers()).thenReturn(
       Future.successful(
-        List(
-          WorkerLink("uid", "name", "address", blackSpot = false)
-      )))
+        List("name")
+      ))
 
     Get("/internal/workers") ~> api ~> check {
       status === StatusCodes.OK
@@ -71,7 +70,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
 
-    when(master.stopWorker(any[String])).thenReturn(Future.successful(()))
+    when(master.stopWorker(any[String])).thenReturn(Future.successful("id"))
 
     Delete("/internal/workers/id") ~> api ~> check {
       status === StatusCodes.OK
