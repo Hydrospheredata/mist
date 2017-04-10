@@ -8,7 +8,7 @@ import io.hydrosphere.mist.master.namespace.WorkerActor._
 import org.apache.spark.SparkConf
 import org.scalatest._
 
-class RemoteWorkerSpec extends TestKit(ActorSystem("WorkerSpec"))
+class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
   with ImplicitSender
   with Matchers

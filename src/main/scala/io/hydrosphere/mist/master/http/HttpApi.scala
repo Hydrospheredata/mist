@@ -19,6 +19,7 @@ import scala.language.reflectiveCalls
 import scala.util.{Failure, Success}
 
 case class JobExecutionStatus(
+  id: String,
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized
@@ -34,20 +35,14 @@ class HttpApi(master: MasterService) extends Logger {
 
   val route: Route = {
     path("internal" / "jobs") {
-      get { complete {
-        val exectionStatuses = master.activeJobs()
-          .map(details => {
-            details.jobId -> JobExecutionStatus(details.startTime, details.endTime, details.status)
-          }).toMap
-        exectionStatuses
-      }}
+      get { complete (master.activeJobs())}
     } ~
-    path("internal" / "jobs" / Segment) { jobId =>
+    path("internal" / "jobs" / Segment / Segment) { (namespace, jobId) =>
       delete {
-        completeU { master.stopJob(jobId) }
+        completeU { master.stopJob(namespace, jobId) }
       }
     } ~
-    path("internal" / "workers") {
+    path("internal" / "workers" ) {
       get { complete(master.workers()) }
     } ~
     path("internal" / "workers") {

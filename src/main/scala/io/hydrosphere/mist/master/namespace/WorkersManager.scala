@@ -2,16 +2,23 @@ package io.hydrosphere.mist.master.namespace
 
 import java.io.File
 
+import akka.pattern._
 import akka.actor._
 import akka.cluster.ClusterEvent._
 import akka.cluster._
+import akka.util.Timeout
 import io.hydrosphere.mist.Messages.StopWorker
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.master.namespace.ClusterWorker.WorkerRegistration
-import io.hydrosphere.mist.master.namespace.WorkersManager.{GetWorkers, WorkerCommand, WorkerDown, WorkerUp}
+import io.hydrosphere.mist.master.http.JobExecutionStatus
+import io.hydrosphere.mist.master.namespace.NamespaceJobExecutor.GetActiveJobs
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration._
+
+import WorkerMessages._
 
 /**
   * Worker state: Down, Initialized, Started
@@ -41,6 +48,7 @@ case class Started(
 
 /**
   * Manager for workers lifecycle
+  *
   * @param frontendFactory - function for obtaining frontendActors (for testing purposes)
   * @param workerRunner - interface for spawning workers processes
   */
@@ -56,11 +64,19 @@ class WorkersManager(
   override def receive: Receive = {
     case WorkerCommand(name, entry) =>
       val state = getWorkerState(name)
+      log.info(s"FORWARD! $name $entry to ${state.frontend}")
       state.frontend forward entry
 
     case GetWorkers =>
       val aliveWorkers = workerStates.collect({case (name, x:Started) => name}).toList
       sender() ! aliveWorkers
+
+    case GetActiveJobs =>
+      implicit val timeout = Timeout(1.second)
+      val allRequests = workerStates.values
+        .map(state => (state.frontend ? GetActiveJobs).mapTo[List[JobExecutionStatus]])
+      val future = Future.sequence(allRequests).map(_.flatten.toList)
+      future pipeTo sender()
 
     case StopWorker(name) =>
       workerStates.get(name).foreach({
@@ -91,7 +107,7 @@ class WorkersManager(
   private def workerNameFromMember(m: Member): Option[String] = {
     m.getRoles
       .find(_.startsWith("worker-"))
-      .map(_.replace("worker_", ""))
+      .map(_.replace("worker-", ""))
   }
 
   private def setWorkerDown(name: String): Unit = {
@@ -129,9 +145,6 @@ class WorkersManager(
       jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
     )
     workerRunner.run(settings)
-//    //TODO ???
-//    val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
-//    new LocalWorkerRunner(sparkHome).run(settings)
   }
 
   private def defaultWorkerState(name: String): WorkerState = {
@@ -161,11 +174,4 @@ object WorkersManager {
     Props(classOf[WorkersManager], frontendFactory, workerRunner)
   }
 
-  case class WorkerCommand(name: String, message: Any)
-
-  case object GetWorkers
-  case class StopWorker(name: String)
-
-  case class WorkerUp(ref: ActorSelection)
-  case object WorkerDown
 }

@@ -5,9 +5,9 @@ import java.io.File
 import akka.actor._
 import cats.implicits._
 import io.hydrosphere.mist.contexts.NamedContext
-import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.runners.jar.JobsLoader
-import io.hydrosphere.mist.master.namespace.WorkerActor._
+import io.hydrosphere.mist.master.namespace.JobMessages._
+import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.mutable
 import scala.concurrent._
@@ -28,7 +28,7 @@ trait JobRunner {
 object JobRunner {
 
   //TODO: only jar
-  val ScalaRunner = new JobRunner {
+  val ScalaRunner = new JobRunner with Logger {
     override def run(
       params: JobParams,
       context: NamedContext): Either[String, Map[String, Any]] = {
@@ -38,12 +38,24 @@ object JobRunner {
       if (!file.exists()) {
         Left(s"Can not found file: $filePath")
       } else {
-        context.addJar(params.filePath)
-        val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
-        Either.fromTry(load).flatMap(instance => {
-          instance.run(context.setupConfiguration, arguments)
-        }).leftMap(_.getMessage)
+        try {
+          context.addJar(params.filePath)
+          val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
+          Either.fromTry(load).flatMap(instance => {
+            instance.run(context.setupConfiguration, arguments)
+          }).leftMap(e => buildErrorMessage(params, e))
+        } catch {
+          case e: Throwable =>
+            logger.error("WTD?", e)
+            Left(e.getMessage)
+        }
       }
+    }
+
+    private def buildErrorMessage(params: JobParams, e: Throwable): String = {
+      val msg = Option(e.getMessage).getOrElse("")
+      val line = e.getStackTrace.headOption.map(e => e.toString).getOrElse("")
+      s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace head $line"
     }
   }
 
@@ -75,9 +87,12 @@ class WorkerActor(
 
     // TODO: test
     case CancelJobRequest(id) =>
+      log.info(s"TRY CANCEL JOB $id")
       activeJobs.get(id) match {
         case Some(u) =>
+          log.info(s"TRY CANCEL JOB 2 $id")
           namedContext.context.cancelJobGroup(id)
+          log.info(s"TRY CANCEL JOB 3 $id")
           sender() ! JobIsCancelled(id)
         case None =>
           log.warning(s"Can not cancel unknown job $id")
@@ -86,7 +101,6 @@ class WorkerActor(
     case x: JobResponse =>
       log.info(s"Jon execution done. Result $x")
       activeJobs.get(x.id) match {
-
         case Some(unit) =>
           unit.requester forward x
           activeJobs -= x.id
@@ -112,11 +126,14 @@ class WorkerActor(
     future.onComplete({
       case Success(result) =>
         result match {
-          case Left(error) => self ! JobFailure(id, error)
+          case Left(error) =>
+            log.info(s"ERRROROR $error")
+            self ! JobFailure(id, error)
           case Right(value) => self ! JobSuccess(id, value)
         }
 
       case Failure(e) =>
+        log.error(e, "WTF??")
         self ! JobFailure(id, e.getMessage)
     })
 
@@ -143,48 +160,4 @@ object WorkerActor {
   ): Props =
     Props(classOf[WorkerActor], name, context, JobRunner.ScalaRunner, idleTimeout, 10)
 
-  case class RunJobRequest(
-    id: String,
-    params: JobParams
-  )
-
-  case class JobParams(
-    filePath: String,
-    className: String,
-    arguments: Map[String, Any],
-    action: Action
-  )
-
-  sealed trait RunJobResponse {
-    val id: String
-    val time: Long
-  }
-
-  case class JobStarted(
-    id: String,
-    time: Long = System.currentTimeMillis()
-  ) extends RunJobResponse
-
-  case class WorkerIsBusy(
-    id: String,
-    time: Long = System.currentTimeMillis()
-  ) extends RunJobResponse
-
-
-  case class CancelJobRequest(id: String)
-  case class JobIsCancelled(
-    id: String,
-    time: Long = System.currentTimeMillis()
-  )
-
-  // internal messages
-  sealed trait JobResponse {
-    val id: String
-  }
-
-  case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
-  case class JobFailure(id: String, error: String) extends JobResponse
-
-
-  case class WorkerRegistration(name: String, adress: Address)
 }

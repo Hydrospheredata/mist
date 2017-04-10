@@ -5,14 +5,19 @@ import java.util.UUID
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
-import io.hydrosphere.mist.jobs.{JobExecutionParams, JobResult}
-import io.hydrosphere.mist.master.namespace.WorkerActor._
-import io.hydrosphere.mist.master.namespace.WorkersManager.{WorkerCommand, WorkerDown, WorkerUp}
+import io.hydrosphere.mist.jobs.{JobDetails, JobExecutionParams, JobResult}
+import io.hydrosphere.mist.master.http.JobExecutionStatus
+import io.hydrosphere.mist.master.namespace.JobMessages.RunJobRequest
+import io.hydrosphere.mist.master.namespace.NamespaceJobExecutor.GetActiveJobs
 import io.hydrosphere.mist.utils.Logger
+
+import JobMessages._
+import WorkerMessages._
 
 import scala.collection.mutable
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 class Namespace(
@@ -24,7 +29,7 @@ class Namespace(
 
   def startJob(execParams: JobExecutionParams): Future[JobResult] = {
     val request = RunJobRequest(
-      id = s"$name-${execParams.className}-${UUID.randomUUID().toString}",
+      id = UUID.randomUUID().toString,
       JobParams(
         filePath = execParams.path,
         className = execParams.className,
@@ -53,13 +58,20 @@ class Namespace(
 
 case class ExecutionInfo(
   request: RunJobRequest,
-  promise: Promise[Map[String, Any]]
-)
+  promise: Promise[Map[String, Any]],
+  var status: JobDetails.Status
+) {
+
+  def updateStatus(s: JobDetails.Status): ExecutionInfo = {
+    this.status = s
+    this
+  }
+}
 
 object ExecutionInfo {
 
-  def apply(req: RunJobRequest): ExecutionInfo =
-    ExecutionInfo(req, Promise[Map[String, Any]])
+  def apply(req: RunJobRequest, status: JobDetails.Status): ExecutionInfo =
+    ExecutionInfo(req, Promise[Map[String, Any]], status)
 
 }
 
@@ -68,77 +80,120 @@ class NamespaceJobExecutor(
   maxRunningJobs: Int
 ) extends Actor with ActorLogging {
 
-  var queue = mutable.Queue[ExecutionInfo]()
-  var running = mutable.HashMap[String, ExecutionInfo]()
+  val queue = mutable.Queue[ExecutionInfo]()
+  val jobs = mutable.HashMap[String, ExecutionInfo]()
+
+  var counter = 0
 
   override def receive: Actor.Receive = noWorker
 
-  private def noWorker: Receive = {
+  val common: Receive = {
+    case GetActiveJobs =>
+      sender() ! jobs.values
+        .map(i => JobExecutionStatus(i.request.id))
+  }
+
+  private def noWorker: Receive = common orElse {
     case r: RunJobRequest =>
-      val info = ExecutionInfo(r)
-      queue += info
+      val info = queueRequest(r)
       sender() ! info
 
     case WorkerUp(worker) =>
       sendQueued(worker)
       context become withWorker(worker)
 
+    case CancelJobRequest(id) =>
+      jobs.get(id).foreach(info => {
+        queue.dequeueFirst(_.request.id == id)
+        jobs -= id
+        sender() ! JobIsCancelled(id)
+      })
   }
 
-  private def withWorker(w: ActorSelection): Receive = {
+  private def withWorker(worker: ActorSelection): Receive = common orElse {
     case r: RunJobRequest =>
-      val info = ExecutionInfo(r)
-      if (running.size < maxRunningJobs) {
-        sendJob(w, info)
-      } else {
-        queue += info
+      val info = queueRequest(r)
+      if (counter < maxRunningJobs) {
+        sendJob(worker, info)
+        counter = counter + 1
       }
       sender() ! info
 
-    case started: JobStarted =>
-      log.info(s"Job has been started ${started.id}")
+    case JobStarted(id, _) =>
+      jobs.get(id).foreach(info => {
+        log.info(s"Job has been started $id")
+        info.updateStatus(JobDetails.Status.Running)
+      })
 
-    case success: JobSuccess =>
-      running.get(success.id) match {
-        case Some(i) =>
-          i.promise.success(success.result)
-          running -= success.id
-        case None =>
-          log.warning(s"WTF? $success")
-      }
-      log.info(s"Job ${success.id} ended")
-      sendQueued(w)
-
-    case failure: JobFailure =>
-      running.get(failure.id) match {
-        case Some(i) =>
-          i.promise.failure(new RuntimeException(failure.error))
-          running -= failure.id
-        case None =>
-          log.warning(s"WTF? $failure")
-      }
-      sendQueued(w)
-      log.info(s"Job ${failure.id} is failed")
+    case done: JobResponse =>
+      onJobDone(done)
+      sendQueued(worker)
 
     case WorkerDown =>
       log.info(s"Worker is down $name")
       context become noWorker
+
+    case req @ CancelJobRequest(id) =>
+      jobs.get(id).foreach(i => {
+        val originSender = sender()
+        if (i.status == JobDetails.Status.Queued) {
+          cancelQueuedJob(originSender, id)
+        } else if (i.status == JobDetails.Status.Running) {
+          cancelRunningJob(originSender, worker, id)
+        }
+      })
+  }
+
+  private def cancelRunningJob(sender: ActorRef, worker: ActorSelection, id: String): Unit = {
+    implicit val timeout = Timeout(5.seconds)
+    val f = (worker ? CancelJobRequest(id)).mapTo[JobIsCancelled]
+    f.onSuccess({
+      case x @ JobIsCancelled(id, time) =>
+        jobs -= id
+        sender ! x
+    })
+  }
+
+  private def cancelQueuedJob(sender: ActorRef, id: String): Unit = {
+    queue.dequeueFirst(_.request.id == id)
+    jobs -= id
+    sender ! JobIsCancelled(id)
+  }
+
+  private def onJobDone(resp: JobResponse): Unit = {
+    jobs.remove(resp.id).foreach(info => {
+      log.info(s"Job ${info.request} id done with result $resp")
+      counter = counter -1
+      resp match {
+        case JobFailure(_, error) =>
+          info.promise.failure(new RuntimeException(error))
+        case JobSuccess(_, r) =>
+          info.promise.success(r)
+      }
+    })
+  }
+
+  private def queueRequest(req: RunJobRequest): ExecutionInfo = {
+    val info = ExecutionInfo(req, JobDetails.Status.Queued)
+    queue += info
+    jobs += req.id -> info
+    info
   }
 
   private def sendQueued(worker: ActorSelection): Unit = {
-    val max = maxRunningJobs - running.size
+    val max = maxRunningJobs - counter
     for {
       _ <- 1 to max
       if queue.nonEmpty
     } yield {
       val info = queue.dequeue()
       sendJob(worker, info)
+      counter = counter + 1
     }
   }
 
-  private def sendJob(to: ActorSelection, info: ExecutionInfo): Unit = {
-    to ! info.request
-    running += info.request.id -> info
+  private def sendJob(worker: ActorSelection, info: ExecutionInfo): Unit = {
+    worker ! info.request
   }
 
 }
@@ -147,6 +202,9 @@ object NamespaceJobExecutor {
 
   def props(name: String, maxRunningJobs: Int): Props =
     Props(classOf[NamespaceJobExecutor], name, maxRunningJobs)
+
+
+  case object GetActiveJobs
 }
 
 

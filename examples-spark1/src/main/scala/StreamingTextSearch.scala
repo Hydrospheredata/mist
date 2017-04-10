@@ -16,11 +16,11 @@ object StreamingTextSearch extends MistJob with StreamingSupport with Publisher{
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
 
     filtredStream.foreachRDD{ (rdd, time) =>
-      publisher.publish(Map(
-        "time" -> time,
-        "length" -> rdd.collect().length,
-        "collection" -> rdd.collect().toList.toString
-      ).toString())
+//      publisher.publish(Map(
+//        "time" -> time,
+//        "length" -> rdd.collect().length,
+//        "collection" -> rdd.collect().toList.toString
+//      ).toString())
     }
 
     ssc.start()

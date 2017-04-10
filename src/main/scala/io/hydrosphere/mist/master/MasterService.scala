@@ -7,7 +7,11 @@ import io.hydrosphere.mist.Messages.{StopAllWorkers, StopJob, StopWorker}
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.store.JobRepository
 import io.hydrosphere.mist.master.cluster.ClusterManager
-import io.hydrosphere.mist.master.namespace.{WorkersManager, Namespace}
+import io.hydrosphere.mist.master.http.JobExecutionStatus
+import io.hydrosphere.mist.master.namespace.JobMessages.CancelJobRequest
+import io.hydrosphere.mist.master.namespace.NamespaceJobExecutor.GetActiveJobs
+import io.hydrosphere.mist.master.namespace.WorkerMessages.WorkerCommand
+import io.hydrosphere.mist.master.namespace.{WorkerMessages, WorkersManager, Namespace}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias._
 
@@ -23,21 +27,20 @@ class MasterService(
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
 
-  implicit val timeout = Timeout(1.second)
-
-  private val activeStatuses = List(JobDetails.Status.Running, JobDetails.Status.Queued)
+  implicit val timeout = Timeout(5.second)
 
   private val namespaces = {
     val uniq = jobRoutes.listDefinition().map(_.nameSpace).toSet
     uniq.map(id => id -> new Namespace(id, managerRef2)).toMap
   }
 
-  def activeJobs(): List[JobDetails] = {
-    JobRepository().filteredByStatuses(activeStatuses)
+  def activeJobs(): Future[List[JobExecutionStatus]] = {
+    val future = managerRef2 ? GetActiveJobs
+    future.mapTo[List[JobExecutionStatus]]
   }
 
   def workers(): Future[List[String]] = {
-    val f = managerRef2 ? WorkersManager.GetWorkers
+    val f = managerRef2 ? WorkerMessages.GetWorkers
     f.mapTo[List[String]]
   }
 
@@ -46,9 +49,9 @@ class MasterService(
     f.map(_ => ())
   }
 
-  //TODO: if job id unknown??
-  def stopJob(id: String): Future[Unit] = {
-    val f = managerRef ? StopJob(id)
+  def stopJob(namespace: String, runId: String): Future[Unit] = {
+    logger.info(s"TRY STOP JOB $namespace $runId")
+    val f = managerRef2 ? WorkerCommand(namespace, CancelJobRequest(runId))
     f.map(_ => ())
   }
 
@@ -60,8 +63,6 @@ class MasterService(
 
   def listRoutesInfo(): Seq[JobInfo] = jobRoutes.listInfos()
 
-  //TODO: why we need full configuration ??
-  //TODO: for starting job we need only id, action, and params
   def startJob(id: String, action: Action, params: JobParameters): Future[JobResult] = {
     jobRoutes.getDefinition(id) match {
       case Some(d) =>
@@ -80,7 +81,6 @@ class MasterService(
     namespaces.get(execParams.namespace) match {
       case Some(n) => n.startJob(execParams)
       case None =>
-        logger.info("WTF?")
         Future.failed(new IllegalStateException("WTF"))
     }
   }

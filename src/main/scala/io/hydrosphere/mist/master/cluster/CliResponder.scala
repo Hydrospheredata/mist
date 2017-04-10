@@ -41,7 +41,7 @@ class CliResponder(masterService: MasterService) extends Actor with Logger {
 //      }
 
     case ListJobs() =>
-      sender ! masterService.activeJobs().map(JobDescription(_))
+//      sender ! masterService.activeJobs().map(JobDescription(_))
 
   }
   

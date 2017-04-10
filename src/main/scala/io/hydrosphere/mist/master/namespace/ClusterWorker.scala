@@ -3,7 +3,9 @@ package io.hydrosphere.mist.master.namespace
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.master.namespace.ClusterWorker.{WorkerDeregistration, WorkerRegistration}
+import io.hydrosphere.mist.master.namespace.ClusterWorker
+
+import WorkerMessages._
 
 class ClusterWorker(
   name: String,
@@ -39,7 +41,7 @@ class ClusterWorker(
   def joined(master: Address, worker: ActorRef): Receive = {
     case Terminated(ref) if ref == worker =>
       log.info(s"Worker reference for $name is terminated, leave cluster")
-      deregister(master)
+      //deregister(master)
       cluster.leave(cluster.selfAddress)
 
     case MemberRemoved(m, _) if m.address == cluster.selfAddress =>
@@ -47,6 +49,7 @@ class ClusterWorker(
       cluster.system.shutdown()
 
     case x if !x.isInstanceOf[MemberEvent] =>
+      log.info(s"YOYOYOYOY $x forward")
       worker forward x
 
     case x =>
@@ -60,9 +63,9 @@ class ClusterWorker(
     toManagerSelection(address) ! WorkerRegistration(name, cluster.selfAddress)
   }
 
-  private def deregister(address: Address): Unit = {
-    toManagerSelection(address) ! WorkerDeregistration(name)
-  }
+//  private def deregister(address: Address): Unit = {
+//    toManagerSelection(address) ! WorkerDeregistration(name)
+//  }
 
 }
 
@@ -71,8 +74,5 @@ object ClusterWorker {
   def props(name: String, workerProps: Props): Props = {
     Props(classOf[ClusterWorker], name, workerProps)
   }
-
-  case class WorkerRegistration(name: String, address: Address)
-  case class WorkerDeregistration(name: String)
 
 }

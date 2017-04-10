@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.jobs.runners.jar
 
+import java.lang.reflect.InvocationTargetException
+
 import cats.implicits._
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponse
@@ -19,7 +21,7 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
     for {
       args     <- validateParams(params)
       instance <- Either.catchNonFatal(createInstance(conf))
-      response <- Either.catchNonFatal(invokeMethod(instance, args))
+      response <- Either.catchOnly[Throwable](invokeMethod(instance, args))
       _        <- Either.catchNonFatal(instance.stop())
     } yield response
 
@@ -34,7 +36,12 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
     val target = clazz.getMethods.find(_.getName == name)
     target match {
       case Some(m) =>
-        m.invoke(inst, args: _*).asInstanceOf[JobResponse]
+        try {
+          m.invoke(inst, args: _*).asInstanceOf[JobResponse]
+        } catch {
+          case e: InvocationTargetException => throw e.getTargetException
+          case e: Throwable => throw e
+        }
       case None =>
         throw new IllegalStateException(s"Class $clazz does not have method $name")
     }

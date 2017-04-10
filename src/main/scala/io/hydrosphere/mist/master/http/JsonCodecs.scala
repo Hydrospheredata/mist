@@ -15,7 +15,7 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val printer = CompactPrinter
 
-  implicit val jobExecutionStatusF = jsonFormat3(JobExecutionStatus)
+  implicit val jobExecutionStatusF = jsonFormat4(JobExecutionStatus)
   implicit val httpJobArgF: RootJsonFormat[HttpJobArg] =
     rootFormat(lazyFormat(jsonFormat(HttpJobArg.apply, "type", "args")))
 
