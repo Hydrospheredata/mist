@@ -64,7 +64,6 @@ class WorkersManager(
   override def receive: Receive = {
     case WorkerCommand(name, entry) =>
       val state = getWorkerState(name)
-      log.info(s"FORWARD! $name $entry to ${state.frontend}")
       state.frontend forward entry
 
     case GetWorkers =>

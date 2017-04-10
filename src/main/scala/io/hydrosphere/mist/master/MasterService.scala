@@ -50,7 +50,6 @@ class MasterService(
   }
 
   def stopJob(namespace: String, runId: String): Future[Unit] = {
-    logger.info(s"TRY STOP JOB $namespace $runId")
     val f = managerRef2 ? WorkerCommand(namespace, CancelJobRequest(runId))
     f.map(_ => ())
   }

@@ -66,7 +66,11 @@ class WorkerActor(
 
   val activeJobs = mutable.Map[String, ExecutionUnit]()
 
-  implicit val jobsContext = ExecutionContext.fromExecutorService(newFixedThreadPool(maxJobs))
+  implicit val jobsContext = {
+    ExecutionContext.fromExecutorService(
+      newFixedThreadPool(maxJobs), (e) => log.error(e, "Error from thread pool")
+    )
+  }
 
   override def receive: Receive = {
     case req @ RunJobRequest(id, params) =>

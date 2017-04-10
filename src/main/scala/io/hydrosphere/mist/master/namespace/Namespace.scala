@@ -149,7 +149,7 @@ class NamespaceJobExecutor(
     val f = (worker ? CancelJobRequest(id)).mapTo[JobIsCancelled]
     f.onSuccess({
       case x @ JobIsCancelled(id, time) =>
-        jobs -= id
+        //jobs -= id
         sender ! x
     })
   }
