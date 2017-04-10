@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.utils
 
 import java.io.File
+import java.lang.reflect.InvocationTargetException
 import java.net.{URL, URLClassLoader}
 
 import io.hydrosphere.mist.api._
@@ -29,8 +30,11 @@ class ExternalMethod(methodName: String, private val cls: Class[_], private val 
       }
     })
     val method = objectRef.getClass.getMethods.find(_.getName == methodName).get
-    // TODO: more clear exceptions instead of InvocationTargetException
-    method.invoke(objectRef, args.asInstanceOf[Seq[AnyRef]]: _*).asInstanceOf[JobResponse]
+    try {
+      method.invoke(objectRef, args.asInstanceOf[Seq[AnyRef]]: _*).asInstanceOf[JobResponse]
+    } catch {
+      case exc: InvocationTargetException => throw exc.getTargetException
+    }
   }
 
   def arguments: List[ExternalMethodArgument] = {
