@@ -21,19 +21,16 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     val api = new HttpApi(master).route
 
     when(master.activeJobs()).thenReturn(
-      List(
-        JobDetails(
-          JobExecutionParams("path", "MyClass", "namespace", JobParameters.empty, None, None),
-          JobDetails.Source.Http
-        )
+      Future.successful(
+        List(JobExecutionStatus("id", None, None, JobDetails.Status.Initialized))
       )
     )
 
     Get("/internal/jobs") ~> api ~> check {
       status === StatusCodes.OK
 
-      val r = responseAs[Map[String, JobExecutionStatus]]
-      r.values should contain (JobExecutionStatus())
+      val r = responseAs[List[JobExecutionStatus]]
+      r.size shouldBe 1
     }
   }
 
@@ -41,10 +38,10 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
 
-    when(master.stopJob(any[String])).
+    when(master.stopJob(any[String], any[String])).
       thenReturn(Future.successful(()))
 
-    Delete("/internal/jobs/id") ~> api ~> check {
+    Delete("/internal/jobs/namespace/id") ~> api ~> check {
       status === StatusCodes.OK
     }
   }
@@ -61,8 +58,8 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     Get("/internal/workers") ~> api ~> check {
       status === StatusCodes.OK
 
-      val r = responseAs[List[WorkerLink]]
-      r shouldBe List(WorkerLink("uid", "name", "address", blackSpot = false))
+      val r = responseAs[List[String]]
+      r shouldBe List("name")
     }
   }
 

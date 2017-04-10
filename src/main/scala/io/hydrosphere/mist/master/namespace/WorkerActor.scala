@@ -7,7 +7,6 @@ import cats.implicits._
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.runners.jar.JobsLoader
 import io.hydrosphere.mist.master.namespace.JobMessages._
-import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.mutable
 import scala.concurrent._
@@ -28,7 +27,7 @@ trait JobRunner {
 object JobRunner {
 
   //TODO: only jar
-  val ScalaRunner = new JobRunner with Logger {
+  val ScalaRunner = new JobRunner {
     override def run(
       params: JobParams,
       context: NamedContext): Either[String, Map[String, Any]] = {
@@ -38,17 +37,11 @@ object JobRunner {
       if (!file.exists()) {
         Left(s"Can not found file: $filePath")
       } else {
-        try {
-          context.addJar(params.filePath)
-          val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
-          Either.fromTry(load).flatMap(instance => {
-            instance.run(context.setupConfiguration, arguments)
-          }).leftMap(e => buildErrorMessage(params, e))
-        } catch {
-          case e: Throwable =>
-            logger.error("WTD?", e)
-            Left(e.getMessage)
-        }
+        context.addJar(params.filePath)
+        val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
+        Either.fromTry(load).flatMap(instance => {
+          instance.run(context.setupConfiguration, arguments)
+        }).leftMap(e => buildErrorMessage(params, e))
       }
     }
 
@@ -87,12 +80,9 @@ class WorkerActor(
 
     // TODO: test
     case CancelJobRequest(id) =>
-      log.info(s"TRY CANCEL JOB $id")
       activeJobs.get(id) match {
         case Some(u) =>
-          log.info(s"TRY CANCEL JOB 2 $id")
           namedContext.context.cancelJobGroup(id)
-          log.info(s"TRY CANCEL JOB 3 $id")
           sender() ! JobIsCancelled(id)
         case None =>
           log.warning(s"Can not cancel unknown job $id")
@@ -127,13 +117,12 @@ class WorkerActor(
       case Success(result) =>
         result match {
           case Left(error) =>
-            log.info(s"ERRROROR $error")
             self ! JobFailure(id, error)
-          case Right(value) => self ! JobSuccess(id, value)
+          case Right(value) =>
+            self ! JobSuccess(id, value)
         }
 
       case Failure(e) =>
-        log.error(e, "WTF??")
         self ! JobFailure(id, e.getMessage)
     })
 
@@ -160,4 +149,10 @@ object WorkerActor {
   ): Props =
     Props(classOf[WorkerActor], name, context, JobRunner.ScalaRunner, idleTimeout, 10)
 
+  def props(
+    name: String,
+    context: NamedContext,
+    maxJobs: Int
+  ): Props =
+    props(name, context, Duration.Inf, maxJobs)
 }

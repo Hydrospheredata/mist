@@ -1,12 +1,14 @@
 package io.hydrosphere.mist.master.namespace
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import io.hydrosphere.mist.contexts.NamedContext
 import io.hydrosphere.mist.jobs.Action
-import io.hydrosphere.mist.master.namespace.WorkerActor._
+import io.hydrosphere.mist.master.namespace.JobMessages._
 import org.apache.spark.SparkConf
 import org.scalatest._
+
+import scala.concurrent.duration.Duration
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
@@ -33,9 +35,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should execute jobs") {
     val runner = SuccessRunner(Map("answer" -> 42))
 
-    val worker = system.actorOf(
-      Props(classOf[WorkerActor], "test", context, runner, 10)
-    )
+    val worker = testWorkerActor(runner)
 
     worker ! RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
 
@@ -48,9 +48,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   it("should respond failure") {
     val runner = FailureRunner("Expected error")
-    val worker = system.actorOf(
-      Props(classOf[WorkerActor], "test", context, runner, 10)
-    )
+    val worker = testWorkerActor(runner)
 
     worker ! RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
 
@@ -64,9 +62,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should limit jobs") {
     val runner = SuccessRunner(Map("yoyo" -> "hey"))
 
-    val worker = system.actorOf(
-      Props(classOf[WorkerActor], "test", context, runner, 2)
-    )
+    val worker = testWorkerActor(runner, 2)
 
     worker ! RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
     worker ! RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute))
@@ -75,6 +71,13 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     expectMsgType[JobStarted]
     expectMsgType[JobStarted]
     expectMsgType[WorkerIsBusy]
+  }
+
+  private def testWorkerActor(runner: JobRunner, maxJobs: Int = 10): ActorRef = {
+    val props = Props(
+      classOf[WorkerActor],
+      "test", context, runner, Duration.Inf, 2)
+    system.actorOf(props)
   }
 
 //  it("should cancel job") {

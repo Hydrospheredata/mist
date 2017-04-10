@@ -1,18 +1,16 @@
 package io.hydrosphere.mist.master.namespace
 
-import akka.pattern._
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
-import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.jobs.Action
-import io.hydrosphere.mist.master.namespace.ClusterWorker.WorkerRegistration
-import io.hydrosphere.mist.master.namespace.WorkerActor.{JobParams, JobStarted, JobSuccess, RunJobRequest}
 import io.hydrosphere.mist.master.namespace.WorkerManagerSpec._
-import io.hydrosphere.mist.master.namespace.WorkersManager.{GetWorkers, WorkerCommand}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{FunSpecLike, Matchers}
+
+import WorkerMessages._
+import JobMessages._
 
 import scala.concurrent.duration._
 import scala.util.Success
