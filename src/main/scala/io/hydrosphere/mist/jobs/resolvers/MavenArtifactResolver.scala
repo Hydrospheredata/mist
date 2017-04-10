@@ -1,8 +1,9 @@
-package io.hydrosphere.mist.jobs
+package io.hydrosphere.mist.jobs.resolvers
 
 import java.io.File
 import java.nio.file.{Files, Paths}
 
+import io.hydrosphere.mist.jobs.JobFile
 import org.apache.commons.codec.digest.DigestUtils
 
 /**
@@ -13,7 +14,7 @@ case class MavenArtifactResolver(
   repoUrl: String,
   artifact: MavenArtifact,
   targetDirectory: String = "/tmp"
-) extends JobFile {
+) extends JobResolver {
 
   import scalaj.http._
 
@@ -22,7 +23,7 @@ case class MavenArtifactResolver(
     resp.code == 200
   }
 
-  override def file: File = {
+  override def resolve(): File = {
     val content = download(jarUlr)
     if (validateContent(content)) {
       val localPath = Paths.get(targetDirectory, artifact.jarName)

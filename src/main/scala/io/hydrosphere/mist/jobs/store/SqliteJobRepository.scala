@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.jobs.store
 
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.jobs.{FullJobConfiguration, JobConfiguration, JobDetails}
+import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponseOrError}
@@ -47,14 +47,14 @@ class SqliteJobRepository(filePath: String) extends JobRepository with JobDetail
     string => string.parseJson.convertTo[JobParameters]
   )
 
-  private implicit def string2Action = MappedColumnType.base[JobConfiguration.Action, String](
+  private implicit def string2Action = MappedColumnType.base[Action, String](
     action => action.toString,
-    string => JobConfiguration.Action(string)
+    string => Action(string)
   )
 
-  private implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], JobConfiguration.Action)): FullJobConfiguration = tuple match {
+  private implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], Action)): JobExecutionParams = tuple match {
     case (path, className, namespace, parameters, externalId, route, action) =>
-      FullJobConfiguration(path, className, namespace, parameters, externalId, route, action)
+      JobExecutionParams(path, className, namespace, parameters, externalId, route, action)
   }
 
 
@@ -66,7 +66,7 @@ class SqliteJobRepository(filePath: String) extends JobRepository with JobDetail
     def parameters: Rep[JobParameters] = column[JobParameters]("parameters")
     def externalId: Rep[Option[String]] = column[Option[String]]("external_id")
     def route: Rep[Option[String]] = column[Option[String]]("route")
-    def action: Rep[JobConfiguration.Action] = column[JobConfiguration.Action]("action")
+    def action: Rep[Action] = column[Action]("action")
     def source: Rep[JobDetails.Source] = column[JobDetails.Source]("source")
     def jobId: Rep[String] = column[String]("job_id", O.PrimaryKey)
     def startTime: Rep[Option[Long]] = column[Option[Long]]("start_time")
@@ -92,7 +92,7 @@ class SqliteJobRepository(filePath: String) extends JobRepository with JobDetail
       ).shaped
       shapedValue.<>({
         tuple => JobDetails.apply(
-          configuration = FullJobConfiguration(tuple._1, tuple._2, tuple._3, tuple._4, tuple._5, tuple._6, tuple._7),
+          configuration = JobExecutionParams(tuple._1, tuple._2, tuple._3, tuple._4, tuple._5, tuple._6, tuple._7),
           source = tuple._8,
           jobId = tuple._9,
           startTime = tuple._10,

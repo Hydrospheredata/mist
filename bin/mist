@@ -237,6 +237,7 @@ then
         java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.Master
     fi
 
+    # TODO accept params onl for declared route in config
     if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
     then
         if [ "${job_path}" == '' ] || [ "${classname}" == '' ] || [ "${namespace}" == '' ]

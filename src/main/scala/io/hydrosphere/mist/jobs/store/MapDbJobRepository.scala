@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.jobs.store
 
+import java.io.File
+
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
@@ -11,18 +13,26 @@ import spray.json._
 
 class MapDbJobRepository(filePath: String) extends JobRepository with JobDetailsJsonSerialization with Logger {
   // Db
-  private lazy val db = DBMaker
-    .fileDB(filePath)
-    .fileLockDisable
-    .closeOnJvmShutdown
-    .checksumHeaderBypass()
-    .make
+  private lazy val map = {
+    val db = DBMaker
+      .newFileDB(new File(filePath))
+      .closeOnJvmShutdown
+      .make()
+
+    if (db.exists("map")) {
+      db.getHashMap[String, Array[Byte]]("map")
+    } else {
+      db.createHashMap("map")
+        .keySerializer(Serializer.STRING)
+        .valueSerializer(Serializer.BYTE_ARRAY)
+        .make[String, Array[Byte]]()
+    }
+  }
 
   // Map
-  private lazy val map = db
-    .hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
-    .createOrOpen
-  
+//  private lazy val map = db.hashMap("map", Serializer.STRING, Serializer.BYTE_ARRAY)
+//    .createOrOpen
+//
   private def add(jobDetails: JobDetails): Unit = {
     try {
       val w_job = jobDetails.toJson.compactPrint.getBytes
@@ -44,7 +54,7 @@ class MapDbJobRepository(filePath: String) extends JobRepository with JobDetails
 
   private def getAll: List[JobDetails] = {
     try {
-      val values = map.getKeys.toArray.toList.map { (key) =>
+      val values = map.keySet().toArray.toList.map { (key) =>
         logger.info(key.toString)
         new String(map.get(key.toString)).parseJson.convertTo[JobDetails]
       }
@@ -60,7 +70,7 @@ class MapDbJobRepository(filePath: String) extends JobRepository with JobDetails
 
   override def get(jobId: String): Option[JobDetails] = {
     try {
-      Some(new String(map.get(jobId)).parseJson.convertTo[JobDetails])
+      Option(map.get(jobId)).map(bytes => new String(bytes).parseJson.convertTo[JobDetails])
     }
     catch {
       case e: Exception =>
@@ -71,7 +81,7 @@ class MapDbJobRepository(filePath: String) extends JobRepository with JobDetails
 
   override def size: Long ={
     try{
-      val keys = map.getKeys.toArray()
+      val keys = map.keySet().toArray()
       keys.length.toLong
     }
     catch {

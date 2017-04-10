@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.jobs.{JobConfiguration$, JobDefinition, JobConfiguration}
 import org.scalatest.{Matchers, FunSpec}
 
 import scala.util._
@@ -38,7 +39,7 @@ class JobRoutesSpec extends FunSpec with Matchers {
     }
   }
 
-  describe("job defenition") {
+  describe("job definition") {
 
     it("should parse jobs from config") {
       val cfg = ConfigFactory.parseString(
@@ -60,7 +61,7 @@ class JobRoutesSpec extends FunSpec with Matchers {
       job shouldBe JobDefinition("my-job", "jar_path.jar", "MyJob", "namespace")
     }
 
-    it("should parse more thatn jone jobs") {
+    it("should parse more than one jobs") {
       val cfg = ConfigFactory.parseString(
         """
           |my-job1 {

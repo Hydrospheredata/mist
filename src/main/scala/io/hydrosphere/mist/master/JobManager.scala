@@ -18,7 +18,7 @@ private[mist] object JobManager {
 private[mist] class JobManager extends Actor with Logger {
   
   override def receive: Receive = {
-    case JobManager.StartJob(jobDetails) if jobDetails.configuration.action == io.hydrosphere.mist.jobs.JobConfiguration.Action.Serve =>
+    case JobManager.StartJob(jobDetails) if jobDetails.configuration.action == io.hydrosphere.mist.jobs.Action.Serve =>
       val localNodeActor = context.actorOf(Props(classOf[LocalNode]))
       localNodeActor ! jobDetails
       context become gettingResults(sender)

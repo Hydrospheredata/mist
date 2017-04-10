@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.jobs
 
 import com.typesafe.config.Config
 

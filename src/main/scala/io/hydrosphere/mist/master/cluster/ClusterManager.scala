@@ -140,6 +140,7 @@ private[mist] class ClusterManager extends Actor with Logger {
 
     case message: StopJob =>
       val originalSender = sender
+      //TODO why call all workers???
       val future: Future[List[String]] = Future {
         workers.map {
           case WorkerLink(_, name, address, _) =>

@@ -1,22 +1,28 @@
 package io.hydrosphere.mist
 
+import java.io.File
+import java.util.logging.LogManager
+
 import akka.actor.{ActorSystem, Props}
-import akka.event.Logging
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.directives.DebuggingDirectives
+import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.StopAllContexts
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.async.AsyncInterface
 import io.hydrosphere.mist.master.cluster.{CliResponder, ClusterManager}
+import io.hydrosphere.mist.master.http.{HttpApi, HttpUi}
+import io.hydrosphere.mist.master.namespace.WorkersManager
 import io.hydrosphere.mist.utils.Logger
 
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
-private[mist] object Master extends App with HttpService with Logger {
-  override implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
-  override implicit val materializer: ActorMaterializer = ActorMaterializer()
+object Master extends App with Logger {
+
+  implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   logger.info(MistConfig.Akka.Worker.port.toString)
   logger.info(MistConfig.Akka.Main.port.toString)
@@ -33,13 +39,27 @@ private[mist] object Master extends App with HttpService with Logger {
   }
 
   // Start HTTP server if it is on in config
-  val clientRouteLogged = DebuggingDirectives.logRequestResult("Client ReST", Logging.InfoLevel)(route)
+  val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
+  val jobRoutes = new JobRoutes(routeConfig)
+  val workersManager2 = system.actorOf(Props(classOf[WorkersManager]), "workers-manager")
+  val masterService = new MasterService(
+    workerManager,
+    workersManager2,
+    jobRoutes,
+    system)
+
+  //TODO: why router configuration in http??
   if (MistConfig.Http.isOn) {
-    Http().bindAndHandle(clientRouteLogged, MistConfig.Http.host, MistConfig.Http.port)
+
+    val api = new HttpApi(masterService)
+    val http = HttpUi.route ~ api.route
+    Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
   }
 
   // Start CLI
-  system.actorOf(CliResponder.props(), name = Constants.Actors.cliResponderName)
+  system.actorOf(
+    CliResponder.props(masterService),
+    name = Constants.Actors.cliResponderName)
 
   AsyncInterface.init(system)
 
@@ -49,7 +69,6 @@ private[mist] object Master extends App with HttpService with Logger {
   }
 
   // Start Kafka subscriber
-  logger.debug(MistConfig.Kafka.isOn.toString)
   if (MistConfig.Kafka.isOn) {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }

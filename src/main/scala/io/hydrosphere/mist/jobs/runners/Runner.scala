@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.jobs.runners
 
 import io.hydrosphere.mist.contexts.NamedContext
+import io.hydrosphere.mist.jobs.resolvers.JobResolver
 import io.hydrosphere.mist.jobs.runners.jar.JarRunner
 import io.hydrosphere.mist.jobs.runners.python.PythonRunner
 import io.hydrosphere.mist.jobs.{JobDetails, JobFile}
@@ -8,22 +9,20 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 
 
-private[mist] trait Runner extends Logger {
+trait Runner extends Logger {
 
   val job: JobDetails
 
   def run(): JobResponseOrError
 
-  def stop(): Unit = {
-    stopStreaming()
-  }
+  def stop(): Unit
 
-  def stopStreaming(): Unit
 }
 
-private[mist] object Runner {
+object Runner {
 
   def apply(job: JobDetails, context: NamedContext): Runner = {
+
     val jobFile = JobFile(job.configuration.path)
 
     JobFile.fileType(job.configuration.path) match {
