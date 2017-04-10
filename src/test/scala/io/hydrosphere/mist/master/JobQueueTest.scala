@@ -1,11 +1,14 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
 import java.util.UUID
 
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestActorRef, TestKit, TestProbe}
+import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.store.InMemoryJobRepository
-import io.hydrosphere.mist.jobs.{FullJobConfigurationBuilder, JobDetails}
+import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.JobManager.StartJob
 import io.hydrosphere.mist.master.JobQueue.{DequeueJob, EnqueueJob}
 import org.scalatest._
@@ -13,9 +16,9 @@ import org.scalatest._
 class JobQueueTest extends TestKit(ActorSystem("mist-tests")) with ImplicitSender with FunSpecLike with Matchers {
   
   private def job() = {
-    val jobConfiguration = FullJobConfigurationBuilder()
-      .fromRouter("simple-context", Map.empty[String, Any], None)
-      .build()
+    val config = JobConfiguration.fromConfig(ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve().getConfig("simple-context"))
+    val definition = JobDefinition("simple-context", config.get)
+    val jobConfiguration = JobExecutionParams.fromDefinition(definition, Action.Execute, Map.empty[String, Any], None)
     JobDetails(jobConfiguration, JobDetails.Source.Cli, UUID.randomUUID().toString)
   }
 
