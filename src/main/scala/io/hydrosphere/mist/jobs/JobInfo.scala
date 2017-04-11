@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.jobs
 
 import io.hydrosphere.mist.jobs.resolvers.JobResolver
-import io.hydrosphere.mist.jobs.runners.jar.{JobsLoader, JobClass}
+import io.hydrosphere.mist.jobs.jar.{JobsLoader, JobClass}
 
 import scala.util.{Failure, Success, Try}
 

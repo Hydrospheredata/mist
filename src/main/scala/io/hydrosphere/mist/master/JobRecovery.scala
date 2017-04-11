@@ -3,9 +3,9 @@ package io.hydrosphere.mist.master
 import akka.actor.{Actor, Props}
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.jobs.JobDetails
-import io.hydrosphere.mist.jobs.store.JobRepository
+import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.JobRecovery.StartRecovery
-import io.hydrosphere.mist.master.async.AsyncInterface
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.utils.Logger
 
 private[mist] object JobRecovery {

@@ -226,7 +226,7 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.Master
+        java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.master.Master
     fi
 
     # TODO accept params onl for declared route in config
@@ -254,7 +254,7 @@ then
     ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
 elif [ "${cmd}" == 'cli' ]
 then
-    java -cp "$jar_file" io.hydrosphere.mist.cli.EntryPoint "${app}"
+    java -cp "$jar_file" io.hydrosphere.mist.master.interfaces.cli.EntryPoint "${app}"
 else
     echo "${help}"
 fi

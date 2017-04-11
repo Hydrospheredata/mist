@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 //import akka.testkit.TestKit
 //import io.hydrosphere.mist.Messages.StopAllContexts
 //import io.hydrosphere.mist.jobs._
-//import io.hydrosphere.mist.jobs.store.JobRepository
+//import io.hydrosphere.mist.master.store.JobRepository
 //import io.hydrosphere.mist.master.cluster.ClusterManager
 //import io.hydrosphere.mist.master.{HttpService, JobRecovery}
 //import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization

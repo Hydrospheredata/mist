@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.jobs.{JobConfiguration$, JobDefinition, JobConfiguration}
+import io.hydrosphere.mist.jobs.{JobDefinition, JobConfiguration}
 import org.scalatest.{Matchers, FunSpec}
 
 import scala.util._

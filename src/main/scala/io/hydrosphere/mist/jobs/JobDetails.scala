@@ -2,7 +2,7 @@ package io.hydrosphere.mist.jobs
 
 import java.util.UUID
 
-import io.hydrosphere.mist.master.async.AsyncInterface.Provider
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import org.joda.time.DateTime
 

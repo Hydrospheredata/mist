@@ -1,7 +1,7 @@
 package io.hydrosphere.mist
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory, ConfigValue}
-import io.hydrosphere.mist.master.async.AsyncInterface
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import org.apache.spark.streaming.{Duration => SDuration}
 
 import scala.collection.JavaConversions._

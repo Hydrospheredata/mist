@@ -5,6 +5,6 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 trait WorkerLinkJsonSerialization extends DefaultJsonProtocol {
 
-  implicit val workerLinkJsonSerialization: RootJsonFormat[WorkerLink] = jsonFormat4(WorkerLink)
+  implicit val workerLinkJsonSerialization: RootJsonFormat[WorkerLink] = jsonFormat2(WorkerLink)
   
 }

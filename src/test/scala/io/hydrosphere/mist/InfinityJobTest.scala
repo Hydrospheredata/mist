@@ -7,7 +7,7 @@ package io.hydrosphere.mist
 //import spray.json._
 //import DefaultJsonProtocol._
 //import io.hydrosphere.mist.jobs.MistJobConfiguration
-//import io.hydrosphere.mist.master.async.mqtt.{MQTTSubscribe, MqttSubscriber$}
+//import io.hydrosphere.mist.master.interfaces.async.mqtt.{MQTTSubscribe, MqttSubscriber$}
 //import io.hydrosphere.mist.master.cluster.ClusterManager
 //import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 //import io.hydrosphere.mist.worker.{ContextNode, JobRunnerNode}

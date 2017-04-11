@@ -4,7 +4,7 @@ package io.hydrosphere.mist
 //
 //import akka.actor.{ActorSystem, Props}
 //import akka.testkit.{ImplicitSender, TestKit}
-//import io.hydrosphere.mist.jobs.store.JobRepository
+//import io.hydrosphere.mist.master.store.JobRepository
 //import io.hydrosphere.mist.jobs.{FullJobConfiguration, InMapDbJobConfigurationRepository, InMemoryJobConfigurationRepository}
 //import io.hydrosphere.mist.master._
 //import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
