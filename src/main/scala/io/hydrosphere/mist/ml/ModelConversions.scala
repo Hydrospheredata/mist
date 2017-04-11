@@ -3,11 +3,13 @@ package io.hydrosphere.mist.ml
 import io.hydrosphere.mist.ml.classification._
 import io.hydrosphere.mist.ml.clustering._
 import io.hydrosphere.mist.ml.preprocessors._
+import io.hydrosphere.mist.ml.recommendation.LocalALS
 import io.hydrosphere.mist.ml.regression._
 import org.apache.spark.ml.{PipelineModel, Transformer}
 import org.apache.spark.ml.classification._
 import org.apache.spark.ml.clustering._
 import org.apache.spark.ml.feature._
+import org.apache.spark.ml.recommendation.ALSModel
 import org.apache.spark.ml.regression._
 
 import scala.language.implicitConversions
@@ -58,6 +60,7 @@ object ModelConversions {
       case _: Word2VecModel.type => LocalWord2VecModel
       case _: IDFModel.type => LocalIDF
       case _: NaiveBayesModel.type => LocalNaiveBayes
+      case _: ALSModel.type => LocalALS
 
         // Regression
       case _: DecisionTreeRegressionModel.type => LocalDecisionTreeRegressionModel

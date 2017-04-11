@@ -5,7 +5,7 @@ import io.hydrosphere.mist.jobs.runners.Runner
 import io.hydrosphere.mist.jobs.{FullJobConfiguration, MistJobConfiguration, ServingJobConfiguration}
 import io.hydrosphere.mist.utils.SparkUtils
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-import org.apache.spark.mllib.linalg.DenseVector
+import org.apache.spark.mllib.linalg.{DenseVector, SparseVector => OldSparseVector, Vectors => OldVectors}
 import org.apache.spark.ml.linalg.{DenseVector => NewDenseVector, SparseVector => NewSparceVector}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSuite}
 import org.scalatest.concurrent.Eventually
@@ -265,6 +265,18 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
       val validation = Array(1.0, 1.0, 0.0, 0.0)
       val resList = extractResult[Any](data) map(x => x("prediction").asInstanceOf[Double])
       compareDoubles(resList, validation)
+    }
+  }
+
+  test("Local TFIDF test") {
+    testServing(TestConfig.LocalModels.tfidf) { data =>
+      val validation = OldVectors.sparse(
+        20,
+        Array(3,10,13,18),
+        Array(2.772588722239781,1.3862943611198906,1.3862943611198906,0.6931471805599453)
+      )
+      val resList = extractResult[Any](data) map(x => x("features").asInstanceOf[OldSparseVector])
+      assert(validation.equals(resList.get(0)))
     }
   }
 

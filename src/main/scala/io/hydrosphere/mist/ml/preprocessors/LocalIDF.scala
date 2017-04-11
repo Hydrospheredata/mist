@@ -49,7 +49,7 @@ object LocalIDF extends LocalModel[IDFModel] {
       asInstanceOf[Map[String, Any]].
       getOrElse("values", List()).
       asInstanceOf[List[Double]].toArray
-    val vector = new OldDenseVector(idfValues)
+    val vector = OldVectors.dense(idfValues)
     val oldIDFconstructor = classOf[OldIDFModel].getDeclaredConstructor(classOf[OldVector])
     oldIDFconstructor.setAccessible(true)
     val oldIDF = oldIDFconstructor.newInstance(vector)
@@ -59,6 +59,7 @@ object LocalIDF extends LocalModel[IDFModel] {
     idf
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
+      .set(idf.minDocFreq, metadata.paramMap("minDocFreq").asInstanceOf[Int])
   }
 
   override implicit def getTransformer(transformer: IDFModel): LocalTransformer[IDFModel] = new LocalIDF(transformer)

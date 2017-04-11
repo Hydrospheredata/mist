@@ -38,8 +38,10 @@ object DTreeClassificationJob extends MLMistJob with SQLSupport {
     import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
+    val arrays = features map(_.toArray)
+    val arrayOfVecs = arrays.map(Vectors.dense)
     val data = LocalData(
-      LocalDataColumn("features", features.map(_.toArray).map(Vectors.dense))
+      LocalDataColumn("features", arrayOfVecs)
     )
     val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("predictedLabel").toMapList)

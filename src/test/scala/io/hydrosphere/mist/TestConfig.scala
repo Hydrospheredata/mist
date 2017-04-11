@@ -67,6 +67,7 @@ object TestConfig {
     val normalizer = testConfig.getString("mist.test.ml.normalizer")
     val polynomialExpansion = testConfig.getString("mist.test.ml.polynomialexpansion")
     val dct = testConfig.getString("mist.test.ml.dct")
+    val tfidf = testConfig.getString("mist.test.ml.tfidf")
 
     val naiveBayes = testConfig.getString("mist.test.ml.naivebayes")
 
