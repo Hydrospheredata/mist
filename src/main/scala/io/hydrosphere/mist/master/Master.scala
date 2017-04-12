@@ -22,9 +22,6 @@ object Master extends App with Logger {
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  logger.info(MistConfig.Akka.Worker.port.toString)
-  logger.info(MistConfig.Akka.Main.port.toString)
-
 //  // Context creator actor
 //  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
 //
@@ -80,5 +77,6 @@ object Master extends App with Logger {
   sys addShutdownHook {
     logger.info("Stopping all the contexts")
     workerManager ! StopAllWorkers
+    system.shutdown()
   }
 }

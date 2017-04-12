@@ -52,14 +52,14 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
     when(master.workers()).thenReturn(
       Future.successful(
-        List("name")
+        List(WorkerLink("name", "address"))
       ))
 
     Get("/internal/workers") ~> api ~> check {
       status === StatusCodes.OK
 
-      val r = responseAs[List[String]]
-      r shouldBe List("name")
+      val r = responseAs[List[WorkerLink]]
+      r shouldBe List(WorkerLink("name", "address"))
     }
   }
 

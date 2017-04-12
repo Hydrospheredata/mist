@@ -171,7 +171,7 @@ then
         echo "${help}"
         exit 1
     fi
-    
+
     if [ "${jar_file}" == '' ]
     then
         (>&2 echo "mist jar file is not set")
@@ -188,8 +188,9 @@ then
         fi
         if [ "${runner}" == 'local' ]
         then
-            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
+            PYPATH=$SPARK_HOME/python:`readlink -f $${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH
+            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
+            PYTHONPATH=$PYPATH ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file} -Dakka.roles.1=worker${namespace}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
             if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
@@ -251,7 +252,7 @@ then
 
 elif [ "${cmd}" == 'stop' ]
 then
-    ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
+    ps -aef | grep "java.*Master" | awk '{print $2}' | xargs kill
 elif [ "${cmd}" == 'cli' ]
 then
     java -cp "$jar_file" io.hydrosphere.mist.master.interfaces.cli.EntryPoint "${app}"

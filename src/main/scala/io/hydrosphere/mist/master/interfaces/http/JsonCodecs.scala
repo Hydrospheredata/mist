@@ -1,11 +1,8 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.marshalling.{Marshal, Marshaller}
-import io.hydrosphere.mist.jobs.JobDetails
-import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.{JobExecutionStatus, WorkerLink}
-import io.hydrosphere.mist.utils.json.{JobDetailsJsonSerialization, AnyJsonFormatSupport}
+import io.hydrosphere.mist.utils.json.{AnyJsonFormatSupport, JobDetailsJsonSerialization}
 import spray.json._
 
 trait JsonCodecs extends SprayJsonSupport

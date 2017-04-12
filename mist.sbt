@@ -10,6 +10,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
@@ -82,6 +83,8 @@ lazy val mist = project.in(file("."))
   .dependsOn(currentLib)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings : _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
   .settings(PublishSettings.settings: _*)
@@ -104,8 +107,8 @@ lazy val mist = project.in(file("."))
 
       "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
 
-      "org.scalactic" %% "scalactic" % "3.0.1-SNAP1" % "test",
-      "org.scalatest" %% "scalatest" % "3.0.1-SNAP1" % "test",
+      "org.scalactic" %% "scalactic" % "3.0.1" % "it,test",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
 
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
@@ -163,6 +166,19 @@ lazy val mist = project.in(file("."))
     }},
 
     parallelExecution in Test := false,
+    parallelExecution in IntegrationTest := false,
+
+    fork in (Test, test) := true,
+    fork in (IntegrationTest, test) := true,
+    javaOptions in (IntegrationTest, test) ++= {
+      val jar = outputPath.in(Compile, assembly).value
+      Seq(
+        s"-DsparkHome=${sparkLocal.value}",
+        s"-DmistJar=$jar",
+        "-Xmx1G"
+      )
+    },
+    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
 
     excludeFilter in Compile := (
       sparkVersion.value match {
@@ -174,6 +190,8 @@ lazy val mist = project.in(file("."))
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
   )
+
+addCommandAlias("testAll", ";mist/test;mist/it:test")
 
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .dependsOn(mistLibSpark1)
@@ -196,7 +214,7 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
   )
 
 lazy val mistRunSettings = Seq(
-  mistRun := {
+  sparkLocal := {
     val log = streams.value.log
     val version = sparkVersion.value
 
@@ -209,13 +227,28 @@ lazy val mistRunSettings = Seq(
       log.info(s"Downloading spark $version to $sparkDir")
       SparkLocal.downloadSpark(version, local)
     }
-
+    sparkDir
+  },
+  mistRun := {
+    val log = streams.value.log
+//    val version = sparkVersion.value
+//
+//    val local = file("spark_local")
+//    if (!local.exists())
+//      IO.createDirectory(local)
+//
+//    val sparkDir = local / SparkLocal.distrName(version)
+//    if (!sparkDir.exists()) {
+//      log.info(s"Downloading spark $version to $sparkDir")
+//      SparkLocal.downloadSpark(version, local)
+//    }
+//
     val jar = outputPath.in(Compile, assembly).value
 
-    val sparkHome = sparkDir.getAbsolutePath
+    val version = sparkVersion.value
+    val sparkHome = sparkLocal.value.getAbsolutePath
     val extraEnv = Seq(
-      "SPARK_HOME" -> sparkDir.getAbsolutePath,
-      "PYTHONPATH" -> s"${baseDirectory.value}/src/main/python:$sparkHome/python:`readlink -f $${SPARK_HOME}/python/lib/py4j*`:$${PYTHONPATH}"
+      "SPARK_HOME" -> sparkHome
     )
     val home = baseDirectory.value
 
@@ -275,7 +308,7 @@ lazy val miniClusterDependencies =
     "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4"
+    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4" % "test"
   ).map(_.exclude("javax.servlet", "servlet-api"))
 
 lazy val commonAssemblySettings = Seq(

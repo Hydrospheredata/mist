@@ -29,9 +29,9 @@ class MasterService(
     future.mapTo[List[JobExecutionStatus]]
   }
 
-  def workers(): Future[List[String]] = {
+  def workers(): Future[List[WorkerLink]] = {
     val f = workerManager ? GetWorkers
-    f.mapTo[List[String]]
+    f.mapTo[List[WorkerLink]]
   }
 
   def stopAllWorkers(): Future[Unit] = {
