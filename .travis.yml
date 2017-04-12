@@ -3,6 +3,8 @@ services:
   - docker
 
 language: scala
+scala:
+    - 2.10.6  
 
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
