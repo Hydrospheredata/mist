@@ -10,7 +10,7 @@ before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
 
 script:
-  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m ++$TRAVIS_SCALA_VERSION testAll
+  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
 
 cache:
   directories:
@@ -26,4 +26,4 @@ env:
     - SPARK_VERSION=1.5.2
 #   - SPARK_VERSION=1.6.2
 #   - SPARK_VERSION=2.0.2
-#   - SPARK_VERSION=2.1.0
+    - SPARK_VERSION=2.1.0
