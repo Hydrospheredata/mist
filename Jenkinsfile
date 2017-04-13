@@ -19,6 +19,7 @@ def test_mist(slaveName,sparkVersion) {
       try {
         stage('Clone project ' + sparkVersion) {
           checkout scm
+          sh "cd ${env.WORKSPACE}"
         }
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
