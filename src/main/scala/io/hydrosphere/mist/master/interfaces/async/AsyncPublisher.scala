@@ -6,7 +6,8 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import spray.json.pimpAny
 
-private[mist] trait AsyncPublisher extends Actor with Logger with JobConfigurationJsonSerialization {
+trait AsyncPublisher extends Actor with Logger with JobConfigurationJsonSerialization {
+
   override def receive: Receive = {
     case jobResult: JobResult =>
       logger.info(jobResult.toString)

@@ -75,6 +75,9 @@ class MasterService(
     }
   }
 
+  def startJob(r: JobExecutionRequest): Future[JobResult] =
+    startJob(r.jobId, r.action, r.parameters)
+
   private def buildParams(
     routeId: String,
     action: Action,

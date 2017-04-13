@@ -92,13 +92,10 @@ lazy val mist = project.in(file("."))
     name := "mist",
     libraryDependencies ++= sparkDependencies(sparkVersion.value),
     libraryDependencies ++= Seq(
-      "org.json4s" %% "json4s-native" % "3.2.10",
-
       "com.typesafe" % "config" % "1.3.1",
       "joda-time" % "joda-time" % "2.5",
       "org.slf4j" % "slf4j-api" % "1.7.5",
       "org.slf4j" % "slf4j-log4j12" % "1.7.5",
-      //"ch.qos.logback" % "logback-classic" % "1.0.7",
 
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
       "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
@@ -113,6 +110,7 @@ lazy val mist = project.in(file("."))
 
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
+      "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
 
       "org.mapdb" % "mapdb" % "1.0.9",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",

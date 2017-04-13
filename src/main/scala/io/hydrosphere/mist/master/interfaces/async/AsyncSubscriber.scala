@@ -1,22 +1,16 @@
 package io.hydrosphere.mist.master.interfaces.async
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor.{Actor, ActorRef}
-import akka.pattern.ask
-import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.jobs.{JobExecutionRequest, JobDetails, JobResult}
-import io.hydrosphere.mist.utils.TypeAlias.JobResponse
-import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
+import io.hydrosphere.mist.jobs.JobExecutionRequest
+import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
-import spray.json.{DeserializationException, pimpString}
+import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
+import spray.json.pimpString
 
-import scala.concurrent.Await
-import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
-abstract class AsyncSubscriber extends Actor
+abstract class AsyncSubscriber(masterService: MasterService) extends Actor
   with MultiReceivable
   with JobConfigurationJsonSerialization
   with Logger {
@@ -24,73 +18,42 @@ abstract class AsyncSubscriber extends Actor
   val publisherActor: ActorRef
   val provider: AsyncInterface.Provider
 
-  private object IncomingMessageIsJobResult extends Exception
-  
-  receiver {
-    case jobDetails: JobDetails =>
-      logger.debug(s"Received JobDetails: $jobDetails")
-      processJob(jobDetails)
+  def processIncomingMessage(message: String): Unit = {
+    extractRequest(message) match {
+      case Some(req) =>
+        val future = masterService.startJob(req)
+        future.onComplete({
+          case Success(result) => publisherActor ! result
+          case Failure(e) =>
+            logger.error(s"Job $req execution failed", e)
+            val msg = s"Job execution failed for $req. Error message ${e.getMessage}"
+            publisherActor ! msg
+        })
+
+      case None =>
+    }
   }
 
-  //TODO: not implemented!
-  def processIncomingMessage(message: String): Unit = {
-//    try {
-//      try {
-//        message.parseJson.convertTo[JobResult]
-//        logger.debug(s"Try to parse job result")
-//        throw IncomingMessageIsJobResult
-//      } catch {
-//        case _: DeserializationException => //pass
-//      }
-//      //val jobCreatingRequest = FullJobConfigurationBuilder().fromJson(message).build()
-//      val jobCreatingRequest = message.parseJson.convertTo[JobExecutionRequest]
-//      logger.info(s"Received new request: $jobCreatingRequest")
-//
-//      // Run job asynchronously
-//      val jobDetails = JobDetails(jobCreatingRequest, JobDetails.Source.Async(provider))
-//      processJob(jobDetails)
-//    } catch {
-//      case _: spray.json.JsonParser.ParsingException =>
-//        logger.error(s"Bad JSON: $message")
-//      case _: DeserializationException =>
-//        logger.error(s"DeserializationException: Bad type in Json: $message")
-//      case IncomingMessageIsJobResult =>
-//        logger.debug("Received job result as incoming message")
-//      case e: Throwable =>
-//        logger.error(e.toString)
-//    }
+
+  private def extractRequest(message: String): Option[JobExecutionRequest] = {
+    try {
+      val json = message.parseJson
+      val fields = json.asJsObject.fields
+      val hasAllFields = Seq("jobId", "parameters", "action").map(fields.contains).reduce(_ && _)
+      if (hasAllFields) {
+        val params = json.convertTo[JobExecutionRequest]
+        Some(params)
+      } else {
+        logger.trace(s"Incoming message is not supported $message")
+        None
+      }
+    } catch {
+      case e: Throwable =>
+        logger.trace(s"Received invalid message $message", e)
+        None
+
+    }
   }
   
-  def processJob(jobDetails: JobDetails): Unit = {
-//    val jobResult = {
-//      val distributorActor = context.actorOf(JobDispatcher.props())
-//      val timeDuration = MistConfig.Contexts.timeout(jobDetails.configuration.namespace)
-//      if (timeDuration.isFinite()) {
-//        val future = distributorActor.ask(jobDetails)(timeout = FiniteDuration(timeDuration.toNanos, TimeUnit.NANOSECONDS)) recover {
-//          case error: Throwable => Right(error.toString)
-//        }
-//        val result = Await.ready(future, Duration.Inf).value.get
-//        val jobResult = result match {
-//          case Success(r: JobDetails) => r.jobResult.getOrElse(Left("Empty result"))
-//          case Success(r: Either[_, _]) => r
-//          case Success(r: Any) => Left(s"Unknown type ${r.getClass.getCanonicalName}")
-//          case Failure(r) => r
-//        }
-//
-//        jobResult match {
-//          case Left(jobResult: Map[_, _]) =>
-//            JobResult(success = true, payload = jobResult.asInstanceOf[JobResponse], request = jobDetails.configuration, errors = List.empty)
-//          case Right(error: String) =>
-//            JobResult(success = false, payload = Map.empty[String, Any], request = jobDetails.configuration, errors = List(error))
-//        }
-//      }
-//      else {
-//        distributorActor ! jobDetails
-//        JobResult(success = true, payload = Map("result" -> "Infinity Job Started"), request = jobDetails.configuration, errors = List.empty)
-//      }
-//    }
-//
-//    publisherActor ! jobResult
-  }
-  
+
 }

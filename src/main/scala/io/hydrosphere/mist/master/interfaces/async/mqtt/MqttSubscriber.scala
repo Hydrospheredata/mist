@@ -1,20 +1,31 @@
 package io.hydrosphere.mist.master.interfaces.async.mqtt
 
-
 import akka.actor.{ActorRef, Props}
+import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.async.{AsyncInterface, AsyncSubscriber}
 
-private[mist] object MqttSubscriber {
+object MqttSubscriber {
   
-  def props(publisherActor: ActorRef, mqttActorWrapper: ActorRef): Props = Props(classOf[MqttSubscriber], publisherActor, mqttActorWrapper)
+  def props(
+    publisherActor: ActorRef,
+    mqttActorWrapper: ActorRef,
+    masterService: MasterService): Props = {
+
+    Props(classOf[MqttSubscriber], publisherActor, mqttActorWrapper, masterService)
+  }
   
 }
 
-private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttActorWrapper: ActorRef) extends AsyncSubscriber with MultiReceivable with JobConfigurationJsonSerialization with Logger {
+class MqttSubscriber(
+  override val publisherActor: ActorRef,
+  mqttActorWrapper: ActorRef,
+  masterService: MasterService)
+  extends AsyncSubscriber(masterService)
+  with MultiReceivable with JobConfigurationJsonSerialization with Logger {
   
   override val provider: Provider = AsyncInterface.Provider.Mqtt
 
@@ -24,7 +35,6 @@ private[mist] class MqttSubscriber(override val publisherActor: ActorRef, mqttAc
   }
   
   
-
   receiver {
     case msg: MqttActorWrapper.Message =>
       val stringMessage = new String(msg.payload, "utf-8")

@@ -1,18 +1,30 @@
 package io.hydrosphere.mist.master.interfaces.async.kafka
 
 import akka.actor.{ActorRef, Props}
+import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.async.{AsyncInterface, AsyncSubscriber}
 import io.hydrosphere.mist.utils.{Logger, MultiReceivable}
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
 
-private[mist] object KafkaSubscriber {
+object KafkaSubscriber {
   
-  def props(publisherActor: ActorRef, actorWrapper: ActorRef): Props = Props(classOf[KafkaSubscriber], publisherActor, actorWrapper)
+  def props(
+    publisherActor: ActorRef,
+    actorWrapper: ActorRef,
+    masterService: MasterService): Props = {
+
+    Props(classOf[KafkaSubscriber], publisherActor, actorWrapper, masterService)
+  }
   
 }
 
-private[mist] class KafkaSubscriber(override val publisherActor: ActorRef, actorWrapper: ActorRef) extends AsyncSubscriber with MultiReceivable with Logger with JobConfigurationJsonSerialization {
+class KafkaSubscriber(
+  override val publisherActor: ActorRef,
+  actorWrapper: ActorRef,
+  masterService: MasterService)
+  extends AsyncSubscriber(masterService)
+  with MultiReceivable with Logger with JobConfigurationJsonSerialization {
   
   override val provider: Provider = AsyncInterface.Provider.Kafka
 

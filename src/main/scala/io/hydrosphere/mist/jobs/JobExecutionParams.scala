@@ -25,7 +25,7 @@ object Action {
 }
 
 /**
-  * Request fro starting job by name
+  * Request for starting job by name
   */
 case class JobExecutionRequest(
   jobId: String,

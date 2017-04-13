@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.async
 
 import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.async.kafka.{KafkaActorWrapper, KafkaPublisher, KafkaSubscriber}
 import io.hydrosphere.mist.master.interfaces.async.mqtt.{MqttActorWrapper, MqttPublisher, MqttSubscriber}
 
@@ -23,21 +24,27 @@ private[mist] object AsyncInterface {
   }
   
   var system: ActorSystem = _
+  var masterService: MasterService = _
   
-  def init(system: ActorSystem): Unit = {
+  def init(system: ActorSystem, masterService: MasterService): Unit = {
     this.system = system
+    this.masterService = masterService
   }
   
   def subscriber(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
     case Provider.Mqtt =>
       inContext match {
-        case Some(context) => context.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
-        case None => system.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
+        case Some(context) =>
+          context.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
+        case None =>
+          system.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
       }
     case Provider.Kafka =>
       inContext match {
-        case Some(context) => context.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext)))
-        case None => system.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext))) 
+        case Some(context) =>
+          context.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
+        case None =>
+          system.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
       }
   }
 
@@ -65,6 +72,5 @@ private[mist] object AsyncInterface {
         case Some(context) => context.actorOf(KafkaActorWrapper.props())
         case None => system.actorOf(KafkaActorWrapper.props())
       }
-    case x: Provider => throw new IllegalArgumentException(s"No wrapper for ${x.toString}")
   }
 }

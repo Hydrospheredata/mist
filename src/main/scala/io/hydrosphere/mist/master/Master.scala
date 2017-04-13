@@ -58,10 +58,11 @@ object Master extends App with Logger {
     CliResponder.props(jobRoutes, workerManager),
     name = Constants.Actors.cliResponderName)
 
-  AsyncInterface.init(system)
+  AsyncInterface.init(system, masterService)
 
   // Start MQTT subscriber
   if (MistConfig.Mqtt.isOn) {
+    logger.info("Mqtt interface is started")
     AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt)
   }
 

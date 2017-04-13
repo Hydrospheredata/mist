@@ -36,12 +36,18 @@ class ClusterWorker(
       context become joined(m.address, worker)
   }
 
+
   def joined(master: Address, worker: ActorRef): Receive = {
     case Terminated(ref) if ref == worker =>
       log.info(s"Worker reference for $name is terminated, leave cluster")
       cluster.leave(cluster.selfAddress)
 
     case MemberRemoved(m, _) if m.address == cluster.selfAddress =>
+      context.stop(self)
+      cluster.system.shutdown()
+
+    case MemberRemoved(m, _) if m.hasRole("master") =>
+      log.info("Master is down. Shutdown now")
       context.stop(self)
       cluster.system.shutdown()
 

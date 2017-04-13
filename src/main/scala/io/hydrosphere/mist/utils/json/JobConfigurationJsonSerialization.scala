@@ -3,7 +3,7 @@ package io.hydrosphere.mist.utils.json
 import io.hydrosphere.mist.jobs._
 import spray.json.{DeserializationException, JsString, JsValue, RootJsonFormat}
 
-private[mist] trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
+trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
   
   implicit object ConfigurationActionSupport extends RootJsonFormat[Action] {
     override def write(obj: Action): JsValue = JsString(obj.toString)
