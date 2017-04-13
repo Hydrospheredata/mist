@@ -16,6 +16,7 @@ cache:
   directories:
     - $HOME/.ivy2
     - $HOME/.sbt
+    - $HOME/.coursier
     - spark_local
 
 env:
