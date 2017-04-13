@@ -66,14 +66,13 @@ trait MistItTest extends BeforeAndAfterAll { self: Suite =>
       "--config", reallyConfigPath)
 
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
-//    val ps = Process(args, None, env: _*).run(new ProcessLogger {
-//      override def buffer[T](f: => T): T = f
-//
-//      override def out(s: => String): Unit = ()
-//
-//      override def err(s: => String): Unit = ()
-//    })
-    val ps = Process(args, None, env: _*).run(false)
+    val ps = Process(args, None, env: _*).run(new ProcessLogger {
+      override def buffer[T](f: => T): T = f
+
+      override def out(s: => String): Unit = ()
+
+      override def err(s: => String): Unit = ()
+    })
     Thread.sleep(5000)
     ps
   }
