@@ -36,10 +36,8 @@ object Master extends App with Logger {
   // Start HTTP server if it is on in config
   val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
   val jobRoutes = new JobRoutes(routeConfig)
-  val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
-  val workerRunner = new LocalWorkerRunner(sparkHome)
 
-
+  val workerRunner = selectRunner(MistConfig.Workers.runner)
   val workerManager = system.actorOf(WorkersManager.props(workerRunner), "workers-manager")
   val masterService = new MasterService(
     workerManager,
@@ -79,5 +77,19 @@ object Master extends App with Logger {
     logger.info("Stopping all the contexts")
     workerManager ! StopAllWorkers
     system.shutdown()
+  }
+
+  private def selectRunner(s: String): WorkerRunner = {
+    s match {
+      case "local" =>
+        val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
+        new LocalWorkerRunner(sparkHome)
+
+      case "docker" => DockerWorkerRunner
+      case "manual" => ManualWorkerRunner
+      case _ =>
+        throw new IllegalArgumentException(s"Unknown worker runner type $s")
+
+    }
   }
 }
