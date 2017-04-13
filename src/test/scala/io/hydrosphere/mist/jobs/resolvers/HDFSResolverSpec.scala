@@ -18,7 +18,6 @@ class HDFSResolverSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   }
 
   override def afterAll = {
-//    cluster.
   }
 
   it("should copy file from hdfs") {
@@ -33,6 +32,9 @@ class HDFSResolverSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     resolver.exists shouldBe true
 
     val file = resolver.resolve()
+
+    file.getPath.endsWith(".jar") shouldBe true
+
     val bytes = Files.readAllBytes(Paths.get(file.getPath))
 
     new String(bytes) shouldBe content

@@ -31,7 +31,7 @@ class HDFSResolver(
     val remotePath = new Path(path)
     val checkSum = fileSystem.getFileChecksum(remotePath)
 
-    val localPath = new Path(s"$targetDir/${checkSum.toString}")
+    val localPath = new Path(s"$targetDir/${checkSum.toString}.jar")
     if (!new File(localPath.toString).exists()) {
       fileSystem.copyToLocalFile(false, remotePath, localPath, true)
     }
