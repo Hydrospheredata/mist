@@ -61,10 +61,7 @@ class WorkersManager(workerRunner: WorkerRunner)extends Actor with ActorLogging 
       state.frontend forward entry
 
     case GetWorkers =>
-      val aliveWorkers = workerStates.collect({
-        case (name, x:Started) => WorkerLink(name, x.address.toString)})
-
-      sender() ! aliveWorkers.toList
+      sender() ! aliveWorkers
 
     case GetActiveJobs =>
       implicit val timeout = Timeout(1.second)
@@ -108,14 +105,19 @@ class WorkersManager(workerRunner: WorkerRunner)extends Actor with ActorLogging 
       log.info(s"Worker with $name is registered on $address")
 
     case UnreachableMember(m) =>
-      workerNameFromMember(m).foreach(name => {
-        setWorkerDown(name)
-      })
+      aliveWorkers.find(_.address == m.address.toString)
+        .foreach(worker => setWorkerDown(worker.name))
 
     case MemberExited(m) =>
       workerNameFromMember(m).foreach(name => {
         setWorkerDown(name)
       })
+  }
+
+  private def aliveWorkers: List[WorkerLink] = {
+    workerStates.collect({
+      case (name, x:Started) => WorkerLink(name, x.address.toString)
+    }).toList
   }
 
   private def workerNameFromMember(m: Member): Option[String] = {

@@ -190,7 +190,7 @@ then
         then
             export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
             echo $PYTHONPATH ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file} -Dakka.roles.1=worker${namespace}" ${run_options} "$jar_file" ${namespace}
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file} -Dakka.roles.1=worker-${namespace}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
             if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
