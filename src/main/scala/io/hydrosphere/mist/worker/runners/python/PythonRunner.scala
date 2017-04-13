@@ -55,7 +55,6 @@ class PythonRunner extends JobRunner with Logger {
       } finally {
         // We must shutdown gatewayServer
         gatewayServer.shutdown()
-        logger.info(" Exiting due to broken pipe from Python driver")
       }
 
       Right(entryPoint.dataWrapper.get)
