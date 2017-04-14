@@ -47,7 +47,7 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
 
   private def compareStrings(data: Seq[String], valid: Seq[String]) = {
     data zip valid foreach {
-      case (x: String, y: String) => assert(x == y)
+      case (x: String, y: String) => assert(x === y)
     }
   }
 
@@ -62,25 +62,21 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
-//  test("Local Decision Tree Classification pipeline test") {
-//    testServing(TestConfig.LocalModels.treeClassifier_1) { data =>
-//      println("DATA:", data)
-//
-//      val resList = extractResult[Double](data)
-//
-//      resList foreach { map =>
-//        assert(map("predictedLabel").toString.toDouble === 1.0)
-//      }
-//    }
-//    testServing(TestConfig.LocalModels.treeClassifier_0) { data =>
-//      println("DATA:", data)
-//
-//      val resList = extractResult[Double](data)
-//      resList foreach { map =>
-//        assert(map("predictedLabel").toString.toDouble === 0.0)
-//      }
-//    }
-//  }
+  test("Local Decision Tree Classification pipeline test") {
+    testServing(TestConfig.LocalModels.treeClassifier_1) { data =>
+      val resList = extractResult[Double](data)
+
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 1.0)
+      }
+    }
+    testServing(TestConfig.LocalModels.treeClassifier_0) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("predictedLabel").toString.toDouble === 0.0)
+      }
+    }
+  }
 
   test("Local Decision Tree Regression pipeline test") {
     testServing(TestConfig.LocalModels.treeRegressor_1) { data =>
@@ -108,6 +104,21 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
       val resList = extractResult[Double](data)
       resList foreach { map =>
         assert(map("predictedLabel").toString.toDouble === 0.0)
+      }
+    }
+  }
+
+  test("Local Random Forest Regression pipeline test") {
+    testServing(TestConfig.LocalModels.forestRegressor_1) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("prediction").toString.toDouble === 1.0)
+      }
+    }
+    testServing(TestConfig.LocalModels.forestRegressor_0) { data =>
+      val resList = extractResult[Double](data)
+      resList foreach { map =>
+        assert(map("prediction").toString.toDouble === 0.0)
       }
     }
   }

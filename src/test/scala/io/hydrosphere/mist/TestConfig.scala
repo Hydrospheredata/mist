@@ -80,6 +80,9 @@ object TestConfig {
 
     val forestClassifier_0 = testConfig.getString("mist.test.ml.forest-classifier_0")
     val forestClassifier_1 = testConfig.getString("mist.test.ml.forest-classifier_1")
+
+    val forestRegressor_0 = testConfig.getString("mist.test.ml.forest-regressor_0")
+    val forestRegressor_1 = testConfig.getString("mist.test.ml.forest-regressor_1")
   }
 
 }

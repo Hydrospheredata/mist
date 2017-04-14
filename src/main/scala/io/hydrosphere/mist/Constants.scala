@@ -33,6 +33,7 @@ object Constants {
   object ML {
     object Models {
       final val randomForestClassifier = "org.apache.spark.ml.classification.RandomForestClassificationModel"
+      final val randomForestRegressor = "org.apache.spark.ml.regression.RandomForestRegressionModel"
       final val naiveBayes = "org.apache.spark.ml.classification.NaiveBayesModel"
       final val gbtRegressor = "org.apache.spark.ml.regression.GBTRegressionModel"
     }

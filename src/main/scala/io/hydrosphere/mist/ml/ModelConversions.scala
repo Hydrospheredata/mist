@@ -61,11 +61,12 @@ object ModelConversions {
       case _: IDFModel.type => LocalIDF
       case _: NaiveBayesModel.type => LocalNaiveBayes
       case _: ALSModel.type => LocalALS
-      case _: GBTRegressionModel.type => LocalGBTRegressor
 
         // Regression
       case _: DecisionTreeRegressionModel.type => LocalDecisionTreeRegressionModel
       case _: LinearRegressionModel.type => LocalLinearRegressionModel
+      case _: RandomForestRegressionModel.type => LocalRandomForestRegressionModel
+      case _: GBTRegressionModel.type => LocalGBTRegressor
 
       case _ => throw new Exception(s"Unknown model: ${m.getClass}")
     }
