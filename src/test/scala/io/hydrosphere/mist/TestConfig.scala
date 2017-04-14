@@ -70,6 +70,7 @@ object TestConfig {
     val tfidf = testConfig.getString("mist.test.ml.tfidf")
 
     val naiveBayes = testConfig.getString("mist.test.ml.naivebayes")
+    val gbtregressor = testConfig.getString("mist.test.ml.gbtregressor")
 
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")

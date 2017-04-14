@@ -280,6 +280,13 @@ class LocalModelsTest extends FunSuite with Eventually with BeforeAndAfterAll wi
     }
   }
 
+  test("Local GBTRegression test") {
+    testServing(TestConfig.LocalModels.gbtregressor) { data =>
+      val resList = extractResult[Any](data) map(x => x("prediction").asInstanceOf[Double])
+      resList.asInstanceOf[List[Double]].foreach(x => assert(x != 0.0))
+    }
+  }
+
   override def afterAll(): Unit ={
     contextWrapper.stop()
 

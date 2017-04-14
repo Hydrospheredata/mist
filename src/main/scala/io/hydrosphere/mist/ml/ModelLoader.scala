@@ -136,7 +136,7 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
 
   def loadTransformer(stageParameters: Metadata, path: String): Transformer = {
     stageParameters.className match {
-      case Constants.ML.Models.randomForestClassifier =>
+      case Constants.ML.Models.randomForestClassifier | Constants.ML.Models.gbtRegressor =>
         val data = ModelDataReader.parse(s"$path/data") map {
           case (key: String, value: Any) =>
             key -> value.asInstanceOf[mutable.Map[String, Any]].toMap
@@ -160,6 +160,7 @@ object ModelLoader extends Logger with ModelMetadataJsonSerialization {
               "weights" -> subMap("weights").asInstanceOf[java.lang.Double]
             )
         }
+
         val newParams = stageParameters.paramMap + ("treesMetadata" -> treesMetadata)
         val newMetadata = Metadata(
           stageParameters.className,
