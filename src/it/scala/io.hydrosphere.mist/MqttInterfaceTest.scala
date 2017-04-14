@@ -43,7 +43,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
       }
     })
 
-    eventually(timeout(Span(20, Seconds))) {
+    eventually(timeout(Span(30, Seconds))) {
       assert(resultReceived.get)
     }
 

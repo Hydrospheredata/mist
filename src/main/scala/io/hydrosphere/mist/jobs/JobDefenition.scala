@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.jobs
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ConfigValueType, Config}
 
 import scala.util._
 
@@ -61,10 +61,13 @@ object JobDefinition {
 
   def parseConfig(config: Config): Seq[Try[JobDefinition]] = {
     config.root().keySet()
+      .filter(k => config.getValue(k).valueType() == ConfigValueType.OBJECT)
       .map(name => {
-        val part = config.getConfig(name)
-        val parsed = JobConfiguration.fromConfig(part)
-        parsed.map(c => JobDefinition(name, c))
+        config.getValue(name).valueType()
+        for {
+          part <- Try { config.getConfig(name) }
+          parsed <- JobConfiguration.fromConfig(part)
+        } yield JobDefinition(name, parsed)
       }).toList
   }
 

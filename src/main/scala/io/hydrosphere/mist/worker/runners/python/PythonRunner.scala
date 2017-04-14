@@ -32,7 +32,7 @@ class PythonRunner extends JobRunner with Logger {
       var cmd = "python " + selfJarPath
       val entryPoint = new PythonEntryPoint(params, context)
 
-      val gatewayServer: GatewayServer = new GatewayServer(entryPoint)
+      val gatewayServer: GatewayServer = new GatewayServer(entryPoint, 0)
       try {
         gatewayServer.start()
         val boundPort = gatewayServer.getListeningPort

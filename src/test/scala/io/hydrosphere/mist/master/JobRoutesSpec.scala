@@ -82,5 +82,24 @@ class JobRoutesSpec extends FunSpec with Matchers {
       jobs.size shouldBe 2
       jobs.map(_.name) should contain allOf ("my-job1", "my-job2")
     }
+
+    it("should use variables") {
+      val cfg = ConfigFactory.parseString(
+        s"""
+          |dir = "root_path"
+          |my-job {
+          |  path = $${dir}"/jar_path.jar"
+          |  className = "MyJob"
+          |  namespace = "namespace"
+          |}
+        """.stripMargin
+      ).resolve()
+
+      val jobs = JobDefinition.parseConfig(cfg).flatMap(_.toOption)
+      jobs.size shouldBe 1
+      jobs.head.path shouldBe "root_path/jar_path.jar"
+    }
   }
+
+
 }

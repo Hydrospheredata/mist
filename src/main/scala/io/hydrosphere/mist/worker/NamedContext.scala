@@ -5,6 +5,8 @@ import java.io.File
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.api.SetupConfiguration
 import org.apache.spark.api.java.JavaSparkContext
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.Duration
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -43,6 +45,12 @@ class NamedContext(
 
   // python support
   def javaContext: JavaSparkContext = new JavaSparkContext(context)
+
+  // python support
+  def sqlContext: SQLContext = new SQLContext(context)
+
+  // python support
+  def hiveContext: HiveContext = new HiveContext(context)
 
   def stop(): Unit = {
     context.stop()
