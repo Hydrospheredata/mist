@@ -22,7 +22,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
     when(master.activeJobs()).thenReturn(
       Future.successful(
-        List(JobExecutionStatus("id", None, None, JobDetails.Status.Initialized))
+        List(JobExecutionStatus("id", "namespace", None, None, JobDetails.Status.Initialized))
       )
     )
 
