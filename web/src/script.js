@@ -89,13 +89,15 @@ window.WebMist = {
     }.bind(this));
   },
 
-  killJob: function(uid) {
+  killJob: function(id) {
     this.showLoader();
-    Mist.killJob(uid, function(res) {
-      var container = document.getElementById("row-" + uid);
+    var container = document.getElementById("kill-job-" + id);
+    var namespace = container.getAttribute("data-namespace")
+    Mist.killJob(id, namespace, function(res) {
+      var container = document.getElementById("row-" + id);
       container.remove();
       this.hideLoader();
-      this.showNotice(res[0]);
+      this.showNotice("Job is stopped");
     }.bind(this));
   },
 

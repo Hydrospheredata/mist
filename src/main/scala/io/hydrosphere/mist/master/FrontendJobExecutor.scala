@@ -46,10 +46,10 @@ class FrontendJobExecutor(
 
   override def receive: Actor.Receive = noWorker
 
+  //TODO: start time?
   val common: Receive = {
     case GetActiveJobs =>
-      sender() ! jobs.values
-        .map(i => JobExecutionStatus(i.request.id))
+      sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
   }
 
   private def noWorker: Receive = common orElse {
