@@ -44,6 +44,7 @@ class ClusterWorker(
 
     case MemberRemoved(m, _) if m.address == cluster.selfAddress =>
       context.stop(self)
+      cluster.unsubscribe(self)
       cluster.system.shutdown()
 
     case MemberRemoved(m, _) if m.hasRole("master") =>

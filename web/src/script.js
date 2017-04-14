@@ -116,7 +116,7 @@ window.WebMist = {
       var container = document.getElementById("row-" + uid);
       container.remove();
       this.hideLoader();
-      this.showNotice(res.result);
+      this.showNotice("Worker is stopped");
     }.bind(this));
   },
 

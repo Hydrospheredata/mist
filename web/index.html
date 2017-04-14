@@ -136,12 +136,12 @@
       <table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
           {{#workers}}
-          <tr id="row-{{.}}">
+          <tr id="row-{{name}}">
             <td class="mdl-data-table__cell--non-numeric">
-              {{.}}
+              {{name}}
             </td>
             <td>
-              <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{.}}" data-callback="{{callback}}">
+              <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" data-uid="{{name}}" data-callback="{{callback}}">
                 Kill
               </button>
             </td>
