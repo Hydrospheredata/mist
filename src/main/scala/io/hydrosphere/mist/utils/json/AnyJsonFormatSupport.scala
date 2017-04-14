@@ -13,6 +13,7 @@ private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
   implicit object AnyJsonFormat extends JsonFormat[Any] {
     def write(x: Any): JsValue = x match {
       case number: Int => JsNumber(number)
+      case number: java.lang.Double => JsNumber(number)
       case string: String => JsString(string)
       case sequence: Seq[_] => seqFormat[Any].write(sequence)
       case javaList: util.ArrayList[_] => seqFormat[Any].write(javaList.toList)

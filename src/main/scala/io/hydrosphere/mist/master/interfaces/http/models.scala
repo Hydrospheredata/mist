@@ -29,7 +29,7 @@ object HttpJobArg {
   def convert(argType: JobArgType): HttpJobArg = {
     val t = argType.getClass.getSimpleName.replace("$", "")
     val typeArgs = argType match {
-      case x @ (MInt | MDouble| MString) => Seq.empty
+      case x @ (MInt | MDouble| MString | MAny) => Seq.empty
       case x: MMap => Seq(x.k, x.v).map(HttpJobArg.convert)
       case x: MList => Seq(HttpJobArg.convert(x.v))
       case x: MOption => Seq(HttpJobArg.convert(x.v))

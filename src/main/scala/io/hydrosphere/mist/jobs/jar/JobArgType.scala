@@ -7,6 +7,7 @@ sealed trait JobArgType
 case object MInt extends JobArgType
 case object MString extends JobArgType
 case object MDouble extends JobArgType
+case object MAny extends JobArgType
 
 case class MList(v: JobArgType) extends JobArgType
 case class MMap(k: JobArgType, v: JobArgType) extends JobArgType
@@ -20,7 +21,10 @@ object JobArgType {
       case "scala.Int" => MInt
       case "scala.Double" => MDouble
       case "java.lang.String" => MString
+      case "scala.Any" => MAny
       case "scala.Option" => MOption(fromType(ref.args.head))
+      case "scala.Array" =>
+        MList(fromType(ref.args.head))
       case "scala.collection.immutable.List" =>
         MList(fromType(ref.args.head))
 

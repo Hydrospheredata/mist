@@ -11,7 +11,7 @@ object TransformerFactory {
   
   def apply(metadata: Metadata, data: Map[String, Any]): Transformer = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
-    val module = runtimeMirror.staticModule(metadata.className + "$")
+    val module = runtimeMirror.staticModule(metadata.`class` + "$")
     val obj = runtimeMirror.reflectModule(module)
     val localModel: LocalModel = obj.instance
     localModel.localLoad(metadata, data)

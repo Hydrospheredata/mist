@@ -189,6 +189,9 @@ window.WebMist = {
           if (t == "MString") {
               return "string";
           } 
+          if (t == "MAny") {
+              return {};
+          }
           if (t == "MMap") {
               var newObj = {}; 
               newObj[make(args[0])] = make(args[1]);

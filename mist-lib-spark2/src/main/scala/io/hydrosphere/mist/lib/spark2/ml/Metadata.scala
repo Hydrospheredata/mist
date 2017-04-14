@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.lib.spark2.ml
 
 case class Metadata(
-  className: String,
+  `class`: String,
   timestamp: Long,
   sparkVersion: String,
   uid: String,

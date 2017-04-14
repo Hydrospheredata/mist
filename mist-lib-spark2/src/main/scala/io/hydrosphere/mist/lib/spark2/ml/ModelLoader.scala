@@ -43,7 +43,7 @@ object ModelLoader {
     }
 
   def loadTransformer(stageParameters: Metadata, path: String): Transformer = {
-    stageParameters.className match {
+    stageParameters.`class` match {
       case RandomForestClassifier =>
         val data = ModelDataReader.parse(s"$path/data") map { kv =>
           kv._1 -> kv._2.asInstanceOf[mutable.Map[String, Any]].toMap
@@ -53,7 +53,7 @@ object ModelLoader {
           val content = subMap("metadata").toString
           val metadata = parse(content).extract[Metadata]
           val treeMeta = Metadata(
-            metadata.className,
+            metadata.`class`,
             metadata.timestamp,
             metadata.sparkVersion,
             metadata.uid,
@@ -69,7 +69,7 @@ object ModelLoader {
         }
         val newParams = stageParameters.paramMap + ("treesMetadata" -> treesMetadata)
         val newMetadata = Metadata(
-          stageParameters.className,
+          stageParameters.`class`,
           stageParameters.timestamp,
           stageParameters.sparkVersion,
           stageParameters.uid,

@@ -30,6 +30,10 @@ class JobArgTypeSpec extends FunSpec with Matchers {
     JobArgType.fromType(typeOf[Option[Int]]) shouldBe MOption(MInt)
   }
 
+  it("parse from Any") {
+    JobArgType.fromType(typeOf[Any]) shouldBe MAny
+  }
+
   type AliasOption[T] = Option[T]
   it("parse from alias") {
     JobArgType.fromType(typeOf[AliasOption[Int]]) shouldBe MOption(MInt)
