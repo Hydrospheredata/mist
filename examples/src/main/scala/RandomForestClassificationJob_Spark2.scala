@@ -58,14 +58,13 @@ object RandomForestClassificationJob extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
   }
 
-  def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[Map[String, Any]]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
-      LocalDataColumn("features", List(constructVector(features)))
+      LocalDataColumn("features", features.map(constructVector))
     )
-    import io.hydrosphere.mist.ml.ModelConversions._
     val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("predictedLabel").toMapList)
   }

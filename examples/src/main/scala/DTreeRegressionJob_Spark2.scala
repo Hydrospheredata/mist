@@ -40,12 +40,12 @@ object DTreeRegressionJob extends MLMistJob with SQLSupport {
     Map.empty
   }
 
-  def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[Map[String, Any]]): Map[String, Any] = {
     import io.hydrosphere.mist.ml.LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
-      LocalDataColumn("features", List(constructVector(features)))
+      LocalDataColumn("features", features.map(constructVector))
     )
 
     val result: LocalData = pipeline.transform(data)
