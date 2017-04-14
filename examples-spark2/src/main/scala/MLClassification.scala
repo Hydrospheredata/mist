@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
+import io.hydrosphere.mist.lib.spark2.ml2._
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.LogisticRegression
@@ -36,7 +36,8 @@ object MLClassification extends MLMistJob with SQLSupport {
   }
 
   def serve(text: List[String]): Map[String, Any] = {
-    import LocalTransformers._
+    import LocalPipelineModel._
+
     val pipeline = PipelineLoader.load(s"regression")
     val data = LocalData(
       LocalDataColumn("text", text)

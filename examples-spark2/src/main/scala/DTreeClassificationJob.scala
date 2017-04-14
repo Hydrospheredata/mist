@@ -1,5 +1,6 @@
 import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml.LocalTransformers
+import io.hydrosphere.mist.lib.spark2.ml2._
+
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
@@ -44,7 +45,8 @@ object DTreeClassificationJob extends MLMistJob with SQLSupport {
     Map.empty[String, Any]
 }
   def serve(modelPath: String, features: Map[String, Any]): Map[String, Any] = {
-    import LocalTransformers._
+    import LocalPipelineModel._
+
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
       LocalDataColumn("features", List(constructVector(features)))
