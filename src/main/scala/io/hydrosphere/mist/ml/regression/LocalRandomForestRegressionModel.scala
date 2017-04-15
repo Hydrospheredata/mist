@@ -26,8 +26,6 @@ class LocalRandomForestRegressionModel(override val sparkTransformer: RandomFore
 
 object LocalRandomForestRegressionModel extends LocalModel[RandomForestRegressionModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): RandomForestRegressionModel = {
-    println(s"METADATA $metadata")
-    println(s"DATA $data")
     val treesMetadata = metadata.paramMap("treesMetadata").asInstanceOf[Map[String, Any]]
     val trees = treesMetadata map { treeKv =>
       val treeMeta = treeKv._2.asInstanceOf[Map[String, Any]]
