@@ -31,7 +31,7 @@ object NaiveBayesJob extends MLMistJob with SQLSupport {
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
-      LocalDataColumn("features", features)
+      LocalDataColumn("features", features.map(x => Vectors.dense(x.toArray)))
     )
 
     val result: LocalData = pipeline.transform(data)

@@ -35,13 +35,10 @@ object ModelConversions {
 
         // Preprocessing
       case _: Binarizer.type => LocalBinarizer
-      case _: Bucketizer.type => LocalBucketizer
       case _: CountVectorizerModel.type => LocalCountVectorizerModel
       case _: DCT.type => LocalDCT
-      case _: ElementwiseProduct.type => LocalElementwiseProduct
       case _: HashingTF.type => LocalHashingTF
       case _: IndexToString.type => LocalIndexToString
-      case _: Interaction.type => LocalInteraction
       case _: MaxAbsScalerModel.type => LocalMaxAbsScalerModel
       case _: MinMaxScalerModel.type => LocalMinMaxScalerModel
       case _: NGram.type => LocalNGram
@@ -49,14 +46,11 @@ object ModelConversions {
       case _: OneHotEncoder.type => LocalOneHotEncoder
       case _: PCAModel.type => LocalPCAModel
       case _: PolynomialExpansion.type => LocalPolynomialExpansion
-      case _: SQLTransformer.type => LocalSQLTransformer
       case _: StandardScalerModel.type => LocalStandardScalerModel
       case _: StopWordsRemover.type  => LocalStopWordsRemover
       case _: StringIndexerModel.type => LocalStringIndexerModel
       case _: Tokenizer.type  => LocalTokenizer
-      case _: VectorAssembler.type => LocalVectorAssembler
       case _: VectorIndexerModel.type => LocalVectorIndexerModel
-      case _: VectorSlicer.type => LocalVectorSlicer
       case _: Word2VecModel.type => LocalWord2VecModel
       case _: IDFModel.type => LocalIDF
       case _: NaiveBayesModel.type => LocalNaiveBayes

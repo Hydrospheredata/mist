@@ -5,8 +5,13 @@ import io.hydrosphere.mist.ml.{LocalModel, LocalTransformer, Metadata}
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.feature.StandardScalerModel
 import org.apache.spark.mllib.feature.{StandardScalerModel => OldStandardScalerModel}
-import org.apache.spark.mllib.linalg.{Vector => OldVector, Vectors => OldVectors}
-import org.apache.spark.ml.linalg.{DenseVector, Vector}
+import org.apache.spark.mllib.linalg.{
+  Vector => OldVector,
+  Vectors => OldVectors,
+  SparseVector => OldSparseVector,
+  DenseVector => OldDenseVector
+}
+import org.apache.spark.ml.linalg.{DenseVector, Vector, SparseVector}
 
 class LocalStandardScalerModel(override val sparkTransformer: StandardScalerModel) extends LocalTransformer[StandardScalerModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -20,14 +25,15 @@ class LocalStandardScalerModel(override val sparkTransformer: StandardScalerMode
         )
 
         val newData = column.data.map(r => {
-          val vec: List[Double] = r match {
-            case d: List[Any @unchecked] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
+          val vec: OldVector = r match {
+            case d: List[Any @unchecked] => OldVectors.dense(d.map(_.toString.toDouble).toArray)
+            case d: SparseVector => OldVectors.sparse(d.size, d.indices, d.values)
+            case d: DenseVector => OldVectors.dense(d.toArray)
+            case d: OldDenseVector => d
+            case d: OldSparseVector => d.toDense
             case d => throw new IllegalArgumentException(s"Unknown data type for LocalStandardScaler: $d")
           }
-          val vector: OldVector = OldVectors.dense(vec.toArray)
-          scaler.transform(vector)
+          scaler.transform(vec)
         })
         localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
       case None => localData

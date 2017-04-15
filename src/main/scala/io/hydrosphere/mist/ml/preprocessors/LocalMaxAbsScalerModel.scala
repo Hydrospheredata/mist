@@ -4,7 +4,7 @@ import io.hydrosphere.mist.lib.{LocalData, LocalDataColumn}
 import io.hydrosphere.mist.ml._
 import org.apache.spark.ml.feature.MaxAbsScalerModel
 import org.apache.spark.ml.Transformer
-import org.apache.spark.ml.linalg.{DenseVector, Vector, Vectors}
+import org.apache.spark.ml.linalg.{DenseVector, Vector, Vectors, SparseVector}
 
 class LocalMaxAbsScalerModel(override val sparkTransformer: MaxAbsScalerModel) extends LocalTransformer[MaxAbsScalerModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -13,9 +13,9 @@ class LocalMaxAbsScalerModel(override val sparkTransformer: MaxAbsScalerModel) e
         val maxAbsUnzero = Vectors.dense(sparkTransformer.maxAbs.toArray.map(x => if (x == 0) 1 else x))
         val newData = column.data.map(r => {
           val vec: List[Double] = r match {
-            case d: List[Any @unchecked] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
+            case d: SparseVector => d.toDense.toArray.toList
+            case d: DenseVector => d.toArray.toList
+            case d: List[Any @unchecked] => d map (_.toString.toDouble)
             case d => throw new IllegalArgumentException(s"Unknown data type for LocalMaxAbsScaler: $d")
           }
           val brz = DataUtils.asBreeze(vec.toArray) / DataUtils.asBreeze(maxAbsUnzero.toArray)
