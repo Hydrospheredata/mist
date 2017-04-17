@@ -21,7 +21,7 @@ import scala.language.reflectiveCalls
 object Master extends App with Logger {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val materializer = ActorMaterializer()
 
 //  // Context creator actor
 //  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
@@ -34,8 +34,8 @@ object Master extends App with Logger {
 //    workerManager ! ClusterManager.CreateContext(contextName)
 //  }
 
-  // Start HTTP server if it is on in config
-  val routeConfig = ConfigFactory.parseFile(new File(MistConfig.Http.routerConfigPath)).resolve()
+  val file = new File(MistConfig.Http.routerConfigPath)
+  val routeConfig = ConfigFactory.parseFile(file).resolve()
   val jobRoutes = new JobRoutes(routeConfig)
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
@@ -48,7 +48,6 @@ object Master extends App with Logger {
     statusService,
     jobRoutes)
 
-  //TODO: why router configuration in http??
   if (MistConfig.Http.isOn) {
     val api = new HttpApi(masterService)
     val http = HttpUi.route ~ api.route
@@ -57,7 +56,7 @@ object Master extends App with Logger {
 
   // Start CLI
   system.actorOf(
-    CliResponder.props(jobRoutes, workerManager),
+    CliResponder.props(masterService, workerManager),
     name = Constants.Actors.cliResponderName)
 
   AsyncInterface.init(system, masterService)

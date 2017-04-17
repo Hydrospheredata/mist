@@ -10,7 +10,7 @@ class CommandSpec extends FunSpec with Matchers {
 
   val expected = Table(
     ("input", "cmd"),
-    (Commands.listJobs, ActiveJobsCmd),
+    (Commands.listJobs, RunningJobsCmd),
     (s"${Commands.stopWorker} name", StopWorkerCmd("name")),
     (Constants.CLI.Commands.listWorkers, ListWorkersCmd),
     (Constants.CLI.Commands.listRouters, ListRoutesCmd),

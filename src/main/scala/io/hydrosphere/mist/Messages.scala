@@ -77,10 +77,6 @@ object Messages {
     // return full job details
     case object RunningJobs
 
-    sealed trait GetStatus
-    case class GetStatusById(id: String) extends GetStatus
-    case class GetStatusByExternalId(id: String) extends GetStatus
-
   }
 
   // only for cli

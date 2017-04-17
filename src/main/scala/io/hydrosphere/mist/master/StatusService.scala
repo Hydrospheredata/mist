@@ -22,20 +22,15 @@ class StatusService(store: JobRepository) extends Actor with ActorLogging {
 
     case Register(id, params, source) =>
       val details = JobDetails(params, source, id)
-      log.info(s"Job is registered $details")
       store.update(details)
 
     case x:UpdateStatus => handleUpdateStatus(x)
 
     case RunningJobs =>
       sender() ! store.filteredByStatuses(activeStatuses)
-
-    case GetStatusById(id) => sender() ! store.get(id)
-    case GetStatusByExternalId(id) => sender() ! store.getByExternalId(id)
   }
 
   private def handleUpdateStatus(u: UpdateStatus): Unit = {
-    log.info(s"UPDATE JOB status $u")
     val details = actualDetails(u.id)
     val updated = details.map(d => {
       val updatedTimes = u.status match {

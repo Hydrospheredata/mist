@@ -6,8 +6,9 @@ import akka.util.Timeout
 import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobIsCancelled}
 import io.hydrosphere.mist.Messages.ListRoutes
+import io.hydrosphere.mist.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.Messages.WorkerMessages._
-import io.hydrosphere.mist.jobs.JobDefinition
+import io.hydrosphere.mist.jobs.{JobDefinition, JobDetails}
 import io.hydrosphere.mist.master.{JobExecutionStatus, WorkerLink}
 import org.joda.time.DateTime
 
@@ -48,20 +49,26 @@ trait RemoteUnitCliCommand extends RemoteCliCommand[Unit] {
 }
 
 
-object ActiveJobsCmd extends RemoteCliCommand[List[JobExecutionStatus]] {
+object RunningJobsCmd extends RemoteCliCommand[List[JobDetails]] {
 
-  override val request = GetActiveJobs
-  override val headers = List("UID", "START TIME", "STATUS")
+  override val request = RunningJobs
+  override val headers = List("UID", "START TIME", "NAMESPACE", "EXT ID", "ROUTE", "SOURCE", "STATUS")
 
-  override def convert(resp: List[JobExecutionStatus]): List[Row] = {
+  override def convert(resp: List[JobDetails]): List[Row] = {
+    def toTimeSting(i: Long) = new DateTime(i).toString
     resp.map(s => {
       Row.create(
-        s.id,
-        s.startTime.map(new DateTime(_).toString).getOrElse(""),
+        s.jobId,
+        s.startTime.map(toTimeSting(_)).getOrElse(""),
+        s.configuration.namespace,
+        s.configuration.externalId.getOrElse(""),
+        s.configuration.route.getOrElse(""),
+        s.source.toString,
         s.status.toString
       )
     })
   }
+
 }
 
 object ListWorkersCmd extends RemoteCliCommand[List[WorkerLink]] {
@@ -111,7 +118,7 @@ object Command {
 
   def parse(input: String): Option[Command] = input match {
     case msg if msg.contains(Constants.CLI.Commands.listJobs) =>
-      Some(ActiveJobsCmd)
+      Some(RunningJobsCmd)
 
     case msg if msg.contains(Constants.CLI.Commands.listWorkers) =>
       Some(ListWorkersCmd)

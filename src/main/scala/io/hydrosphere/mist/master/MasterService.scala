@@ -20,7 +20,7 @@ import scala.util.{Failure, Success}
 class MasterService(
   workerManager: ActorRef,
   statusService: ActorRef,
-  val jobRoutes: JobRoutes
+  jobRoutes: JobRoutes
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -54,6 +54,7 @@ class MasterService(
   }
 
   def listRoutesInfo(): Seq[JobInfo] = jobRoutes.listInfos()
+  def routeDefinitions(): Seq[JobDefinition] = jobRoutes.listDefinition()
 
   def startJob(
     id: String,
