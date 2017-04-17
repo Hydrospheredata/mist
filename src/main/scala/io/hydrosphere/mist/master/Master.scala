@@ -7,7 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.Messages.WorkerMessages.StopAllWorkers
+import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpUi}
@@ -23,16 +23,6 @@ object Master extends App with Logger {
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   implicit val materializer = ActorMaterializer()
 
-//  // Context creator actor
-//  val workerManager = system.actorOf(Props[ClusterManager], name = Constants.Actors.clusterManagerName)
-//
-//  logger.debug(system.toString)
-//
-//  // Creating contexts which are specified in config as `onstart`
-//  MistConfig.Contexts.precreated foreach { contextName =>
-//    logger.info("Creating contexts which are specified in config")
-//    workerManager ! ClusterManager.CreateContext(contextName)
-//  }
 
   val file = new File(MistConfig.Http.routerConfigPath)
   val routeConfig = ConfigFactory.parseFile(file).resolve()
@@ -47,6 +37,11 @@ object Master extends App with Logger {
     workerManager,
     statusService,
     jobRoutes)
+
+  MistConfig.Contexts.precreated foreach { name =>
+    logger.info(s"Precreate context for $name namespace")
+    workerManager ! CreateContext(name)
+  }
 
   if (MistConfig.Http.isOn) {
     val api = new HttpApi(masterService)

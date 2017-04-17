@@ -60,7 +60,7 @@ class WorkersManager(
 
   override def receive: Receive = {
     case WorkerCommand(name, entry) =>
-      val state = getWorkerState(name)
+      val state = getOrRunWorker(name)
       state.frontend forward entry
 
     case GetWorkers =>
@@ -102,7 +102,7 @@ class WorkersManager(
       })
 
     case r @ WorkerResolved(name, address, ref) =>
-      val s = getWorkerState(name)
+      val s = getOrRunWorker(name)
       workerStates += name -> Started(s.frontend, address, ref)
       s.frontend ! WorkerUp(ref)
       log.info(s"Worker with $name is registered on $address")
@@ -115,6 +115,9 @@ class WorkersManager(
       workerNameFromMember(m).foreach(name => {
         setWorkerDown(name)
       })
+
+    case CreateContext(name) =>
+      getOrRunWorker(name)
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -145,7 +148,7 @@ class WorkersManager(
     }
   }
 
-  private def getWorkerState(name: String): WorkerState = {
+  private def getOrRunWorker(name: String): WorkerState = {
     workerStates.getOrElse(name, defaultWorkerState(name)) match {
       case d: Down =>
         runWorker(name)
