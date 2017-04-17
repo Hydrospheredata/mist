@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.server.{Directives, Route}
 import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.utils.Logger
@@ -64,7 +65,7 @@ class HttpApi(master: MasterService) extends Logger {
             else
               Action.Execute
 
-            master.startJob(jobId, action, jobParams)
+            master.startJob(jobId, action, jobParams, Source.Http, None)
           }
         }
       }}

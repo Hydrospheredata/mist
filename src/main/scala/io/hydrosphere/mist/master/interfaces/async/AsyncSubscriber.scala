@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.async
 
 import akka.actor.{Actor, ActorRef}
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.JobExecutionRequest
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.utils.json.JobConfigurationJsonSerialization
@@ -21,7 +22,7 @@ abstract class AsyncSubscriber(masterService: MasterService) extends Actor
   def processIncomingMessage(message: String): Unit = {
     extractRequest(message) match {
       case Some(req) =>
-        val future = masterService.startJob(req)
+        val future = masterService.startJob(req, Source.Async(provider))
         future.onComplete({
           case Success(result) => publisherActor ! result
           case Failure(e) =>

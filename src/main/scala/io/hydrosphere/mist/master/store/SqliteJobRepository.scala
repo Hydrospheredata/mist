@@ -124,6 +124,10 @@ class SqliteJobRepository(filePath: String) extends JobRepository with JobDetail
     run(jobs.filter(_.jobId === jobId).result).headOption
   }
 
+  override def getByExternalId(id: String): Option[JobDetails] = {
+    run(jobs.filter(_.externalId === id).result).headOption
+  }
+
   override def size: Long = {
     run(jobs.length.result).toLong
   }

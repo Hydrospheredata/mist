@@ -11,11 +11,12 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
   with FunSpecLike
   with Matchers {
 
+  val StatusService = TestProbe().ref
   describe("without worker") {
 
     it("should queue jobs") {
       val probe = TestProbe()
-      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5))
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, StatusService))
 
       probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
 
@@ -29,7 +30,7 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
     it("should cancel jobs") {
 
       val probe = TestProbe()
-      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5))
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, StatusService))
 
       probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
       probe.expectMsgType[ExecutionInfo]
@@ -45,7 +46,7 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
       val probe = TestProbe()
       val backend = TestProbe()
 
-      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5))
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, StatusService))
 
       frontend ! WorkerUp(backend.ref)
 
@@ -64,7 +65,7 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
       val probe = TestProbe()
       val backend = TestProbe()
 
-      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5))
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, StatusService))
 
       frontend ! WorkerUp(backend.ref)
 

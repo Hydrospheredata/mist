@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import akka.actor._
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages._
@@ -12,7 +12,6 @@ import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.duration._
 import scala.util.Success
-
 import WorkerManagerSpec._
 
 class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
@@ -25,11 +24,13 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
     override def run(settings: WorkerSettings): Unit = {}
   }
 
+  val StatusService = TestProbe().ref
+
   implicit override val patienceConfig =
     PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(5, Millis)))
 
   it("should connect frond and back") {
-    val manager = system.actorOf(WorkersManager.props(NothingRunner))
+    val manager = system.actorOf(WorkersManager.props(StatusService, NothingRunner))
 
     val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
     manager ! WorkerCommand("test", RunJobRequest("id", params))
@@ -49,7 +50,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   }
 
   it("should return active workers") {
-    val manager = system.actorOf(WorkersManager.props(NothingRunner))
+    val manager = system.actorOf(WorkersManager.props(StatusService, NothingRunner))
 
     manager ! GetWorkers
     expectMsg(List.empty[String])

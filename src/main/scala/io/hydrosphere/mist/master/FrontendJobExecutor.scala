@@ -5,6 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.Messages.JobMessages._
+import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatus
 import io.hydrosphere.mist.Messages.WorkerMessages._
 
 import scala.collection.mutable
@@ -31,12 +32,14 @@ object ExecutionInfo {
 
 }
 
+//TODO: cancel jobs should send info to statusService
 /**
   * Queue for jobs before sending them to worker
   */
 class FrontendJobExecutor(
   name: String,
-  maxRunningJobs: Int
+  maxRunningJobs: Int,
+  statusService: ActorRef
 ) extends Actor with ActorLogging {
 
   val queue = mutable.Queue[ExecutionInfo]()
@@ -46,7 +49,6 @@ class FrontendJobExecutor(
 
   override def receive: Actor.Receive = noWorker
 
-  //TODO: start time?
   val common: Receive = {
     case GetActiveJobs =>
       sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
@@ -78,9 +80,10 @@ class FrontendJobExecutor(
       }
       sender() ! info
 
-    case JobStarted(id, _) =>
+    case JobStarted(id, time) =>
       jobs.get(id).foreach(info => {
         log.info(s"Job has been started $id")
+        statusService ! UpdateStatus(id, JobDetails.Status.Running, time)
         info.updateStatus(JobDetails.Status.Running)
       })
 
@@ -109,6 +112,7 @@ class FrontendJobExecutor(
     f.onSuccess({
       case x @ JobIsCancelled(id, time) =>
         log.info("Job {} is cancelled", id)
+        statusService ! UpdateStatus(id, JobDetails.Status.Aborted, time)
         sender ! x
     })
     f.onFailure({
@@ -121,6 +125,7 @@ class FrontendJobExecutor(
     queue.dequeueFirst(_.request.id == id)
     jobs -= id
     sender ! JobIsCancelled(id)
+    statusService ! UpdateStatus(id, JobDetails.Status.Aborted, System.currentTimeMillis())
   }
 
   private def onJobDone(resp: JobResponse): Unit = {
@@ -140,6 +145,9 @@ class FrontendJobExecutor(
     val info = ExecutionInfo(req, JobDetails.Status.Queued)
     queue += info
     jobs += req.id -> info
+
+    statusService ! UpdateStatus(req.id, JobDetails.Status.Queued, System.currentTimeMillis())
+
     info
   }
 
@@ -163,8 +171,12 @@ class FrontendJobExecutor(
 
 object FrontendJobExecutor {
 
-  def props(name: String, maxRunningJobs: Int): Props =
-    Props(classOf[FrontendJobExecutor], name, maxRunningJobs)
+  def props(
+    name: String,
+    maxRunningJobs: Int,
+    statusService: ActorRef
+  ): Props =
+    Props(classOf[FrontendJobExecutor], name, maxRunningJobs, statusService)
 
 
 }

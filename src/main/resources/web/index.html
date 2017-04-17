@@ -46,12 +46,12 @@
       </table></script><script id="jobs" type="x-tmpl-mustache"><table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp mdl-cell mdl-cell--12-col">
         <tbody>
           {{#jobs}}
-          <tr id="row-{{id}}">
+          <tr id="row-{{jobId}}">
             <td class="mdl-data-table__cell--non-numeric">
-              {{id}}
+              {{jobId}}
             </td>
             <td>
-              <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" id="kill-job-{{id}}" data-uid="{{id}}" data-namespace="{{namespace}}" data-callback="{{callback}}">
+              <button class="mist-action-button mdl-button mdl-js-button mdl-button--raised mdl-button--accent" id="kill-job-{{jobId}}" data-uid="{{jobId}}" data-namespace="{{configuration.namespace}}" data-callback="{{callback}}">
                 Kill
               </button>
             </td>

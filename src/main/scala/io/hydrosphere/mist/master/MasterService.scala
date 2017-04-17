@@ -8,6 +8,9 @@ import akka.util.Timeout
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.Messages.JobMessages._
+import io.hydrosphere.mist.Messages.StatusMessages
+import io.hydrosphere.mist.Messages.StatusMessages.{Register, RunningJobs, UpdateStatus}
+import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias._
 
@@ -16,6 +19,7 @@ import scala.util.{Failure, Success}
 
 class MasterService(
   workerManager: ActorRef,
+  statusService: ActorRef,
   val jobRoutes: JobRoutes
 ) extends Logger {
 
@@ -24,9 +28,9 @@ class MasterService(
 
   implicit val timeout = Timeout(5.second)
 
-  def activeJobs(): Future[List[JobExecutionStatus]] = {
-    val future = workerManager ? GetActiveJobs
-    future.mapTo[List[JobExecutionStatus]]
+  def activeJobs(): Future[List[JobDetails]] = {
+    val future = statusService ? StatusMessages.RunningJobs
+    future.mapTo[List[JobDetails]]
   }
 
   def workers(): Future[List[WorkerLink]] = {
@@ -51,10 +55,18 @@ class MasterService(
 
   def listRoutesInfo(): Seq[JobInfo] = jobRoutes.listInfos()
 
-  def startJob(id: String, action: Action, arguments: JobParameters): Future[JobResult] = {
-    buildParams(id, action, arguments) match {
+  def startJob(
+    id: String,
+    action: Action,
+    arguments: JobParameters,
+    source: JobDetails.Source,
+    externalId: Option[String]
+  ): Future[JobResult] = {
+    buildParams(id, action, arguments, externalId) match {
       case Some(execParams) =>
         val request = toRequest(execParams)
+
+        statusService ! Register(request.id, execParams, source)
 
         val promise = Promise[JobResult]
         // that timeout only for obtaining execution info
@@ -75,18 +87,23 @@ class MasterService(
     }
   }
 
-  def startJob(r: JobExecutionRequest): Future[JobResult] =
-    startJob(r.jobId, r.action, r.parameters)
+  def startJob(r: JobExecutionRequest, source: JobDetails.Source): Future[JobResult] = {
+    import r._
+    startJob(jobId, action, parameters, source, r.externalId)
+  }
 
   private def buildParams(
     routeId: String,
     action: Action,
-    arguments: JobParameters): Option[JobExecutionParams] = {
+    arguments: JobParameters,
+    externalId: Option[String]
+  ): Option[JobExecutionParams] = {
     jobRoutes.getDefinition(routeId).map(d => {
       JobExecutionParams.fromDefinition(
         definition = d,
         action = action,
-        parameters = arguments
+        parameters = arguments,
+        externalId = externalId
       )
     })
   }
@@ -102,6 +119,34 @@ class MasterService(
       )
     )
 
+  }
+
+  //TODO: job results is not publishing into async interface
+  def recoverJobs(): Future[Unit] = {
+    implicit val timeout = Timeout(30 seconds)
+    val f = (statusService ? RunningJobs).mapTo[List[JobDetails]]
+    val result = f.map(jobs => {
+      jobs.foreach(d => d.source match {
+        case a:Async =>
+          logger.info(s"Job is recovered $d")
+          startJob(
+            d.jobId,
+            d.configuration.action,
+            d.configuration.parameters,
+            d.source,
+            d.configuration.externalId)
+        case _ =>
+          logger.info(s"Mark job aborted ${d.jobId}")
+          statusService ! UpdateStatus(d.jobId, JobDetails.Status.Aborted, System.currentTimeMillis())
+      })
+    })
+    result.onComplete({
+      case Success(_) =>
+        logger.info("Job Recovery done")
+      case Failure(e) =>
+        logger.error("Job recovery failed", e)
+    })
+    result
   }
 
 }

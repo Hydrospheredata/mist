@@ -49,7 +49,10 @@ case class Started(
   *
   * @param workerRunner - interface for spawning workers processes
   */
-class WorkersManager(workerRunner: WorkerRunner)extends Actor with ActorLogging {
+class WorkersManager(
+  statusService: ActorRef,
+  workerRunner: WorkerRunner
+)extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
 
@@ -164,7 +167,7 @@ class WorkersManager(workerRunner: WorkerRunner)extends Actor with ActorLogging 
   }
 
   private def defaultWorkerState(name: String): WorkerState = {
-    val frontend = context.actorOf(FrontendJobExecutor.props(name, 10))
+    val frontend = context.actorOf(FrontendJobExecutor.props(name, 10, statusService))
     Down(frontend)
   }
 
@@ -183,8 +186,11 @@ class WorkersManager(workerRunner: WorkerRunner)extends Actor with ActorLogging 
 
 object WorkersManager {
 
-  def props(workerRunner: WorkerRunner): Props = {
-    Props(classOf[WorkersManager], workerRunner)
+  def props(
+    statusService: ActorRef,
+    workerRunner: WorkerRunner): Props = {
+
+    Props(classOf[WorkersManager], statusService, workerRunner)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)

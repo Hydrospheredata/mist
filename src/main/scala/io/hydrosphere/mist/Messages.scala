@@ -1,7 +1,8 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, ActorSelection, Address}
-import io.hydrosphere.mist.jobs.Action
+import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
 
 object Messages {
 
@@ -66,6 +67,19 @@ object Messages {
 
     case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
     case class JobFailure(id: String, error: String) extends JobResponse
+
+  }
+
+  object StatusMessages {
+
+    case class Register(id: String, params: JobExecutionParams, source: Source)
+    case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
+    // return full job details
+    case object RunningJobs
+
+    sealed trait GetStatus
+    case class GetStatusById(id: String) extends GetStatus
+    case class GetStatusByExternalId(id: String) extends GetStatus
 
   }
 

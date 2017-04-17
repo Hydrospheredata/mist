@@ -11,6 +11,7 @@ object SimpleContext extends MistJob {
   def execute(numbers: List[Int], multiplier: Option[Int]): Map[String, Any] = {
     val multiplierValue = multiplier.getOrElse(2)
     val rdd = context.parallelize(numbers)
+    Thread.sleep(1000 * 100)
     Map("result" -> rdd.map(x => x * multiplierValue).collect())
   }
 }

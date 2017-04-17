@@ -11,6 +11,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages.StopAllWorkers
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpUi}
+import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
 
@@ -38,14 +39,17 @@ object Master extends App with Logger {
   val jobRoutes = new JobRoutes(routeConfig)
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
-  val workerManager = system.actorOf(WorkersManager.props(workerRunner), "workers-manager")
+  val store = JobRepository()
+  val statusService = system.actorOf(StatusService.props(store), "status-service")
+  val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
+
   val masterService = new MasterService(
     workerManager,
+    statusService,
     jobRoutes)
 
   //TODO: why router configuration in http??
   if (MistConfig.Http.isOn) {
-
     val api = new HttpApi(masterService)
     val http = HttpUi.route ~ api.route
     Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
@@ -70,7 +74,7 @@ object Master extends App with Logger {
   }
 
   // Start job recovery
-  system.actorOf(JobRecovery.props()) ! JobRecovery.StartRecovery
+  masterService.recoverJobs()
 
   // We need to stop contexts on exit
   sys addShutdownHook {

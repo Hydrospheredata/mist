@@ -79,6 +79,10 @@ class MapDbJobRepository(filePath: String) extends JobRepository with JobDetails
     }
   }
 
+  override def getByExternalId(id: String): Option[JobDetails] = {
+    getAll.find(_.configuration.externalId.exists(_ == id))
+  }
+
   override def size: Long ={
     try{
       val keys = map.keySet().toArray()

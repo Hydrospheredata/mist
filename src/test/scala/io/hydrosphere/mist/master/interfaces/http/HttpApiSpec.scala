@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.{JobExecutionStatus, MasterService, WorkerLink}
@@ -22,14 +23,20 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
     when(master.activeJobs()).thenReturn(
       Future.successful(
-        List(JobExecutionStatus("id", "namespace", None, None, JobDetails.Status.Initialized))
+        List(JobDetails(
+          configuration = JobExecutionParams(
+            "path", "MyClass", "namespace", Map.empty, None, None, Action.Execute
+          ),
+          source = Source.Http,
+          jobId = "id"
+        ))
       )
     )
 
     Get("/internal/jobs") ~> api ~> check {
       status === StatusCodes.OK
 
-      val r = responseAs[List[JobExecutionStatus]]
+      val r = responseAs[List[JobDetails]]
       r.size shouldBe 1
     }
   }
@@ -117,7 +124,13 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
   it("should start job") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
-    when(master.startJob(any[String], any[Action], any[JobParameters]))
+    when(master.startJob(
+      any[String],
+      any[Action],
+      any[JobParameters],
+      any[Source],
+      any[Option[String]]
+    ))
       .thenReturn(Future.successful(
         JobResult.success(Map("yoyo" -> "hello"),
         JobExecutionParams("", "", "", Map.empty, None, None, Action.Execute))

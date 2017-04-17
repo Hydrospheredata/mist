@@ -34,7 +34,6 @@ case class JobExecutionRequest(
   externalId: Option[String]
 )
 
-//TODO: why route is optional?
 /**
   * Full configuration for job running
   */

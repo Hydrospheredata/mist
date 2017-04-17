@@ -18,6 +18,10 @@ class InMemoryJobRepository extends JobRepository {
   override def get(jobId: String): Option[JobDetails] = {
     _collection.get(jobId)
   }
+
+  override def getByExternalId(id: String): Option[JobDetails] = {
+    _collection.values.find(_.configuration.externalId.exists(_ == id))
+  }
   
   private def getAll: List[JobDetails] = _collection.values.toList
 
