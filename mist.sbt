@@ -173,7 +173,8 @@ lazy val mist = project.in(file("."))
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistJar=$jar",
-        "-Xmx1G"
+        s"-DsparkVersion=${sparkVersion.value}",
+        "-Xmx512m"
       )
     },
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),

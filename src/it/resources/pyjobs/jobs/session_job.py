@@ -1,6 +1,6 @@
 from mist.mist_job import *
 
-class SessionJob(MistJob, WithSQLSupport):
+class SessionJob(MistJob, WithHiveSupport):
     def execute(self, path):
         df = self.session.read.json(path)
         df.printSchema()

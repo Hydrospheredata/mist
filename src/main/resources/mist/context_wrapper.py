@@ -33,13 +33,11 @@ class ContextWrapper:
 
     def set_session(self, java_gateway):
         from pyspark.sql import SparkSession
-        spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
-        self._session = SparkSession(self.context, spark_context_wrapper.sparkSession())
+        self._session = SparkSession.builder.config(conf = self._context.getConf()).getOrCreate()
 
     def set_hive_session(self, java_gateway):
         from pyspark.sql import SparkSession
-        spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
-        self._session = SparkSession(self.context, spark_context_wrapper.withHive().sparkSession())
+        self._session = SparkSession.builder.config(conf = self._context.getConf()).enableHiveSupport().getOrCreate()
 
     def set_streaming_context(self, java_gateway):
         from pyspark.streaming import StreamingContext

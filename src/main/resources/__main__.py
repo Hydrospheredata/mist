@@ -48,6 +48,7 @@ java_import(_gateway.jvm, "org.apache.spark.api.java.*")
 java_import(_gateway.jvm, "org.apache.spark.api.python.*")
 java_import(_gateway.jvm, "org.apache.spark.mllib.api.python.*")
 java_import(_gateway.jvm, "org.apache.spark.*")
+java_import(_gateway.jvm, "org.apache.spark.sql.*")
 java_import(_gateway.jvm, 'java.util.*')
 
 context_wrapper = ContextWrapper()
@@ -61,36 +62,36 @@ parameters = configuration_wrapper.parameters()
 
 data_wrapper = _entry_point.dataWrapper()
 
-with open(path) as file:
-    code = compile(file.read(), path, "exec")
-user_job_module = types.ModuleType("<user_job>")
-exec code in user_job_module.__dict__
+try: 
+    with open(path) as file:
+        code = compile(file.read(), path, "exec")
+    user_job_module = types.ModuleType("<user_job>")
+    exec code in user_job_module.__dict__
 
-class_ = getattr(user_job_module, class_name)
-if not issubclass(class_, MistJob):
-    raise Exception(class_name + " is not a subclass of MistJob")
+    class_ = getattr(user_job_module, class_name)
+    if not issubclass(class_, MistJob):
+        raise Exception(class_name + " is not a subclass of MistJob")
 
-instance = class_()
+    instance = class_()
 
-try:
-    from pyspark.sql import SparkSession
-    if issubclass(class_, WithSQLSupport):
-        context_wrapper.set_session(_gateway)
-    if issubclass(class_, WithHiveSupport):
-        context_wrapper.set_hive_session(_gateway)
-except ImportError:
-    if issubclass(class_, WithSQLSupport):
-        context_wrapper.set_sql_context(_gateway)
-    if issubclass(class_, WithHiveSupport):
-        context_wrapper.set_hive_context(_gateway)
+    try:
+        from pyspark.sql import SparkSession
+        if issubclass(class_, WithSQLSupport):
+            context_wrapper.set_session(_gateway)
+        if issubclass(class_, WithHiveSupport):
+            context_wrapper.set_hive_session(_gateway)
+    except ImportError:
+        if issubclass(class_, WithSQLSupport):
+            context_wrapper.set_sql_context(_gateway)
+        if issubclass(class_, WithHiveSupport):
+            context_wrapper.set_hive_context(_gateway)
 
-if issubclass(class_, WithPublisher):
-    context_wrapper.init_publisher(_gateway)
+    if issubclass(class_, WithPublisher):
+        context_wrapper.init_publisher(_gateway)
 
-if issubclass(class_, WithStreamingContext):
-    context_wrapper.set_streaming_context(_gateway)
+    if issubclass(class_, WithStreamingContext):
+        context_wrapper.set_streaming_context(_gateway)
 
-try:
     instance.setup(context_wrapper)
     # TODO: train/serve
     result = instance.execute(**to_python_types(parameters))

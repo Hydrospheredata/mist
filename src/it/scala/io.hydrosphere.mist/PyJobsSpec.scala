@@ -31,7 +31,7 @@ class PyJobsSpec extends FunSpec with MistItTest with Matchers {
     assert(result.success, s"Job is failed $result")
   }
 
-  it("should run hive job") {
+  it("should run hive job") { runOnlyOnSpark1 {
     val req = Http("http://localhost:2004/api/hive-job-py")
       .timeout(60 * 1000, 60 * 1000)
       .header("Content-Type", "application/json")
@@ -48,5 +48,24 @@ class PyJobsSpec extends FunSpec with MistItTest with Matchers {
     val result = resp.body.parseJson.convertTo[JobResult]
 
     assert(result.success, s"Job is failed $result")
-  }
+  }}
+
+  it("should run session hive job") { runOnlyOnSpark2 {
+    val req = Http("http://localhost:2004/api/session-py")
+      .timeout(60 * 1000, 60 * 1000)
+      .header("Content-Type", "application/json")
+      .postData(
+        s"""
+           |{
+           |  "path" : "./src/it/resources/pyjobs/jobs/hive_job_data.json"
+           |}
+         """.stripMargin)
+
+    val resp = req.asString
+    resp.code shouldBe 200
+
+    val result = resp.body.parseJson.convertTo[JobResult]
+
+    assert(result.success, s"Job is failed $result")
+  }}
 }

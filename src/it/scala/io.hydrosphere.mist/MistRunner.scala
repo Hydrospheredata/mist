@@ -5,8 +5,15 @@ import scala.sys.process._
 
 trait MistRunner {
 
-  private val sparkHome = sys.props.getOrElse("sparkHome", throw new RuntimeException("spark home not set"))
-  private val jar = sys.props.getOrElse("mistJar", throw new RuntimeException("mistJar not set"))
+  private def getProperty(name: String): String = sys.props.get(name) match {
+    case Some(v) => v
+    case None => throw new RuntimeException(s"Property $name is not set")
+  }
+
+
+  val sparkHome = getProperty("sparkHome")
+  val jar = getProperty("mistJar")
+  val sparkVersion = getProperty("sparkVersion")
 
   def runMist(configPath: String): Process = {
 
@@ -51,5 +58,18 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
     Thread.sleep(1000)
   }
 
+  def isSpark2: Boolean = sparkVersion.startsWith("2.")
+  def isSpark1: Boolean = !isSpark2
+
+  def runOnlyIf(f: => Boolean, descr: String)(body: => Unit) = {
+    if (f) body
+    else cancel(descr)
+  }
+
+  def runOnlyOnSpark2(body: => Unit): Unit =
+    runOnlyIf(isSpark2, "SKIP TEST - ONLY FOR SPARK2")(body)
+
+  def runOnlyOnSpark1(body: => Unit): Unit =
+    runOnlyIf(isSpark1, "SKIP TEST - ONLY FOR SPARK1")(body)
 }
 
