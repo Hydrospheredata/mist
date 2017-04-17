@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.jobs.jar
+package io.hydrosphere.mist
 
 import java.nio.file.{Files, Paths}
 
@@ -47,7 +47,7 @@ object JarPackager {
   import java.io._
   import java.util.jar._
 
-  def pack(dir: String, to: String, jarName: String): Unit = {
+  def pack(dir: String, to: String): Unit = {
     val manifest = new java.util.jar.Manifest()
     manifest.getMainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0")
     val f = new File(dir)
