@@ -18,6 +18,8 @@ case class WorkerSettings(
 trait WorkerRunner {
 
   def run(settings: WorkerSettings): Unit
+
+  def onStop(name: String): Unit = ()
 }
 
 /**
@@ -79,5 +81,19 @@ object ManualWorkerRunner extends WorkerRunner {
       "MIST_WORKER_RUN_OPTIONS" -> runOptions
     ).run(false)
   }
+
+  override def onStop(name: String): Unit = withStopCommand { cmd =>
+    Process(
+      Seq("bash", "-c", cmd),
+      None,
+      "MIST_WORKER_NAMESPACE" -> name
+    ).run(false)
+  }
+
+  private def withStopCommand(f: String => Unit): Unit = {
+    val cmd = MistConfig.Workers.cmdStop
+    if (cmd.nonEmpty) f(cmd)
+  }
+
 }
 

@@ -168,6 +168,9 @@ private[mist] object MistConfig {
 
     /** Shell command for manual running */
     def cmd: String = workers.getString("cmd")
+
+    /** Shell command for manual stop hooks */
+    def cmdStop: String = workers.getString("cmdStop")
   }
 
   /** Settings for all contexts generally and for each context particularly */

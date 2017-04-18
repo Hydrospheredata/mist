@@ -141,6 +141,7 @@ class WorkersManager(
             workerStates += name -> Down(s.frontend)
             s.frontend ! WorkerDown
             log.info(s"Worker for $name is marked down")
+            workerRunner.onStop(name)
         }
 
       case None =>
