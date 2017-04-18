@@ -14,14 +14,12 @@ parallel (
 )
 
 node("aws-slave-04") {
-    stage('Fix permissions') {
-        fix_permissions()
-    }
-
     stage('Public in Maven') {
-        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=1.5.2 'set pgpPassphrase := Some(Array())' publishSigned"
-        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=2.1.0 'set pgpPassphrase := Some(Array())' publishSigned"
-        sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
+
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
     }
 }
 
@@ -32,10 +30,6 @@ def test_mist(slaveName,sparkVersion) {
         stage('Clone project ' + sparkVersion) {
           checkout scm
           sh "cd ${env.WORKSPACE}"
-        }
-
-        stage('Fix permissions') {
-            fix_permissions()
         }
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
@@ -67,12 +61,7 @@ def test_mist(slaveName,sparkVersion) {
 }
 
 def build_image(sparkVersion) {
-  docker.withRegistry('https://index.docker.io/v1/', '2276974e-852b-45ab-bf14-9136e1b31217') {
-    echo 'Building Mist with Spark version: ' + sparkVersion
-    def mistImg = docker.build("hydrosphere/mist:${env.BRANCH_NAME}-${sparkVersion}", "--build-arg SPARK_VERSION=${sparkVersion} .")
-    echo 'Pushing Mist with Spark version: ' + sparkVersion
-    mistImg.push()
-  }
+  sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
 }
 
 def fix_permissions(){
