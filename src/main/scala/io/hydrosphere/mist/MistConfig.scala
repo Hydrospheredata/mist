@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory, ConfigValue}
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import org.apache.spark.streaming.{Duration => SDuration}
 
 import scala.collection.JavaConversions._
@@ -54,8 +55,8 @@ private[mist] object MistConfig {
   }
 
   /** HTTP specific settings */
-  object HTTP {
-    private def http(): Config = config.getConfig("mist.http")
+  object Http {
+    private def http: Config = config.getConfig("mist.http")
 
     /** To start HTTP server or not to start */
     def isOn: Boolean = http.getBoolean("on")
@@ -80,9 +81,22 @@ private[mist] object MistConfig {
       }
     }
   }
+  
+  trait AsyncInterfaceConfig {
+    def isOn: Boolean
+    def subscribeTopic: String
+    def publishTopic: String
+  }
+  
+  object AsyncInterfaceConfig {
+    def apply(provider: AsyncInterface.Provider): AsyncInterfaceConfig = provider match {
+      case AsyncInterface.Provider.Mqtt => Mqtt
+      case AsyncInterface.Provider.Kafka => Kafka
+    }
+  }
 
   /** MQTT specific settings */
-  object MQTT {
+  object Mqtt extends AsyncInterfaceConfig {
     private def mqtt: Config = config.getConfig("mist.mqtt")
 
     /** To start MQTT subscriber on not to start */
@@ -98,18 +112,45 @@ private[mist] object MistConfig {
     def publishTopic: String = mqtt.getString("publish-topic")
 
   }
+  
+  /** Kafka specific settings */
+  object Kafka extends AsyncInterfaceConfig {
+    private val kafka = config.getConfig("mist.kafka")
+    
+    /** To start Kafka subscriber or not to start */
+    val isOn: Boolean = kafka.getBoolean("on")
+    
+    /** Kafka bootstrap server host */
+    lazy val host: String = kafka.getString("host")
+
+    /** Kafka bootstrap server port */
+    lazy val port: String = kafka.getString("port")
+
+    /** Kafka topic used for ''reading'' */
+    lazy val subscribeTopic: String = kafka.getString("subscribe-topic")
+
+    /** Kafka topic used for ''writing'' */
+    lazy val publishTopic: String = kafka.getString("publish-topic")
+    
+    /** Other setting (group.id, auto.offset.reset, enable.auto.commit, etc) */
+    val conf: Config = kafka.getConfig("settings")
+
+    def groupId: String = conf.getString("group.id")
+  }
 
   object Recovery {
     private def recovery: Config = config.getConfig("mist.recovery")
 
     /** job recovery after mist Failure */
     def recoveryOn: Boolean = recovery.getBoolean("on")
-    /** job recovery multi start limit */
-    def recoveryMultilimit: Int = recovery.getInt("multilimit")
-    /** type Db */
-    def recoveryTypeDb: String = recovery.getString("typedb")
-    /** job recovery MapDb file name */
-    def recoveryDbFileName: String = recovery.getString("dbfilename")
+  }
+  
+  object History {
+    private def history = config.getConfig("mist.history")
+    
+    def isOn: Boolean = history.getBoolean("on")
+    def filePath: String = history.getString("filepath")
+    def dbType: String = history.getString("type")
   }
 
   /** Workers specific settings */
@@ -127,6 +168,9 @@ private[mist] object MistConfig {
 
     /** Shell command for manual running */
     def cmd: String = workers.getString("cmd")
+
+    /** Shell command for manual stop hooks */
+    def cmdStop: String = workers.getString("cmdStop")
   }
 
   /** Settings for all contexts generally and for each context particularly */
@@ -184,6 +228,10 @@ private[mist] object MistConfig {
 
     def streamingDuration(contextName: String): SDuration = {
       SDuration(Duration(getContextOrDefault(contextName).getString("streaming-duration")).toMillis)
+    }
+    
+    def maxParallelJobs(contextName: String): Int = {
+      getContextOrDefault(contextName).getInt("max-parallel-jobs")
     }
 
     /** Downtime worker's before stopping*/

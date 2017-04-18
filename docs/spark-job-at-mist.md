@@ -1,11 +1,47 @@
 ## Spark Job at Mist
 
+###### Building Mist jobs
+
+Mist library artifacts have difference between spark versions.
+
+|spark version |artifact        |import                                     |
+|--------------|----------------|-------------------------------------------|
+| < 2.0        | mist-api-spark1| `import io.hydrosphere.mist.lib.spark1._` | 
+| >= 2.0       | mist-api-spark2| `import io.hydrosphere.mist.lib.spark2._` |
+
+Add Mist as dependency in your `build.sbt`:
+
+```scala
+libraryDependencies += "io.hydrosphere" % "mist-api-spark1" % "0.11.0"
+// or if you use spark >= 2.0
+libraryDependencies += "io.hydrosphere" % "mist-api-spark2" % "0.11.0"
+```
+
+Maven dependency:
+
+```xml
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist-api-spark1</artifactId>
+    <version>0.11.0</version>
+</dependency>
+// or if you use spark >= 2.0
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist-api-spark2</artifactId>
+    <version>0.11.0</version>
+</dependency>
+```
+    
+Link for direct download if you don't use a dependency manager:
+* http://central.maven.org/maven2/io/hydrosphere/mist/
+
 ###### Mist Scala Spark Job 
 
 In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
 
 ```scala
-import io.hydrosphere.mist.MistJob
+import io.hydrosphere.mist.lib.spark{1|2}._
 
 object MyCoolMistJob extends MistJob {
     def execute(): Map[String, Any] = {
@@ -21,7 +57,7 @@ All subclasses have `context` field which is `SparkContext` instance. Method `ex
 Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions as well as contexts. You should use `SQLSupport` and `HiveSupport` Mist traits to add `SparkSession` and `HiveQL` API into your job.
 
 ```scala
-import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
+import io.hydrosphere.mist.lib.spark${VERSION}._
 
 object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
     def execute(): Map[String, Any] = {
@@ -35,7 +71,7 @@ object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
 Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSupport` and `HiveContext` Mist traits. 
 
 ```scala
-import io.hydrosphere.mist.{MistJob, SQLSupport, HiveSupport}
+import io.hydrosphere.mist.lib.spark${VERSION}._
 
 object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
     def execute(): Map[String, Any] = {
@@ -48,30 +84,10 @@ object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
 
 Inside `execute` method you can write any code you want as it is an ordinary Apache Spark application.
 
-###### Building Mist jobs
-
-Add Mist as dependency in your `build.sbt`:
-
-```scala
-libraryDependencies += "io.hydrosphere" % "mist" % "0.10.0"
-```
-
-Maven dependency:
-
-```xml
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist</artifactId>
-    <version>0.10.0</version>
-</dependency>
-```
-    
-Link for direct download if you don't use a dependency manager:
-* http://central.maven.org/maven2/io/hydrosphere/mist/
 
 ###### Mist Python Spark Job 
 
-Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/reousrces/mist), extend MistJob class and implement method `def execute(self)`: 
+Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources/mist), extend MistJob class and implement method `def execute(self)`: 
 
 ```python
 from mist.mist_job import *

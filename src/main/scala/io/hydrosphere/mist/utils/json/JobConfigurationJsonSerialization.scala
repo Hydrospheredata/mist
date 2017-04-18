@@ -1,33 +1,21 @@
 package io.hydrosphere.mist.utils.json
 
 import io.hydrosphere.mist.jobs._
-import spray.json.{JsValue, RootJsonFormat}
+import spray.json.{DeserializationException, JsString, JsValue, RootJsonFormat}
 
-private[mist] trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
+trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
+  
+  implicit object ConfigurationActionSupport extends RootJsonFormat[Action] {
+    override def write(obj: Action): JsValue = JsString(obj.toString)
 
-  implicit object FullJobConfigurationFormat extends RootJsonFormat[FullJobConfiguration] {
-    def write(x: FullJobConfiguration): JsValue = x match {
-      case mistJobConfiguration: MistJobConfiguration => mistJobConfigurationFormat.write(mistJobConfiguration)
-      case trainingJobConfiguration: TrainingJobConfiguration => trainingJobConfigurationFormat.write(trainingJobConfiguration)
-      case servingJobConfiguration: ServingJobConfiguration => servingJobConfigurationFormat.write(servingJobConfiguration)
+    override def read(json: JsValue): Action = json match {
+      case JsString(str) => Action(str)
+      case _ => throw DeserializationException("JobConfiguration.Action must be a string")
     }
-
-    def read(v: JsValue): FullJobConfiguration = v.convertTo[MistJobConfiguration]
   }
 
-  implicit val mistJobConfigurationFormat: RootJsonFormat[MistJobConfiguration] = jsonFormat6(MistJobConfiguration)
-  implicit val mistJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedMistJobConfiguration] = jsonFormat3(RestificatedMistJobConfiguration)
-  implicit val trainingJobConfigurationFormat: RootJsonFormat[TrainingJobConfiguration] = jsonFormat6(TrainingJobConfiguration)
-  implicit val trainingJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedTrainingJobConfiguration] = jsonFormat3(RestificatedTrainingJobConfiguration)
-  implicit val servingJobConfigurationFormat: RootJsonFormat[ServingJobConfiguration] = jsonFormat6(ServingJobConfiguration)
-  implicit val servingJobRestificatedConfigurationFormat: RootJsonFormat[RestificatedServingJobConfiguration] = jsonFormat3(RestificatedServingJobConfiguration)
-
-  implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult)
-
-  sealed trait JobConfigError
-
-  case class NoRouteError(reason: String) extends JobConfigError
-
-  case class ConfigError(reason: String) extends JobConfigError
+  implicit val jobExecutonRequestF = jsonFormat4(JobExecutionRequest)
+  implicit val jobExecParamsF: RootJsonFormat[JobExecutionParams] = jsonFormat7(JobExecutionParams.apply)
+  implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult.apply)
 
 }

@@ -37,10 +37,10 @@ Let’s take a use case from [Enterprise Analytics Section](/docs/use-cases/ente
 Let’s take a SimpleTextSearch Mist job and modify it to use Spark Streaming context and return asynchronous result to upstream. Note that engineer who writes a code is abstracted from transport layer, he does not give much attention to MQTT, Kafka or any other messaging system he will be using.
 
 ````
-import io.hydrosphere.mist.lib.{MQTTPublisher, MistJob, StreamingSupport}
+import io.hydrosphere.mist.lib.spark2._
 import org.apache.spark.rdd.RDD
 
-object StreamingTextSearch extends MistJob with MQTTPublisher with StreamingSupport {
+object StreamingTextSearch extends MistJob with Publisher with StreamingSupport {
   override def execute(filter: String): Map[String, Any] = {
     val ssc = createStreamingContext
 

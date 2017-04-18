@@ -23,13 +23,14 @@ Let's assume you have a model trained in Apache Spark program like [this one](ht
 Assuming you already have machine learning model trained and saved by original Apache Spark program from the basic tutorial. Let's add a model serving API for that:
 
 ````
-import io.hydrosphere.mist.lib._
+import io.hydrosphere.mist.lib.spark2._
+import io.hydrosphere.mist.lib.spark2.ml._
 
 object MLClassification extends MLMistJob with SQLSupport {
   
   override def serve(text: List[String]): Map[String, Any] = {
 
-    import io.hydrosphere.mist.ml.transformers.LocalTransformers._
+    import LocalPipelineModel._
     
     val pipeline = PipelineLoader.load(s"regression") // load the same model you've traing in original Apache Spark program
     // Wrap input data set into local data structure
@@ -42,7 +43,7 @@ object MLClassification extends MLMistJob with SQLSupport {
   }
 }
 ````
-A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/MLClassification_Spark2.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/MLClassification_Spark2.scala)
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/MLClassification.scala](https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/MLClassification.scala)
 
 Obviously the code above could be generalised to serve any model from the model repository. So, you'll not need to write a single line of code to make the model "servable". We are going to add this abstract entry point in future releases. 
 

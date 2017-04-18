@@ -3,7 +3,7 @@ target/
 .vagrant
 derby.log
 metastore_db/
-file.db
+*.db
 file.dbb
 stdout.txt
 logs/
@@ -16,3 +16,4 @@ scalastyle-config.xml
 web/node_modules
 web/script.js
 spark_local
+

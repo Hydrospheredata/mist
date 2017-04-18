@@ -42,15 +42,4 @@ class AnyJsonTest extends FunSuite with DefaultJsonProtocol with AnyJsonFormatSu
       AnyJsonFormat.read(unknown)
     }
   }
-
-  test("Constants Errors and Actors") {
-    assert(Constants.Errors.jobTimeOutError == "Job timeout error"
-      && Constants.Errors.notJobSubclass == "External module is not MistJob subclass"
-      && Constants.Errors.extensionError == "You must specify the path to .jar or .py file"
-
-      && Constants.Actors.syncJobRunnerName == "SyncJobRunner"
-      && Constants.Actors.asyncJobRunnerName == "AsyncJobRunner"
-      && Constants.Actors.clusterManagerName == "ClusterManager"
-      && Constants.Actors.mqttServiceName == "MQTTService")
-  }
 }

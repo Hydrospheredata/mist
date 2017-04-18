@@ -14,19 +14,7 @@ class ContextSupport:
     def setup(self, context_wrapper):
         self.context = context_wrapper.context
 
-class PublisherSupport:
-    __metaclass__ = ABCMeta
-
-    def __init__(self):
-        pass
-
-    publisher = None
-
-    @abstractmethod
-    def set_publisher(self, publisher_wrapper):
-        self.publisher = publisher_wrapper
-
-class MistJob(ContextSupport, PublisherSupport):
+class MistJob(ContextSupport):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -35,9 +23,6 @@ class MistJob(ContextSupport, PublisherSupport):
 
     def setup(self, context_wrapper):
         super(MistJob, self).setup(context_wrapper)
-
-    def set_publisher(self, publisher_wrapper):
-        super(MistJob, self).set_publisher(publisher_wrapper)
 
 class WithSQLSupport(ContextSupport):
     __metaclass__ = ABCMeta
@@ -69,15 +54,14 @@ class WithHiveSupport(ContextSupport):
         except ImportError:
             self.hive_context = context_wrapper.hive_context
 
-class WithMQTTPublisher(PublisherSupport):
+class WithPublisher(ContextSupport):
     __metaclass__ = ABCMeta
 
-    mqtt = None
+    publisher = None
 
     @abstractmethod
-    def set_publisher(self, publisher_wrapper):
-        super(WithMQTTPublisher, self).set_publisher(publisher_wrapper)
-        self.mqtt = publisher_wrapper.mqtt
+    def setup(self, context_wrapper):
+        self.publisher = context_wrapper.publisher
 
 class WithStreamingContext(ContextSupport):
     __metaclass__ = ABCMeta

@@ -13,52 +13,33 @@ parallel (
     }
 )
 
+node("aws-slave-04") {
+    stage('Public in Maven') {
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
+
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
+    }
+}
+
 def test_mist(slaveName,sparkVersion) {
   node(slaveName) {
     wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
       try {
         stage('Clone project ' + sparkVersion) {
           checkout scm
+          sh "cd ${env.WORKSPACE}"
         }
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-        stage('Build project example for HDFS') {
-          echo "Building examples with Spark version: " + sparkVersion
-          sh "cd ${env.WORKSPACE} && ${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} 'project examples' package"
-        }
-
         stage('Build and test') {
-          echo 'prepare for Mist with Spark version - ' + sparkVersion
-          def mosquitto = docker.image('ansi/mosquitto:latest').run()
-          def hdfs = docker.image('hydrosphere/hdfs:latest').run(" -v ${env.WORKSPACE}:/usr/share/mist -e SPARK_VERSION=${sparkVersion}","start")
           echo 'Testing Mist with Spark version: ' + sparkVersion
-          def mistId = sh(returnStdout: true, script: "docker create -v ${env.WORKSPACE}:/usr/share/mist --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
-            sh "docker start ${mistId}"
-            sh "docker logs -f ${mistId}"
-
-          def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true).trim()
-          echo "Build flag: ${checkExitCode}"
-          if ( checkExitCode == "1" ) {
-                sh "docker rm -f ${mistId}"
-                echo 'remove containers'
-                mosquitto.stop()
-                hdfs.stop()
-                error("Tests failed")
-          }
-          sh "docker rm -f ${mistId}"
-
-          echo 'remove containers'
-          mosquitto.stop()
-          hdfs.stop()
+          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
         }
 
         if (tag.startsWith("v")) {
-          stage('Public in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt publishSigned -DsparkVersion=${sparkVersion}"
-            sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
-          }
-
           stage('Public in DockerHub') {
             build_image(sparkVersion)
           }
@@ -80,10 +61,9 @@ def test_mist(slaveName,sparkVersion) {
 }
 
 def build_image(sparkVersion) {
-  docker.withRegistry('https://index.docker.io/v1/', '2276974e-852b-45ab-bf14-9136e1b31217') {
-    echo 'Building Mist with Spark version: ' + sparkVersion
-    def mistImg = docker.build("hydrosphere/mist:${env.BRANCH_NAME}-${sparkVersion}", "--build-arg SPARK_VERSION=${sparkVersion} .")
-    echo 'Pushing Mist with Spark version: ' + sparkVersion
-    mistImg.push()
-  }
+  sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+}
+
+def fix_permissions(){
+    sh "sudo chown -R ubuntu:ubuntu ${env.WORKSPACE}"
 }

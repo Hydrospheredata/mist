@@ -11,8 +11,8 @@ function MistRequest() {
     __request("GET", location.origin + "/internal/jobs", {}, callback);
   };
 
-  this.killJob = function(uid, callback) {
-    __request("DELETE", location.origin + "/internal/jobs/" + uid, {}, callback);
+  this.killJob = function(id, namespace, callback) {
+    __request("DELETE", location.origin + "/internal/jobs/" + namespace + "/"+ id, {}, callback);
   };
 
   this.workers = function(callback) {
@@ -36,8 +36,12 @@ function MistRequest() {
     xhr.onreadystatechange = function() {
       if (xhr.readyState != 4) return;
       if (xhr.status == 200) {
-        var response = JSON.parse(xhr.responseText);
-        return callback(response);
+        if (xhr.responseText === "") {
+            return callback();
+        } else {
+            var response = JSON.parse(xhr.responseText);
+            return callback(response);
+        }
       } else {
         // TODO
         WebMist.hideLoader();

@@ -13,6 +13,7 @@ Usage:
       --runner <runner>               "local" or "docker" start workers locally or in separate dockers accordingly
       --docker-host <host>            docker daemon host (only for docker runner)
       --docker-port <docker>          docker daemon port (only for docker runner)
+      --java-args <args>              arguments for java i.e. "-Xmx2048m -Xms256m -Dsettings.value=1"
 
   Run single Mist job:
   ./mist start job
@@ -46,6 +47,7 @@ runner="local"
 external_id=""
 run_options=""
 parameters="{}"
+java_arguments=""
 
 if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ "$2" == "--help" ] || [ "$2" == "-h" ]
 then
@@ -134,6 +136,11 @@ do
       shift
       ;;
 
+    --java-args)
+      java_arguments="$2"
+      shift
+      ;;
+
   esac
 
 shift
@@ -143,16 +150,20 @@ if [ "${jar_file}" == '' ]
 then
     MAX_VERSION=0
     MAX_VERSION_FILE=""
-    for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
-    do
-        a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|')
-        if [[ ${a} > ${MAX_VERSION} ]]
-        then
-            MAX_VERSION=${a}
-            MAX_VERSION_FILE=${jar}
-        fi
-    done
-    jar_file=${MAX_VERSION_FILE}
+    if [ -f ${MIST_HOME}/mist-assembly.jar ]; then
+      jar_file=${MIST_HOME}/mist-assembly.jar
+    else
+      for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
+      do
+          a=$(echo ${jar} | sed 's|.*/mist-assembly-\([0-9]\{1,\}\).\([0-9]\{1,\}\).\([0-9]\{1,\}\).*|\1\2\3|' | sed 's|0\{1,\}||')
+          if [[ ${a} -gt ${MAX_VERSION} ]]
+          then
+              MAX_VERSION=${a}
+              MAX_VERSION_FILE=${jar}
+          fi
+      done
+      jar_file=${MAX_VERSION_FILE}
+   fi
 fi
 
 if [ "${cmd}" == 'start' ]
@@ -163,15 +174,13 @@ then
         config_file="${MIST_HOME}/configs/default.conf"
     fi
 
-
-
     if [ "${config_file}" == '' ]
     then
         (>&2 echo "config file is not set")
         echo "${help}"
         exit 1
     fi
-    
+
     if [ "${jar_file}" == '' ]
     then
         (>&2 echo "mist jar file is not set")
@@ -188,8 +197,9 @@ then
         fi
         if [ "${runner}" == 'local' ]
         then
-            echo ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Worker --driver-java-options "-Dconfig.file=${config_file}" ${run_options} "$jar_file" ${namespace}
+            export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
+            echo $PYTHONPATH ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file} ${java_arguments}" ${run_options} "$jar_file" ${namespace}
+            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker --driver-java-options "-Dconfig.file=${config_file} -Dakka.roles.1=worker-${namespace} ${java_arguments}" ${run_options} "$jar_file" ${namespace}
         elif [ "${runner}" == 'docker' ]
         then
             if [ "${docker_host}" == 'localhost' ] || [ "${docker_host}" == '127.0.0.1' ]
@@ -226,9 +236,10 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.Master --driver-java-options "-Dconfig.file=${config_file}" "$jar_file"
+        java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
     fi
 
+    # TODO accept params onl for declared route in config
     if [ "${app}" == 'job' ] || [ "${app}" == 'train' ] || [ "${app}" == 'serve' ]
     then
         if [ "${job_path}" == '' ] || [ "${classname}" == '' ] || [ "${namespace}" == '' ]
@@ -242,18 +253,18 @@ then
         fi
         if [ "$route" == '' ]
         then
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
+            java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.JobEntryPoint "${app}" "${job_path}" "${classname}" "${namespace}" "${external_id}" "${parameters}"
         else
-            ${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.JobEntryPoint --driver-java-options "-Dconfig.file=${config_file}" "$jar_file" "${app}" "${route}" "${parameters}" "${external_id}"
+            java -cp "$jar_file" -Dconfig.file=${config_file} io.hydrosphere.mist.JobEntryPoint "${app}" "${route}" "${parameters}" "${external_id}"
         fi
     fi
 
 elif [ "${cmd}" == 'stop' ]
 then
-    ps -aef | grep "java.*mist-assembly" | awk '{print $2}' | xargs kill
+    ps -aef | grep "java.*Master" | awk '{print $2}' | xargs kill
 elif [ "${cmd}" == 'cli' ]
 then
-    java -cp "$jar_file" io.hydrosphere.mist.CLI "${app}"
+    java -cp "$jar_file" io.hydrosphere.mist.master.interfaces.cli.EntryPoint "${app}"
 else
     echo "${help}"
 fi
