@@ -38,7 +38,7 @@ lazy val mistLibSpark1= project.in(file("mist-lib-spark1"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-api-spark1",
+    name := "mist-lib-spark1",
     scalaVersion := "2.10.6",
     libraryDependencies ++= sparkDependencies("1.5.2"),
 
@@ -53,7 +53,7 @@ lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-api-spark2",
+    name := "mist-lib-spark2",
     scalaVersion := "2.11.8",
     libraryDependencies ++= sparkDependencies("2.0.0"),
     libraryDependencies ++= Seq(
@@ -81,13 +81,14 @@ lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") m
 
 lazy val mist = project.in(file("."))
   .dependsOn(currentLib)
+  .enablePlugins(DockerPlugin)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings : _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
-  .settings(PublishSettings.settings: _*)
+  .settings(dockerSettings: _*)
   .settings(
     name := "mist",
     libraryDependencies ++= sparkDependencies(sparkVersion.value),
@@ -230,18 +231,6 @@ lazy val mistRunSettings = Seq(
   },
   mistRun := {
     val log = streams.value.log
-//    val version = sparkVersion.value
-//
-//    val local = file("spark_local")
-//    if (!local.exists())
-//      IO.createDirectory(local)
-//
-//    val sparkDir = local / SparkLocal.distrName(version)
-//    if (!sparkDir.exists()) {
-//      log.info(s"Downloading spark $version to $sparkDir")
-//      SparkLocal.downloadSpark(version, local)
-//    }
-//
     val jar = outputPath.in(Compile, assembly).value
 
     val version = sparkVersion.value
@@ -270,6 +259,59 @@ lazy val mistRunSettings = Seq(
   mistRun <<= mistRun.dependsOn(assembly),
   mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
 )
+
+lazy val dockerSettings = {
+  dockerfile in docker := {
+    val artifact = assembly.value
+    val examples = packageBin.in(currentExamples, Compile).value
+    val localSpark = sparkLocal.value
+
+    val mistHome = "/usr/share/mist"
+
+    val sparkMajor = sparkVersion.value.split('.').head
+
+    val routerConfig = s"configs/router-examples-spark$sparkMajor.conf"
+    val replacedPaths = scala.io.Source.fromFile(routerConfig).getLines()
+      .map(s => {
+        s.replaceAll("path\\s?=\\s?.+\\.jar\"", s"""path = "/usr/share/mist/${examples.name}" """)
+      }).mkString("\n")
+
+    val dockerRoutes = file("./target/docker_routes.conf")
+    IO.write(dockerRoutes, replacedPaths.getBytes)
+
+    new Dockerfile {
+      from("anapsix/alpine-java:8")
+      env("SPARK_VERSION", sparkVersion.value)
+      env("SPARK_HOME", "/usr/share/spark")
+      env("MIST_HOME", mistHome)
+
+      copy(localSpark, "/usr/share/spark")
+
+      run("mkdir", "-p", s"$mistHome")
+      run("mkdir", "-p", s"$mistHome/configs")
+
+      copy(file("bin"), s"$mistHome/bin")
+
+      copy(file("configs/docker.conf"), s"$mistHome/configs/docker.conf")
+      copy(dockerRoutes, s"$mistHome/configs/router-examples.conf")
+
+      add(artifact, s"$mistHome/mist-assembly.jar")
+      add(examples, s"$mistHome/${examples.name}")
+
+      copy(file("examples-python"), mistHome + "/examples-python")
+
+      copy(file("docker-entrypoint.sh"), "/")
+      run("chmod", "+x", "/docker-entrypoint.sh")
+
+      run("apk", "update")
+      run("apk", "add", "python", "curl", "jq", "coreutils")
+
+      expose(2003)
+      workDir(mistHome)
+      entryPoint("/docker-entrypoint.sh")
+    }
+  }
+}
 
 def akkaDependencies(scalaVersion: String) = {
   val New = """2\.11\..""".r
