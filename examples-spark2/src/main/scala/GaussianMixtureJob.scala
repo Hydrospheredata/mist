@@ -1,6 +1,6 @@
 import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml2._
-import io.hydrosphere.mist.lib.spark2.ml2.{PipelineLoader, LocalDataColumn, LocalData}
+import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.lib.spark2.ml.{PipelineLoader, LocalDataColumn, LocalData}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.GaussianMixture
 
