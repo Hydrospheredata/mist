@@ -5,12 +5,15 @@ import java.util.UUID
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{Register, RunningJobs, UpdateStatus}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
+import io.hydrosphere.mist.master.interfaces.async.AsyncPublisher
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias._
 
@@ -26,7 +29,7 @@ class MasterService(
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
 
-  implicit val timeout = Timeout(5.second)
+  implicit val timeout = Timeout(10.second)
 
   def activeJobs(): Future[List[JobDetails]] = {
     val future = statusService ? StatusMessages.RunningJobs
@@ -57,13 +60,13 @@ class MasterService(
   def routeDefinitions(): Seq[JobDefinition] = jobRoutes.listDefinition()
 
   def startJob(
-    id: String,
+    routeId: String,
     action: Action,
     arguments: JobParameters,
     source: JobDetails.Source,
     externalId: Option[String]
   ): Future[JobResult] = {
-    buildParams(id, action, arguments, externalId) match {
+    buildParams(routeId, action, arguments, externalId) match {
       case Some(execParams) =>
         val request = toRequest(execParams)
 
@@ -84,7 +87,7 @@ class MasterService(
         promise.future
 
       case None =>
-        Future.failed(new RuntimeException(s"Job with $id not found"))
+        Future.failed(new RuntimeException(s"Job with $routeId not found"))
     }
   }
 
@@ -122,32 +125,45 @@ class MasterService(
 
   }
 
-  //TODO: job results is not publishing into async interface
-  def recoverJobs(): Future[Unit] = {
-    implicit val timeout = Timeout(30 seconds)
-    val f = (statusService ? RunningJobs).mapTo[List[JobDetails]]
-    val result = f.map(jobs => {
-      jobs.foreach(d => d.source match {
-        case a:Async =>
-          logger.info(s"Job is recovered $d")
-          startJob(
-            d.jobId,
-            d.configuration.action,
-            d.configuration.parameters,
-            d.source,
-            d.configuration.externalId)
-        case _ =>
-          logger.info(s"Mark job aborted ${d.jobId}")
-          statusService ! UpdateStatus(d.jobId, JobDetails.Status.Aborted, System.currentTimeMillis())
+  def recoverJobs(publishers: Map[Provider, ActorRef]): Unit = {
+    activeJobs().onSuccess({ case jobs =>
+      jobs.foreach(details => {
+        details.source match {
+          case a: Async if publishers.get(a.provider).isDefined =>
+            publishers.get(a.provider).foreach(ref => {
+              logger.info(s"Job $details is restarted")
+              restartAsync(details, ref)
+            })
+          case _ =>
+            logger.info(s"Mark job $details as aborted")
+            statusService ! UpdateStatus(
+              details.jobId,
+              JobDetails.Status.Aborted,
+              System.currentTimeMillis())
+        }
       })
+      logger.info("Job recovery done")
     })
-    result.onComplete({
-      case Success(_) =>
-        logger.info("Job Recovery done")
+  }
+
+  private def restartAsync(job: JobDetails, publisher: ActorRef): Future[JobResult] = {
+    val future = startJob(
+      //TODO: get!
+      job.configuration.route.get,
+      job.configuration.action,
+      job.configuration.parameters,
+      job.source,
+      job.configuration.externalId)
+
+    future.onComplete({
+      case Success(jobResult) => publisher ! jobResult
       case Failure(e) =>
-        logger.error("Job recovery failed", e)
+        logger.error(s"Job $job execution failed", e)
+        val msg = s"Job execution failed for $job. Error message ${e.getMessage}"
+        publisher ! msg
     })
-    result
+
+    future
   }
 
 }
