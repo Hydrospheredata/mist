@@ -1,13 +1,12 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.{Actor, ActorLogging, Props}
-import akka.actor.Actor.Receive
 import io.hydrosphere.mist.Messages.JobMessages.JobStarted
 import io.hydrosphere.mist.Messages.StatusMessages._
-import io.hydrosphere.mist.Messages.WorkerMessages.GetActiveJobs
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.store.JobRepository
+import StatusService._
 
 class StatusService(store: JobRepository) extends Actor with ActorLogging {
 
@@ -24,31 +23,42 @@ class StatusService(store: JobRepository) extends Actor with ActorLogging {
       val details = JobDetails(params, source, id)
       store.update(details)
 
-    case x:UpdateStatus => handleUpdateStatus(x)
+    case x:UpdateStatusEvent => handleUpdateStatus(x)
 
     case RunningJobs =>
       sender() ! store.filteredByStatuses(activeStatuses)
   }
 
-  private def handleUpdateStatus(u: UpdateStatus): Unit = {
-    val details = actualDetails(u.id)
-    val updated = details.map(d => {
-      val updatedTimes = u.status match {
-        case Status.Running => d.withStartTime(u.time)
-        case Status.Stopped => d.withEndTime(u.time)
-        case _ => d
-      }
-      updatedTimes.withStatus(u.status)
-    })
-    updated.foreach(store.update)
+  private def handleUpdateStatus(e: UpdateStatusEvent): Unit = {
+    actualDetails(e.id) match {
+      case Some(d) =>
+        val updated = applyStatusEvent(d, e)
+        store.update(updated)
+      case None =>
+        log.warning(s"Received $e for unknown job")
+    }
   }
 
-  private def actualDetails(id: String): Option[JobDetails] =
-    store.get(id)
+  private def actualDetails(id: String): Option[JobDetails] = store.get(id)
 }
 
 object StatusService {
 
   def props(store: JobRepository): Props =
     Props(classOf[StatusService], store)
+
+  def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
+    event match {
+      case QueuedEvent(_) => d.withStatus(Status.Queued)
+      case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)
+      case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Aborted)
+      case FinishedEvent(_, time, result) =>
+        d.withEndTime(time).withJobResult(Left(result)).withStatus(Status.Stopped)
+      case FailedEvent(_, time, error) =>
+        if (d.status == Status.Aborted)
+          d
+        else
+          d.withEndTime(time).withStatus(Status.Error).withJobResult(Right(error))
+    }
+  }
 }

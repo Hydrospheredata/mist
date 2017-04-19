@@ -73,7 +73,18 @@ object Messages {
   object StatusMessages {
 
     case class Register(id: String, params: JobExecutionParams, source: Source)
-    case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
+
+    sealed trait UpdateStatusEvent {
+      val id: String
+    }
+
+    case class QueuedEvent(id: String) extends UpdateStatusEvent
+    case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
+    case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
+    case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
+    case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
+
+    //case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
     // return full job details
     case object RunningJobs
 
