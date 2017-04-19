@@ -15,7 +15,7 @@ parallel (
 
 node("aws-slave-04") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-    if (tag.startsWith"v") {
+    if (tag.startsWith("v")) {
         stage('Publish in Maven') {
             sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
             sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
@@ -39,16 +39,9 @@ def test_mist(slaveName,sparkVersion) {
           sh "cd ${env.WORKSPACE}"
         }
 
-
         stage('Build and test') {
           echo 'Testing Mist with Spark version: ' + sparkVersion
           sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
-        }
-
-        if (tag.startsWith("v")) {
-          stage('Public in DockerHub') {
-            build_image(sparkVersion)
-          }
         }
       }
       catch (err) {
