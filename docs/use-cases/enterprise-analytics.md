@@ -48,7 +48,7 @@ As you see our original Apache Spark program has hardcoded ERROR and MySQL filte
 It takes 3 lines of code to Mistify the program.
 
 ````
-import io.hydrosphere.mist.lib.{MistJob}
+import io.hydrosphere.mist.lib.spark2._
 
 object LogSearchJob extends MistJob {
 

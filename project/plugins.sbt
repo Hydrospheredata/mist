@@ -5,5 +5,6 @@ addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "1.1")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
 addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15")
+addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.1")
 
 libraryDependencies += "org.apache.commons" % "commons-compress" % "1.8"

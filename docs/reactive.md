@@ -1,7 +1,7 @@
 Streaming jobs usualy produce insights to be consumed by applications in realtime. 
 It is possible to run Apache Spark streaming job with Mist and subscribe to the insights stream emitted by the job.
 
-Currently MQTT is supported as a transport layer and could be easily extended with Kafka, AMPQ, AWS Kinesis and other messaging systems. 
+Currently MQTT and Kafka are supported as a transport layer and could be easily extended with AMPQ, AWS Kinesis and other messaging systems. 
 
 Method **publish** is a simple and unified abstraction to be used for streaming job results to consumer.
 
@@ -10,9 +10,9 @@ Please note that usually it does not make sense to start streaming job from HTTP
 ###### Reactive Scala job
 
 ```scala
-import io.hydrosphere.mist.lib.{MqttPublisher, MistJob}
+import io.hydrosphere.mist.lib.spark2._
 
-object MyStreamingMistJob extends MistJob with MqttPublisher {
+object MyStreamingMistJob extends MistJob with Publisher {
 
     override def execute(): Map[String, Any] = {
       ...
@@ -32,7 +32,7 @@ object MyStreamingMistJob extends MistJob with MqttPublisher {
 ```python
 from mist.mist_job import *
 
-class MyPythonMistJob(MistJob, WithMqttPublisher):
+class MyPythonMistJob(MistJob, WithPublisher):
     def execute(self):
     	...
         self.mqtt.publish("message")

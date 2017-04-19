@@ -13,6 +13,16 @@ parallel (
     }
 )
 
+node("aws-slave-04") {
+    stage('Public in Maven') {
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
+
+        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
+        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
+    }
+}
+
 def test_mist(slaveName,sparkVersion) {
   node(slaveName) {
     wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
@@ -30,11 +40,6 @@ def test_mist(slaveName,sparkVersion) {
         }
 
         if (tag.startsWith("v")) {
-          stage('Public in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt publishSigned -DsparkVersion=${sparkVersion}"
-            sh "${env.WORKSPACE}/sbt/sbt sonatypeRelease"
-          }
-
           stage('Public in DockerHub') {
             build_image(sparkVersion)
           }
@@ -56,10 +61,9 @@ def test_mist(slaveName,sparkVersion) {
 }
 
 def build_image(sparkVersion) {
-  docker.withRegistry('https://index.docker.io/v1/', '2276974e-852b-45ab-bf14-9136e1b31217') {
-    echo 'Building Mist with Spark version: ' + sparkVersion
-    def mistImg = docker.build("hydrosphere/mist:${env.BRANCH_NAME}-${sparkVersion}", "--build-arg SPARK_VERSION=${sparkVersion} .")
-    echo 'Pushing Mist with Spark version: ' + sparkVersion
-    mistImg.push()
-  }
+  sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+}
+
+def fix_permissions(){
+    sh "sudo chown -R ubuntu:ubuntu ${env.WORKSPACE}"
 }
