@@ -10,12 +10,12 @@ import scala.concurrent.duration.Duration
 /** Configuration wrapper */
 private[mist] object MistConfig {
 
-  private[mist] var config = ConfigFactory.load()
+  private[mist] var config = ConfigFactory.load().resolve()
 
   def reload(): Unit = {
     config = {
       ConfigFactory.invalidateCaches()
-      ConfigFactory.load()
+      ConfigFactory.load().resolve()
     }
   }
 
