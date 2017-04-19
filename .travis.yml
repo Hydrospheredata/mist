@@ -2,14 +2,20 @@ sudo: required
 services:
   - docker
 
+language: scala
+
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
-  - docker run -d --name mosquitto-$SPARK_VERSION ansi/mosquitto
-  - cd $PWD && $PWD/sbt/sbt -DsparkVersion=$SPARK_VERSION 'project examples' package
-  - docker run -d --name hdfs-$SPARK_VERSION -v $PWD:/usr/share/mist -e SPARK_VERSION=$SPARK_VERSION hydrosphere/hdfs:latest start
 
 script:
-  - docker run --link mosquitto-$SPARK_VERSION:mosquitto --link hdfs-$SPARK_VERSION:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-$SPARK_VERSION tests
+  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
+
+cache:
+  directories:
+    - $HOME/.ivy2
+    - $HOME/.sbt
+    - $HOME/.coursier
+    - spark_local
 
 env:
   global:

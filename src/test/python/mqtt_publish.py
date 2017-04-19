@@ -1,6 +1,6 @@
 from mist.mist_job import *
 
-class SimpleSparkContext(MistJob, WithMQTTPublisher):
+class SimpleSparkContext(MistJob, WithMqttPublisher):
     def execute(self):
         self.mqtt.publish("test python publisher message")
         result = "success"

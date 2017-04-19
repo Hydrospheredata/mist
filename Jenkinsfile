@@ -19,38 +19,14 @@ def test_mist(slaveName,sparkVersion) {
       try {
         stage('Clone project ' + sparkVersion) {
           checkout scm
+          sh "cd ${env.WORKSPACE}"
         }
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-        stage('Build project example for HDFS') {
-          echo "Building examples with Spark version: " + sparkVersion
-          sh "cd ${env.WORKSPACE} && ${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} 'project examples' package"
-        }
-
         stage('Build and test') {
-          echo 'prepare for Mist with Spark version - ' + sparkVersion
-          def mosquitto = docker.image('ansi/mosquitto:latest').run()
-          def hdfs = docker.image('hydrosphere/hdfs:latest').run(" -v ${env.WORKSPACE}:/usr/share/mist -e SPARK_VERSION=${sparkVersion}","start")
           echo 'Testing Mist with Spark version: ' + sparkVersion
-          def mistId = sh(returnStdout: true, script: "docker create -v ${env.WORKSPACE}:/usr/share/mist --link ${mosquitto.id}:mosquitto --link ${hdfs.id}:hdfs hydrosphere/mist:tests-${sparkVersion} tests").trim()
-            sh "docker start ${mistId}"
-            sh "docker logs -f ${mistId}"
-
-          def checkExitCode = sh(script: "docker inspect -f {{.State.ExitCode}} ${mistId}", returnStdout: true).trim()
-          echo "Build flag: ${checkExitCode}"
-          if ( checkExitCode == "1" ) {
-                sh "docker rm -f ${mistId}"
-                echo 'remove containers'
-                mosquitto.stop()
-                hdfs.stop()
-                error("Tests failed")
-          }
-          sh "docker rm -f ${mistId}"
-
-          echo 'remove containers'
-          mosquitto.stop()
-          hdfs.stop()
+          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
         }
 
         if (tag.startsWith("v")) {

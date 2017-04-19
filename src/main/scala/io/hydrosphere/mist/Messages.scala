@@ -1,41 +1,84 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.FullJobConfiguration
+import akka.actor.{ActorRef, ActorSelection, Address}
+import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
 
-private[mist] object Messages {
-  
-  sealed trait RemovingMessage {
-    val contextIdentifier: String
+object Messages {
+
+  object WorkerMessages {
+
+    case class WorkerRegistration(name: String, adress: Address)
+    case class WorkerCommand(name: String, message: Any)
+
+    case class CreateContext(name: String)
+
+    case object GetWorkers
+    case object GetActiveJobs
+
+    case class StopWorker(name: String)
+    case object StopAllWorkers
+
+    case class WorkerUp(ref: ActorRef)
+    case object WorkerDown
+
   }
-  
-  sealed trait StopAllMessage
 
-  case class CreateContext(namespace: String)
+  object JobMessages {
 
-  case class StopAllContexts() extends StopAllMessage
+    case class RunJobRequest(
+      id: String,
+      params: JobParams
+    )
 
-  case class RemoveContext(contextIdentifier: String) extends RemovingMessage
+    case class JobParams(
+      filePath: String,
+      className: String,
+      arguments: Map[String, Any],
+      action: Action
+    )
 
-  case class WorkerDidStart(uid: String, namespace: String, address: String)
+    sealed trait RunJobResponse {
+      val id: String
+      val time: Long
+    }
 
-  case class AddJobToRecovery(jobId: String, jobConfiguration: FullJobConfiguration)
+    case class JobStarted(
+      id: String,
+      time: Long = System.currentTimeMillis()
+    ) extends RunJobResponse
 
-  case class RemoveJobFromRecovery(jobId: String)
+    case class WorkerIsBusy(
+      id: String,
+      time: Long = System.currentTimeMillis()
+    ) extends RunJobResponse
 
-  sealed trait AdminMessage
-  
-  case class StopJob(jobIdentifier: String) extends AdminMessage
- 
-  case class StopWorker(contextIdentifier: String) extends AdminMessage with RemovingMessage
-  
-  case class StopAllWorkers() extends AdminMessage with StopAllMessage
 
-  case class ListWorkers() extends AdminMessage
+    case class CancelJobRequest(id: String)
+    case class JobIsCancelled(
+      id: String,
+      time: Long = System.currentTimeMillis()
+    )
 
-  case class ListRouters(extended: Boolean = false) extends AdminMessage
+    // internal messages
+    sealed trait JobResponse {
+      val id: String
+    }
 
-  case class ListJobs() extends AdminMessage
+    case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
+    case class JobFailure(id: String, error: String) extends JobResponse
 
-  case class StopWhenAllDo() extends AdminMessage
+  }
 
+  object StatusMessages {
+
+    case class Register(id: String, params: JobExecutionParams, source: Source)
+    case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
+    // return full job details
+    case object RunningJobs
+
+  }
+
+  // only for cli
+  case object ListRoutes
 }

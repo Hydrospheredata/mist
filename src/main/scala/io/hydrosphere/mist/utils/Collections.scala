@@ -3,15 +3,6 @@ package io.hydrosphere.mist.utils
 import scala.collection.JavaConverters._
 
 object Collections {
-  implicit class KindaListOfDoubles(val list: List[Double]) {
-    /**
-      * This is workaround for current JSON serialization. It places Int's to List[Double] and that cauese exceptions.
-      * WARNING: this method is very heavy, use only when you are not sure if list is pure, e.g. read from JSON.
-      * @return
-      */
-    def forceDoubles: List[Double] = list.asInstanceOf[List[AnyVal]] map(_.toString.toDouble)
-  }
-
   def asJavaRecursively[K, V](map: Map[K, V]): java.util.HashMap[K, Any] = {
     new java.util.HashMap(map.map {
       case (key, value) =>
