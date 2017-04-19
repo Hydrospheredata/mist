@@ -87,11 +87,6 @@ case class JobDetails(
   status: JobDetails.Status = JobDetails.Status.Initialized
 ) {
 
-  override def equals(that: Any): Boolean = that match {
-    case t: JobDetails => t.jobId == jobId
-    case _ => false
-  }
-  
   def withStartTime(time: Long): JobDetails = copy(startTime = Some(time))
 
   def starts(): JobDetails = withStartTime(new DateTime().getMillis)

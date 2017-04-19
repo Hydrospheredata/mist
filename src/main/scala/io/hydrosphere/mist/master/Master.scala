@@ -2,13 +2,14 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
+import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpUi}
 import io.hydrosphere.mist.master.store.JobRepository
@@ -22,7 +23,6 @@ object Master extends App with Logger {
 
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   implicit val materializer = ActorMaterializer()
-
 
   val file = new File(MistConfig.Http.routerConfigPath)
   val routeConfig = ConfigFactory.parseFile(file).resolve()
@@ -67,14 +67,23 @@ object Master extends App with Logger {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }
 
-  // Start job recovery
-  masterService.recoverJobs()
+  val publishers = enabledAsyncPublishers()
+  masterService.recoverJobs(publishers)
 
   // We need to stop contexts on exit
   sys addShutdownHook {
     logger.info("Stopping all the contexts")
     workerManager ! StopAllWorkers
     system.shutdown()
+  }
+
+  private def enabledAsyncPublishers(): Map[Provider, ActorRef] = {
+    val providers = Seq[Provider](Provider.Kafka, Provider.Mqtt).filter({
+      case Provider.Kafka => MistConfig.Kafka.isOn
+      case Provider.Mqtt => MistConfig.Mqtt.isOn
+    })
+
+    providers.map(p => p -> AsyncInterface.publisher(p)).toMap
   }
 
   private def selectRunner(s: String): WorkerRunner = {
