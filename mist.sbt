@@ -260,7 +260,10 @@ lazy val mistRunSettings = Seq(
   mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
 )
 
-lazy val dockerSettings = {
+lazy val dockerSettings = Seq(
+  imageNames in docker := Seq(
+    ImageName(s"io.hydrosphere/mist:${version.value}-${sparkVersion.value}")
+  ),
   dockerfile in docker := {
     val artifact = assembly.value
     val examples = packageBin.in(currentExamples, Compile).value
@@ -311,7 +314,7 @@ lazy val dockerSettings = {
       entryPoint("/docker-entrypoint.sh")
     }
   }
-}
+)
 
 def akkaDependencies(scalaVersion: String) = {
   val New = """2\.11\..""".r
