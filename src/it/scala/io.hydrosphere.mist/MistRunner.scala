@@ -55,7 +55,7 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
     // call kill over bash - destroy works strangely
     ps.destroy()
     killMist()
-    Thread.sleep(1000)
+    Thread.sleep(5000)
   }
 
   def isSpark2: Boolean = sparkVersion.startsWith("2.")
