@@ -14,12 +14,19 @@ parallel (
 )
 
 node("aws-slave-04") {
-    stage('Public in Maven') {
-        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
-        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
+    def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
+    if (tag.startsWith"v") {
+        stage('Publish in Maven') {
+            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
+            sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
 
-        sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
-        sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
+            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
+            sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
+        }
+
+        stage('Publish in DockerHub') {
+          build_image(sparkVersion)
+        }
     }
 }
 
@@ -32,7 +39,6 @@ def test_mist(slaveName,sparkVersion) {
           sh "cd ${env.WORKSPACE}"
         }
 
-        def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
         stage('Build and test') {
           echo 'Testing Mist with Spark version: ' + sparkVersion
@@ -62,8 +68,4 @@ def test_mist(slaveName,sparkVersion) {
 
 def build_image(sparkVersion) {
   sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
-}
-
-def fix_permissions(){
-    sh "sudo chown -R ubuntu:ubuntu ${env.WORKSPACE}"
 }
