@@ -10,7 +10,7 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
-import io.hydrosphere.mist.Messages.StatusMessages.{Register, RunningJobs, UpdateStatus}
+import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register, RunningJobs, UpdateStatusEvent}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.async.AsyncPublisher
@@ -136,10 +136,11 @@ class MasterService(
             })
           case _ =>
             logger.info(s"Mark job $details as aborted")
-            statusService ! UpdateStatus(
+            statusService ! FailedEvent(
               details.jobId,
-              JobDetails.Status.Aborted,
-              System.currentTimeMillis())
+              System.currentTimeMillis(),
+              "Worker was stopped"
+            )
         }
       })
       logger.info("Job recovery done")

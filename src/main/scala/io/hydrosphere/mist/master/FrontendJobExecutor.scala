@@ -5,7 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.Messages.JobMessages._
-import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatus
+import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 
 import scala.collection.mutable
@@ -84,7 +84,7 @@ class FrontendJobExecutor(
     case JobStarted(id, time) =>
       jobs.get(id).foreach(info => {
         log.info(s"Job has been started $id")
-        statusService ! UpdateStatus(id, JobDetails.Status.Running, time)
+        statusService ! StartedEvent(id, time)
         info.updateStatus(JobDetails.Status.Running)
       })
 
@@ -113,7 +113,7 @@ class FrontendJobExecutor(
     f.onSuccess({
       case x @ JobIsCancelled(id, time) =>
         log.info("Job {} is cancelled", id)
-        statusService ! UpdateStatus(id, JobDetails.Status.Aborted, time)
+        statusService ! CanceledEvent(id, time)
         sender ! x
     })
     f.onFailure({
@@ -126,19 +126,22 @@ class FrontendJobExecutor(
     queue.dequeueFirst(_.request.id == id)
     jobs -= id
     sender ! JobIsCancelled(id)
-    statusService ! UpdateStatus(id, JobDetails.Status.Aborted, System.currentTimeMillis())
+    statusService ! CanceledEvent(id, System.currentTimeMillis())
   }
 
   private def onJobDone(resp: JobResponse): Unit = {
     jobs.remove(resp.id).foreach(info => {
       log.info(s"Job ${info.request} id done with result $resp")
       counter = counter -1
-      resp match {
-        case JobFailure(_, error) =>
+      val statusEvent = resp match {
+        case JobFailure(id, error) =>
           info.promise.failure(new RuntimeException(error))
-        case JobSuccess(_, r) =>
+          FailedEvent(id, System.currentTimeMillis(), error)
+        case JobSuccess(id, r) =>
           info.promise.success(r)
+          FinishedEvent(id, System.currentTimeMillis(), r)
       }
+      statusService ! statusEvent
     })
   }
 
@@ -147,7 +150,7 @@ class FrontendJobExecutor(
     queue += info
     jobs += req.id -> info
 
-    statusService ! UpdateStatus(req.id, JobDetails.Status.Queued, System.currentTimeMillis())
+    statusService ! QueuedEvent(req.id)
 
     info
   }
