@@ -43,7 +43,7 @@ object RandomForestRegressionJob extends MLMistJob with SQLSupport {
 
   def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
     import LocalPipelineModel._
-    import io.hydrosphere.mist.lib.
+    import io.hydrosphere.mist.lib.spark2.ml.DataUtils._
 
     val pipeline = PipelineLoader.load(modelPath)
     val arrays = features.map(_.forceDoubles.toArray).map(Vectors.dense)
