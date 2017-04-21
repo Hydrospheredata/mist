@@ -10,8 +10,9 @@ import scala.io.Source
 // TODO: tests
 // TODO: HDFS support
 object ModelLoader {
-
   private val RandomForestClassifier = "org.apache.spark.ml.classification.RandomForestClassificationModel"
+  private val GBTreeRegressor = "org.apache.spark.ml.regression.GBTRegressionModel"
+  private val RandomForestRegressor = "org.apache.spark.ml.regression.RandomForestRegressionModel"
 
   implicit val formats = DefaultFormats
 
@@ -22,15 +23,6 @@ object ModelLoader {
     val pipeline = TransformerFactory(pipelineParameters, Map("stages" -> stages.toList)).asInstanceOf[PipelineModel]
     pipeline
   }
-
-  /**
-    * method for parsing model data from "/data/" folder
-    *
-    * @param pipelineParameters
-    * @param path
-    * @return
-    */
-  def getData(pipelineParameters: Metadata, path: String) = ???
 
   def getStages(pipelineParameters: Metadata, path: String): Array[Transformer] =
     pipelineParameters.paramMap("stageUids").asInstanceOf[List[String]].zipWithIndex.toArray.map {
@@ -43,7 +35,7 @@ object ModelLoader {
 
   def loadTransformer(stageParameters: Metadata, path: String): Transformer = {
     stageParameters.`class` match {
-      case RandomForestClassifier =>
+      case RandomForestClassifier | RandomForestRegressor | GBTreeRegressor =>
         val data = ModelDataReader.parse(s"$path/data") map { kv =>
           kv._1 -> kv._2.asInstanceOf[mutable.Map[String, Any]].toMap
         }

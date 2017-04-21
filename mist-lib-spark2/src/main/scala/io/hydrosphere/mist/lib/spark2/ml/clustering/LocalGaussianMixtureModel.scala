@@ -5,12 +5,6 @@ import org.apache.spark.ml.clustering.GaussianMixtureModel
 import org.apache.spark.ml.linalg.{Matrix, Vector}
 import org.apache.spark.ml.stat.distribution.MultivariateGaussian
 
-
-/**
-  * Local model loader for GaussianMixture clusterer
-  *
-  * @author IceKhan
-  */
 class LocalGaussianMixtureModel(override val sparkTransformer: GaussianMixtureModel) extends LocalTransformer[GaussianMixtureModel] {
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getFeaturesCol) match {

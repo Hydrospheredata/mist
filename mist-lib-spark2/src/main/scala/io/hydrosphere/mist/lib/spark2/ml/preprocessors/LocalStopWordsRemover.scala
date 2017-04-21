@@ -3,7 +3,6 @@ package io.hydrosphere.mist.lib.spark2.ml.preprocessors
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.feature.StopWordsRemover
 
-
 class LocalStopWordsRemover(override val sparkTransformer: StopWordsRemover) extends LocalTransformer[StopWordsRemover] {
   override def transform(localData: LocalData): LocalData = {
     val stopWordsSet = sparkTransformer.getStopWords

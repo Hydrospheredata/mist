@@ -67,6 +67,10 @@ object TestConfig {
     val normalizer = testConfig.getString("mist.test.ml.normalizer")
     val polynomialExpansion = testConfig.getString("mist.test.ml.polynomialexpansion")
     val dct = testConfig.getString("mist.test.ml.dct")
+    val tfidf = testConfig.getString("mist.test.ml.tfidf")
+
+    val naiveBayes = testConfig.getString("mist.test.ml.naivebayes")
+    val gbtregressor = testConfig.getString("mist.test.ml.gbtregressor")
 
     val treeClassifier_0 = testConfig.getString("mist.test.ml.tree-classifier_0")
     val treeClassifier_1 = testConfig.getString("mist.test.ml.tree-classifier_1")
@@ -76,6 +80,9 @@ object TestConfig {
 
     val forestClassifier_0 = testConfig.getString("mist.test.ml.forest-classifier_0")
     val forestClassifier_1 = testConfig.getString("mist.test.ml.forest-classifier_1")
+
+    val forestRegressor_0 = testConfig.getString("mist.test.ml.forest-regressor_0")
+    val forestRegressor_1 = testConfig.getString("mist.test.ml.forest-regressor_1")
   }
 
 }

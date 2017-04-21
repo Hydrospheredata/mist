@@ -13,11 +13,7 @@ class LocalDecisionTreeRegressionModel(override val sparkTransformer: DecisionTr
         val method = classOf[DecisionTreeRegressionModel].getMethod("predict", classOf[Vector])
         method.setAccessible(true)
         val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data map { feature =>
-          val vector: SparseVector = feature match {
-            case v: SparseVector => v
-            case v: SVector => DataUtils.mllibVectorToMlVector(v)
-            case x => throw new IllegalArgumentException(s"$x is not a vector")
-          }
+          val vector = feature.asInstanceOf[Vector]
           method.invoke(sparkTransformer, vector).asInstanceOf[Double]
         })
         localData.withColumn(newColumn)

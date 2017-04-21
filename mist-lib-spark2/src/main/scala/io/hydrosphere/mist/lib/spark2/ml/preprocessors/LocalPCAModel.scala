@@ -2,8 +2,15 @@ package io.hydrosphere.mist.lib.spark2.ml.preprocessors
 
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.feature.PCAModel
-import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, Vectors}
-import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
+import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, Vectors, SparseVector}
+import org.apache.spark.mllib.linalg.{
+  DenseMatrix => OldDenseMatrix,
+  DenseVector => OldDenseVector,
+  SparseVector => OldSparseVector,
+  Matrices => OldMatrices,
+  Vector => OldVector,
+  Vectors => OldVectors
+}
 
 class LocalPCAModel(override val sparkTransformer: PCAModel) extends LocalTransformer[PCAModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -11,10 +18,12 @@ class LocalPCAModel(override val sparkTransformer: PCAModel) extends LocalTransf
       case Some(column) =>
         val newData = column.data.map(r => {
           val pc = OldMatrices.fromML(sparkTransformer.pc).asInstanceOf[OldDenseMatrix]
-          val vec: List[Double] = r match {
-            case d: List[Any @unchecked] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
+          val vec: OldVector = r match {
+            case d: List[Any @unchecked] => OldVectors.dense(d.map(_.toString.toDouble).toArray)
+            case d: OldDenseVector => d
+            case d: OldSparseVector => d.toDense
+            case d: DenseVector => OldVectors.dense(d.toArray)
+            case d: SparseVector => OldVectors.sparse(d.size, d.indices, d.values)
             case d => throw new IllegalArgumentException(s"Unknown data type for LocalPCA: $d")
           }
           val vector = OldVectors.dense(vec.toArray)

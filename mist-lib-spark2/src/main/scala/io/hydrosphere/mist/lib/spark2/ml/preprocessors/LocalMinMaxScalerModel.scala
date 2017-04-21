@@ -2,7 +2,7 @@ package io.hydrosphere.mist.lib.spark2.ml.preprocessors
 
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.feature.MinMaxScalerModel
-import org.apache.spark.ml.linalg.{DenseVector, Vector}
+import org.apache.spark.ml.linalg.{DenseVector, Vector, SparseVector}
 
 class LocalMinMaxScalerModel(override val sparkTransformer: MinMaxScalerModel) extends LocalTransformer[MinMaxScalerModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -16,9 +16,9 @@ class LocalMinMaxScalerModel(override val sparkTransformer: MinMaxScalerModel) e
         val newData = column.data.map(r => {
           val scale = max - min
           val vec: List[Double] = r match {
-            case d: List[Any] =>
-              val l: List[Double] = d map (_.toString.toDouble)
-              l
+            case d: List[Any] => d map (_.toString.toDouble)
+            case d: DenseVector => d.toArray.toList
+            case d: SparseVector => d.toDense.toArray.toList
             case d => throw new IllegalArgumentException(s"Unknown data type for LocalMinMaxScaler: $d")
           }
           val values = vec.toArray

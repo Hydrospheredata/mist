@@ -3,7 +3,6 @@ package io.hydrosphere.mist.utils
 import scala.collection.JavaConverters._
 
 object Collections {
-
   def asJavaRecursively[K, V](map: Map[K, V]): java.util.HashMap[K, Any] = {
     new java.util.HashMap(map.map {
       case (key, value) =>

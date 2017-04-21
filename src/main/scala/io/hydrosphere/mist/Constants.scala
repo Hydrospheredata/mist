@@ -13,7 +13,7 @@ object Constants {
     final val cliName = "CLI"
     final val cliResponderName = "CliResponder"
   }
-  
+
   object CLI {
     object Commands {
       final val stopWorker = "kill worker"
@@ -25,7 +25,7 @@ object Constants {
       final val exit = "exit"
       final val startJob = "start job"
     }
-    
+
     final val noWorkersMsg = "no workers"
     final val internalUserInterfaceActorName = "InternalUIActor"
     final val timeoutDuration = 60.second

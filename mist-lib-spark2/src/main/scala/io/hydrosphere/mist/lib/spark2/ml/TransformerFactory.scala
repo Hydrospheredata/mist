@@ -5,7 +5,6 @@ import org.apache.spark.ml.Transformer
 import scala.reflect.runtime.universe
 
 object TransformerFactory {
-
   import ModelConversions._
 
   def apply(metadata: Metadata, data: Map[String, Any]): Transformer = {
