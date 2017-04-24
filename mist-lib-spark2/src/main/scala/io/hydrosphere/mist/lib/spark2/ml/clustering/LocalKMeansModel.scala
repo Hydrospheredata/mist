@@ -48,10 +48,10 @@ object LocalKMeansModel extends LocalModel[KMeansModel] {
       .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
       .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
 
-    inst = inst.set(inst.k, metadata.paramMap("k").asInstanceOf[Int])
+    inst = inst.set(inst.k, metadata.paramMap("k").asInstanceOf[Number].intValue())
     inst = inst.set(inst.initMode, metadata.paramMap("initMode").asInstanceOf[String])
-    inst = inst.set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Int])
-    inst = inst.set(inst.initSteps, metadata.paramMap("initSteps").asInstanceOf[Int])
+    inst = inst.set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Number].intValue())
+    inst = inst.set(inst.initSteps, metadata.paramMap("initSteps").asInstanceOf[Number].intValue())
     inst = inst.set(inst.seed, metadata.paramMap("seed").toString.toLong)
     inst = inst.set(inst.tol, metadata.paramMap("tol").asInstanceOf[Double])
     inst

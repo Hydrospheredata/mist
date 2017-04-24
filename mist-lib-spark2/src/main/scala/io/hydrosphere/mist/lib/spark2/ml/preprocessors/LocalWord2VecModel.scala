@@ -43,13 +43,13 @@ object LocalWord2VecModel extends LocalModel[Word2VecModel] {
       .setOutputCol(metadata.paramMap("outputCol").toString)
 
     inst
-      .set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Int])
+      .set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Number].intValue())
       .set(inst.seed, metadata.paramMap("seed").toString.toLong) // FIXME why seed is converted to int?
-      .set(inst.numPartitions, metadata.paramMap("numPartitions").asInstanceOf[Int])
+      .set(inst.numPartitions, metadata.paramMap("numPartitions").asInstanceOf[Number].intValue())
       .set(inst.stepSize, metadata.paramMap("stepSize").asInstanceOf[Double])
-      .set(inst.maxSentenceLength, metadata.paramMap("maxSentenceLength").asInstanceOf[Int])
-      .set(inst.windowSize, metadata.paramMap("windowSize").asInstanceOf[Int])
-      .set(inst.vectorSize, metadata.paramMap("vectorSize").asInstanceOf[Int])
+      .set(inst.maxSentenceLength, metadata.paramMap("maxSentenceLength").asInstanceOf[Number].intValue())
+      .set(inst.windowSize, metadata.paramMap("windowSize").asInstanceOf[Number].intValue())
+      .set(inst.vectorSize, metadata.paramMap("vectorSize").asInstanceOf[Number].intValue())
   }
 
   override implicit def getTransformer(transformer: Word2VecModel): LocalTransformer[Word2VecModel] = new LocalWord2VecModel(transformer)

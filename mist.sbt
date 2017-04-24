@@ -15,10 +15,6 @@ lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
-lazy val mlFilter = new FileFilter {
-  override def accept(f: File): Boolean = f.getPath.containsSlice("mist/ml")
-}
-
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
@@ -60,7 +56,11 @@ lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
       "org.json4s" %% "json4s-native" % "3.2.10",
       "org.apache.parquet" % "parquet-column" % "1.7.0",
       "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
-      "org.apache.parquet" % "parquet-avro" % "1.7.0"
+      "org.apache.parquet" % "parquet-avro" % "1.7.0",
+
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
+      "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
     ),
 
     libraryDependencies ++= Seq(
@@ -105,7 +105,6 @@ lazy val mist = project.in(file("."))
 
       "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
 
-      "org.scalactic" %% "scalactic" % "3.0.1" % "it,test",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
 
@@ -178,20 +177,13 @@ lazy val mist = project.in(file("."))
         "-Xmx512m"
       )
     },
-    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
-
-    excludeFilter in Compile := (
-      sparkVersion.value match {
-        case versionRegex("1", minor) => "*_Spark2.scala" || mlFilter
-        case _ => "*_Spark1.scala"
-      }
-    )
+    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly)
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
   )
 
-addCommandAlias("testAll", ";mist/test;mist/it:test")
+addCommandAlias("testAll", ";mistLibSpark2/test;mist/test;mist/it:test")
 
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .dependsOn(mistLibSpark1)

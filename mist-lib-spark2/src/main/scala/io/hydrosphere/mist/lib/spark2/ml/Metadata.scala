@@ -10,3 +10,15 @@ case class Metadata(
   numClasses: Option[Int],
   numTrees: Option[Int]
 )
+
+object Metadata {
+
+  import org.json4s.DefaultFormats
+  import org.json4s.jackson.JsonMethods._
+
+  implicit val formats = DefaultFormats
+
+  def fromJson(json: String): Metadata = {
+    parse(json).extract[Metadata]
+  }
+}
