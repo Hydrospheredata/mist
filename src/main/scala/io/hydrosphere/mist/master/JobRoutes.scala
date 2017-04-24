@@ -1,20 +1,38 @@
 package io.hydrosphere.mist.master
 
-import com.typesafe.config.Config
+import java.io.File
+
+import com.typesafe.config.{Config, ConfigFactory}
 import io.hydrosphere.mist.jobs.{JobDefinition, JobInfo}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.util.{Failure, Success}
 
-class JobRoutes(config: Config) extends Logger {
+/**
+  * Job routes information provider (based on router config an job internal info)
+ *
+  * @param path - path to router config
+  */
+class JobRoutes(path: String) extends Logger {
+
+  private def loadConfig(): Config = {
+    val file = new File(path)
+    ConfigFactory.parseFile(file).resolve()
+  }
 
   def listDefinition(): Seq[JobDefinition] = {
-    JobDefinition.parseConfig(config).flatMap({
-      case Success(d) => Some(d)
-      case Failure(e) =>
-        logger.error("Invalid route configuration", e)
-        None
-    })
+    try {
+      val parsed = JobDefinition.parseConfig(loadConfig())
+      parsed
+        .collect({ case Failure(e) => e })
+        .foreach(e => logger.error("Invalid route configuration", e))
+
+      parsed.collect({ case Success(x) => x })
+    } catch {
+      case e: Throwable =>
+        logger.error("Router configuration reading failed", e)
+        Seq.empty
+    }
   }
 
   def listInfos(): Seq[JobInfo] = listDefinition().flatMap(loadInfo)

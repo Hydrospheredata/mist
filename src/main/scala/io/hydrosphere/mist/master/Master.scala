@@ -24,9 +24,7 @@ object Master extends App with Logger {
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   implicit val materializer = ActorMaterializer()
 
-  val file = new File(MistConfig.Http.routerConfigPath)
-  val routeConfig = ConfigFactory.parseFile(file).resolve()
-  val jobRoutes = new JobRoutes(routeConfig)
+  val jobRoutes = new JobRoutes(MistConfig.Http.routerConfigPath)
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
   val store = JobRepository()

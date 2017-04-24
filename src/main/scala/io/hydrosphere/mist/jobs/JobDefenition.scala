@@ -63,7 +63,6 @@ object JobDefinition {
     config.root().keySet()
       .filter(k => config.getValue(k).valueType() == ConfigValueType.OBJECT)
       .map(name => {
-        config.getValue(name).valueType()
         for {
           part <- Try { config.getConfig(name) }
           parsed <- JobConfiguration.fromConfig(part)
