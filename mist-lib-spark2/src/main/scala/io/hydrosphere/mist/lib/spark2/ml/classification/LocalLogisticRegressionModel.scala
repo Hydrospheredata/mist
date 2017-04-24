@@ -52,7 +52,7 @@ object LocalLogisticRegressionModel extends LocalModel[LogisticRegressionModel] 
       constructor.setAccessible(true)
       val coefficientsParams = data("coefficients").asInstanceOf[Map[String, Any]]
       val coefficients = Vectors.sparse(
-        coefficientsParams("size").asInstanceOf[Int],
+        coefficientsParams("size").asInstanceOf[Number].intValue(),
         coefficientsParams("indices").asInstanceOf[List[Int]].toArray[Int],
         coefficientsParams("values").asInstanceOf[List[Double]].toArray[Double]
       )

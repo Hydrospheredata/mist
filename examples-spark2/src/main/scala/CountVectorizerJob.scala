@@ -1,16 +1,7 @@
-import java.util
-
-import org.apache.spark.ml.feature._
-import org.apache.spark.ml.linalg.Vector
-
 import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
-
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.attribute.{Attribute, AttributeGroup, NumericAttribute}
-import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.ml.feature._
 
 object CountVectorizerJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {

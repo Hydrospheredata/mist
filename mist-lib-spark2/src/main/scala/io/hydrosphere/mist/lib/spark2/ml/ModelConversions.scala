@@ -58,6 +58,7 @@ object ModelConversions {
       case _: RandomForestRegressionModel.type => LocalRandomForestRegressionModel
       case _: GBTRegressionModel.type => LocalGBTRegressor
 
+      case _: KMeans.type => LocalKMeansModel
       case _ => throw new Exception(s"Unknown model: ${m.getClass}")
     }
   }

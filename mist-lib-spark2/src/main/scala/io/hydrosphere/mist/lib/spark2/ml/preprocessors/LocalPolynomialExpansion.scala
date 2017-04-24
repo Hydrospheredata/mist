@@ -25,7 +25,7 @@ object LocalPolynomialExpansion extends LocalModel[PolynomialExpansion] {
     new PolynomialExpansion(metadata.uid)
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-      .setDegree(metadata.paramMap("degree").asInstanceOf[Int])
+      .setDegree(metadata.paramMap("degree").asInstanceOf[Number].intValue())
   }
 
   override implicit def getTransformer(transformer: PolynomialExpansion): LocalTransformer[PolynomialExpansion] = new LocalPolynomialExpansion(transformer)

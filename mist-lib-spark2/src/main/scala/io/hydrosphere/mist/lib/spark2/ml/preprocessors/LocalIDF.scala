@@ -58,7 +58,7 @@ object LocalIDF extends LocalModel[IDFModel] {
     idf
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
-      .set(idf.minDocFreq, metadata.paramMap("minDocFreq").asInstanceOf[Int])
+      .set(idf.minDocFreq, metadata.paramMap("minDocFreq").asInstanceOf[Number].intValue())
   }
 
   override implicit def getTransformer(transformer: IDFModel): LocalTransformer[IDFModel] = new LocalIDF(transformer)

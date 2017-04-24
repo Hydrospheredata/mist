@@ -1,11 +1,9 @@
 package io.hydrosphere.mist.lib.spark2.ml
 
 import org.apache.spark.ml.{PipelineModel, Transformer}
-import org.json4s._
-import org.json4s.native.JsonMethods._
-
 import scala.collection.mutable
 import scala.io.Source
+
 
 // TODO: tests
 // TODO: HDFS support
@@ -14,11 +12,10 @@ object ModelLoader {
   private val GBTreeRegressor = "org.apache.spark.ml.regression.GBTRegressionModel"
   private val RandomForestRegressor = "org.apache.spark.ml.regression.RandomForestRegressionModel"
 
-  implicit val formats = DefaultFormats
 
   def get(path: String): PipelineModel = {
     val metadata = Source.fromFile(s"$path/metadata/part-00000").mkString
-    val pipelineParameters = parse(metadata).extract[Metadata]
+    val pipelineParameters = Metadata.fromJson(metadata)
     val stages: Array[Transformer] = getStages(pipelineParameters, path)
     val pipeline = TransformerFactory(pipelineParameters, Map("stages" -> stages.toList)).asInstanceOf[PipelineModel]
     pipeline
@@ -29,7 +26,7 @@ object ModelLoader {
       case (uid: String, index: Int) =>
         val currentStage = s"$path/stages/${index}_$uid"
         val modelMetadata = Source.fromFile(s"$currentStage/metadata/part-00000").mkString
-        val stageParameters = parse(modelMetadata).extract[Metadata]
+        val stageParameters = Metadata.fromJson(modelMetadata)
         loadTransformer(stageParameters, currentStage)
     }
 
@@ -42,7 +39,7 @@ object ModelLoader {
         val treesMetadata = ModelDataReader.parse(s"$path/treesMetadata") map {kv =>
           val subMap = kv._2.asInstanceOf[Map[String, Any]]
           val content = subMap("metadata").toString
-          val metadata = parse(content).extract[Metadata]
+          val metadata = Metadata.fromJson(content)
           val treeMeta = Metadata(
             metadata.`class`,
             metadata.timestamp,

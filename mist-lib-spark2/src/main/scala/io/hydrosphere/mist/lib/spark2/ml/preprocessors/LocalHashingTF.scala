@@ -24,7 +24,7 @@ object LocalHashingTF extends LocalModel[HashingTF] {
       .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
       .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
       .setBinary(metadata.paramMap("binary").asInstanceOf[Boolean])
-      .setNumFeatures(metadata.paramMap("numFeatures").asInstanceOf[Int])
+      .setNumFeatures(metadata.paramMap("numFeatures").asInstanceOf[Number].intValue())
   }
 
   override implicit def getTransformer(transformer: HashingTF): LocalTransformer[HashingTF] = new LocalHashingTF(transformer)

@@ -48,13 +48,14 @@ object LocalCountVectorizerModel extends LocalModel[CountVectorizerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): CountVectorizerModel = {
     val vocabulary = data("vocabulary").asInstanceOf[List[String]].toArray
     val inst = new CountVectorizerModel(metadata.uid, vocabulary)
+    println(metadata.paramMap("vocabSize").getClass)
     inst
       .setInputCol(metadata.paramMap("inputCol").toString)
       .setOutputCol(metadata.paramMap("outputCol").toString)
       .set(inst.binary, metadata.paramMap("binary").asInstanceOf[Boolean])
       .set(inst.minDF, metadata.paramMap("minDF").toString.toDouble)
       .set(inst.minTF, metadata.paramMap("minTF").toString.toDouble)
-      .set(inst.vocabSize, metadata.paramMap("vocabSize").asInstanceOf[Int])
+      .set(inst.vocabSize, metadata.paramMap("vocabSize").asInstanceOf[Number].intValue())
   }
 
   override implicit def getTransformer(transformer: CountVectorizerModel): LocalTransformer[CountVectorizerModel] = new LocalCountVectorizerModel(transformer)
