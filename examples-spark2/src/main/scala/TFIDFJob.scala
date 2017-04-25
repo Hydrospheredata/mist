@@ -2,6 +2,7 @@ import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
+import org.apache.spark.mllib.linalg.{Vector => LVector}
 import org.apache.spark.ml.Pipeline
 
 
@@ -30,12 +31,14 @@ object TFIDFJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("sentence", sentences)
-    )
+    val data = LocalData(LocalDataColumn("sentence", sentences))
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("sentence", "features").toMapList)
+    val result = pipeline.transform(data)
+    val response = result.select("sentence", "features").toMapList.map(rowMap => {
+      val conv = rowMap("features").asInstanceOf[LVector].toArray
+      rowMap + ("features" -> conv)
+    })
+    Map("result" -> response)
   }
 }
 
