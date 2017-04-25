@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.lib.spark2.ml
 
-import io.hydrosphere.mist.lib.spark2.ml
-
 case class LocalDataColumn[T](name: String, data: List[T])
 
 class LocalData(private val columnData: List[LocalDataColumn[_]]) {
@@ -65,9 +63,9 @@ class LocalData(private val columnData: List[LocalDataColumn[_]]) {
 object LocalData {
 
   def apply(columns: LocalDataColumn[_]*): LocalData = {
-    new ml.LocalData(columns.toList)
+    new LocalData(columns.toList)
   }
 
-  def apply(columns: List[LocalDataColumn[_]]): LocalData = new ml.LocalData(columns)
+  def apply(columns: List[LocalDataColumn[_]]): LocalData = new LocalData(columns)
   
 }
