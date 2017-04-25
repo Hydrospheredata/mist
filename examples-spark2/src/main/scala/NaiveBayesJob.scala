@@ -4,6 +4,7 @@ import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.ml.linalg.{Vector => LVector}
 
 
 object NaiveBayesJob extends MLMistJob with SQLSupport {
@@ -31,11 +32,17 @@ object NaiveBayesJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features)
-    )
+    val data = LocalData(LocalDataColumn("features", features))
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("probability", "rawPrediction", "prediction").toMapList)
+    val result = pipeline.transform(data)
+
+    val response = result.select("probability", "rawPrediction", "prediction").toMapList.map(rowMap => {
+      val mapped = rowMap("probability").asInstanceOf[LVector].toArray
+      val one = rowMap + ("probability" -> mapped)
+
+      val mapped2 = one("rawPrediction").asInstanceOf[LVector].toArray
+      one + ("rawPrediction" -> mapped2)
+    })
+    Map("result" -> response)
   }
 }
