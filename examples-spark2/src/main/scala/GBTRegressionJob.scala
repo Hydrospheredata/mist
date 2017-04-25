@@ -1,6 +1,5 @@
 import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
-
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.linalg.{Vector, Vectors}
@@ -36,11 +35,14 @@ object GBTRegressionJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features.map(constructVector))
-    )
+    val data = LocalData(LocalDataColumn("features", features.map(constructVector)))
+    val result = pipeline.transform(data)
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("prediction").toMapList)
+    val response = result.select("prediction").toMapList.map(rowMap => {
+      val mapped = rowMap("prediction").asInstanceOf[Double]
+      rowMap + ("prediction" -> mapped)
+    })
+
+    Map("result" -> response)
   }
 }

@@ -9,7 +9,7 @@ import scala.reflect.runtime.universe
 class LocalWord2VecModel(override val sparkTransformer: Word2VecModel) extends LocalTransformer[Word2VecModel] {
   lazy val parent: OldWord2VecModel = {
     val mirror = universe.runtimeMirror(sparkTransformer.getClass.getClassLoader)
-    val parentTerm = universe.typeOf[Word2VecModel].decl(universe.TermName("wordVectors")).asTerm
+    val parentTerm = universe.typeOf[Word2VecModel].decl(universe.TermName("wordVectors")).asTerm.accessed.asTerm
     mirror.reflect(sparkTransformer).reflectField(parentTerm).get.asInstanceOf[OldWord2VecModel]
   }
 
