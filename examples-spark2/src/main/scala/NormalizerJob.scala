@@ -1,6 +1,8 @@
 import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 
+import org.apache.spark.ml.linalg.{Vector => LVector}
+
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.Normalizer
 import org.apache.spark.ml.linalg.Vectors
@@ -32,9 +34,12 @@ object NormalizerJob extends MLMistJob with SQLSupport {
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(LocalDataColumn("features", features))
 
-    val result = pipeline.transform(data)
+    val response = pipeline.transform(data).toMapList.map(rowMap => {
+      val conv = rowMap("normFeatures").asInstanceOf[LVector].toArray
+      rowMap + ("normFeatures" -> conv)
+    })
 
 
-    Map("result" -> result.select("features", "normFeatures").toMapList)
+    Map("result" -> response)
   }
 }
