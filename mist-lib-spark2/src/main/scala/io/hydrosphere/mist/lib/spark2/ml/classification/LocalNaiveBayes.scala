@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.lib.spark2.ml.classification
 
+import java.lang.reflect.InvocationTargetException
+
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.classification.NaiveBayesModel
 import org.apache.spark.ml.linalg.{DenseVector, Matrix, SparseVector, Vector, Vectors}
@@ -67,7 +69,7 @@ object LocalNaiveBayes extends LocalModel[NaiveBayesModel] {
       .setProbabilityCol(metadata.paramMap("probabilityCol").asInstanceOf[String])
       .setRawPredictionCol(metadata.paramMap("rawPredictionCol").asInstanceOf[String])
 
-    nb.set(nb.smoothing, metadata.paramMap("smoothing").asInstanceOf[Int].toString.toDouble)
+    nb.set(nb.smoothing, metadata.paramMap("smoothing").asInstanceOf[Number].doubleValue())
     nb.set(nb.modelType, metadata.paramMap("modelType").asInstanceOf[String])
     nb.set(nb.labelCol, metadata.paramMap("labelCol").asInstanceOf[String])
 
