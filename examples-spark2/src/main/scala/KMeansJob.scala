@@ -17,18 +17,14 @@ object KMeansJob extends MLMistJob with SQLSupport {
     val model = pipeline.fit(dataset)
 
     model.write.overwrite().save(savePath)
-    Map(
-      "kmeans" -> model.stages(0).asInstanceOf[KMeansModel]
-    )
+    Map.empty
   }
 
   def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features)
-    )
+    val data = LocalData(LocalDataColumn("features", features))
 
     val result: LocalData = pipeline.transform(data)
     Map("result" -> result.toMapList)
