@@ -36,7 +36,7 @@ object LocalLinearRegressionModel extends LocalModel[LinearRegressionModel] {
       .set(inst.elasticNetParam, metadata.paramMap("elasticNetParam").toString.toDouble)
       // NOTE: introduced in spark 2.1 for reducing iterations for big datasets, e.g unnecessary for us
       //.set(inst.aggregationDepth, metadata.paramMap("aggregationDepth").asInstanceOf[Int])
-      .set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Int])
+      .set(inst.maxIter, metadata.paramMap("maxIter").asInstanceOf[Number].intValue())
       .set(inst.regParam, metadata.paramMap("regParam").toString.toDouble)
       .set(inst.solver, metadata.paramMap("solver").asInstanceOf[String])
       .set(inst.tol, metadata.paramMap("tol").toString.toDouble)
