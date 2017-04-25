@@ -1,14 +1,10 @@
 import java.util
 
-import org.apache.spark.ml.feature.{VectorSlicer, Word2Vec, Word2VecModel}
+import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.ml.linalg.Vector
 import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.attribute.{Attribute, AttributeGroup, NumericAttribute}
-import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.StructType
 
 object Word2VecJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
@@ -29,20 +25,21 @@ object Word2VecJob extends MLMistJob with SQLSupport {
     val model = pipeline.fit(documentDF)
 
     model.write.overwrite().save(savePath)
-    Map(
-      "model" -> model.stages(0).asInstanceOf[Word2VecModel]
-    )
+    Map.empty
   }
 
-  def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[List[String]]): Map[String, Any] = {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("text", features)
-    )
+    val data = LocalData(LocalDataColumn("text", features))
+    val result = pipeline.transform(data)
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.toMapList)
+    val response = result.select("result").toMapList.map(rowMap => {
+      val mapped = rowMap("result").asInstanceOf[Vector].toArray
+      rowMap + ("result" -> mapped)
+    })
+
+    Map("result" -> response)
   }
 }
