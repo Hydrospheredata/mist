@@ -2,6 +2,7 @@ import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.mllib.linalg.{Vector => LVector}
 import org.apache.spark.ml.feature.StandardScaler
 
 import org.apache.spark.ml.linalg.Vectors
@@ -38,6 +39,10 @@ object StandardScalerJob extends MLMistJob with SQLSupport {
     )
 
     val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("features", "scaledFeatures").toMapList)
+    val response = result.select("features", "scaledFeatures").toMapList.map(rowMap => {
+      val mapped = rowMap("scaledFeatures").asInstanceOf[LVector].toArray
+      rowMap + ("scaledFeatures" -> mapped)
+    })
+    Map("result" -> response)
   }
 }
