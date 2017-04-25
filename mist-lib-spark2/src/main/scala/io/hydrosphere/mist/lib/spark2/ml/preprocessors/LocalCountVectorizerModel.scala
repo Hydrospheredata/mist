@@ -48,7 +48,6 @@ object LocalCountVectorizerModel extends LocalModel[CountVectorizerModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): CountVectorizerModel = {
     val vocabulary = data("vocabulary").asInstanceOf[List[String]].toArray
     val inst = new CountVectorizerModel(metadata.uid, vocabulary)
-    println(metadata.paramMap("vocabSize").getClass)
     inst
       .setInputCol(metadata.paramMap("inputCol").toString)
       .setOutputCol(metadata.paramMap("outputCol").toString)
