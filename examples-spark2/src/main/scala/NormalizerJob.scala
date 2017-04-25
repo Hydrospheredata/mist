@@ -30,11 +30,11 @@ object NormalizerJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features)
-    )
+    val data = LocalData(LocalDataColumn("features", features))
 
-    val result: LocalData = pipeline.transform(data)
+    val result = pipeline.transform(data)
+
+
     Map("result" -> result.select("features", "normFeatures").toMapList)
   }
 }
