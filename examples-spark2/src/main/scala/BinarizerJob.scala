@@ -26,9 +26,7 @@ object BinarizerJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("feature", features)
-    )
+    val data = LocalData(LocalDataColumn("feature", features))
 
     val result: LocalData = pipeline.transform(data)
     Map("result" -> result.select("feature", "binarized_feature").toMapList)

@@ -18,25 +18,20 @@ class LocalCountVectorizerModel(override val sparkTransformer: CountVectorizerMo
           var tokenCount = 0L
           val arr = data.asInstanceOf[List[String]]
           arr.foreach { token =>
-            println(s"Token: $token")
             dict.get(token) foreach  { index =>
               val storedValue = termCounts.getOrElseUpdate(index, 0.0)
               termCounts.update(index, storedValue + 1.0)
             }
             tokenCount += 1
           }
-          println(s"tokenCount: $tokenCount")
-          println(s"termCounts: $termCounts")
           val eTF = if (minTf >= 1.0) minTf else tokenCount * minTf
-          println(s"eTF: $eTF")
           val eCounts = if (sparkTransformer.getBinary) {
             termCounts filter(_._2 >= eTF) map(_._1 -> 1.0) toSeq
           } else {
             termCounts filter(_._2 >= eTF) toSeq
           }
-          println(s"eCounts: ${eCounts.toList}")
 
-          Vectors.sparse(eCounts.size, eCounts.toList)
+          Vectors.sparse(dict.size, eCounts.toList)
         }
         localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newCol))
       case None => localData

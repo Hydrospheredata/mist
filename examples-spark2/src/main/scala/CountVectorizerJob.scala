@@ -2,6 +2,7 @@ import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature._
+import org.apache.spark.ml.linalg.{Vector => LVector}
 
 object CountVectorizerJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
@@ -21,20 +22,20 @@ object CountVectorizerJob extends MLMistJob with SQLSupport {
     val model = pipeline.fit(df)
 
     model.write.overwrite().save(savePath)
-    Map(
-      "model" -> model.stages(0).asInstanceOf[CountVectorizerModel]
-    )
+    Map.empty
   }
 
-  def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[List[String]]): Map[String, Any] = {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("words", features)
-    )
+    val data = LocalData(LocalDataColumn("words", features))
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.toMapList)
+    val result = pipeline.transform(data)
+    val response = result.toMapList.map(rowMap => {
+      val mapped = rowMap("features").asInstanceOf[LVector].toArray
+      rowMap + ("features" -> mapped)
+    })
+    Map("result" -> response)
   }
 }
