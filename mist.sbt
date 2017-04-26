@@ -25,7 +25,8 @@ lazy val commonSettings = Seq(
       case _ => "2.11.8"
   }),
 
-  crossScalaVersions := Seq("2.10.6", "2.11.8")
+  crossScalaVersions := Seq("2.10.6", "2.11.8"),
+  version := "0.11.0"
 
 )
 
@@ -192,7 +193,6 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .settings(
     name := "mist-examples-spark1",
     scalaVersion := "2.10.6",
-    version := "0.10.0",
     libraryDependencies ++= sparkDependencies("1.5.2")
   )
 
@@ -202,7 +202,6 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
   .settings(
     name := "mist-examples-spark2",
     scalaVersion := "2.11.8",
-    version := "0.10.0",
     libraryDependencies ++= sparkDependencies("2.0.0")
   )
 
@@ -269,7 +268,10 @@ lazy val dockerSettings = Seq(
     val routerConfig = s"configs/router-examples-spark$sparkMajor.conf"
     val replacedPaths = scala.io.Source.fromFile(routerConfig).getLines()
       .map(s => {
-        s.replaceAll("path\\s?=\\s?.+\\.jar\"", s"""path = "/usr/share/mist/${examples.name}" """)
+        if (s.startsWith("jar_path"))
+          s"""jar_path = "$mistHome/${examples.name} """"
+        else
+          s
       }).mkString("\n")
 
     val dockerRoutes = file("./target/docker_routes.conf")
