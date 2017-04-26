@@ -3,7 +3,7 @@ import io.hydrosphere.mist.lib.spark2.ml._
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer}
-
+import org.apache.spark.ml.linalg.{Vector => LVector}
 
 object OneHotEncoderJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
@@ -33,11 +33,14 @@ object OneHotEncoderJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("category", features)
-    )
+    val data = LocalData(LocalDataColumn("category", features))
+    val result = pipeline.transform(data)
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("category", "categoryVec").toMapList)
+    val response = result.select("category", "categoryVec").toMapList.map(rowMap => {
+      val mapped = rowMap("categoryVec").asInstanceOf[LVector].toArray
+      rowMap + ("categoryVec" -> mapped)
+    })
+
+    Map("result" -> response)
   }
 }

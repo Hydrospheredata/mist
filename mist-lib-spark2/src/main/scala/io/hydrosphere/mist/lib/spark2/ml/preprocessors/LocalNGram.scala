@@ -8,10 +8,10 @@ class LocalNGram(override val sparkTransformer: NGram) extends LocalTransformer[
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
         val method = classOf[NGram].getMethod("createTransformFunc")
-        val newData = column.data.map(r => {
-          method.invoke(sparkTransformer).asInstanceOf[Seq[String] => Seq[String]](r.asInstanceOf[Seq[String]])
-        })
-        localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
+        val f = method.invoke(sparkTransformer).asInstanceOf[Seq[String] => Seq[String]]
+        val data = column.data.head.asInstanceOf[Seq[String]]
+        val newData = f.apply(data).toList
+        localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, List(newData)))
       case None => localData
     }
   }
@@ -20,7 +20,7 @@ class LocalNGram(override val sparkTransformer: NGram) extends LocalTransformer[
 object LocalNGram extends LocalModel[NGram] {
   override def load(metadata: Metadata, data: Map[String, Any]): NGram = {
     new NGram(metadata.uid)
-        .setN(metadata.paramMap("n").asInstanceOf[Int])
+        .setN(metadata.paramMap("n").asInstanceOf[Number].intValue())
         .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
         .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
   }

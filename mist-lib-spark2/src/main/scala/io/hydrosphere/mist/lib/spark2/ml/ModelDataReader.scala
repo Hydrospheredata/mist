@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.lib.spark2.ml
 
-import java.io.File
+import java.io.{FilenameFilter, File}
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
@@ -13,33 +13,44 @@ import reader._
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 object ModelDataReader {
-  def parse(path: String): Map[String, Any] = {
-    val parquetFileOption = Option(new File(path).listFiles).map(_.filter(_.isFile).toList.find(_.getAbsolutePath.endsWith("parquet")).orNull)
-    parquetFileOption match {
-      case Some(parquetFile) =>
-        val conf: Configuration = new Configuration()
-        val metaData = ParquetFileReader.readFooter(conf, new Path(parquetFile.getAbsolutePath), NO_FILTER)
-        val schema: MessageType = metaData.getFileMetaData.getSchema
 
-        val reader: ParquetReader[SimpleRecord] = ParquetReader.builder[SimpleRecord](new SimpleReadSupport(), new Path(path)).build()
-        val result = mutable.HashMap.empty[String, Any]
-        try {
-          var value = reader.read()
-          while (value != null) {
-            value.prettyPrint(schema)
-            val valMap = value.struct(HashMap.empty[String, Any], schema)
-            mergeMaps(result, valMap)
-            value = reader.read()
-          }
-          HashMap(result.toSeq:_*)
-        } finally {
-          if (reader != null) {
-            reader.close()
-          }
-        }
-      case None =>
-        new HashMap[String, Any]
+  def parse(path: String): Map[String, Any] = {
+    findFile(path) match {
+      case Some(f) => readData(f)
+      case None => Map.empty
     }
+  }
+
+  private def readData(f: File): Map[String, Any] = {
+    val conf: Configuration = new Configuration()
+    val metaData = ParquetFileReader.readFooter(conf, new Path(f.getAbsolutePath), NO_FILTER)
+    val schema: MessageType = metaData.getFileMetaData.getSchema
+
+    val reader = ParquetReader.builder[SimpleRecord](new SimpleReadSupport(), new Path(f.getParent)).build()
+    val result = mutable.HashMap.empty[String, Any]
+
+
+    try {
+      var value = reader.read()
+      while (value != null) {
+        val valMap = value.struct(HashMap.empty[String, Any], schema)
+        mergeMaps(result, valMap)
+        value = reader.read()
+      }
+      result.toMap
+    } finally {
+      if (reader != null) {
+        reader.close()
+      }
+    }
+  }
+
+  private def findFile(dataDir: String): Option[File] = {
+    val dir = new File(dataDir)
+    for {
+      childs <- Option(dir.listFiles)
+      data <- childs.find(f => f.isFile && f.getName.endsWith(".parquet"))
+    } yield data
   }
 
   // TODO ugly

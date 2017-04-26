@@ -30,8 +30,8 @@ class ScalaRunner extends JobRunner {
 
   private def buildErrorMessage(params: JobParams, e: Throwable): String = {
     val msg = Option(e.getMessage).getOrElse("")
-    val line = e.getStackTrace.headOption.map(e => e.toString).getOrElse("")
-    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace head $line"
+    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
+    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
   }
 
 }

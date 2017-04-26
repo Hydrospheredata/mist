@@ -2,7 +2,7 @@ package io.hydrosphere.mist.utils.json
 
 import java.util
 
-import spray.json.{DefaultJsonProtocol, JsArray, JsFalse, JsNumber, JsObject, JsString, JsTrue, JsValue, JsonFormat, RootJsonFormat, deserializationError, serializationError}
+import spray.json._
 
 import scala.language.reflectiveCalls
 import scala.collection.JavaConversions._
@@ -21,6 +21,8 @@ private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
       case map: Map[String, _] => mapFormat[String, Any] write map
       case boolean: Boolean if boolean => JsTrue
       case boolean: Boolean if !boolean => JsFalse
+      case opt: Option[_] if opt.isDefined => write(opt.get)
+      case opt: Option[_] if opt.isEmpty => JsNull
       case unknown: Any => serializationError("Do not understand object of type " + unknown.getClass.getCanonicalName)
     }
 

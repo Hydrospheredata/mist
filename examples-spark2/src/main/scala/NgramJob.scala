@@ -29,7 +29,7 @@ object NgramJob extends MLMistJob with SQLSupport  {
 
     val pipeline = PipelineLoader.load(modelPath)
     val data = LocalData(
-      LocalDataColumn("words", features)
+      LocalDataColumn("words", List(features))
     )
 
     val result: LocalData = pipeline.transform(data)

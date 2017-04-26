@@ -5,6 +5,8 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.PCA
 
 import org.apache.spark.ml.linalg.Vectors
+//TODO: why model return vector from mllib??
+import org.apache.spark.mllib.linalg.{Vector => OldVector}
 
 object PCAJob extends MLMistJob with SQLSupport {
   def train(savePath: String): Map[String, Any] = {
@@ -32,11 +34,11 @@ object PCAJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features)
-    )
+    val data = LocalData(LocalDataColumn("features", features))
 
-    val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("features", "pcaFeatures").toMapList)
+    val result = pipeline.transform(data).toMapList.map(rowMap => {
+      rowMap + ("pcaFeatures" -> rowMap("pcaFeatures").asInstanceOf[OldVector].toArray)
+    })
+    Map("result" -> result)
   }
 }

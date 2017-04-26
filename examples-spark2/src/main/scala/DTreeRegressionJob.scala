@@ -43,11 +43,9 @@ object DTreeRegressionJob extends MLMistJob with SQLSupport {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
-    val data = LocalData(
-      LocalDataColumn("features", features.map(constructVector))
-    )
+    val data = LocalData(LocalDataColumn("features", features.map(constructVector)))
 
     val result: LocalData = pipeline.transform(data)
-    Map("result" -> result.select("features", "prediction").toMapList)
+    Map("result" -> result.select("prediction").toMapList)
   }
 }
