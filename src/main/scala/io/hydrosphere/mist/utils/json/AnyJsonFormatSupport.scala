@@ -27,7 +27,7 @@ private[mist] trait AnyJsonFormatSupport extends DefaultJsonProtocol {
     }
 
     def read(value: JsValue): Any = value match {
-      case JsNumber(number) => 
+      case JsNumber(number) =>
         try {
           number.toIntExact
         } catch {

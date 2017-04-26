@@ -1,5 +1,6 @@
 package io.hydrosphere.mist
 
+import io.hydrosphere.mist.jobs.JobResult
 import org.scalatest._
 import scala.sys.process._
 
@@ -9,7 +10,6 @@ trait MistRunner {
     case Some(v) => v
     case None => throw new RuntimeException(s"Property $name is not set")
   }
-
 
   val sparkHome = getProperty("sparkHome")
   val jar = getProperty("mistJar")
@@ -71,5 +71,63 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
   def runOnlyOnSpark1(body: => Unit): Unit =
     runOnlyIf(isSpark1, "SKIP TEST - ONLY FOR SPARK1")(body)
+}
+
+case class MistHttpInterface(host: String, port: Int) {
+
+  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+  import spray.json.pimpString
+  import spray.json._
+  import scalaj.http.Http
+
+  def runJob(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
+    callApi(routeId, params, Execute, timeout)
+
+  def runJob(routeId: String, params: (String, Any)*): JobResult =
+    callApi(routeId, params.toMap, Execute, 60)
+
+  def train(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
+    callApi(routeId, params, Train, timeout)
+
+  def train(routeId: String, params: (String, Any)*): JobResult =
+    callApi(routeId, params.toMap, Train, 60)
+
+  def serve(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
+    callApi(routeId, params, Serve, timeout)
+
+  def serve(routeId: String, params: (String, Any)*): JobResult =
+    callApi(routeId, params.toMap, Serve, 60)
+
+  private def callApi(
+    routeId: String,
+    params: Map[String, Any],
+    action: ActionType,
+    timeout: Int = 30): JobResult = {
+
+    val millis = timeout * 1000
+
+    val jobUrl = s"http://$host:$port/api/$routeId"
+    val url = action match {
+      case Train => jobUrl + "?train=true"
+      case Serve => jobUrl + "?serve=true"
+      case Execute => jobUrl
+    }
+
+    val req = Http(url)
+      .timeout(millis, millis)
+      .header("Content-Type", "application/json")
+      .postData(params.toJson)
+
+    val resp = req.asString
+    if (resp.code == 200)
+      resp.body.parseJson.convertTo[JobResult]
+    else
+      throw new RuntimeException(s"Job failed body ${resp.body}")
+  }
+
+  sealed trait ActionType
+  case object Execute extends ActionType
+  case object Train extends ActionType
+  case object Serve extends ActionType
 }
 

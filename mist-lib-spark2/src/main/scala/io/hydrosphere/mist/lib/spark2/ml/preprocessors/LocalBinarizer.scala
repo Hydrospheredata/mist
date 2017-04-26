@@ -7,9 +7,9 @@ class LocalBinarizer(override val sparkTransformer: Binarizer) extends LocalTran
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
-        val trashhold: Double = sparkTransformer.getThreshold
+        val treshhold: Double = sparkTransformer.getThreshold
         val newData = column.data.map(r => {
-          if (r.asInstanceOf[Double] > trashhold) 1.0 else 0.0
+          if (r.asInstanceOf[Number].doubleValue() > treshhold) 1.0 else 0.0
         })
         localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
       case None => localData
