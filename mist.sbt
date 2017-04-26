@@ -269,7 +269,7 @@ lazy val dockerSettings = Seq(
     val replacedPaths = scala.io.Source.fromFile(routerConfig).getLines()
       .map(s => {
         if (s.startsWith("jar_path"))
-          s"""jar_path = "$mistHome/${examples.name} """"
+          s"""jar_path = "$mistHome/${examples.name}""""
         else
           s
       }).mkString("\n")
