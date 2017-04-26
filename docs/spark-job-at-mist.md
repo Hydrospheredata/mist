@@ -6,15 +6,15 @@ Mist library artifacts have difference between spark versions.
 
 |spark version |artifact        |import                                     |
 |--------------|----------------|-------------------------------------------|
-| < 2.0        | mist-api-spark1| `import io.hydrosphere.mist.lib.spark1._` | 
-| >= 2.0       | mist-api-spark2| `import io.hydrosphere.mist.lib.spark2._` |
+| < 2.0        | mist-lib-spark1| `import io.hydrosphere.mist.lib.spark1._` | 
+| >= 2.0       | mist-lib-spark2| `import io.hydrosphere.mist.lib.spark2._` |
 
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist-api-spark1" % "0.11.0"
+libraryDependencies += "io.hydrosphere" % "mist-lib-spark1" % "0.11.0"
 // or if you use spark >= 2.0
-libraryDependencies += "io.hydrosphere" % "mist-api-spark2" % "0.11.0"
+libraryDependencies += "io.hydrosphere" % "mist-lib-spark2" % "0.11.0"
 ```
 
 Maven dependency:
@@ -22,13 +22,13 @@ Maven dependency:
 ```xml
 <dependency>
     <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-api-spark1</artifactId>
+    <artifactId>mist-lib-spark1</artifactId>
     <version>0.11.0</version>
 </dependency>
 // or if you use spark >= 2.0
 <dependency>
     <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-api-spark2</artifactId>
+    <artifactId>mist-lib-spark2</artifactId>
     <version>0.11.0</version>
 </dependency>
 ```
