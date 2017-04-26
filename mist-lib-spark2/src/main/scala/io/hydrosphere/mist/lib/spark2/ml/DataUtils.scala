@@ -12,31 +12,10 @@ object DataUtils {
     /**
       * This is workaround for current JSON serialization. It places Int's to List[Double] and that causes exceptions.
       * WARNING: this method is very heavy, use only when you are not sure if list is pure, e.g. read from JSON.
+      *
       * @return
       */
     def forceDoubles: List[Double] = list.asInstanceOf[List[AnyVal]] map(_.toString.toDouble)
-  }
-  implicit class TypedMap(val parquetMap: Map[String, Any]) {
-    /**
-      * Parquet map looks like
-      * Map (
-      *   key_value -> Map(
-      *     key -> foo
-      *     value -> bar
-      *   )
-      * )
-      *
-      * this class transforms it to Map(foo -> bar)
-      */
-    def toScalaMap[K, V]: Map[K, V] = {
-      parquetMap.map {
-        case (_: String, v: Any) =>
-          val valueMap = v.asInstanceOf[Map[String, Any]]
-          val key = valueMap("key").asInstanceOf[K]
-          val value = valueMap("value").asInstanceOf[V]
-          key -> value
-      }
-    }
   }
 
   def constructMatrix(params: Map[String, Any]): Matrix = {
@@ -157,20 +136,12 @@ object DataUtils {
     }
   }
 
-  def flatConvertMap(map: Map[String, Any]): Map[Int, Map[Double, Int]] = {
-    val res = map.map { kv =>
-      val subMap = kv._2.asInstanceOf[Map[String, Any]]
-      val key = subMap("key").asInstanceOf[Int]
-      val value = subMap("value").asInstanceOf[Map[String, Any]]
-//      val value = subMap("value").asInstanceOf[Map[String, Any]].map { subKv =>
-//        val ssubMap = subKv._2.asInstanceOf[Map[String, Any]]
-//        val subKey = ssubMap("key").asInstanceOf[Double]
-//        val subValue = ssubMap("value").asInstanceOf[Int]
-//        subKey -> subValue
-//      }
-      key -> value.toScalaMap[Double, Int]
-    }
-    res
+  def kludgeForVectorIndexer(map: Map[String, Any]): Map[Int, Map[Double, Int]] = {
+    map.map({ case (k, v) =>
+      val key = k.toInt
+      val value = v.asInstanceOf[Map[String, Int]].map(x => x._1.toDouble -> x._2)
+      key -> value
+    })
   }
 
   def asBreeze(values: Array[Double]): BV[Double] = new BDV[Double](values)

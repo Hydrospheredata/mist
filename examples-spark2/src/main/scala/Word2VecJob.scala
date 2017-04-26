@@ -1,7 +1,7 @@
 import java.util
 
 import org.apache.spark.ml.feature.Word2Vec
-import org.apache.spark.ml.linalg.Vector
+import org.apache.spark.mllib.linalg.{Vector => LVector}
 import io.hydrosphere.mist.lib.spark2._
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.Pipeline
@@ -28,7 +28,7 @@ object Word2VecJob extends MLMistJob with SQLSupport {
     Map.empty
   }
 
-  def serve(modelPath: String, features: List[List[String]]): Map[String, Any] = {
+  def serve(modelPath: String, features: List[String]): Map[String, Any] = {
     import LocalPipelineModel._
 
     val pipeline = PipelineLoader.load(modelPath)
@@ -36,7 +36,7 @@ object Word2VecJob extends MLMistJob with SQLSupport {
     val result = pipeline.transform(data)
 
     val response = result.select("result").toMapList.map(rowMap => {
-      val mapped = rowMap("result").asInstanceOf[Vector].toArray
+      val mapped = rowMap("result").asInstanceOf[LVector].toArray
       rowMap + ("result" -> mapped)
     })
 

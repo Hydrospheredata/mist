@@ -4,21 +4,18 @@ import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.feature.Word2VecModel
 import org.apache.spark.mllib.feature.{Word2VecModel => OldWord2VecModel}
 
-import scala.reflect.runtime.universe
-
 class LocalWord2VecModel(override val sparkTransformer: Word2VecModel) extends LocalTransformer[Word2VecModel] {
   lazy val parent: OldWord2VecModel = {
-    val mirror = universe.runtimeMirror(sparkTransformer.getClass.getClassLoader)
-    val parentTerm = universe.typeOf[Word2VecModel].decl(universe.TermName("wordVectors")).asTerm.accessed.asTerm
-    mirror.reflect(sparkTransformer).reflectField(parentTerm).get.asInstanceOf[OldWord2VecModel]
+    val field = sparkTransformer.getClass.getDeclaredField("org$apache$spark$ml$feature$Word2VecModel$$wordVectors")
+    field.setAccessible(true)
+    field.get(sparkTransformer).asInstanceOf[OldWord2VecModel]
   }
 
   override def transform(localData: LocalData): LocalData = { // FIXME ?ML transform or old one?
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
-        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, column.data map { feature =>
-          parent.transform(feature.toString)
-        })
+        val data = column.data.map(x => parent.transform(x.asInstanceOf[String]))
+        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, data)
         localData.withColumn(newColumn)
       case None => localData
     }
@@ -27,12 +24,11 @@ class LocalWord2VecModel(override val sparkTransformer: Word2VecModel) extends L
 
 object LocalWord2VecModel extends LocalModel[Word2VecModel] {
   override def load(metadata: Metadata, data: Map[String, Any]): Word2VecModel = {
-    import DataUtils._
-
     val wordVectors = data("wordVectors").asInstanceOf[List[Float]].toArray
-    val wordIndex: Map[String, Int] = data("wordIndex").asInstanceOf[Map[String, Any]].toScalaMap[String, Int]
+    val wordIndex = data("wordIndex").asInstanceOf[Map[String, Int]]
     val oldCtor = classOf[OldWord2VecModel].getConstructor(classOf[Map[String, Int]], classOf[Array[Float]])
     oldCtor.setAccessible(true)
+
     val oldWord2VecModel = oldCtor.newInstance(wordIndex, wordVectors)
 
     val ctor = classOf[Word2VecModel].getConstructor(classOf[String], classOf[OldWord2VecModel])

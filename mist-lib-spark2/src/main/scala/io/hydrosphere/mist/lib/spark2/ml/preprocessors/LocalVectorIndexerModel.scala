@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.lib.spark2.ml.preprocessors
 
+import java.lang.reflect.InvocationTargetException
+
 import io.hydrosphere.mist.lib.spark2.ml._
 import org.apache.spark.ml.feature.VectorIndexerModel
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
@@ -63,14 +65,20 @@ object LocalVectorIndexerModel extends LocalModel[VectorIndexerModel] {
       classOf[Map[Int, Map[Double, Int]]]
     )
     ctor.setAccessible(true)
-    ctor
-      .newInstance(
-        metadata.uid,
-        data("numFeatures").asInstanceOf[java.lang.Integer],
-        DataUtils.flatConvertMap(data("categoryMaps").asInstanceOf[Map[String, Any]])
-      )
-      .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
-      .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
+    val categoryMaps = DataUtils.kludgeForVectorIndexer(data("categoryMaps").asInstanceOf[Map[String, Any]])
+    try {
+      ctor
+        .newInstance(
+          metadata.uid,
+          data("numFeatures").asInstanceOf[java.lang.Integer],
+          categoryMaps
+        )
+        .setInputCol(metadata.paramMap("inputCol").asInstanceOf[String])
+        .setOutputCol(metadata.paramMap("outputCol").asInstanceOf[String])
+    } catch {
+      case e: InvocationTargetException => throw e.getTargetException
+      case e: Throwable => throw e
+    }
   }
 
   override implicit def getTransformer(transformer: VectorIndexerModel): LocalTransformer[VectorIndexerModel] = new LocalVectorIndexerModel(transformer)

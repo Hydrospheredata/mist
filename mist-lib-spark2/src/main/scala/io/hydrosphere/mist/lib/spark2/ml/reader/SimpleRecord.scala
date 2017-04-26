@@ -46,39 +46,52 @@ class SimpleRecord {
     values.append(NameValue(name, value))
   }
 
+  //TODO: rewrite parquet reader part totally
   def struct(acc: HashMap[String, Any], schema: Type, parent: NameValue = null): HashMap[String, Any] = {
     var map = acc
-    val eitherSchema = if (schema.isPrimitive) {
-      Left(schema.asPrimitiveType())
-    } else {
-      Right(schema.asGroupType())
-    }
+
     for (nameValue <- values) {
       val value = nameValue.value
       val name = nameValue.name
 
-      eitherSchema match {
-        case Left(_) => map += name -> value
-        case Right(parentType) =>
-          val subSchema = parentType.getType(name)
-          if (subSchema.isPrimitive) {
-            map += name -> value
-          } else {
-            parentType.getOriginalType match {
-              case OriginalType.LIST =>
-                val parentName = parent.name
-                map += parentName -> value.asInstanceOf[SimpleRecord].struct(map.getOrElse(parentName, List.empty[Any]).asInstanceOf[List[Any]])
-              case _ =>
-                subSchema.asGroupType().getOriginalType match {
-                  case OriginalType.LIST =>
-                    map ++= value.asInstanceOf[SimpleRecord].struct(map.getOrElse(name, HashMap.empty[String, Any]).asInstanceOf[HashMap[String, Any]], subSchema, nameValue)
-                  case _ =>
-                    map += name -> value.asInstanceOf[SimpleRecord].struct(map.getOrElse(name, HashMap.empty[String, Any]).asInstanceOf[HashMap[String, Any]], subSchema, nameValue)
-                }
-            }
+      if (schema.isPrimitive) {
+        map += name -> value
+      } else {
+        val parentType = schema.asGroupType()
+        val subSchema = parentType.getType(name)
+        if (subSchema.isPrimitive) {
+          map += name -> value
+        } else {
+          parentType.getOriginalType match {
+            case OriginalType.LIST =>
+              val parentName = parent.name
+              val record = value.asInstanceOf[SimpleRecord]
+              map += parentName -> record.struct(map.getOrElse(parentName, List.empty[Any]).asInstanceOf[List[Any]])
+            case OriginalType.MAP =>
+              val record = value.asInstanceOf[SimpleRecord]
+              val values = record.values
+              val k = values(0).value
+
+              val v = values(1).value match {
+                case r: SimpleRecord =>
+                  println(subSchema)
+                  val nextSchema = subSchema.asGroupType().getType("value")
+                  r.struct(HashMap.empty, nextSchema)
+                case x => x
+              }
+              map += k.toString -> v
+            case _ =>
+              subSchema.asGroupType().getOriginalType match {
+                case OriginalType.LIST =>
+                  map ++= value.asInstanceOf[SimpleRecord].struct(map.getOrElse(name, HashMap.empty[String, Any]).asInstanceOf[HashMap[String, Any]], subSchema, nameValue)
+                case _ =>
+                  map += name -> value.asInstanceOf[SimpleRecord].struct(map.getOrElse(name, HashMap.empty[String, Any]).asInstanceOf[HashMap[String, Any]], subSchema, nameValue)
+              }
           }
+        }
       }
     }
+
     map
   }
 
