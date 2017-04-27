@@ -12,9 +12,11 @@ Mist library artifacts have difference between spark versions.
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" % "mist-lib-spark1" % "0.11.0"
+resolvers += Resolver.sonatypeRepo("releases")
+
+libraryDependencies += "io.hydrosphere" %% "mist-lib-spark1" % "0.11.0"
 // or if you use spark >= 2.0
-libraryDependencies += "io.hydrosphere" % "mist-lib-spark2" % "0.11.0"
+libraryDependencies += "io.hydrosphere" %% "mist-lib-spark2" % "0.11.0"
 ```
 
 Maven dependency:
