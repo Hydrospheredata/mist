@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.testkit.{TestKit, TestProbe}
+import akka.testkit.{TestActorRef, TestActor, TestKit, TestProbe}
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.worker.runners.JobRunner
@@ -79,7 +79,9 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val props = Props(
       classOf[WorkerActor],
       "test", context, runner, Duration.Inf, 2)
-    system.actorOf(props)
+    //val ref = system.actorOf(props)
+
+    TestActorRef[WorkerActor](props)
   }
 
   it("should cancel job") {
