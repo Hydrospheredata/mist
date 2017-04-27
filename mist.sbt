@@ -254,7 +254,7 @@ lazy val mistRunSettings = Seq(
 
 lazy val dockerSettings = Seq(
   imageNames in docker := Seq(
-    ImageName(s"io.hydrosphere/mist:${version.value}-${sparkVersion.value}")
+    ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
   ),
   dockerfile in docker := {
     val artifact = assembly.value

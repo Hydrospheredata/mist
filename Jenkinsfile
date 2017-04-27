@@ -40,12 +40,12 @@ def test_mist(slaveName,sparkVersion) {
           sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
         }
 
-        //def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-        //if (tag.startsWith("v")) {
-        //    stage('Publish in DockerHub') {
-        //      sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
-        //    }
-        //}
+        def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
+        if (tag.startsWith("v")) {
+            stage('Publish in DockerHub') {
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+            }
+        }
       }
       catch (err) {
         currentBuild.result = "FAILURE"
