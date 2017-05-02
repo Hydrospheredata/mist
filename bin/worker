@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+name=""
+context=""
+config=""
+java_args=""
+jar_file=""
+runner=""
+
+while [[ $# > 1 ]]
+do
+  key="$1"
+  case ${key} in
+    --name)
+      name="$2"
+      shift
+      ;;
+
+    --context)
+      context="$2"
+      shift
+      ;;
+
+    --config)
+      config="$2"
+      shift
+      ;;
+
+    --jar)
+      jar_file="$2"
+      shift
+      ;;
+    
+    --runner)
+      runner="$2"
+      shift
+      ;;
+
+    --run-options)
+      run_options="$2"
+      shift
+      ;;
+
+    --java-args)
+      java_args="$2"
+      shift
+      ;;
+
+  esac
+shift
+done
+
+if [ "${name}" == '' ]
+then
+    (>&2 echo "You must specify --name")
+    exit 3
+fi
+
+if [ "${context}" == '' ]
+then
+    (>&2 echo "You must specify --context")
+    exit 3
+fi
+
+if [ "${config}" == '' ]
+then
+    (>&2 echo "You must specify --config")
+    exit 3
+fi
+
+if [ "${jar_file}" == '' ]
+then
+    (>&2 echo "You must specify --jar_file")
+    exit 3
+fi
+
+if [ "${SPARK_HOME}" == '' ]
+then
+    (>&2 echo "You must specify SPARK_HOME env variable")
+    exit 3
+fi
+
+export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
+
+CMD="${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker \
+--driver-java-option \"-Dconfig.file=${config} -Dakka.roles.1=worker-${namespace} ${java_arguments}\" \
+${run_options} "$jar_file" ${name} ${context}"
+
+exec $CMD

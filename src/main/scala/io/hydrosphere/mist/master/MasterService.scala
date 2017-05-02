@@ -14,6 +14,7 @@ import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register, Runni
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.async.AsyncPublisher
+import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias._
 
@@ -93,7 +94,34 @@ class MasterService(
 
   def startJob(r: JobExecutionRequest, source: JobDetails.Source): Future[JobResult] = {
     import r._
-    startJob(jobId, action, parameters, source, r.externalId)
+    startJob(routeId, action, parameters, source, r.externalId)
+  }
+
+  def runJob(req: JobStartRequest, source: JobDetails.Source): Future[JobStartResponse] = {
+    val id = req.routeId
+    jobRoutes.getDefinition(id) match {
+      case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
+      case Some(d) =>
+        val internalRequest = RunJobRequest(
+          id = UUID.randomUUID().toString,
+          JobParams(
+            filePath = d.path,
+            className = d.className,
+            arguments = req.parameters,
+            action = Action.Execute
+          )
+        )
+
+        val namespace = req.runSettings.contextId.getOrElse(d.nameSpace)
+        val cmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
+
+        //TODO: remove fixture
+        val executionParams = JobExecutionParams("", "", "", Map.empty, None, None)
+        statusService ! Register(internalRequest.id, executionParams, source)
+
+        workerManager.ask(cmd).mapTo[ExecutionInfo]
+          .map(_ => JobStartResponse(internalRequest.id))
+    }
   }
 
   private def buildParams(

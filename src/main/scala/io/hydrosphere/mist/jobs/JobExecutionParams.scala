@@ -28,7 +28,7 @@ object Action {
   * Request for starting job by name
   */
 case class JobExecutionRequest(
-  jobId: String,
+  routeId: String,
   action: Action,
   parameters: JobParameters,
   externalId: Option[String]

@@ -10,6 +10,7 @@ import scala.language.postfixOps
 
 case class WorkerSettings(
   name: String,
+  context: String,
   runOptions: String,
   configFilePath: String,
   jarPath: String
@@ -27,16 +28,13 @@ trait WorkerRunner {
   */
 class LocalWorkerRunner(sparkHome: String) extends WorkerRunner with Logger {
 
-
   def run(settings: WorkerSettings): Unit = {
     import settings._
 
     val cmd = Seq(
-      s"${sys.env("MIST_HOME")}/bin/mist",
-      "start",
-      "worker",
-      "--runner", "local",
-      "--namespace", name,
+      s"${sys.env("MIST_HOME")}/bin/worker",
+      "--name", name,
+      "--context", context,
       "--config", configFilePath,
       "--jar", jarPath,
       "--run-options", settings.runOptions)

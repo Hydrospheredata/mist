@@ -1,8 +1,10 @@
 package io.hydrosphere.mist
 
-import akka.actor.{ActorRef, ActorSelection, Address}
+import akka.actor.{ActorRef, Address}
+import io.hydrosphere.mist.Messages.JobMessages.RunJobRequest
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
+import io.hydrosphere.mist.jobs.{Action, JobExecutionParams}
+import io.hydrosphere.mist.master.models.RunMode
 
 object Messages {
 
@@ -10,6 +12,7 @@ object Messages {
 
     case class WorkerRegistration(name: String, adress: Address)
     case class WorkerCommand(name: String, message: Any)
+    case class RunJobCommand(namespace: String, mode: RunMode, request: RunJobRequest)
 
     case class CreateContext(name: String)
 
