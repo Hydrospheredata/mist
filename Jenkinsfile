@@ -1,37 +1,29 @@
-parallel (
-    Spark_1_5_2 : {
-      test_mist("JenkinsOnDemand","1.5.2")
-    },
-    Spark_1_6_2 : {
-      test_mist("JenkinsOnDemand","1.6.2")
-    },
-    Spark_2_0_2 : {
-      test_mist("JenkinsOnDemand","2.0.2")
-    },
-    Spark_2_1_0 : {
-      test_mist("JenkinsOnDemand","2.1.0")
+//Spark Version
+versions = [
+        "1.5.2",
+        "1.6.2",
+        "2.0.2",
+        "2.1.0"
+]
+
+def branches = [:]
+versions.each { ver ->
+    branches["Spark_${ver.replaceAll('.', '_')}"] = {
+        test_mist("JenkinsOnDemand", "${ver}")
     }
-)
+}
+
+//Execute test and builds in parallel
+parallel branches
 
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-    stash name: "artifact"+sparkVersion, includes: "target/**/mist-assembly-*.jar"
-    def dirName="artifact"+"1.5.2"
-    dir(dirName) {
-        unstash dirName
-    }
-    dirName="artifact"+"1.6.2"
-    dir(dirName) {
-        unstash dirName
-    }
-    dirName="artifact"+"2.0.2"
-    dir(dirName) {
-        unstash dirName
-    }
-    dirName="artifact"+"2.1.0"
-    dir(dirName) {
-        unstash dirName
+    versions.each { ver ->
+        def dirName = "artifact${ver}"
+        dir(dirName) {
+            unstash dirName
+        }
     }
     sh "ls -la ${pwd()}"
     sh "ls -la ${pwd()}/artifact1.5.2"
@@ -47,40 +39,40 @@ node("JenkinsOnDemand") {
     }
 }
 
-def test_mist(slaveName,sparkVersion) {
-  node(slaveName) {
-    wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
-      try {
-        stage('Clone project ' + sparkVersion) {
-          checkout scm
-          sh "cd ${env.WORKSPACE}"
-        }
+def test_mist(slaveName, sparkVersion) {
+    node(slaveName) {
+        wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
+            try {
+                stage('Clone project ' + sparkVersion) {
+                    checkout scm
+                    sh "cd ${env.WORKSPACE}"
+                }
 
-        stage('Build and test') {
-          echo 'Testing Mist with Spark version: ' + sparkVersion
-          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
-        }
+                stage('Build and test') {
+                    echo 'Testing Mist with Spark version: ' + sparkVersion
+                    sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
+                }
 
-        stash name: "artifact"+sparkVersion, includes: "target/**/mist-assembly-*.jar"
+                stash name: "artifact" + sparkVersion, includes: "target/**/mist-assembly-*.jar"
 
-        def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-        if (tag.startsWith("v")) {
-            stage('Publish in DockerHub') {
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+                def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
+                if (tag.startsWith("v")) {
+                    stage('Publish in DockerHub') {
+                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+                    }
+                }
+            }
+            catch (err) {
+                currentBuild.result = "FAILURE"
+                echo "${err}"
+                gitEmail = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' HEAD").trim()
+                mail body: "project build error is here: ${env.BUILD_URL}",
+                        from: 'hydro-support@provectus.com',
+                        replyTo: 'noreply@provectus.com',
+                        subject: 'project build failed',
+                        to: gitEmail
+                throw err
             }
         }
-      }
-      catch (err) {
-        currentBuild.result = "FAILURE"
-        echo "${err}"
-        gitEmail = sh(returnStdout: true, script: "git --no-pager show -s --format='%ae' HEAD").trim()
-        mail body: "project build error is here: ${env.BUILD_URL}" ,
-        from: 'hydro-support@provectus.com',
-        replyTo: 'noreply@provectus.com',
-        subject: 'project build failed',
-        to: gitEmail
-        throw err
-      }
     }
-  }
 }
