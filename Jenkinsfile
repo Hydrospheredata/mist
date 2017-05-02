@@ -9,12 +9,13 @@ versions = [
 def branches = [:]
 for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
     ver = versions.get(i)
+
     branches["Spark_${ver.replaceAll('.', '_')}"] = {
         test_mist("JenkinsOnDemand", "${ver}")
     }
 }
 
-echo 'Some: ' + versions
+echo 'Some: ' + branches
 
 //Execute test and builds in parallel
 parallel branches
