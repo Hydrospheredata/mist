@@ -9,13 +9,10 @@ versions = [
 def branches = [:]
 for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
     ver = versions.get(i)
-    echo 'Some!!!: ' + "Spark_${ver.replaceAll('.', '_')}"
-    branches["Spark_${ver.replaceAll('.', '_')}"] = {
+    branches["Spark_${ver}"] = {
         test_mist("JenkinsOnDemand", "${ver}")
     }
 }
-
-
 
 //Execute test and builds in parallel
 parallel branches
@@ -59,7 +56,7 @@ def test_mist(slaveName, sparkVersion) {
                     sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
                 }
 
-                stash name: "artifact" + sparkVersion, includes: "target/**/mist-assembly-*.jar"
+                stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
                 if (tag.startsWith("v")) {
