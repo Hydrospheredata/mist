@@ -15,6 +15,27 @@ parallel (
 
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
+
+    stash name: "artifact"+sparkVersion, includes: "target/**/mist-assembly-*.jar"
+    def dirName="artifact"+"1.5.2"
+    dir(dirName) {
+        unstash dirName
+    }
+    dirName="artifact"+"1.6.2"
+    dir(dirName) {
+        unstash dirName
+    }
+    dirName="artifact"+"2.0.2"
+    dir(dirName) {
+        unstash dirName
+    }
+    dirName="artifact"+"2.1.0"
+    dir(dirName) {
+        unstash dirName
+    }
+    sh "ls -la ${pwd()}"
+    sh "ls -la ${pwd()}/artifact1.5.2"
+
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
             sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
@@ -39,6 +60,8 @@ def test_mist(slaveName,sparkVersion) {
           echo 'Testing Mist with Spark version: ' + sparkVersion
           sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
         }
+
+        stash name: "artifact"+sparkVersion, includes: "target/**/mist-assembly-*.jar"
 
         def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
         if (tag.startsWith("v")) {
