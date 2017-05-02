@@ -53,7 +53,7 @@ def test_mist(slaveName, sparkVersion) {
 
                 stage('Build and test') {
                     echo 'Testing Mist with Spark version: ' + sparkVersion
-                    sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} testAll"
+                    sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} clean assembly testAll"
                 }
 
                 stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
