@@ -61,7 +61,10 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   it("should limit jobs") {
-    val runner = SuccessRunner(Map("yoyo" -> "hey"))
+    val runner = SuccessRunner({
+      Thread.sleep(1000)
+      Map("yoyo" -> "hey")
+    })
 
     val probe = TestProbe()
     val worker = testWorkerActor(runner, 2)
@@ -104,7 +107,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.expectMsgType[JobIsCancelled]
   }
 
-  def SuccessRunner(r: Map[String, Any]): JobRunner =
+  def SuccessRunner(r: => Map[String, Any]): JobRunner =
     testRunner(Right(r))
 
   def FailureRunner(error: String): JobRunner =
