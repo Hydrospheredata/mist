@@ -1,12 +1,12 @@
 parallel (
     Spark_1_5_2 : {
-      test_mist("aws-slave-01","1.5.2")
+      test_mist("aws-slave-04","1.5.2")
     },
     Spark_1_6_2 : {
-      test_mist("aws-slave-02","1.6.2")
+      test_mist("aws-slave-04","1.6.2")
     },
     Spark_2_0_2 : {
-      test_mist("aws-slave-03","2.0.2")
+      test_mist("aws-slave-04","2.0.2")
     },
     Spark_2_1_0 : {
       test_mist("aws-slave-04","2.1.0")
