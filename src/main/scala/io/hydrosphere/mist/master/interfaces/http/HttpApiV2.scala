@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.server.{Directives, Route}
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
@@ -27,9 +28,8 @@ class HttpApiV2(master: MasterService) {
           'uniqWorkerId ?
         ).as(JobRunQueryParams) { query =>
           entity(as[JobParameters]) { params =>
-
-            println(s"HEY HEY routeId=$routeId query=$query params=$params")
-            completeU(Future.successful(()))
+            val runReq = buildStartRequest(routeId, query, params)
+            complete(master.runJob(runReq, Source.Http))
           }
       })
     }
@@ -39,7 +39,7 @@ class HttpApiV2(master: MasterService) {
     routeId: String,
     queryParams: JobRunQueryParams,
     parameters: JobParameters
-  ): Unit = {
+  ): JobStartRequest = {
     val runSettings = queryParams.buildRunSettings()
     JobStartRequest(routeId, parameters, queryParams.externalId, runSettings)
   }
@@ -49,11 +49,6 @@ class HttpApiV2(master: MasterService) {
 }
 
 object HttpApiV2 {
-
-  object ModeReprs {
-    val Default = "default"
-    val UniqContext = "uniqContext"
-  }
 
   case class JobRunQueryParams(
     externalId: Option[String],

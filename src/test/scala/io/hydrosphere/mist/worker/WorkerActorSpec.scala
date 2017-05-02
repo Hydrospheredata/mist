@@ -82,8 +82,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val props = Props(
       classOf[WorkerActor],
       "test", context, runner, Duration.Inf, 2)
-    //val ref = system.actorOf(props)
-
     TestActorRef[WorkerActor](props)
   }
 
@@ -93,7 +91,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         val sc = c.context
         val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
         Right(Map("r" -> "Ok"))
-
       }
     }
 

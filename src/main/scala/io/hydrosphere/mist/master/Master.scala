@@ -11,7 +11,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorker
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
-import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpUi}
+import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpApiV2, HttpUi}
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -43,7 +43,8 @@ object Master extends App with Logger {
 
   if (MistConfig.Http.isOn) {
     val api = new HttpApi(masterService)
-    val http = HttpUi.route ~ api.route
+    val apiv2 = new HttpApiV2(masterService)
+    val http = HttpUi.route ~ api.route ~ apiv2.route
     Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
   }
 
@@ -65,6 +66,8 @@ object Master extends App with Logger {
     AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
   }
 
+  //TODO: we should recover hobs before start listening on any interface
+  //TODO: why we restart only async?
   val publishers = enabledAsyncPublishers()
   masterService.recoverJobs(publishers)
 

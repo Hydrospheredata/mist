@@ -4,7 +4,7 @@ name=""
 context=""
 config=""
 java_args=""
-jar_file=""
+jar=""
 runner=""
 
 while [[ $# > 1 ]]
@@ -27,7 +27,7 @@ do
       ;;
 
     --jar)
-      jar_file="$2"
+      jar="$2"
       shift
       ;;
     
@@ -68,7 +68,7 @@ then
     exit 3
 fi
 
-if [ "${jar_file}" == '' ]
+if [ "${jar}" == '' ]
 then
     (>&2 echo "You must specify --jar_file")
     exit 3
@@ -82,8 +82,9 @@ fi
 
 export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
 
-CMD="${SPARK_HOME}/bin/spark-submit --class io.hydrosphere.mist.worker.Worker \
---driver-java-option \"-Dconfig.file=${config} -Dakka.roles.1=worker-${namespace} ${java_arguments}\" \
-${run_options} "$jar_file" ${name} ${context}"
+SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
+MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
+DRIVER_JAVA_OPTIONS="-Dconfig.file=${config} -Dakka.roles.1=worker-${name} ${java_args}"
 
-exec $CMD
+exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" ${run_options} $jar $name $context
+
