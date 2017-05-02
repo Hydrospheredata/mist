@@ -1,9 +1,9 @@
 //Spark Version
 versions = [
-        //"1.5.2",
+        "1.5.2",
         "1.6.2",
         "2.0.2",
-        //"2.1.0"
+        "2.1.0"
 ]
 
 def branches = [:]
@@ -21,7 +21,7 @@ parallel branches
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-    for (int i = 0; i < versions.size(); i++) {//TODO switch to each after JENKINS-26481
+    /*for (int i = 0; i < versions.size(); i++) {//TODO switch to each after JENKINS-26481
         def ver = versions.get(i)
         def dirName = "artifact${ver}"
         dir(dirName) {
@@ -29,11 +29,13 @@ node("JenkinsOnDemand") {
         }
         sh "ls -la ${pwd()}/${dirName}"
     }
-    sh "ls -la ${pwd()}"
+    sh "ls -la ${pwd()}"*/
 
 
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
+            //TODO Fetch artifacts from previous steps, using stash/unstash
+
             sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
             sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
 
@@ -57,7 +59,7 @@ def test_mist(slaveName, sparkVersion) {
                     sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} clean assembly testAll"
                 }
 
-                stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
+                //stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
                 if (tag.startsWith("v")) {
