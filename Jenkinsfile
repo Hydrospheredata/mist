@@ -7,7 +7,8 @@ versions = [
 ]
 
 def branches = [:]
-versions.each { ver ->
+for (int i = 0; i < versions.size(); i++) {
+    ver = versions[i]
     branches["Spark_${ver.replaceAll('.', '_')}"] = {
         test_mist("JenkinsOnDemand", "${ver}")
     }
@@ -16,10 +17,12 @@ versions.each { ver ->
 //Execute test and builds in parallel
 parallel branches
 
+//some commit
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-    versions.each { ver ->
+    for (int i = 0; i < versions.size(); i++) {
+        ver = versions[i]
         def dirName = "artifact${ver}"
         dir(dirName) {
             unstash dirName
