@@ -2,17 +2,19 @@
 versions = [
         "1.5.2",
         "1.6.2",
-        "2.0.2",
-        "2.1.0"
+        "2.0.2"/*,
+        "2.1.0"*/
 ]
 
 def branches = [:]
-for (int i = 0; i < versions.size(); i++) {
-    ver = versions[i]
+for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
+    ver = versions.get(i)
     branches["Spark_${ver.replaceAll('.', '_')}"] = {
         test_mist("JenkinsOnDemand", "${ver}")
     }
 }
+
+echo 'Some: ' + versions
 
 //Execute test and builds in parallel
 parallel branches
@@ -21,8 +23,8 @@ parallel branches
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-    for (int i = 0; i < versions.size(); i++) {
-        ver = versions[i]
+    for (int i = 0; i < versions.size(); i++) {//TODO switch to each after JENKINS-26481
+        ver = versions.get(i)
         def dirName = "artifact${ver}"
         dir(dirName) {
             unstash dirName
