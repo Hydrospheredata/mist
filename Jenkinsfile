@@ -1,14 +1,14 @@
 //Spark Version
 versions = [
         "1.5.2",
-        "1.6.2",
-        "2.0.2"/*,
+        "1.6.2"/*,
+        "2.0.2",
         "2.1.0"*/
 ]
 
 def branches = [:]
 for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
-    ver = versions.get(i)
+    def ver = versions.get(i)
     branches["Spark_${ver}"] = {
         test_mist("JenkinsOnDemand", ver.toString())
     }
