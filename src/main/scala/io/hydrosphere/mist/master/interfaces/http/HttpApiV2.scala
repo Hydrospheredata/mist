@@ -7,6 +7,7 @@ import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.Future
+import scala.language.postfixOps
 
 class HttpApiV2(master: MasterService) {
 
@@ -16,23 +17,36 @@ class HttpApiV2(master: MasterService) {
   import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
 
   private val root = "v2" / "api"
+  private val postJobQuery =
+    parameters(
+      'externalId ?,
+      'context ?,
+      'mode ? ,
+      'uniqWorkerId ?
+    ).as(JobRunQueryParams)
 
   val route: Route = {
-
     path(root / "jobs" / Segment) { routeId: String =>
-      post(
-        parameters(
-          'externalId ?,
-          'context ?,
-          'mode ? ,
-          'uniqWorkerId ?
-        ).as(JobRunQueryParams) { query =>
+      post( postJobQuery { query =>
           entity(as[JobParameters]) { params =>
             val runReq = buildStartRequest(routeId, query, params)
             complete(master.runJob(runReq, Source.Http))
           }
       })
+    } ~
+    path(root / "jobs" / "status" / Segment) { jobId: String =>
+      get( parameter('isExternal.as[Boolean] ? false) { isExternalId =>
+        rejectEmptyResponse {
+          complete {
+            if (isExternalId)
+              master.jobStatusByExternalId(jobId)
+           else
+              master.jobStatusById(jobId)
+          }
+        }
+      })
     }
+
   }
 
   private def buildStartRequest(

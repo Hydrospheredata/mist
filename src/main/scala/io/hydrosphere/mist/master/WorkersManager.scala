@@ -71,7 +71,6 @@ class WorkersManager(
           val uuid = UUID.randomUUID().toString
           val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
           val name = s"$namespace-$postfix"
-          log.info(s"NAME $name")
           runWorker(name, namespace)
           val defaultState = defaultWorkerState(name)
           val state = Initializing(defaultState.frontend)

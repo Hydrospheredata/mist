@@ -87,9 +87,10 @@ object Messages {
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
-    //case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
     // return full job details
     case object RunningJobs
+    case class GetById(id: String)
+    case class GetByExternalId(id: String)
 
   }
 

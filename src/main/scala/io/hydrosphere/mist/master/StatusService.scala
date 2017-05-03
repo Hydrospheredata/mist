@@ -27,6 +27,13 @@ class StatusService(store: JobRepository) extends Actor with ActorLogging {
 
     case RunningJobs =>
       sender() ! store.filteredByStatuses(activeStatuses)
+
+    case GetById(id) =>
+      sender() ! store.get(id)
+
+    //TODO: should be list
+    case GetByExternalId(id) =>
+      sender() ! store.getByExternalId(id)
   }
 
   private def handleUpdateStatus(e: UpdateStatusEvent): Unit = {

@@ -37,6 +37,16 @@ class MasterService(
     future.mapTo[List[JobDetails]]
   }
 
+  def jobStatusById(id: String): Future[Option[JobDetails]] = {
+    val f = statusService ? StatusMessages.GetById(id)
+    f.mapTo[Option[JobDetails]]
+  }
+
+  def jobStatusByExternalId(id: String): Future[Option[JobDetails]] = {
+    val f = statusService ? StatusMessages.GetByExternalId(id)
+    f.mapTo[Option[JobDetails]]
+  }
+
   def workers(): Future[List[WorkerLink]] = {
     val f = workerManager ? GetWorkers
     f.mapTo[List[WorkerLink]]
