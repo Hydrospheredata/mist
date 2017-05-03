@@ -9,6 +9,11 @@ import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import scala.concurrent.Future
 import scala.language.postfixOps
 
+/**
+  * Routes list - GET /v2/api/routers
+  * Run job (params as data) - POST /v2/api/jobs - return jobId
+  * Get job status - GET /v2/api/jobs/status/{id}
+  */
 class HttpApiV2(master: MasterService) {
 
   import HttpApiV2._
@@ -45,7 +50,13 @@ class HttpApiV2(master: MasterService) {
           }
         }
       })
+    } ~
+    path(root / "routers" ) {
+      get { complete {
+        master.listRoutesInfo().map(HttpJobInfo.convert)
+      }}
     }
+
 
   }
 

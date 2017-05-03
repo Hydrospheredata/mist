@@ -47,7 +47,7 @@ class HttpApi(master: MasterService) extends Logger {
       get {
         complete {
           val result = master.listRoutesInfo()
-           .map(i => i.definition.name -> toHttpRouteInfo(i))
+           .map(i => i.definition.name -> HttpJobInfo.convert(i))
            .toMap
           result
         }
@@ -76,21 +76,21 @@ class HttpApi(master: MasterService) extends Logger {
   def completeU(resource: Future[Unit]): Route =
     onSuccess(resource) { complete(200, None) }
 
-  private def toHttpRouteInfo(info: JobInfo): HttpJobInfo = info match {
-    case py: PyJobInfo => HttpJobInfo.forPython()
-    case jvm: JvmJobInfo =>
-      val inst = jvm.jobClass
-      val classes = inst.supportedClasses()
-      HttpJobInfo(
-        execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-
-        isHiveJob = classes.contains(classOf[HiveSupport]),
-        isSqlJob = classes.contains(classOf[SQLSupport]),
-        isStreamingJob = classes.contains(classOf[StreamingSupport]),
-        isMLJob = classes.contains(classOf[MLMistJob])
-      )
-
-  }
+//  private def toHttpRouteInfo(info: JobInfo): HttpJobInfo = info match {
+//    case py: PyJobInfo => HttpJobInfo.forPython()
+//    case jvm: JvmJobInfo =>
+//      val inst = jvm.jobClass
+//      val classes = inst.supportedClasses()
+//      HttpJobInfo(
+//        execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+//        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+//        serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+//
+//        isHiveJob = classes.contains(classOf[HiveSupport]),
+//        isSqlJob = classes.contains(classOf[SQLSupport]),
+//        isStreamingJob = classes.contains(classOf[StreamingSupport]),
+//        isMLJob = classes.contains(classOf[MLMistJob])
+//      )
+//
+//  }
 }
