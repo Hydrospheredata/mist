@@ -14,6 +14,8 @@ import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{FunSpecLike, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import scala.concurrent.Future
+
 class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
   with FunSpecLike
   with Matchers
@@ -49,7 +51,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
         jobId = "id",
         source = Source.Http
       )
-      Some(jobDetails)
+      Future.successful(Some(jobDetails))
     })
 
     val status = system.actorOf(StatusService.props(store))

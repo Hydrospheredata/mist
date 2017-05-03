@@ -12,7 +12,7 @@ import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpApiV2, HttpUi}
-import io.hydrosphere.mist.master.store.JobRepository
+import io.hydrosphere.mist.master.store.{H2JobsRepository, JobRepository}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
 
@@ -27,7 +27,7 @@ object Master extends App with Logger {
   val jobRoutes = new JobRoutes(MistConfig.Http.routerConfigPath)
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
-  val store = JobRepository()
+  val store = H2JobsRepository(MistConfig.History.filePath)
   val statusService = system.actorOf(StatusService.props(store), "status-service")
   val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
 
