@@ -11,9 +11,37 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
-  * Routes list - GET /v2/api/routers
-  * Run job (params as data) - POST /v2/api/jobs - return jobId
-  * Get job status - GET /v2/api/jobs/status/{id}
+  * New http api
+  *
+  * jobs:
+  *   - list available endpoints: GET /v2/api/jobs/endpoints
+  *
+  *   - run job: POST /v2/api/jobs/{endpoint-id}
+  *     POST DATA: jobs args as map { "arg-name": "arg-value", ...}
+  *     returns `{"id": "$job-run-id"}`
+  *
+  *     query params(not required, experimental, NOT FOR UI):
+  *
+  *       - externalId: additional job id
+  *
+  *       - context: set not default `namespace`/`spark context`
+  *
+  *       - mode: how to run worker for that job:
+  *         - default: one worker for all job in namespace/sparkcontext
+  *         - uniqContext: one worker per job
+  *
+  *       - uniqWorkerId: if mode id `uniqContext` worker has that marker in id
+  *
+  *   - job execution status: GET /v2/api/jobs/status/{job-run-id} - returns one object
+  *
+  *      by external-id(NOT FOR UI) - GET /v2/api/jobs/status/{external-id}?isExternal=true
+  *        returns list of job details (there is no guarantee that externalId is unique for all jobs)
+  *
+  *
+  * workers:
+  *   list workers - GET - /v2/api/workers
+  *   stop worker - DELETE - /v2/api/workers/{id} (output should be changed)
+  *
   */
 class HttpApiV2(master: MasterService) {
 
@@ -52,7 +80,7 @@ class HttpApiV2(master: MasterService) {
         }
       })
     } ~
-    path(root / "routers" ) {
+    path(root / "jobs" / "endpoints" ) {
       get { complete {
         master.listRoutesInfo().map(HttpJobInfo.convert)
       }}
