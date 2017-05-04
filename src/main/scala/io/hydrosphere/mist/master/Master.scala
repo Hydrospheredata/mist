@@ -25,8 +25,12 @@ object Master extends App with Logger {
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
   val store = H2JobsRepository(MistConfig.History.filePath)
+
   val statusService = system.actorOf(StatusService.props(store), "status-service")
   val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
+
+
+  val notifiers =
 
   val masterService = new MasterService(
     workerManager,
