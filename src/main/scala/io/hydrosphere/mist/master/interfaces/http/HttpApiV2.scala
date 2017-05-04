@@ -7,6 +7,7 @@ import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 /**
@@ -55,9 +56,13 @@ class HttpApiV2(master: MasterService) {
       get { complete {
         master.listRoutesInfo().map(HttpJobInfo.convert)
       }}
+    } ~
+    path(root / "workers") {
+      get { complete(master.workers()) }
+    } ~
+    path(root / "workers" / Segment) { workerId =>
+      delete { completeU(master.stopWorker(workerId).map(_ => ())) }
     }
-
-
   }
 
   private def buildStartRequest(
