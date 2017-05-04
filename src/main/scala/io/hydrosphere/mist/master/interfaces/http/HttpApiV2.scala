@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.{Directives, Route}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
@@ -59,7 +60,7 @@ class HttpApiV2(master: MasterService) {
       'uniqWorkerId ?
     ).as(JobRunQueryParams)
 
-  val route: Route = {
+  val route: Route = respondWithDefaultHeader(RawHeader("Access-Control-Allow-Origin", "*")) {
     path(root / "jobs" / Segment) { routeId: String =>
       post( postJobQuery { query =>
           entity(as[JobParameters]) { params =>
@@ -103,7 +104,9 @@ class HttpApiV2(master: MasterService) {
   }
 
   def completeU(resource: Future[Unit]): Route =
-    onSuccess(resource) { complete(200, None) }
+    onSuccess(resource) {
+      complete(200, None)
+    }
 }
 
 object HttpApiV2 {
