@@ -202,7 +202,11 @@ lazy val mist = project.in(file("."))
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
   )
 
-addCommandAlias("testAll", ";mistLibSpark2/test;mist/test;mist/it:test")
+lazy val commandAlias = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+  case versionRegex("1", minor) => ";mist/test;mist/it:test"
+  case _ => ";mistLibSpark2/test;mist/test;mist/it:test"
+}
+addCommandAlias("testAll", commandAlias)
 
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .dependsOn(mistLibSpark1)
