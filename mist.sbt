@@ -145,42 +145,6 @@ lazy val mist = project.in(file("."))
     libraryDependencies ++= miniClusterDependencies,
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
-    // create type-alises for compatibility between spark versions
-    /*sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
-      val file = dir / "io" / "hydrosphere"/ "mist" / "api" / "package.scala"
-      val libPackage = version match {
-        case versionRegex("1", minor) => "io.hydrosphere.mist.lib.spark1"
-        case _ => "io.hydrosphere.mist.lib.spark2"
-      }
-      val content = s"""package io.hydrosphere.mist
-           |
-           |package object api {
-           |
-           |  type SetupConfiguration = $libPackage.SetupConfiguration
-           |  val SetupConfiguration = $libPackage.SetupConfiguration
-           |
-           |  type ContextSupport = $libPackage.ContextSupport
-           |
-           |  type MistJob = $libPackage.MistJob
-           |
-           |  type MLMistJob = $libPackage.MLMistJob
-           |
-           |  type StreamingSupport = $libPackage.StreamingSupport
-           |
-           |  type SQLSupport = $libPackage.SQLSupport
-           |
-           |  type HiveSupport = $libPackage.HiveSupport
-           |
-           |  type Publisher = $libPackage.Publisher
-           |
-           |  type GlobalPublisher = $libPackage.GlobalPublisher
-           |  val GlobalPublisher = $libPackage.GlobalPublisher
-           |}
-        """.stripMargin
-      IO.write(file,content)
-      Seq(file)
-    }},*/
-
     parallelExecution in Test := false,
     parallelExecution in IntegrationTest := false,
 
