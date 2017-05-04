@@ -82,7 +82,7 @@ class HttpApiV2(master: MasterService) {
     } ~
     path(root / "jobs" / "endpoints" ) {
       get { complete {
-        master.listRoutesInfo().map(HttpJobInfo.convert)
+        master.listRoutesInfo().map(HttpJobInfoV2.convert)
       }}
     } ~
     path(root / "workers") {

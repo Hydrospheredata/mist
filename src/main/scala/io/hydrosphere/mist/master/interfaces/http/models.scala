@@ -17,6 +17,7 @@ case class HttpJobInfo(
   isPython: Boolean = false
 )
 
+
 object HttpJobInfo {
 
   def forPython(name: String) = HttpJobInfo(name = name, isPython = true)
@@ -60,3 +61,50 @@ object HttpJobArg {
 }
 
 
+case class HttpJobInfoV2(
+  name: String,
+  lang: String,
+  execute: Option[Map[String, HttpJobArg]] = None,
+  train:   Option[Map[String, HttpJobArg]] = None,
+  serve:   Option[Map[String, HttpJobArg]] = None,
+
+  tags: Seq[String] = Seq.empty
+)
+
+object HttpJobInfoV2 {
+
+  val PyLang = "python"
+  val ScalaLang = "scala"
+
+  val TagTraits = Seq(
+    classOf[HiveSupport],
+    classOf[SQLSupport],
+    classOf[StreamingSupport],
+    classOf[MLMistJob]
+  )
+
+  case class TagTrait(clazz: Class[_], name: String)
+
+  val AllTags = Seq(
+    TagTrait(classOf[HiveSupport], "hive"),
+    TagTrait(classOf[SQLSupport], "sql"),
+    TagTrait(classOf[StreamingSupport], "streaming"),
+    TagTrait(classOf[MLMistJob], "ml")
+  )
+
+  def convert(info: JobInfo): HttpJobInfoV2 = info match {
+    case py: PyJobInfo => HttpJobInfoV2(name = py.definition.name, lang = PyLang)
+    case jvm: JvmJobInfo =>
+      val inst = jvm.jobClass
+      val classes = inst.supportedClasses()
+      val tags = AllTags.filter(tag => classes.contains(tag.clazz)).map(_.name)
+      HttpJobInfoV2(
+        name = jvm.definition.name,
+        lang = ScalaLang,
+        execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+        serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+        tags = tags
+      )
+  }
+}
