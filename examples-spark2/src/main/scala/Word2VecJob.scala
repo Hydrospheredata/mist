@@ -2,8 +2,8 @@ import java.util
 
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.{Vector => LVector}
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 
 object Word2VecJob extends MLMistJob with SQLSupport {

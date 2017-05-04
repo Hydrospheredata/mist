@@ -1,5 +1,5 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
@@ -43,7 +43,7 @@ object RandomForestRegressionJob extends MLMistJob with SQLSupport {
 
   def serve(modelPath: String, features: List[List[Double]]): Map[String, Any] = {
     import LocalPipelineModel._
-    import io.hydrosphere.mist.lib.spark2.ml.DataUtils._
+    import io.hydrosphere.mist.api.ml.DataUtils._
 
     val pipeline = PipelineLoader.load(modelPath)
     val arrays = features.map(_.forceDoubles.toArray).map(Vectors.dense)

@@ -15,6 +15,14 @@ lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
+lazy val mistScalaCrossCompile: Seq[String] = {
+  val base=Seq("2.11.8")
+  util.Properties.propOrElse("sparkVersion", "2.1.0") match {
+    case versionRegex("2", minor) => base
+    case _ => base :+ "2.10.6"
+  }
+}
+
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
@@ -25,7 +33,7 @@ lazy val commonSettings = Seq(
       case _ => "2.11.8"
   }),
 
-  crossScalaVersions := Seq("2.10.6", "2.11.8"),
+  crossScalaVersions := mistScalaCrossCompile,
   version := "0.11.0"
 
 )
@@ -36,7 +44,6 @@ lazy val mistLibSpark1= project.in(file("mist-lib-spark1"))
   .settings(PublishSettings.settings: _*)
   .settings(
     name := "mist-lib-spark1",
-    scalaVersion := "2.10.6",
     libraryDependencies ++= sparkDependencies("1.5.2"),
 
     libraryDependencies ++= Seq(
@@ -49,6 +56,7 @@ lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
+  .dependsOn(mistLibSpark1)
   .settings(
     name := "mist-lib-spark2",
     scalaVersion := "2.11.8",
@@ -80,8 +88,18 @@ lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") m
   case _ => examplesSpark2
 }
 
+lazy val aggregatedProjects: Seq[ProjectReference] = {
+  val base: Seq[ProjectReference] = Seq(mistLibSpark1, mist)
+
+  util.Properties.propOrElse("sparkVersion", "2.1.0") match {
+    case versionRegex("1", minor) => base
+    case _ => base :+ (mistLibSpark2: ProjectReference)
+  }
+}
+
 lazy val mist = project.in(file("."))
   .dependsOn(currentLib)
+  .dependsOn(mistLibSpark1)
   .enablePlugins(DockerPlugin)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
@@ -129,7 +147,7 @@ lazy val mist = project.in(file("."))
     dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
 
     // create type-alises for compatibility between spark versions
-    sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
+    /*sourceGenerators in Compile <+= (sourceManaged in Compile, sparkVersion) map { (dir, version) => {
       val file = dir / "io" / "hydrosphere"/ "mist" / "api" / "package.scala"
       val libPackage = version match {
         case versionRegex("1", minor) => "io.hydrosphere.mist.lib.spark1"
@@ -162,7 +180,7 @@ lazy val mist = project.in(file("."))
         """.stripMargin
       IO.write(file,content)
       Seq(file)
-    }},
+    }},*/
 
     parallelExecution in Test := false,
     parallelExecution in IntegrationTest := false,
@@ -197,6 +215,7 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
+  .dependsOn(mistLibSpark1)
   .dependsOn(mistLibSpark2)
   .settings(commonSettings: _*)
   .settings(

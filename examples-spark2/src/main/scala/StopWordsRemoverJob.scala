@@ -1,5 +1,5 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.StopWordsRemover
