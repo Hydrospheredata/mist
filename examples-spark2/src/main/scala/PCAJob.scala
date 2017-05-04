@@ -8,7 +8,7 @@ import org.apache.spark.ml.linalg.Vectors
 //TODO: why model return vector from mllib??
 import org.apache.spark.mllib.linalg.{Vector => OldVector}
 
-object PCAJob extends MLMistJob with SQLSupport {
+object PCAJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val data = Array(
       Vectors.sparse(5, Seq((1, 1.0), (3, 7.0))),

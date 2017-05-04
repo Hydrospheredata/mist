@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.MaxAbsScaler
 import org.apache.spark.ml.linalg.Vectors
 
-object MaxAbsScalerJob extends MLMistJob with SQLSupport {
+object MaxAbsScalerJob extends MLMistJob with SessionSupport {
 
   def train(savePath: String): Map[String, Any] = {
     val dataFrame = session.createDataFrame(Seq(

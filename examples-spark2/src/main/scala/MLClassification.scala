@@ -6,7 +6,7 @@ import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
 
 
-object MLClassification extends MLMistJob with SQLSupport {
+object MLClassification extends MLMistJob with SessionSupport {
   def train(): Map[String, Any] = {
     val training = session.createDataFrame(Seq(
       (0L, "a b c d e spark", 1.0),

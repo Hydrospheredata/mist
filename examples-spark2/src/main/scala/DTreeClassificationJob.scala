@@ -6,7 +6,7 @@ import org.apache.spark.ml.classification.DecisionTreeClassifier
 import org.apache.spark.ml.feature.{IndexToString, StringIndexer, VectorIndexer}
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 
-object DTreeClassificationJob extends MLMistJob with SQLSupport {
+object DTreeClassificationJob extends MLMistJob with SessionSupport {
   def constructVector(params: Map[String, Any]): Vector = {
     Vectors.sparse(
       params("size").asInstanceOf[Int],

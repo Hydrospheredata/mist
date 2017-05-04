@@ -6,7 +6,7 @@ import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 
-object Word2VecJob extends MLMistJob with SQLSupport {
+object Word2VecJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val documentDF = session.createDataFrame(Seq(
       "Hi I heard about Spark".split(" "),

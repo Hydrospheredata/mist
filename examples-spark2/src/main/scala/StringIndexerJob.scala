@@ -4,7 +4,7 @@ import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.StringIndexer
 
-object StringIndexerJob extends MLMistJob with SQLSupport {
+object StringIndexerJob extends MLMistJob with SessionSupport {
 
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(

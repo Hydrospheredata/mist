@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.NGram
 
 
-object NgramJob extends MLMistJob with SQLSupport  {
+object NgramJob extends MLMistJob with SessionSupport  {
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, Array("Provectus", "is", "such", "a", "cool", "company")),

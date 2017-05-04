@@ -7,7 +7,7 @@ import org.apache.spark.ml.feature.StandardScaler
 
 import org.apache.spark.ml.linalg.Vectors
 
-object StandardScalerJob extends MLMistJob with SQLSupport {
+object StandardScalerJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val data = Array(
       Vectors.dense(0.0, 10.3, 1.0, 4.0, 5.0),

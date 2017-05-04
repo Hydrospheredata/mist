@@ -1,7 +1,7 @@
 import io.hydrosphere.mist.api._
 
 
-object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
+object SimpleHiveContext extends MistJob with SessionSupport {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.sql.SQLContext]]
     * Abstract method must be overridden
     *

@@ -1,10 +1,11 @@
+import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.regression.DecisionTreeRegressor
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 
-object DTreeRegressionJob extends MLMistJob with SQLSupport {
+object DTreeRegressionJob extends MLMistJob with SessionSupport {
   def constructVector(params: Map[String, Any]): Vector = {
     Vectors.sparse(
       params("size").asInstanceOf[Int],

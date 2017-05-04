@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.StopWordsRemover
 
 
-object StopWordsRemoverJob extends MLMistJob with SQLSupport  {
+object StopWordsRemoverJob extends MLMistJob with SessionSupport  {
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, Seq("I", "saw", "the", "red", "balloon")),

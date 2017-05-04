@@ -7,7 +7,7 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.linalg.{Vector => LVector}
 
 
-object NaiveBayesJob extends MLMistJob with SQLSupport {
+object NaiveBayesJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),

@@ -5,7 +5,7 @@ import org.apache.spark.ml
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.linalg.Vectors
 
-object KMeansJob extends MLMistJob with SQLSupport {
+object KMeansJob extends MLMistJob with SessionSupport {
   def train(savePath: String, datasetPath: String): Map[String, Any] = {
     // Loads data.
     val dataset = session.read.format("libsvm").load(datasetPath)

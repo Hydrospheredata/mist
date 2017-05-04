@@ -6,7 +6,7 @@ import org.apache.spark.mllib.linalg.{Vector => LVector}
 import org.apache.spark.ml.Pipeline
 
 
-object TFIDFJob extends MLMistJob with SQLSupport {
+object TFIDFJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
 
     val df = session.createDataFrame(Seq(

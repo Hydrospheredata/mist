@@ -17,7 +17,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
 lazy val mistScalaCrossCompile: Seq[String] = {
   val base=Seq("2.11.8")
-  util.Properties.propOrElse("sparkVersion", "2.1.0") match {
+  util.Properties.propOrElse("sparkVersion", "1.5.2") match {
     case versionRegex("2", minor) => base
     case _ => base :+ "2.10.6"
   }
@@ -59,7 +59,6 @@ lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
   .dependsOn(mistLibSpark1)
   .settings(
     name := "mist-lib-spark2",
-    scalaVersion := "2.11.8",
     libraryDependencies ++= sparkDependencies("2.0.0"),
     libraryDependencies ++= Seq(
       "org.json4s" %% "json4s-native" % "3.2.10",
@@ -91,7 +90,7 @@ lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") m
 lazy val aggregatedProjects: Seq[ProjectReference] = {
   val base: Seq[ProjectReference] = Seq(mistLibSpark1, mist)
 
-  util.Properties.propOrElse("sparkVersion", "2.1.0") match {
+  util.Properties.propOrElse("sparkVersion", "1.5.2") match {
     case versionRegex("1", minor) => base
     case _ => base :+ (mistLibSpark2: ProjectReference)
   }
@@ -210,7 +209,6 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
-    scalaVersion := "2.10.6",
     libraryDependencies ++= sparkDependencies("1.5.2")
   )
 
@@ -220,7 +218,6 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
-    scalaVersion := "2.11.8",
     libraryDependencies ++= sparkDependencies("2.0.0")
   )
 

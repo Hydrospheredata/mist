@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer}
 import org.apache.spark.ml.linalg.{Vector => LVector}
 
-object OneHotEncoderJob extends MLMistJob with SQLSupport {
+object OneHotEncoderJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, "a"), (1, "b"), (2, "c"),

@@ -10,7 +10,7 @@ import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.StructType
 
-object VectorSlicerJob extends MLMistJob with SQLSupport {
+object VectorSlicerJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val data = util.Arrays.asList(
       Row(Vectors.sparse(3, Seq((0, -2.0), (1, 2.3)))),

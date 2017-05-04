@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.PolynomialExpansion
 import org.apache.spark.ml.linalg.{DenseVector, Vectors}
 
-object PolynomialExpansionJob extends MLMistJob with SQLSupport  {
+object PolynomialExpansionJob extends MLMistJob with SessionSupport  {
   def train(savePath: String): Map[String, Any] = {
     val data = Array(
       Vectors.dense(2.0, 1.0),

@@ -5,7 +5,7 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.DCT
 import org.apache.spark.ml.linalg.{Vectors => LVectors, Vector => LVector}
 
-object DCTJob extends MLMistJob with SQLSupport {
+object DCTJob extends MLMistJob with SessionSupport {
   def train(savePath: String): Map[String, Any] = {
     val data = Seq(
       LVectors.dense(0.0, 1.0, -2.0, 3.0),

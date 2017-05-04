@@ -8,7 +8,7 @@ import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.regression.RandomForestRegressor
 
 
-object RandomForestRegressionJob extends MLMistJob with SQLSupport {
+object RandomForestRegressionJob extends MLMistJob with SessionSupport {
   def train(savePath: String, datasetPath: String): Map[String, Any] = {
     // Load and parse the data file, converting it to a DataFrame.
     val data = session.read.format("libsvm").load(datasetPath)
