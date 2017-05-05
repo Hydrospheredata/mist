@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar._
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.master.models.{RunSettings, JobStartRequest}
 import io.hydrosphere.mist.master.{JobExecutionStatus, MasterService, WorkerLink}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import org.mockito.Mockito._
@@ -111,8 +112,9 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
       status === StatusCodes.OK
 
       responseAs[Map[String, HttpJobInfo]] should contain allOf(
-        "pyjob" -> HttpJobInfo.forPython(),
+        "pyjob" -> HttpJobInfo.forPython("pyjob"),
         "scalajob" -> HttpJobInfo(
+          name = "scalajob",
           execute = Some(
             Map("numbers" -> HttpJobArg("MList", Seq(HttpJobArg("MInt", Seq.empty))))
           )
@@ -124,16 +126,11 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
   it("should start job") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
-    when(master.startJob(
-      any[String],
-      any[Action],
-      any[JobParameters],
-      any[Source],
-      any[Option[String]]
-    ))
+    when(master.forceJobRun(any[JobStartRequest], any[Source]))
       .thenReturn(Future.successful(
-        JobResult.success(Map("yoyo" -> "hello"),
-        JobExecutionParams("", "", "", Map.empty, None, None, Action.Execute))
+        JobResult.success(
+          Map("yoyo" -> "hello"),
+          JobStartRequest("my-job", Map.empty, None, RunSettings.Default))
       ))
 
     Post("/api/my-job", Map("Hello" -> "123")) ~> api ~> check {

@@ -5,7 +5,7 @@ import java.nio.file.Paths
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.jobs.{JobDetails, _}
 import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponseOrError}
-import io.hydrosphere.mist.utils.json.JobDetailsJsonSerialization
+import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 import spray.json.{pimpAny, pimpString}
@@ -13,7 +13,7 @@ import spray.json.{pimpAny, pimpString}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait JobsTable extends JobDetailsJsonSerialization {
+trait JobsTable {
 
   implicit def string2Source = MappedColumnType.base[JobDetails.Source, String](
     source => source.toString,

@@ -81,6 +81,7 @@ object Messages {
       val id: String
     }
 
+    case class InitializedEvent(id: String, params: JobExecutionParams) extends UpdateStatusEvent
     case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent

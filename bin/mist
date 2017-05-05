@@ -236,7 +236,8 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
+        echo java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
+        exec java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
     fi
 
     # TODO accept params onl for declared route in config

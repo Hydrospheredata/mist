@@ -10,17 +10,28 @@ import io.hydrosphere.mist.master.store.JobRepository
 import StatusService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
-class StatusService(store: JobRepository) extends Actor with ActorLogging {
+class StatusService(
+  store: JobRepository,
+  notifiers: Seq[JobEventPublisher]
+) extends Actor with ActorLogging {
 
   val activeStatuses = List(Status.Queued, Status.Running, Status.Initialized)
 
   override def receive: Receive = {
     case Register(id, params, source) =>
       val details = JobDetails(params, source, id)
-      store.update(details)
+      val s = sender()
+      store.update(details).map(_ => {
+        s ! akka.actor.Status.Success(())
+        val event = InitializedEvent(id, params)
+        callNotifiers(event)
+      })
 
-    case x:UpdateStatusEvent => handleUpdateStatus(x)
+    case x: UpdateStatusEvent =>
+      handleUpdateStatus(x)
+      callNotifiers(x)
 
     case RunningJobs =>
       store.filteredByStatuses(activeStatuses) pipeTo sender()
@@ -42,15 +53,20 @@ class StatusService(store: JobRepository) extends Actor with ActorLogging {
     })
   }
 
+  private def callNotifiers(event: UpdateStatusEvent): Unit =
+    notifiers.foreach(n => n.notify(event))
+
 }
 
 object StatusService {
 
-  def props(store: JobRepository): Props =
-    Props(classOf[StatusService], store)
+  def props(store: JobRepository, notifiers: Seq[JobEventPublisher]): Props =
+    Props(classOf[StatusService], store, notifiers)
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {
+       //TODO
+      case InitializedEvent(_, _) => d
       case QueuedEvent(_) => d.withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)
       case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Aborted)

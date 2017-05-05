@@ -23,8 +23,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
     val request =
       """
         |{
-        |  "jobId": "simple-context-py",
-        |  "action": "execute",
+        |  "routeId": "simple-context-py",
         |  "parameters": {
         |    "numbers": [1, 2, 3]
         |  }
@@ -38,6 +37,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
     mqttClient.subscribe("foo", new IMqttMessageListener {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         val data = new String(message.getPayload)
+        println("ARRIVED:" + data)
         val result = data.parseJson.convertTo[JobResult]
         if (result.success) resultReceived.set(true)
       }

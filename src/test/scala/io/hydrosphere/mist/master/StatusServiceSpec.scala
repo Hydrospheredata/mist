@@ -5,7 +5,6 @@ import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails.{Status, Source}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
-import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.master.store.JobRepository
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -34,9 +33,9 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
   it("should register jobs") {
     val store = mock(classOf[JobRepository])
 
-    val status = system.actorOf(StatusService.props(store))
+    val status = system.actorOf(StatusService.props(store, Seq.empty))
 
-    status ! Register("id", jobExecutionParams, Source.Async(Provider.Kafka))
+    status ! Register("id", jobExecutionParams, Source.Async("Kafka"))
 
     eventually(timeout(Span(1, Seconds))) {
       verify(store).update(any[JobDetails])
@@ -54,7 +53,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
       Future.successful(Some(jobDetails))
     })
 
-    val status = system.actorOf(StatusService.props(store))
+    val status = system.actorOf(StatusService.props(store, Seq.empty))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 

@@ -16,6 +16,6 @@ trait JobConfigurationJsonSerialization extends AnyJsonFormatSupport {
 
   implicit val jobExecutonRequestF = jsonFormat4(JobExecutionRequest)
   implicit val jobExecParamsF: RootJsonFormat[JobExecutionParams] = jsonFormat7(JobExecutionParams.apply)
-  implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult.apply)
+  //implicit val jobResultFormat: RootJsonFormat[JobResult] = jsonFormat4(JobResult.apply)
 
 }

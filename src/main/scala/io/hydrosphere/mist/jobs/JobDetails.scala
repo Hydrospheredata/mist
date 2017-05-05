@@ -2,11 +2,8 @@ package io.hydrosphere.mist.jobs
 
 import java.util.UUID
 
-import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import org.joda.time.DateTime
-
-
 
 object JobDetails {
   
@@ -57,10 +54,13 @@ object JobDetails {
   
   object Source {
     
-    def apply(string: String): Source = string match {
+    def apply(s: String): Source = s match {
       case "Http" => Http
       case "Cli" => Cli
-      case async if async.startsWith("Async") => Async(Provider(async.split(" ").last))
+      case x if x.startsWith("Async") =>
+        val provider = x.split(" ").last
+        Async(provider)
+      case x => throw new IllegalArgumentException(s"Unknown Source $s")
     }
     
     case object Http extends Source {
@@ -69,8 +69,8 @@ object JobDetails {
     case object Cli extends Source {
       override def toString: String = "Cli"
     }
-    case class Async(provider: Provider) extends Source {
-      override def toString: String = s"Async ${provider.toString}"
+    case class Async(provider: String) extends Source {
+      override def toString: String = s"Async $provider"
     }
     
   }
