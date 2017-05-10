@@ -32,12 +32,14 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
   it("should register jobs") {
     val store = mock(classOf[JobRepository])
+    when(store.update(any[JobDetails]))
+      .thenReturn(Future.successful(()))
 
     val status = system.actorOf(StatusService.props(store, Seq.empty))
 
     status ! Register("id", jobExecutionParams, Source.Async("Kafka"))
 
-    eventually(timeout(Span(1, Seconds))) {
+    eventually(timeout(Span(3, Seconds))) {
       verify(store).update(any[JobDetails])
     }
   }
