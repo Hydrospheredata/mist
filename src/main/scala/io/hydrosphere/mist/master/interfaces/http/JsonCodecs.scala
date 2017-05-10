@@ -8,58 +8,48 @@ import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.utils.json.{AnyJsonFormatSupport, JobDetailsJsonSerialization}
 import spray.json._
 
-import scala.util.parsing.json.JSONObject
+//trait UpdateStatusEventCodec extends DefaultJsonProtocol
+//  with AnyJsonFormatSupport
+//  with JsonFormat[UpdateStatusEvent] {
+//
+//  implicit val iniF = jsonFormat2(InitializedEvent)
+//  implicit val queueF = jsonFormat1(QueuedEvent)
+//  implicit val startedF = jsonFormat2(StartedEvent)
+//  implicit val canceledF = jsonFormat2(CanceledEvent)
+//  implicit val finishedF = jsonFormat3(FinishedEvent)
+//  implicit val failedF = jsonFormat3(FailedEvent)
+//
+//  override def write(obj: UpdateStatusEvent): JsValue = {
+//    val initial = obj.toJson.asJsObject
+//
+//    val name = obj match {
+//      case _: InitializedEvent => "initialized"
+//      case _: QueuedEvent => "queued"
+//      case _: StartedEvent => "started"
+//      case _: CanceledEvent => "canceled"
+//      case _: FinishedEvent => "finished"
+//      case _: FailedEvent => "failed"
+//    }
+//    val merged = initial.fields + ("event" -> JsString(name))
+//    JsObject(merged)
+//  }
+//
+//  override def read(json: JsValue): UpdateStatusEvent = {
+//    val obj = json.asJsObject
+//    val name = obj.fields.getOrElse("event", "")
+//    name match {
+//      case "initialized" => obj.convertTo[InitializedEvent]
+//      case "queued" => obj.convertTo[QueuedEvent]
+//      case "started" => obj.convertTo[StartedEvent]
+//      case "finished" => obj.convertTo[FinishedEvent]
+//      case "failed" => obj.convertTo[FailedEvent]
+//      case x => throw new IllegalArgumentException(s"Unknown event type $x")
+//    }
+//  }
+//
+//}
 
-trait UpdateStatusEventCodec extends AnyJsonFormatSupport {
-
- implicit val printer = CompactPrinter
-
- def toJson(obj: UpdateStatusEvent): JsValue = {
-    obj match {
-      case InitializedEvent(id, params) =>
-        val externalId = params.externalId.map(JsString(_)).getOrElse(JsNull)
-        JsObject(
-          ("event", JsString("initialized")),
-          ("id", JsString(id)),
-          ("externalId", externalId)
-        )
-      case QueuedEvent(id) =>
-        JsObject(
-          ("event", JsString("queued")),
-          ("id", JsString(id))
-        )
-      case StartedEvent(id, time) =>
-        JsObject(
-          ("event", JsString("started")),
-          ("id", JsString(id)),
-          ("time", JsNumber(time))
-        )
-      case CanceledEvent(id, time) =>
-        JsObject(
-          ("event", JsString("canceled")),
-          ("id", JsString(id)),
-          ("time", JsNumber(time))
-        )
-      case FinishedEvent(id, time, result) =>
-        val jsMap = result.toJson
-        JsObject(
-          ("event", JsString("finished")),
-          ("id", JsString(id)),
-          ("time", JsNumber(time)),
-          ("result", jsMap)
-        )
-      case FailedEvent(id, time, error) =>
-        JsObject(
-          ("event", JsString("failed")),
-          ("id", JsString(id)),
-          ("time", JsNumber(time)),
-          ("error", JsString(error))
-        )
-    }
-  }
-}
-
-object UpdateStatusEventCodec extends UpdateStatusEventCodec
+//object UpdateStatusEventCodec extends UpdateStatusEventCodec
 
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol
@@ -118,6 +108,45 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val asynJobStartRequestF = jsonFormat4(AsyncJobStartRequest)
 
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
+
+  implicit val updateEventF = new JsonFormat[UpdateStatusEvent] {
+
+    implicit val iniF = jsonFormat2(InitializedEvent)
+    implicit val queueF = jsonFormat1(QueuedEvent)
+    implicit val startedF = jsonFormat2(StartedEvent)
+    implicit val canceledF = jsonFormat2(CanceledEvent)
+    implicit val finishedF = jsonFormat3(FinishedEvent)
+    implicit val failedF = jsonFormat3(FailedEvent)
+
+    override def write(obj: UpdateStatusEvent): JsValue = {
+/*      val initial = obj.toJson.asJsObject*/
+
+      val (name, initial) = obj match {
+        case x: InitializedEvent => "initialized" -> x.toJson
+        case x: QueuedEvent => "queued" -> x.toJson
+        case x: StartedEvent => "started" -> x.toJson
+        case x: CanceledEvent => "canceled" -> x.toJson
+        case x: FinishedEvent => "finished" -> x.toJson
+        case x: FailedEvent => "failed" -> x.toJson
+      }
+
+      val merged = initial.asJsObject.fields + ("event" -> JsString(name))
+      JsObject(merged)
+    }
+
+    override def read(json: JsValue): UpdateStatusEvent = {
+      val obj = json.asJsObject
+      val name = obj.fields.getOrElse("event", JsString(""))
+      name match {
+        case JsString("initialized") => obj.convertTo[InitializedEvent]
+        case JsString("queued") => obj.convertTo[QueuedEvent]
+        case JsString("started") => obj.convertTo[StartedEvent]
+        case JsString("finished") => obj.convertTo[FinishedEvent]
+        case JsString("failed") => obj.convertTo[FailedEvent]
+        case x => throw new IllegalArgumentException(s"Unknown event type $x")
+      }
+    }
+  }
 }
 
 object JsonCodecs extends JsonCodecs

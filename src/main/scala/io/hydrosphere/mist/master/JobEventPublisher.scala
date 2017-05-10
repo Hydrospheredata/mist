@@ -15,14 +15,15 @@ trait JobEventPublisher {
 
 object JobEventPublisher {
 
-  import io.hydrosphere.mist.master.interfaces.http.UpdateStatusEventCodec._
+  import spray.json._
+  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
 
   def forKafka(host: String, port: Int, topic: String): JobEventPublisher = {
     new JobEventPublisher {
       val producer = TopicProducer(host, port, topic)
 
       override def notify(event: UpdateStatusEvent): Unit = {
-        val json = toJson(event)
+        val json = event.toJson
         producer.send("", json)
       }
 
@@ -46,7 +47,7 @@ object JobEventPublisher {
       }
 
       override def notify(event: UpdateStatusEvent): Unit = {
-        val json = toJson(event)
+        val json = event.toJson
         val message = new MqttMessage(json.getBytes())
         client.publish(topic, message)
       }

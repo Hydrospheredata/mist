@@ -14,6 +14,8 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
   override val configPath: String = "scalajobs/integration.conf"
 
+  val interface = MistHttpInterface("localhost", 2004)
+
   describe("simple context") {
     val sparkPref = sparkVersion.split('.').head
 
@@ -39,21 +41,9 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
       compiler.compile(jobSource, "SimpleContext")
       JarPackager.pack(targetDir, targetDir)
 
-      val req = Http("http://localhost:2004/api/simple-context1")
-        .timeout(30 * 1000, 30 * 1000)
-        .header("Content-Type", "application/json")
-        .postData(
-          s"""
-             |{
-             |  "numbers" : [1, 2, 3]
-             |}
-           """.stripMargin)
-
-      val resp = req.asString
-      resp.code shouldBe 200
-
-      val result = resp.body.parseJson.convertTo[JobResult]
-
+      val result = interface.runJob("simple-context1",
+        "numbers" -> List(1, 2, 3)
+      )
       assert(result.success, s"Job is failed $result")
     
     }}
@@ -66,21 +56,9 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
       compiler.compile(jobSource, "SimpleContext")
       JarPackager.pack(targetDir, targetDir)
 
-      val req = Http("http://localhost:2004/api/simple-context2")
-        .timeout(30 * 1000, 30 * 1000)
-        .header("Content-Type", "application/json")
-        .postData(
-          s"""
-             |{
-             |  "numbers" : [1, 2, 3]
-             |}
-           """.stripMargin)
-
-      val resp = req.asString
-      resp.code shouldBe 200
-
-      val result = resp.body.parseJson.convertTo[JobResult]
-
+      val result = interface.runJob("simple-context2",
+        "numbers" -> List(1, 2, 3)
+      )
       assert(result.success, s"Job is failed $result")
     
     }}

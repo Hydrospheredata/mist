@@ -3,13 +3,14 @@ package io.hydrosphere.mist
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
+import io.hydrosphere.mist.Messages.StatusMessages.{FinishedEvent, UpdateStatusEvent}
 import io.hydrosphere.mist.jobs.JobResult
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
 import org.junit.runner.Description
 import org.scalatest.FunSpec
 import org.scalatest.concurrent.Eventually
-import org.scalatest.time.{Seconds, Span}
+import org.scalatest.time.{Minute, Seconds, Span}
 import org.testcontainers.containers.wait.Wait
 
 class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
@@ -37,13 +38,18 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
     mqttClient.subscribe("foo", new IMqttMessageListener {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         val data = new String(message.getPayload)
-        println("ARRIVED:" + data)
-        val result = data.parseJson.convertTo[JobResult]
-        if (result.success) resultReceived.set(true)
+        try {
+          val result = data.parseJson.convertTo[UpdateStatusEvent]
+          result match {
+            case x: FinishedEvent =>
+              resultReceived.set(true)
+            case _ =>
+          }
+        }
       }
     })
 
-    eventually(timeout(Span(30, Seconds))) {
+    eventually(timeout(Span(1, Minute))) {
       assert(resultReceived.get)
     }
 

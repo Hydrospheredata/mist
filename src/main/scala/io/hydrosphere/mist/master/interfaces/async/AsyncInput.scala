@@ -46,31 +46,28 @@ object AsyncInput {
 
         val opt = new MqttConnectOptions
         opt.setCleanSession(true)
-        client.connect(opt)
-
+        client.connect(opt).waitForCompletion()
         client
       }
 
       override def start(f: (String) => Unit): Unit = {
-        client.setCallback(new MqttCallback {
-          override def deliveryComplete(token: IMqttDeliveryToken): Unit = {}
-
+        client.subscribe(topic, 0, new IMqttMessageListener {
           override def messageArrived(sourceTopic: String, message: MqttMessage): Unit = {
-            logger.info(s"WTFWFT $sourceTopic ${message.getPayload}")
             if (sourceTopic == topic) {
               val data = new String(message.getPayload)
               f(data)
             }
           }
-
-          override def connectionLost(cause: Throwable): Unit = { }
         })
+        logger.info("STARTED!")
       }
 
       override def close(): Unit = {
         client.disconnect()
         client.close()
       }
+
     }
+
   }
 }

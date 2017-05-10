@@ -44,7 +44,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
     }
   }
 
-  it("should update status") {
+  it("should update status in storage and call publisher") {
     val store = mock(classOf[JobRepository])
     when(store.get(any[String])).thenReturn({
       val jobDetails = JobDetails(
@@ -55,15 +55,20 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
       Future.successful(Some(jobDetails))
     })
 
-    val status = system.actorOf(StatusService.props(store, Seq.empty))
+    val publisher = mock(classOf[JobEventPublisher])
+
+    val status = system.actorOf(StatusService.props(store, Seq(publisher)))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 
     eventually(timeout(Span(1, Seconds))) {
       verify(store).update(any[JobDetails])
     }
-  }
 
+    eventually(timeout(Span(1, Seconds))) {
+      verify(publisher).notify(any[StartedEvent])
+    }
+  }
 
   describe("event conversion") {
 
