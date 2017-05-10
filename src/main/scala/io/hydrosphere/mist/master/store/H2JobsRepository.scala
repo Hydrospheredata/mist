@@ -149,5 +149,6 @@ object H2JobsRepository {
     flyway.setLocations("/db/migrations")
     flyway.setDataSource(url, null, null)
     flyway.migrate()
+
   }
 }

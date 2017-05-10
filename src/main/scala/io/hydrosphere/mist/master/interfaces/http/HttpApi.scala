@@ -72,7 +72,7 @@ class HttpApi(master: MasterService) extends Logger {
               externalId = None,
               runSettings = RunSettings.Default
             )
-            master.forceJobRun(request, Source.Http)
+            master.forceJobRun(request, Source.Http, action)
           }
         }
       }}

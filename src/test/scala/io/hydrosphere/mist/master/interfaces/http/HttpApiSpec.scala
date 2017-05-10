@@ -126,7 +126,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
   it("should start job") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
-    when(master.forceJobRun(any[JobStartRequest], any[Source]))
+    when(master.forceJobRun(any[JobStartRequest], any[Source], any[Action]))
       .thenReturn(Future.successful(
         JobResult.success(
           Map("yoyo" -> "hello"),

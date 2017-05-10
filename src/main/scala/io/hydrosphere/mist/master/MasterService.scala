@@ -128,7 +128,11 @@ class MasterService(
     }
   }
 
-  def runJob2(req: JobStartRequest, source: JobDetails.Source): Future[ExecutionInfo] = {
+  def runJob2(
+    req: JobStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute
+  ): Future[ExecutionInfo] = {
     val id = req.routeId
     jobRoutes.getDefinition(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
@@ -139,7 +143,7 @@ class MasterService(
             filePath = d.path,
             className = d.className,
             arguments = req.parameters,
-            action = Action.Execute
+            action = action
           )
         )
 
@@ -154,9 +158,13 @@ class MasterService(
     }
   }
 
-  def forceJobRun(req: JobStartRequest, source: JobDetails.Source): Future[JobResult] = {
+  def forceJobRun(
+    req: JobStartRequest,
+    source: JobDetails.Source,
+    action: Action
+  ): Future[JobResult] = {
     val promise = Promise[JobResult]
-    runJob2(req, source).flatMap(execution => execution.promise.future).onComplete {
+    runJob2(req, source, action).flatMap(execution => execution.promise.future).onComplete {
       case Success(r) =>
         promise.success(JobResult.success(r, req))
       case Failure(e) =>

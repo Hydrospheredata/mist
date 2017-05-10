@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.models
 
+import io.hydrosphere.mist.jobs.Action
+
 /** Specify how use context/workers */
 sealed trait RunMode
 

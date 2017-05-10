@@ -45,6 +45,8 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
               resultReceived.set(true)
             case _ =>
           }
+        } catch {
+          case e: Throwable =>
         }
       }
     })

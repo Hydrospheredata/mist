@@ -23,7 +23,7 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
 
   it should "update" in {
     val details = fixtureJobDetails("id")
-    repo.update(details)
+    repo.update(details).await
     repo.get(details.jobId).await shouldBe Some(details)
   }
 
