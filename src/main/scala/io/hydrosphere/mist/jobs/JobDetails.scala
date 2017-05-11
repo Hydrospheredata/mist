@@ -1,8 +1,6 @@
 package io.hydrosphere.mist.jobs
 
-import java.util.UUID
-
-import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import org.joda.time.DateTime
 
 object JobDetails {
@@ -77,13 +75,26 @@ object JobDetails {
   
 }
 
+/**
+  * Full information about job invocation
+  *
+  * @param endpoint - name of endpoint(route)
+  * @param jobId - uniqId
+  * @param params - filePath, className, args
+  * @param context - target context/namespace
+  * @param externalId - optional marker
+  * @param source - run request source
+  */
 case class JobDetails(
-  configuration: JobExecutionParams,
+  endpoint: String,
+  jobId: String,
+  params: JobParams,
+  context: String,
+  externalId: Option[String],
   source: JobDetails.Source,
-  jobId: String = UUID.randomUUID().toString,
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
-  jobResult: Option[JobResponseOrError] = None,
+  jobResult: Option[Either[String, Map[String, Any]]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized
 ) {
 
@@ -95,8 +106,12 @@ case class JobDetails(
   
   def ends(): JobDetails = withEndTime(new DateTime().getMillis)
 
-  def withJobResult(result: JobResponseOrError): JobDetails =
-    copy(jobResult = Some(result))
+  def withJobResult(result: Map[String, Any]): JobDetails =
+    copy(jobResult = Some(Right(result)))
+
+  def withFailure(message: String): JobDetails =
+    copy(jobResult = Some(Left(message)))
+
 
   def withStatus(status: JobDetails.Status): JobDetails =
     copy(status = status)

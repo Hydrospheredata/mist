@@ -59,7 +59,6 @@ object AsyncInput {
             }
           }
         })
-        logger.info("STARTED!")
       }
 
       override def close(): Unit = {

@@ -10,19 +10,12 @@ import scala.util.{Failure, Success}
 
 /**
   * Job routes information provider (based on router config an job internal info)
- *
-  * @param path - path to router config
   */
-class JobRoutes(path: String) extends Logger {
-
-  private def loadConfig(): Config = {
-    val file = new File(path)
-    ConfigFactory.parseFile(file).resolve()
-  }
+class JobEndpoints(loader: () => Config) extends Logger {
 
   def listDefinition(): Seq[JobDefinition] = {
     try {
-      val parsed = JobDefinition.parseConfig(loadConfig())
+      val parsed = JobDefinition.parseConfig(loader())
       parsed
         .collect({ case Failure(e) => e })
         .foreach(e => logger.error("Invalid route configuration", e))
@@ -51,4 +44,19 @@ class JobRoutes(path: String) extends Logger {
         None
     }
   }
+}
+
+object JobEndpoints {
+
+  def fromConfigFile(path: String): JobEndpoints = {
+    val load = () => {
+      val f = new File(path)
+      ConfigFactory.parseFile(f).resolve()
+    }
+
+    new JobEndpoints(load)
+  }
+
+  def fromConfig(config: Config): JobEndpoints = new JobEndpoints(() => config)
+
 }

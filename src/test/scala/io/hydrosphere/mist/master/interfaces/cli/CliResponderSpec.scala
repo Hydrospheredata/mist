@@ -2,14 +2,15 @@ package io.hydrosphere.mist.master.interfaces.cli
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.Messages.ListRoutes
 import io.hydrosphere.mist.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.Messages.WorkerMessages.StopAllWorkers
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{JobDefinition, JobDetails, JobExecutionParams}
-import io.hydrosphere.mist.master.{JobRoutes, MasterService}
-import org.scalatest.{FunSpecLike, Matchers}
+import io.hydrosphere.mist.jobs.{Action, JobDefinition, JobDetails}
+import io.hydrosphere.mist.master.MasterService
 import org.mockito.Mockito._
+import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -42,10 +43,14 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
     when(master.activeJobs())
       .thenReturn(Future.successful(List(
         JobDetails(
-          configuration = JobExecutionParams("path", "MyClass", "namespace", Map.empty, None, None),
-          source = Source.Http
+          params = JobParams("path", "className", Map.empty, Action.Execute),
+          jobId = "id",
+          source = Source.Http,
+          endpoint = "endpoint",
+          context = "context",
+          externalId = None
         )
-      )))
+    )))
 
 
     val responder = system.actorOf(CliResponder.props(master, TestProbe().ref))

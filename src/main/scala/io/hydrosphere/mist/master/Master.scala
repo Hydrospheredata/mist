@@ -22,7 +22,7 @@ object Master extends App with Logger {
     implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
     implicit val materializer = ActorMaterializer()
 
-    val jobRoutes = new JobRoutes(MistConfig.Http.routerConfigPath)
+    val jobEndpoints = JobEndpoints.fromConfigFile(MistConfig.Http.routerConfigPath)
 
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
@@ -35,7 +35,7 @@ object Master extends App with Logger {
     val masterService = new MasterService(
       workerManager,
       statusService,
-      jobRoutes)
+      jobEndpoints)
 
     MistConfig.Contexts.precreated foreach { name =>
       logger.info(s"Precreate context for $name namespace")

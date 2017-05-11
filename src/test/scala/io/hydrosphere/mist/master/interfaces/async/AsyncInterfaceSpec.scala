@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.async
 
+import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.models.JobStartRequest
@@ -27,7 +28,7 @@ class AsyncInterfaceSpec extends FunSpec {
        """.stripMargin
 
     input.putMessage(message)
-    verify(master).runJob(any[JobStartRequest], any[Source])
+    verify(master).runJob(any[JobStartRequest], any[Source], any[Action])
   }
 
 

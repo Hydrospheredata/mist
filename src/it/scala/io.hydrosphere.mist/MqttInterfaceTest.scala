@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
 import io.hydrosphere.mist.Messages.StatusMessages.{FinishedEvent, UpdateStatusEvent}
-import io.hydrosphere.mist.jobs.JobResult
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
 import org.junit.runner.Description

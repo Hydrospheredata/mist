@@ -2,10 +2,11 @@ package io.hydrosphere.mist.master.store
 
 import java.nio.file.Paths
 
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.jobs.{JobDetails, _}
-import io.hydrosphere.mist.utils.TypeAlias.{JobParameters, JobResponseOrError}
 import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 import spray.json.{pimpAny, pimpString}
@@ -25,9 +26,9 @@ trait JobsTable {
     string => JobDetails.Status(string)
   )
 
-  implicit def string2JobResponseOrError = MappedColumnType.base[JobResponseOrError, String](
+  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, Map[String, Any]], String](
     jobResponseOrError => jobResponseOrError.toJson.compactPrint,
-    string => string.parseJson.convertTo[JobResponseOrError]
+    string => string.parseJson.convertTo[Either[String, Map[String, Any]]]
   )
 
   implicit def string2JobParameters = MappedColumnType.base[JobParameters, String](
@@ -40,26 +41,26 @@ trait JobsTable {
     string => Action(string)
   )
 
-  implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], Action)): JobExecutionParams = tuple match {
-    case (path, className, namespace, parameters, externalId, route, action) =>
-      JobExecutionParams(path, className, namespace, parameters, externalId, route, action)
-  }
+//  implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], Action)): JobExecutionParams = tuple match {
+//    case (path, className, namespace, parameters, externalId, route, action) =>
+//      JobExecutionParams(path, className, namespace, parameters, externalId, route, action)
+//  }
 
   class JobDetailsTable(tag: Tag) extends Table[JobDetails](tag, "job_details") {
 
-    def path: Rep[String] = column[String]("path")
-    def className: Rep[String] = column[String]("class_name")
-    def namespace: Rep[String] = column[String]("namespace")
-    def parameters: Rep[JobParameters] = column[JobParameters]("parameters")
-    def externalId: Rep[Option[String]] = column[Option[String]]("external_id")
-    def route: Rep[Option[String]] = column[Option[String]]("route")
-    def action: Rep[Action] = column[Action]("action")
-    def source: Rep[JobDetails.Source] = column[JobDetails.Source]("source")
-    def jobId: Rep[String] = column[String]("job_id", O.PrimaryKey)
-    def startTime: Rep[Option[Long]] = column[Option[Long]]("start_time")
-    def endTime: Rep[Option[Long]] = column[Option[Long]]("end_time")
-    def jobResult: Rep[Option[JobResponseOrError]] = column[Option[JobResponseOrError]]("job_result")
-    def status: Rep[JobDetails.Status] = column[JobDetails.Status]("status")
+    def path = column[String]("path")
+    def className = column[String]("class_name")
+    def namespace = column[String]("namespace")
+    def parameters = column[JobParameters]("parameters")
+    def externalId = column[Option[String]]("external_id")
+    def endpoint = column[String]("endpoint")
+    def action = column[Action]("action")
+    def source = column[JobDetails.Source]("source")
+    def jobId = column[String]("job_id", O.PrimaryKey)
+    def startTime = column[Option[Long]]("start_time")
+    def endTime = column[Option[Long]]("end_time")
+    def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
+    def status = column[JobDetails.Status]("status")
 
     override def * : ProvenShape[JobDetails] = {
       val shapedValue = (
@@ -68,7 +69,7 @@ trait JobsTable {
         namespace,
         parameters,
         externalId,
-        route,
+        endpoint,
         action,
         source,
         jobId,
@@ -78,21 +79,23 @@ trait JobsTable {
         status
         ).shaped
       shapedValue.<>({
-        tuple => JobDetails.apply(
-          configuration = JobExecutionParams(tuple._1, tuple._2, tuple._3, tuple._4, tuple._5, tuple._6, tuple._7),
-          source = tuple._8,
+        tuple => JobDetails(
+          endpoint = tuple._6,
           jobId = tuple._9,
+          params = JobParams(tuple._1, tuple._2, tuple._4, tuple._7),
+          context = tuple._3,
+          externalId = tuple._5,
+          source = tuple._8,
           startTime = tuple._10,
           endTime = tuple._11,
           jobResult = tuple._12,
           status = tuple._13
         )
       }, {
-        (j: JobDetails) => Some {
-          (j.configuration.path, j.configuration.className, j.configuration.namespace, j.configuration.parameters,
-            j.configuration.externalId, j.configuration.route, j.configuration.action, j.source, j.jobId, j.startTime,
-            j.endTime, j.jobResult, j.status)
-        }
+        (j: JobDetails) => Some(
+          (j.params.filePath, j.params.className, j.context, j.params.arguments, j.externalId,
+            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status)
+        )
       })
     }
   }

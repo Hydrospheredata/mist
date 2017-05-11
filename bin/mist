@@ -236,7 +236,6 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        echo java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
         exec java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
     fi
 

@@ -2,8 +2,9 @@ package io.hydrosphere.mist.master.store
 
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
-import io.hydrosphere.mist.utils.TypeAlias._
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
+import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.jobs.{Action, JobDetails}
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -53,20 +54,13 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
   private def fixtureJobDetails(
     jobId: String,
     status: JobDetails.Status = JobDetails.Status.Initialized): JobDetails = {
-    val conf = JobExecutionParams(
-      path = "path",
-      className = "com.yoyo.MyClass",
-      namespace = "namespace",
-      parameters = JobParameters("key" -> "value"),
-      externalId = Some("externalId"),
-      route = Some("route"),
-      action = Action.Serve
-    )
-
     JobDetails(
-      configuration = conf,
-      source = JobDetails.Source.Cli,
+      params = JobParams("path", "className", Map.empty, Action.Execute),
       jobId = jobId,
+      source = Source.Http,
+      endpoint = "endpoint",
+      context = "context",
+      externalId = None,
       status = status
     )
   }

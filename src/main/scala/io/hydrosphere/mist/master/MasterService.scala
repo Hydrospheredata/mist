@@ -19,7 +19,7 @@ import scala.util.{Failure, Success}
 class MasterService(
   workerManager: ActorRef,
   statusService: ActorRef,
-  jobRoutes: JobRoutes
+  jobEndpoints: JobEndpoints
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -62,79 +62,17 @@ class MasterService(
     Future.successful(id)
   }
 
-  def listRoutesInfo(): Seq[JobInfo] = jobRoutes.listInfos()
-  def routeDefinitions(): Seq[JobDefinition] = jobRoutes.listDefinition()
+  def listRoutesInfo(): Seq[JobInfo] = jobEndpoints.listInfos()
 
-//  def startJob(
-//    routeId: String,
-//    action: Action,
-//    arguments: JobParameters,
-//    source: JobDetails.Source,
-//    externalId: Option[String]
-//  ): Future[JobResult] = {
-//    buildParams(routeId, action, arguments, externalId) match {
-//      case Some(execParams) =>
-//        val request = toRequest(execParams)
-//
-//        statusService ! Register(request.id, execParams, source)
-//
-//        val promise = Promise[JobResult]
-//        // that timeout only for obtaining execution info
-//        implicit val timeout = Timeout(30.seconds)
-//
-//        workerManager.ask(WorkerCommand(execParams.namespace, request))
-//          .mapTo[ExecutionInfo]
-//          .flatMap(_.promise.future).onComplete({
-//          case Success(r) =>
-//            promise.success(JobResult.success(r, execParams))
-//          case Failure(e) =>
-//            promise.success(JobResult.failure(e.getMessage, execParams))
-//        })
-//        promise.future
-//
-//      case None =>
-//        Future.failed(new RuntimeException(s"Job with $routeId not found"))
-//    }
-//  }
+  def routeDefinitions(): Seq[JobDefinition] = jobEndpoints.listDefinition()
 
-//  def startJob(r: JobExecutionRequest, source: JobDetails.Source): Future[JobResult] = {
-//    import r._
-//    startJob(routeId, action, parameters, source, r.externalId)
-//  }
-
-  def runJob(req: JobStartRequest, source: JobDetails.Source): Future[JobStartResponse] = {
-    val id = req.routeId
-    jobRoutes.getDefinition(id) match {
-      case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
-      case Some(d) =>
-        val internalRequest = RunJobRequest(
-          id = UUID.randomUUID().toString,
-          JobParams(
-            filePath = d.path,
-            className = d.className,
-            arguments = req.parameters,
-            action = Action.Execute
-          )
-        )
-
-        val namespace = req.runSettings.contextId.getOrElse(d.nameSpace)
-        val cmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
-
-        //TODO: remove fixture
-        val executionParams = JobExecutionParams("", "", "", Map.empty, None, None)
-        statusService ! Register(internalRequest.id, executionParams, source)
-
-        workerManager.ask(cmd).mapTo[ExecutionInfo].map(_ => JobStartResponse(internalRequest.id))
-    }
-  }
-
-  def runJob2(
+  def startJob(
     req: JobStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
     val id = req.routeId
-    jobRoutes.getDefinition(id) match {
+    jobEndpoints.getDefinition(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
       case Some(d) =>
         val internalRequest = RunJobRequest(
@@ -148,14 +86,29 @@ class MasterService(
         )
 
         val namespace = req.runSettings.contextId.getOrElse(d.nameSpace)
-        val cmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
 
-        //TODO: remove fixture
-        val executionParams = JobExecutionParams("", "", "", Map.empty, None, None)
-        statusService ! Register(internalRequest.id, executionParams, source)
+        val registrationCommand = Register(
+          request = internalRequest,
+          endpoint = req.routeId,
+          context = namespace,
+          source = source,
+          req.externalId
+        )
+        val startCmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
 
-        workerManager.ask(cmd).mapTo[ExecutionInfo]
+        for {
+          _ <- statusService.ask(registrationCommand).mapTo[Unit]
+          info <- workerManager.ask(startCmd).mapTo[ExecutionInfo]
+        } yield info
     }
+  }
+
+  def runJob(
+    req: JobStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute
+  ): Future[JobStartResponse] = {
+    startJob(req, source, action).map(info => JobStartResponse(info.request.id))
   }
 
   def forceJobRun(
@@ -164,7 +117,7 @@ class MasterService(
     action: Action
   ): Future[JobResult] = {
     val promise = Promise[JobResult]
-    runJob2(req, source, action).flatMap(execution => execution.promise.future).onComplete {
+    startJob(req, source, action).flatMap(execution => execution.promise.future).onComplete {
       case Success(r) =>
         promise.success(JobResult.success(r, req))
       case Failure(e) =>

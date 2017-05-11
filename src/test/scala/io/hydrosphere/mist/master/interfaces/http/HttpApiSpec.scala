@@ -2,14 +2,14 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.jar._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.models.{RunSettings, JobStartRequest}
-import io.hydrosphere.mist.master.{JobExecutionStatus, MasterService, WorkerLink}
-import io.hydrosphere.mist.utils.TypeAlias.JobParameters
-import org.mockito.Mockito._
+import io.hydrosphere.mist.jobs.jar._
+import io.hydrosphere.mist.master.models.{JobStartRequest, RunSettings}
+import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import org.mockito.Matchers._
+import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.Future
@@ -25,11 +25,12 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     when(master.activeJobs()).thenReturn(
       Future.successful(
         List(JobDetails(
-          configuration = JobExecutionParams(
-            "path", "MyClass", "namespace", Map.empty, None, None, Action.Execute
-          ),
+          params = JobParams("path", "className", Map.empty, Action.Execute),
+          jobId = "id",
           source = Source.Http,
-          jobId = "id"
+          endpoint = "endpoint",
+          context = "context",
+          externalId = None
         ))
       )
     )

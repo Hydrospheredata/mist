@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.{Directives, Route}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, RunSettings}
+import io.hydrosphere.mist.master.models.{JobStartResponse, JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.Future
@@ -65,7 +65,8 @@ class HttpApiV2(master: MasterService) {
       post( postJobQuery { query =>
           entity(as[JobParameters]) { params =>
             val runReq = buildStartRequest(routeId, query, params)
-            complete(master.runJob(runReq, Source.Http))
+            val response = master.runJob(runReq, Source.Http)
+            complete(response)
           }
       })
     } ~

@@ -1,55 +1,13 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobResult
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.utils.json.{AnyJsonFormatSupport, JobDetailsJsonSerialization}
 import spray.json._
-
-//trait UpdateStatusEventCodec extends DefaultJsonProtocol
-//  with AnyJsonFormatSupport
-//  with JsonFormat[UpdateStatusEvent] {
-//
-//  implicit val iniF = jsonFormat2(InitializedEvent)
-//  implicit val queueF = jsonFormat1(QueuedEvent)
-//  implicit val startedF = jsonFormat2(StartedEvent)
-//  implicit val canceledF = jsonFormat2(CanceledEvent)
-//  implicit val finishedF = jsonFormat3(FinishedEvent)
-//  implicit val failedF = jsonFormat3(FailedEvent)
-//
-//  override def write(obj: UpdateStatusEvent): JsValue = {
-//    val initial = obj.toJson.asJsObject
-//
-//    val name = obj match {
-//      case _: InitializedEvent => "initialized"
-//      case _: QueuedEvent => "queued"
-//      case _: StartedEvent => "started"
-//      case _: CanceledEvent => "canceled"
-//      case _: FinishedEvent => "finished"
-//      case _: FailedEvent => "failed"
-//    }
-//    val merged = initial.fields + ("event" -> JsString(name))
-//    JsObject(merged)
-//  }
-//
-//  override def read(json: JsValue): UpdateStatusEvent = {
-//    val obj = json.asJsObject
-//    val name = obj.fields.getOrElse("event", "")
-//    name match {
-//      case "initialized" => obj.convertTo[InitializedEvent]
-//      case "queued" => obj.convertTo[QueuedEvent]
-//      case "started" => obj.convertTo[StartedEvent]
-//      case "finished" => obj.convertTo[FinishedEvent]
-//      case "failed" => obj.convertTo[FailedEvent]
-//      case x => throw new IllegalArgumentException(s"Unknown event type $x")
-//    }
-//  }
-//
-//}
-
-//object UpdateStatusEventCodec extends UpdateStatusEventCodec
 
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol

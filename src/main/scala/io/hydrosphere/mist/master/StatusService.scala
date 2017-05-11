@@ -20,12 +20,12 @@ class StatusService(
   val activeStatuses = List(Status.Queued, Status.Running, Status.Initialized)
 
   override def receive: Receive = {
-    case Register(id, params, source) =>
-      val details = JobDetails(params, source, id)
+    case Register(req, endpoint, ctx, source, externalId) =>
+      val details = JobDetails(endpoint, req.id, req.params, ctx, externalId, source)
       val s = sender()
       store.update(details).map(_ => {
         s ! akka.actor.Status.Success(())
-        val event = InitializedEvent(id, params)
+        val event = InitializedEvent(req.id, req.params)
         callNotifiers(event)
       })
 
@@ -71,12 +71,12 @@ object StatusService {
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)
       case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Aborted)
       case FinishedEvent(_, time, result) =>
-        d.withEndTime(time).withJobResult(Left(result)).withStatus(Status.Stopped)
+        d.withEndTime(time).withJobResult(result).withStatus(Status.Stopped)
       case FailedEvent(_, time, error) =>
         if (d.status == Status.Aborted)
           d
         else
-          d.withEndTime(time).withStatus(Status.Error).withJobResult(Right(error))
+          d.withEndTime(time).withStatus(Status.Error).withFailure(error)
     }
   }
 }

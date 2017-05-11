@@ -1,9 +1,9 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
-import io.hydrosphere.mist.Messages.JobMessages.RunJobRequest
+import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{Action, JobExecutionParams}
+import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.master.models.RunMode
 
 object Messages {
@@ -75,13 +75,18 @@ object Messages {
 
   object StatusMessages {
 
-    case class Register(id: String, params: JobExecutionParams, source: Source)
+    case class Register(
+      request: RunJobRequest,
+      endpoint: String,
+      context: String,
+      source: Source,
+      externalId: Option[String])
 
     sealed trait UpdateStatusEvent {
       val id: String
     }
 
-    case class InitializedEvent(id: String, params: JobExecutionParams) extends UpdateStatusEvent
+    case class InitializedEvent(id: String, params: JobParams) extends UpdateStatusEvent
     case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent

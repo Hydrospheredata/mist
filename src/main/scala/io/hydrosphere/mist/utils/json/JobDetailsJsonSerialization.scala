@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.utils.json
 
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.utils.TypeAlias.{JobResponse, JobResponseOrError}
@@ -41,6 +42,8 @@ private[mist] trait JobDetailsJsonSerialization extends JobConfigurationJsonSeri
     }
   }
 
-  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat7(JobDetails.apply)
+
+  implicit val jobParamsF = jsonFormat4(JobParams.apply)
+  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat10(JobDetails.apply)
   
 }
