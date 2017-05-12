@@ -1,11 +1,17 @@
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.api.ml._
-
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer}
 import org.apache.spark.ml.linalg.{Vector => LVector}
+import org.apache.spark.sql.SparkSession
 
-object OneHotEncoderJob extends MLMistJob with SessionSupport {
+object OneHotEncoderJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, "a"), (1, "b"), (2, "c"),

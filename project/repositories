@@ -1,0 +1,3 @@
+[repositories]
+  local
+  my-maven-proxy-releases: http://repo.hydrosphere.io/repository/maven-public/

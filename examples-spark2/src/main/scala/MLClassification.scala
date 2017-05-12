@@ -1,12 +1,18 @@
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.api.ml._
-
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.spark.ml.feature.{HashingTF, Tokenizer}
+import org.apache.spark.sql.SparkSession
 
 
-object MLClassification extends MLMistJob with SessionSupport {
+object MLClassification extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(): Map[String, Any] = {
     val training = session.createDataFrame(Seq(
       (0L, "a b c d e spark", 1.0),

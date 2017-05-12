@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.api.ml
 
 import org.apache.spark.ml.{PipelineModel, Transformer}
+
 import scala.collection.mutable
 import scala.io.Source
 

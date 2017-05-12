@@ -4,8 +4,15 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.sql.SparkSession
 
-object KMeansJob extends MLMistJob with SessionSupport {
+object KMeansJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String, datasetPath: String): Map[String, Any] = {
     // Loads data.
     val dataset = session.read.format("libsvm").load(datasetPath)

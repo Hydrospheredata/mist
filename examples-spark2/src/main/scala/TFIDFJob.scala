@@ -1,12 +1,18 @@
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.api.ml._
-
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.mllib.linalg.{Vector => LVector}
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.sql.SparkSession
 
 
-object TFIDFJob extends MLMistJob with SessionSupport {
+object TFIDFJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
 
     val df = session.createDataFrame(Seq(

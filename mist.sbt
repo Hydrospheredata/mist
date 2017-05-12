@@ -1,5 +1,5 @@
-import AssemblyKeys._
 import sbt.Keys._
+import sbtassembly.Plugin.AssemblyKeys._
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -15,101 +15,74 @@ lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
-lazy val mistScalaCrossCompile: Seq[String] = {
-  val base=Seq("2.11.8")
-  util.Properties.propOrElse("sparkVersion", "1.5.2") match {
-    case versionRegex("2", minor) => base
-    case _ => base :+ "2.10.6"
-  }
+lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.6.2")
+
+lazy val mistScalaCrossCompile = currentSparkVersion match {
+  case versionRegex("1", minor) => Seq("2.10.6")
+  case _ => Seq("2.11.8")
 }
 
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
+  sparkVersion := currentSparkVersion,
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
       case _ => "2.11.8"
-  }),
+    }),
 
   crossScalaVersions := mistScalaCrossCompile,
   version := "0.11.0"
-
 )
 
-lazy val mistLibSpark1= project.in(file("mist-lib-spark1"))
+lazy val spark2AdditionalDependencies = currentSparkVersion match {
+  case versionRegex("1", minor) => Seq()
+  case _ => Seq(
+    "org.json4s" %% "json4s-native" % "3.2.10",
+    "org.apache.parquet" % "parquet-column" % "1.7.0",
+    "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
+    "org.apache.parquet" % "parquet-avro" % "1.7.0",
+
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
+    "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
+  )
+}
+
+lazy val mistLib = project.in(file("mist-lib"))
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-lib-spark1",
-    libraryDependencies ++= sparkDependencies("1.5.2"),
-
+    name := "mist-lib",
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= spark2AdditionalDependencies,
     libraryDependencies ++= Seq(
-      "org.apache.kafka" % "kafka-clients" % "0.8.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+      "org.apache.kafka" % "kafka-clients" % "0.8.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
     )
   )
 
-lazy val mistLibSpark2 = project.in(file("mist-lib-spark2"))
-  .settings(assemblySettings)
-  .settings(commonSettings: _*)
-  .settings(PublishSettings.settings: _*)
-  .dependsOn(mistLibSpark1)
-  .settings(
-    name := "mist-lib-spark2",
-    libraryDependencies ++= sparkDependencies("2.0.0"),
-    libraryDependencies ++= Seq(
-      "org.json4s" %% "json4s-native" % "3.2.10",
-      "org.apache.parquet" % "parquet-column" % "1.7.0",
-      "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
-      "org.apache.parquet" % "parquet-avro" % "1.7.0",
-
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
-      "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
-    ),
-
-    libraryDependencies ++= Seq(
-      "org.apache.kafka" % "kafka-clients" % "0.8.2.0",
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
-      )
-  )
-
-lazy val currentLib = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
-  case versionRegex("1", minor) => mistLibSpark1
-  case _ => mistLibSpark2
-}
-
-lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+lazy val currentExamples = currentSparkVersion match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
 }
 
-lazy val aggregatedProjects: Seq[ProjectReference] = {
-  val base: Seq[ProjectReference] = Seq(mistLibSpark1, mist)
-
-  util.Properties.propOrElse("sparkVersion", "1.5.2") match {
-    case versionRegex("1", minor) => base
-    case _ => base :+ (mistLibSpark2: ProjectReference)
-  }
-}
 
 lazy val mist = project.in(file("."))
-  .dependsOn(currentLib)
-  .dependsOn(mistLibSpark1)
+  .dependsOn(mistLib)
   .enablePlugins(DockerPlugin)
   .settings(assemblySettings)
   .settings(commonSettings: _*)
   .configs(IntegrationTest)
-  .settings(Defaults.itSettings : _*)
+  .settings(Defaults.itSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
   .settings(dockerSettings: _*)
   .settings(
     name := "mist",
-    libraryDependencies ++= sparkDependencies(sparkVersion.value),
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
     libraryDependencies ++= Seq(
       "com.typesafe" % "config" % "1.3.1",
       "joda-time" % "joda-time" % "2.5",
@@ -135,7 +108,7 @@ lazy val mist = project.in(file("."))
       "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
 
       "org.scalaj" %% "scalaj-http" % "2.3.0",
-      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
       "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
       "org.flywaydb" % "flyway-core" % "4.1.1",
       "org.typelevel" %% "cats" % "0.9.0"
@@ -148,9 +121,9 @@ lazy val mist = project.in(file("."))
     parallelExecution in Test := false,
     parallelExecution in IntegrationTest := false,
 
-    fork in (Test, test) := true,
-    fork in (IntegrationTest, test) := true,
-    javaOptions in (IntegrationTest, test) ++= {
+    fork in(Test, test) := true,
+    fork in(IntegrationTest, test) := true,
+    javaOptions in(IntegrationTest, test) ++= {
       val jar = outputPath.in(Compile, assembly).value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
@@ -162,31 +135,30 @@ lazy val mist = project.in(file("."))
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
   ).settings(
-    ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
-    ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-  )
+  ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
+  ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+)
 
-lazy val commandAlias = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+lazy val commandAlias = currentSparkVersion match {
   case versionRegex("1", minor) => ";mist/test;mist/it:test"
-  case _ => ";mistLibSpark2/test;mist/test;mist/it:test"
+  case _ => ";mistLib/test;mist/test;mist/it:test"
 }
 addCommandAlias("testAll", commandAlias)
 
 lazy val examplesSpark1 = project.in(file("examples-spark1"))
-  .dependsOn(mistLibSpark1)
+  .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
-    libraryDependencies ++= sparkDependencies("1.5.2")
+    libraryDependencies ++= sparkDependencies(currentSparkVersion)
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
-  .dependsOn(mistLibSpark1)
-  .dependsOn(mistLibSpark2)
+  .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
-    libraryDependencies ++= sparkDependencies("2.0.0")
+    libraryDependencies ++= sparkDependencies(currentSparkVersion)
   )
 
 lazy val mistRunSettings = Seq(
@@ -223,8 +195,8 @@ lazy val mistRunSettings = Seq(
 
     val args = Seq(
       "bin/mist", "start", "master",
-        "--jar", jar.getAbsolutePath,
-        "--config", s"configs/$config"
+      "--jar", jar.getAbsolutePath,
+      "--config", s"configs/$config"
     )
     val ps = Process(args, Some(home), extraEnv: _*)
     log.info(s"Running mist $ps with env $extraEnv")
@@ -327,7 +299,7 @@ lazy val miniClusterDependencies =
   Seq(
     "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests" ,
+    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
     "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
@@ -338,13 +310,14 @@ lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
     case m if m.startsWith("META-INF") => MergeStrategy.discard
-    case PathList("javax", "servlet", xs @ _*) => MergeStrategy.first
-    case PathList("org", "apache", xs @ _*) => MergeStrategy.first
-    case PathList("org", "jboss", xs @ _*) => MergeStrategy.first
-    case "about.html"  => MergeStrategy.rename
+    case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
+    case PathList("org", "apache", xs@_*) => MergeStrategy.first
+    case PathList("org", "jboss", xs@_*) => MergeStrategy.first
+    case "about.html" => MergeStrategy.rename
     case "reference.conf" => MergeStrategy.concat
-    case PathList("org", "datanucleus", xs @ _*) => MergeStrategy.discard
+    case PathList("org", "datanucleus", xs@_*) => MergeStrategy.discard
     case _ => MergeStrategy.first
-  }},
+  }
+  },
   test in assembly := {}
 )

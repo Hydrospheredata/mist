@@ -1,14 +1,13 @@
 package io.hydrosphere.mist.api.ml
 
-import java.io.{FilenameFilter, File}
+import java.io.File
 
+import io.hydrosphere.mist.api.ml.reader._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import parquet.format.converter.ParquetMetadataConverter.NO_FILTER
 import parquet.hadoop.{ParquetFileReader, ParquetReader}
 import parquet.schema.MessageType
-
-import reader._
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
