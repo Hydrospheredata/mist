@@ -19,7 +19,7 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
     val jobSource = s"""
        |
-       | import io.hydrosphere.mist.lib.spark$sparkPref.MistJob
+       | import io.hydrosphere.mist.api.MistJob
        |
        | object SimpleContext extends MistJob {
        |

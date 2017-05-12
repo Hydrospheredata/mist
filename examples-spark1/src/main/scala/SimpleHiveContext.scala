@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.spark1._
+import io.hydrosphere.mist.api.{HiveSupport, MistJob, SQLSupport}
 
 object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
 

@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.spark1._
+import io.hydrosphere.mist.api.{MistJob, Publisher, StreamingSupport}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable

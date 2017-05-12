@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.spark1._
+import io.hydrosphere.mist.api.{MistJob, SQLSupport}
 
 object SimpleSQLContext extends MistJob with SQLSupport {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.sql.SQLContext]]

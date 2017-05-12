@@ -1,11 +1,18 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.sql.SparkSession
 
-object KMeansJob extends MLMistJob with SQLSupport {
+object KMeansJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String, datasetPath: String): Map[String, Any] = {
     // Loads data.
     val dataset = session.read.format("libsvm").load(datasetPath)

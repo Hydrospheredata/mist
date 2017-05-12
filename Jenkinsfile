@@ -3,7 +3,7 @@ versions = [
         "1.5.2",
         "1.6.2",
         "2.0.2",
-        "2.1.0"
+        "2.1.1"
 ]
 
 def branches = [:]
@@ -58,7 +58,7 @@ def test_mist(slaveName, sparkVersion) {
                     //Clear derby databases
                     sh "rm -rf metastore_db recovery.db derby.log"
                     echo 'Testing Mist with Spark version: ' + sparkVersion
-                    sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} clean assembly testAll"
+                    sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean assembly testAll"
                 }
 
                 //stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"

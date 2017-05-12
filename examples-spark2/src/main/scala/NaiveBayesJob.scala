@@ -1,13 +1,19 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.linalg.{Vector => LVector}
+import org.apache.spark.sql.SparkSession
 
 
-object NaiveBayesJob extends MLMistJob with SQLSupport {
+object NaiveBayesJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
