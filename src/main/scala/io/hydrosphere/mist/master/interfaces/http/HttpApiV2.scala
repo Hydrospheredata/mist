@@ -1,10 +1,11 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.{Directives, Route}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.models.{JobStartResponse, JobStartRequest, RunMode, RunSettings}
+import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.Future
@@ -48,8 +49,10 @@ class HttpApiV2(master: MasterService) {
 
   import HttpApiV2._
   import Directives._
+  import StatusCodes._
   import JsonCodecs._
   import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
+  import akka.http.scaladsl.server._
 
   private val root = "v2" / "api"
   private val postJobQuery =
@@ -60,7 +63,7 @@ class HttpApiV2(master: MasterService) {
       'uniqWorkerId ?
     ).as(JobRunQueryParams)
 
-  val route: Route = respondWithDefaultHeader(RawHeader("Access-Control-Allow-Origin", "*")) {
+  val route: Route = CorsDirective.cors() {
     path(root / "jobs" / Segment) { routeId: String =>
       post( postJobQuery { query =>
           entity(as[JobParameters]) { params =>
@@ -128,6 +131,5 @@ object HttpApiV2 {
       RunSettings(context, runMode)
     }
   }
-
 
 }
