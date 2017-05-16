@@ -4,11 +4,12 @@ import java.util.logging.LogManager
 
 import org.apache.log4j.BasicConfigurator
 import org.apache.spark.SparkConf
-import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{Word2Vec, PCA}
+import org.apache.spark.ml.{Pipeline, PipelineModel}
+import org.apache.spark.ml.feature.{Binarizer, PCA, Word2Vec}
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
+import LocalPipelineModel._
 
 class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
 
@@ -92,6 +93,39 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       PipelineLoader.load(path)
     }
 
+  }
+
+  describe("Binarizer") {
+    val path = "./mist-lib-spark2/target/binarizer"
+    val treshold = 5.0
+    it("should load") {
+      val data = Array((0, 0.1), (1, 0.8), (2, 0.2))
+      val dataFrame = session.createDataFrame(data).toDF("id", "feature")
+
+      val binarizer = new Binarizer()
+        .setInputCol("feature")
+        .setOutputCol("binarized_feature")
+        .setThreshold(treshold)
+
+      val pipeline = new Pipeline().setStages(Array(binarizer))
+
+      pipeline.fit(dataFrame).write.overwrite().save(path)
+      val model = PipelineLoader.load(path)
+    }
+    it("should transform") {
+      val model = PipelineLoader.load(path)
+      val localData = LocalData(LocalDataColumn("feature", List(0.1, 0.1, 5.9)))
+      val result = model.transform(localData)
+      val computedResults = result.column("feature").get.data.map {feature =>
+        val f = feature.asInstanceOf[Double]
+        if (f > treshold)
+          1.0
+        else
+          0.0
+      }
+      val binarizerResults = result.column("binarized_feature").get.data.map(_.asInstanceOf[Double])
+      assert(computedResults === binarizerResults)
+    }
   }
 
   override def beforeAll {
