@@ -8,7 +8,8 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.feature.{MaxAbsScaler, _}
 import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.mllib.linalg.SparseVector
+import org.apache.spark.mllib.linalg.{SparseVector => OldSparseVector, DenseVector => OldDenseVector}
+import org.apache.spark.ml.linalg.{SparseVector, DenseVector}
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 import LocalPipelineModel._
@@ -19,13 +20,17 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
 
   def modelPath(modelName: String): String = s"./mist-lib/target/trained-models-for-test/$modelName"
 
+  private def compareStrings(data: Seq[String], valid: Seq[String]) = {
+    data zip valid foreach {
+      case (x: String, y: String) => assert(x === y)
+    }
+  }
+
   describe("CountVectorizer") {
     val path = modelPath("countvectorizer")
 
     it("should train") {
       import org.apache.spark.ml.feature.CountVectorizer
-
-      val path = "./mist-lib/target/trained-models-for-test/countvectorizer"
 
       val df = session.createDataFrame(Seq(
         (0, Array("a", "b", "c")),
@@ -42,15 +47,15 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
+    it("should load") {
       PipelineLoader.load(path)
     }
 
-    it("should match") {
+    it("should transform") {
       val trainedModel = PipelineLoader.load(path)
       val data = LocalData(LocalDataColumn("words", List(List("a", "b", "c"))))
       val result = trainedModel.transform(data).column("features").get.data.map { f =>
-        f.asInstanceOf[org.apache.spark.ml.linalg.SparseVector].toArray
+        f.asInstanceOf[SparseVector].toArray
       }
       val validation = List(List(1.0, 1.0, 1.0))
 
@@ -84,7 +89,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load") {
-      trainedModel = PipelineLoader.load(path)
+      PipelineLoader.load(path)
     }
 
     it("should match") {
@@ -103,21 +108,25 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       )).toDF("id", "words")
 
       val ngram = new NGram().setN(2).setInputCol("words").setOutputCol("ngrams")
-
       val pipeline = new Pipeline().setStages(Array(ngram))
-
       val model = pipeline.fit(df)
 
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
+    it("should load") {
       PipelineLoader.load(path)
     }
 
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("words", List(List("Provectus", "team", "is", "awesome"))))
+      val result = trainedModel.transform(data).column("ngrams").get.data
+      val validation = Array(List("Provectus team", "team is", "is awesome"))
 
-    it("should match") {
-      pending
+      result zip validation foreach {
+        case (arr: List[String], validRow: List[String]) => compareStrings(arr, validRow)
+      }
     }
   }
 
@@ -145,12 +154,29 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(1.0, 0.0, 1.0, 2.0, 0.0),
+        List(2.0, 0.0, 3.0, 4.0, 5.0),
+        List(4.0, 0.0, 0.0, 6.0, 7.0)
+      )))
+      val result = trainedModel.transform(data).column("scaledFeatures").get.data.map { f =>
+        f.asInstanceOf[OldDenseVector].toArray
+      }
+      val validation = List(
+        List(0.5, 0.0, 0.6546536707079772, 1.7320508075688774, 0.0),
+        List(1.0, 0.0, 1.9639610121239315, 3.464101615137755, 4.330127018922194),
+        List(2.0, 0.0, 0.0, 5.196152422706632, 6.062177826491071)
+      )
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -174,12 +200,22 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("raw", List(
+        List("I", "saw", "the", "red", "balloon"),
+        List("Mary", "had", "a", "little", "lamb")
+      )))
+      val result = trainedModel.transform(data).column("filtered").get.data
+      val validation = Array(List("saw", "red", "balloon"), List("Mary", "little", "lamb"))
+
+      result zip validation foreach {
+        case (arr: List[String], validRow: List[String]) => compareStrings(arr, validRow)
+      }
     }
   }
 
@@ -204,12 +240,29 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(1.0, 0.0, 1.0),
+        List(2.0, 4.0, 5.0),
+        List(0.0, 6.0, 7.0)
+      )))
+      val result = trainedModel.transform(data).column("scaledFeatures").get.data.map { f =>
+        f.asInstanceOf[DenseVector].toArray
+      }
+      val validation = Array(
+        List(0.25, 0.0, 0.125),
+        List(0.5, 0.4, 0.625),
+        List(0.0, 0.6, 0.875)
+      )
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -234,12 +287,27 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(1.0, 0.0, -1.0),
+        List(2.0, 1.5, 1.0),
+        List(3.0, 1.1, 3.0)
+      )))
+      val result = trainedModel.transform(data).column("scaledFeatures").get.data
+      val validation = Array(
+        List(0.0, -0.01, 0.0),
+        List(0.5, 0.13999999999999999, 0.5),
+        List(1.0, 0.1, 1.0)
+      )
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -269,7 +337,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+      PipelineLoader.load(path)
     }
 
     it("should match") {
@@ -300,12 +368,27 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(2.0, 0.0, 3.0, 4.0, 5.0),
+        List(4.0, 0.0, 0.0, 6.0, 7.0)
+      )))
+      val result = trainedModel.transform(data).column("pcaFeatures").get.data map { f =>
+        f.asInstanceOf[OldDenseVector].toArray
+      }
+      val validation = Array(
+        List(-4.645104331781534, -1.1167972663619026, -5.524543751369387),
+        List(-6.428880535676489, -5.337951427775355, -5.524543751369389)
+      )
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -332,11 +415,22 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load") {
-      trainedModel = PipelineLoader.load(path)
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(1.0, 0.5, -1.0), List(2.0, 1.0, 1.0), List(4.0, 10.0, 2.0)
+      )))
+      val result = trainedModel.transform(data).column("normFeatures").get.data map { f =>
+        f.asInstanceOf[DenseVector].toArray
+      }
+      val validation = Array(List(0.4,0.2,-0.4), List(0.5,0.25,0.25), List(0.25,0.625,0.125))
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -363,12 +457,29 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       model.write.overwrite().save(path)
     }
 
-    it("should load local/transform") {
-      trainedModel = PipelineLoader.load(path)
+    it("should load") {
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(0.0, 1.0, -2.0, 3.0),
+        List(-1.0, 2.0, 4.0, -7.0),
+        List(14.0, -2.0, -5.0, 1.0)
+      )))
+      val result = trainedModel.transform(data).column("featuresDCT").get.data map { f =>
+        f.asInstanceOf[DenseVector].toArray
+      }
+      val validation = Array(
+        List(1.0,-1.1480502970952693,2.0000000000000004,-2.7716385975338604),
+        List(-1.0,3.378492794482933,-7.000000000000001,2.9301512653149677),
+        List(4.0,9.304453421915744,11.000000000000002,1.5579302036357163)
+      )
+
+      result zip validation foreach {
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
+      }
     }
   }
 
@@ -395,11 +506,23 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load") {
-      trainedModel = PipelineLoader.load(path)
+      PipelineLoader.load(path)
     }
 
-    it("should match") {
-      pending
+    it("should transform") {
+      val trainedModel = PipelineLoader.load(path)
+      val data = LocalData(LocalDataColumn("features", List(
+        List(4.0, 0.2, 3.0, 4.0, 5.0),
+        List(3.0, 0.3, 1.0, 4.1, 5.0),
+        List(1.0, 0.1, 7.0, 4.0, 5.0),
+        List(8.0, 0.3, 5.0, 1.0, 7.0)
+      )))
+      val result = trainedModel.transform(data).column("prediction").get.data
+      val validation = Array(1.0, 1.0, 0.0, 0.0)
+
+      result zip validation foreach {
+        case (arr: Double, valid: Double) => assert(arr === valid)
+      }
     }
   }
 
