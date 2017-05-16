@@ -15,22 +15,12 @@ import LocalPipelineModel._
 
 
 class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
-
   var session: SparkSession = _
 
-  private def extractResult[T](data: Map[String, Any]): List[Map[String, T]] = {
-    data("result").asInstanceOf[List[Map[String, T]]]
-  }
-
-  private def compareDoubles(data: Seq[Double], valid: Seq[Double]) = {
-    data zip valid foreach {
-      case (x: Double, y: Double) =>
-        assert(Math.abs(x - y) < 0.000001)
-    }
-  }
+  def modelPath(modelName: String): String = s"./mist-lib/target/trained-models-for-test/$modelName"
 
   describe("CountVectorizer") {
-    val path = "./mist-lib/target/trained-models-for-test/countvectorizer"
+    val path = modelPath("countvectorizer")
 
     it("should train") {
       import org.apache.spark.ml.feature.CountVectorizer
@@ -53,7 +43,6 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load local/transform") {
-      import LocalPipelineModel._
       PipelineLoader.load(path)
     }
 
@@ -66,14 +55,13 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val validation = List(List(1.0, 1.0, 1.0))
 
       result zip validation foreach {
-        case (arr: Array[Double], validRow: List[Double]) => compareDoubles(arr, validRow)
+        case (arr: Array[Double], validRow: List[Double]) => assert(arr === validRow)
       }
     }
   }
 
   describe("Word2Vec") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/pca"
+    val path = modelPath("pca")
 
     it("should train") {
       val documentDF = session.createDataFrame(Seq(
@@ -105,8 +93,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("NGram") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/ngram"
+    val path = modelPath("ngram")
 
     it("should train") {
       val df = session.createDataFrame(Seq(
@@ -135,8 +122,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("StandardScaler") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/standardscaler"
+    val path = modelPath("standardscaler")
 
     it("should train") {
       val data = Array(
@@ -169,8 +155,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("StopWordsRemover") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/stopwordsremover"
+    val path = modelPath("stopwordsremover")
 
     it("should train") {
       val df = session.createDataFrame(Seq(
@@ -199,8 +184,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("MaxAbsScaler") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/maxabsscaler"
+    val path = modelPath("maxabsscaler")
 
     it("should train") {
       val dataFrame = session.createDataFrame(Seq(
@@ -230,8 +214,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("MinMaxScaler") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/minmaxscaler"
+    val path = modelPath("minmaxscaler")
 
     it("should train") {
       val dataFrame = session.createDataFrame(Seq(
@@ -260,9 +243,8 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("OneHotEncoder") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/onehotencoder"
+  describe("StringIndexer -> OneHotEncoder") {
+    val path = modelPath("onehotencoder")
 
     it("should train") {
       val df = session.createDataFrame(Seq(
@@ -296,8 +278,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("PCA") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/pca"
+    val path = modelPath("pca")
 
     it("should train") {
       val data = Array(
@@ -329,8 +310,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("Normalizer") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/normalizer"
+    val path = modelPath("normalizer")
 
     it("should train") {
       val df = session.createDataFrame(Seq(
@@ -361,8 +341,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("DCT") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/dct"
+    val path = modelPath("dct")
 
     it("should train") {
       val data = Seq(
@@ -394,8 +373,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("NaiveBayes") {
-    var trainedModel: org.apache.spark.ml.PipelineModel = null
-    val path = "./mist-lib/target/trained-models-for-test/naivebayes"
+    val path = modelPath("naivebayes")
 
     it("should train") {
       val df = session.createDataFrame(Seq(
@@ -426,7 +404,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
   }
 
   describe("Binarizer") {
-    val path = "./mist-lib-spark2/target/binarizer"
+    val path = modelPath("binarizer")
     val treshold = 5.0
 
     it("should load") {
@@ -458,6 +436,37 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val binarizerResults = result.column("binarized_feature").get.data.map(_.asInstanceOf[Double])
       assert(computedResults === binarizerResults)
     }
+  }
+
+  describe("IndexToString") {
+    val path = modelPath("idx2str")
+    it("should train") {
+      val df = session.createDataFrame(Seq(
+        (0, "a"),
+        (1, "b"),
+        (2, "c"),
+        (3, "a"),
+        (4, "a"),
+        (5, "c")
+      )).toDF("id", "category")
+
+      val indexer = new StringIndexer()
+        .setInputCol("category")
+        .setOutputCol("categoryIndex")
+        .fit(df)
+
+      val converter = new IndexToString()
+        .setInputCol("categoryIndex")
+        .setOutputCol("originalCategory")
+
+      val pipeline = new Pipeline().setStages(Array(indexer, converter))
+
+      val model = pipeline.fit(df)
+
+      model.write.overwrite().save("models/index")
+    }
+    it("should load") {pending}
+    it("should transform") {pending}
   }
 
   override def beforeAll {
