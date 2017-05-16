@@ -8,11 +8,12 @@ import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorker
 import interfaces.async._
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
-import io.hydrosphere.mist.master.interfaces.http.{HttpApi, HttpApiV2, HttpUi}
+import io.hydrosphere.mist.master.interfaces.http.{WsEventPublisher, HttpApi, HttpApiV2, HttpUi}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
 
 /** This object is entry point of Mist project */
@@ -27,7 +28,7 @@ object Master extends App with Logger {
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val eventPublishers = buildEventPublishers()
+    val eventPublishers = buildEventPublishers(system, materializer)
 
     val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
     val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
@@ -77,6 +78,8 @@ object Master extends App with Logger {
       logger.info("Kafka interface is started")
     }
 
+
+
     // We need to stop contexts on exit
     sys addShutdownHook {
       logger.info("Stopping all the contexts")
@@ -89,18 +92,20 @@ object Master extends App with Logger {
       sys.exit(3)
   }
 
-  private def buildEventPublishers(): Seq[JobEventPublisher] = {
+  private def buildEventPublishers(sys: ActorSystem, materializer: ActorMaterializer): Seq[JobEventPublisher] = {
+    val buffer = new ArrayBuffer[JobEventPublisher](3)
     if (MistConfig.Kafka.isOn) {
       import MistConfig.Kafka._
-      val p = JobEventPublisher.forKafka(host, port, publishTopic)
-      Seq(p)
-    } else if (MistConfig.Mqtt.isOn) {
-      import MistConfig.Mqtt._
-      val p = JobEventPublisher.forMqtt(host, port, publishTopic)
-      Seq(p)
-    } else {
-      Seq.empty
+      buffer += JobEventPublisher.forKafka(host, port, publishTopic)
     }
+    if (MistConfig.Mqtt.isOn) {
+      import MistConfig.Mqtt._
+      buffer += JobEventPublisher.forMqtt(host, port, publishTopic)
+    }
+
+    buffer += WsEventPublisher.blabla(materializer)
+
+    buffer
   }
 
   private def selectRunner(s: String): WorkerRunner = {
