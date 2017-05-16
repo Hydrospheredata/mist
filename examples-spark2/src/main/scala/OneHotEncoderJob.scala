@@ -43,7 +43,7 @@ object OneHotEncoderJob extends MLMistJob {
     val result = pipeline.transform(data)
 
     val response = result.select("category", "categoryVec").toMapList.map(rowMap => {
-      val mapped = rowMap("categoryVec").asInstanceOf[LVector].toArray
+      val mapped = rowMap("categoryVec").asInstanceOf[Array[Double]]
       rowMap + ("categoryVec" -> mapped)
     })
 

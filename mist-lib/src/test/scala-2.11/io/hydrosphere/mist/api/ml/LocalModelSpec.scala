@@ -8,10 +8,10 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.feature.{MaxAbsScaler, _}
 import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.mllib.linalg.{SparseVector => OldSparseVector, DenseVector => OldDenseVector}
-import org.apache.spark.ml.linalg.{SparseVector, DenseVector}
+import org.apache.spark.mllib.linalg.{DenseVector => OldDenseVector, SparseVector => OldSparseVector}
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector}
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSpec}
+import org.scalatest.{Assertion, BeforeAndAfterAll, FunSpec}
 import LocalPipelineModel._
 
 
@@ -20,9 +20,15 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
 
   def modelPath(modelName: String): String = s"./mist-lib/target/trained-models-for-test/$modelName"
 
-  private def compareStrings(data: Seq[String], valid: Seq[String]) = {
-    data zip valid foreach {
-      case (x: String, y: String) => assert(x === y)
+  def createInputData[T](name: String, data: List[T]): LocalData = LocalData(LocalDataColumn(name, data))
+
+  def compareDoubles(a: Double, b: Double, threshold: Double = 0.0001): Assertion = {
+    assert((a - b).abs < threshold)
+  }
+
+  def compareArrDoubles(a: Array[Double], b: Array[Double], threshold: Double = 0.0001): Unit = {
+    a.zip(b).foreach{
+      case (aa, bb) => compareDoubles(aa, bb, threshold)
     }
   }
 
@@ -65,38 +71,6 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("Word2Vec") {
-    val path = modelPath("pca")
-
-    it("should train") {
-      val documentDF = session.createDataFrame(Seq(
-        "Hi I heard about Spark".split(" "),
-        "I wish Java could use case classes".split(" "),
-        "Logistic regression models are neat".split(" ")
-      ).map(Tuple1.apply)).toDF("text")
-
-      // Learn a mapping from words to Vectors.
-      val word2Vec = new Word2Vec()
-        .setInputCol("text")
-        .setOutputCol("result")
-        .setVectorSize(3)
-        .setMinCount(0)
-      val pipeline = new Pipeline().setStages(Array(word2Vec))
-
-      val model = pipeline.fit(documentDF)
-
-      model.write.overwrite().save(path)
-    }
-
-    it("should load") {
-      PipelineLoader.load(path)
-    }
-
-    it("should match") {
-      pending
-    }
-  }
-
   describe("NGram") {
     val path = modelPath("ngram")
 
@@ -115,7 +89,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should load") {
-      PipelineLoader.load(path)
+      val model = PipelineLoader.load(path)
     }
 
     it("should transform") {
@@ -125,7 +99,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val validation = Array(List("Provectus team", "team is", "is awesome"))
 
       result zip validation foreach {
-        case (arr: List[String], validRow: List[String]) => compareStrings(arr, validRow)
+        case (arr: List[String], validRow: List[String]) => assert(arr === validRow)
       }
     }
   }
@@ -214,7 +188,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val validation = Array(List("saw", "red", "balloon"), List("Mary", "little", "lamb"))
 
       result zip validation foreach {
-        case (arr: List[String], validRow: List[String]) => compareStrings(arr, validRow)
+        case (arr: List[String], validRow: List[String]) => assert(arr === validRow)
       }
     }
   }
@@ -341,7 +315,14 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
 
     it("should match") {
-      pending
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("category", List("a", "b", "c", "a"))
+      val validation = List(Array(1.0, 0.0), Array(0.0, 0.0), Array(0.0, 1.0), Array(1.0, 0.0))
+      val result = model.transform(localData)
+      val computedResult = result.column("categoryVec").get.data.map(_.asInstanceOf[Array[Double]])
+      computedResult.zip(validation).foreach{
+        case (x, y) => assert(x === y)
+      }
     }
   }
 
@@ -561,35 +542,41 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("IndexToString") {
-    val path = modelPath("idx2str")
+  describe("Word2Vec") {
+    val path = modelPath("word2vec")
+
     it("should train") {
-      val df = session.createDataFrame(Seq(
-        (0, "a"),
-        (1, "b"),
-        (2, "c"),
-        (3, "a"),
-        (4, "a"),
-        (5, "c")
-      )).toDF("id", "category")
+      val documentDF = session.createDataFrame(Seq(
+        "Hi I heard about Spark".split(" "),
+        "I wish Java could use case classes".split(" "),
+        "Logistic regression models are neat".split(" ")
+      ).map(Tuple1.apply)).toDF("text")
 
-      val indexer = new StringIndexer()
-        .setInputCol("category")
-        .setOutputCol("categoryIndex")
-        .fit(df)
+      // Learn a mapping from words to Vectors.
+      val word2Vec = new Word2Vec()
+        .setInputCol("text")
+        .setOutputCol("result")
+        .setVectorSize(3)
+        .setMinCount(0)
+      val pipeline = new Pipeline().setStages(Array(word2Vec))
 
-      val converter = new IndexToString()
-        .setInputCol("categoryIndex")
-        .setOutputCol("originalCategory")
+      val model = pipeline.fit(documentDF)
 
-      val pipeline = new Pipeline().setStages(Array(indexer, converter))
-
-      val model = pipeline.fit(df)
-
-      model.write.overwrite().save("models/index")
+      model.write.overwrite().save(path)
     }
-    it("should load") {pending}
-    it("should transform") {pending}
+
+    it("should load") {
+      PipelineLoader.load(path)
+    }
+
+    it("should transform") {
+      val model = PipelineLoader.load(path)
+      val validation = Array(-0.0024180402979254723, -0.016408352181315422, 0.017868943512439728)
+      val localData = createInputData("text", "You know the rules and so do I".split(" ").toList)
+      val result = model.transform(localData)
+      val resultList = result.column("result").get.data.map(_.asInstanceOf[Array[Double]])
+      compareArrDoubles(validation, resultList.head)
+    }
   }
 
   override def beforeAll {

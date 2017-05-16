@@ -2,6 +2,7 @@ package io.hydrosphere.mist.api.ml.preprocessors
 
 import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.feature.Word2VecModel
+import org.apache.spark.ml.linalg.{DenseVector, Vectors}
 import org.apache.spark.mllib.feature.{Word2VecModel => OldWord2VecModel}
 
 class LocalWord2VecModel(override val sparkTransformer: Word2VecModel) extends LocalTransformer[Word2VecModel] {
@@ -11,10 +12,37 @@ class LocalWord2VecModel(override val sparkTransformer: Word2VecModel) extends L
     field.get(sparkTransformer).asInstanceOf[OldWord2VecModel]
   }
 
-  override def transform(localData: LocalData): LocalData = { // FIXME ?ML transform or old one?
+  private def axpy(a: Double, x: Array[Double], y: Array[Double]) = {
+    y.zipWithIndex.foreach {
+      case (value, index) =>
+        y.update(index, x(index)*a + value)
+    }
+  }
+
+  private def scal(a: Double, v: Array[Double]) = {
+    v.zipWithIndex.foreach{
+      case (value, index) =>
+        v.update(index, value * a)
+    }
+  }
+
+  override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
-        val data = column.data.map(x => parent.transform(x.asInstanceOf[String]))
+        val data = if (column.data.isEmpty) {
+          List(Array.fill(sparkTransformer.getVectorSize){0.0})
+        } else {
+          val vectors = parent.getVectors
+            .mapValues(v => Vectors.dense(v.map(_.toDouble)))
+          val sum = Array.fill(sparkTransformer.getVectorSize){0.0}
+          column.data.map(_.asInstanceOf[String]).foreach { word =>
+            vectors.get(word).foreach { vec =>
+              axpy(1.0, vec.toDense.values, sum)
+            }
+          }
+          scal(1.0 / column.data.length, sum)
+          List(sum)
+        }
         val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, data)
         localData.withColumn(newColumn)
       case None => localData
