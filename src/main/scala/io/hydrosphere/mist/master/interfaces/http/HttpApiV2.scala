@@ -17,6 +17,7 @@ import scala.language.postfixOps
   *
   * jobs:
   *   - list available endpoints: GET /v2/api/jobs/endpoints
+  *   - endpoint history: GET /v2/api/jobs/endpoints/{id}/history
   *
   *   - run job: POST /v2/api/jobs/{endpoint-id}
   *     POST DATA: jobs args as map { "arg-name": "arg-value", ...}
@@ -89,6 +90,11 @@ class HttpApiV2(master: MasterService) {
       get { complete {
         master.listRoutesInfo().map(HttpJobInfoV2.convert)
       }}
+    } ~
+    path(root / "jobs" / "endpoints"/ Segment / "history") { endpointId =>
+      get {
+        complete(master.endpointHistory(endpointId))
+      }
     } ~
     path(root / "workers") {
       get { complete(master.workers()) }

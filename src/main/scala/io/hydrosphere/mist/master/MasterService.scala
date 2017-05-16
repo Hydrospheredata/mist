@@ -37,6 +37,11 @@ class MasterService(
     f.mapTo[Option[JobDetails]]
   }
 
+  def endpointHistory(id: String): Future[Seq[JobDetails]] = {
+    val f = statusService ? StatusMessages.GetEndpointHistory(id)
+    f.mapTo[Seq[JobDetails]]
+  }
+
   def jobStatusByExternalId(id: String): Future[Option[JobDetails]] = {
     val f = statusService ? StatusMessages.GetByExternalId(id)
     f.mapTo[Option[JobDetails]]

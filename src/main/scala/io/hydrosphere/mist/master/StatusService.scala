@@ -41,6 +41,9 @@ class StatusService(
 
     case GetByExternalId(id) =>
       store.getByExternalId(id) pipeTo sender()
+
+    case GetEndpointHistory(id) =>
+      store.getByEndpointId(id) pipeTo sender()
   }
 
   private def handleUpdateStatus(e: UpdateStatusEvent): Unit = {

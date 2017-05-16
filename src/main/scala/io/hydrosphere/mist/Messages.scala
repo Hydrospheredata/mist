@@ -95,6 +95,7 @@ object Messages {
 
     // return full job details
     case object RunningJobs
+    case class GetEndpointHistory(id: String)
     case class GetById(id: String)
     case class GetByExternalId(id: String)
 
