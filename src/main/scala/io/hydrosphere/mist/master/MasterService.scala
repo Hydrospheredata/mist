@@ -67,7 +67,9 @@ class MasterService(
     Future.successful(id)
   }
 
-  def listRoutesInfo(): Seq[JobInfo] = jobEndpoints.listInfos()
+  def endpointInfo(id: String): Option[JobInfo] = jobEndpoints.getInfo(id)
+
+  def listEndpoints(): Seq[JobInfo] = jobEndpoints.listInfos()
 
   def routeDefinitions(): Seq[JobDefinition] = jobEndpoints.listDefinition()
 
