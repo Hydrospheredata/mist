@@ -11,18 +11,34 @@ trait CorsDirective {
 
   import Directives._
   import StatusCodes._
+  import scala.concurrent.ExecutionContext.Implicits.global
 
-  val defaultHeaders = Seq(
+  private val defaultHeaders = Seq(
     `Access-Control-Allow-Origin`.*,
     `Access-Control-Allow-Methods`(Seq(GET, POST, PUT, DELETE, HEAD, OPTIONS))
   )
+
+
+  // old akka-http doesn't have build-in rejection response mapping method
+  private val rejectionsHandler = new RejectionHandler {
+
+    val original = RejectionHandler.default
+
+    override def apply(rejections: Seq[Rejection]): Option[Route] = {
+      original(rejections).map(route => route.andThen(_.map({
+        case c @ RouteResult.Complete(r) =>
+          RouteResult.Complete(r.withHeaders(defaultHeaders))
+        case x => x
+      })))
+    }
+  }
 
   def cors(): Directive0 = extractRequest.flatMap(request => {
     val headers = corsHeaders(request)
     if (request.method == OPTIONS) {
       respondWithHeaders(headers) & complete(OK, "Preflight response")
     } else {
-      respondWithHeaders(headers) & pass
+      handleRejections(rejectionsHandler) & respondWithHeaders(headers) & pass
     }
   })
 

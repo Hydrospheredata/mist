@@ -132,6 +132,10 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(table.result)
 
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
+
+  override def getByEndpointId(id: String): Future[Seq[JobDetails]] = {
+    run(table.filter(_.endpoint === id).result)
+  }
 }
 
 object H2JobsRepository {

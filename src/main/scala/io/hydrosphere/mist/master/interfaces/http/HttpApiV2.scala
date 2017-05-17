@@ -1,57 +1,39 @@
 package io.hydrosphere.mist.master.interfaces.http
 
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.Directives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
+import io.hydrosphere.mist.master.models.{JobStartResponse, JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.language.postfixOps
 
 /**
   * New http api
   *
-  * jobs:
-  *   - list available endpoints: GET /v2/api/jobs/endpoints
+  * endpoint list          - GET /v2/api/endpoints
   *
-  *   - run job: POST /v2/api/jobs/{endpoint-id}
-  *     POST DATA: jobs args as map { "arg-name": "arg-value", ...}
-  *     returns `{"id": "$job-run-id"}`
+  * endpoint               - GET /v2/api/endpoints/{id}
   *
-  *     query params(not required, experimental, NOT FOR UI):
+  * start job              - POST /v2/api/endpoints/{id}
+  *                          POST DATA: jobs args as map { "arg-name": "arg-value", ...}
   *
-  *       - externalId: additional job id
+  * endpoint's job history - GET /v2/api/endpoints/{id}/jobs
   *
-  *       - context: set not default `namespace`/`spark context`
+  * job info by id         - GET /v2/api/jobs/{id}
   *
-  *       - mode: how to run worker for that job:
-  *         - default: one worker for all job in namespace/sparkcontext
-  *         - uniqContext: one worker per job
+  * list workers           - GET /v2/api/workers
   *
-  *       - uniqWorkerId: if mode id `uniqContext` worker has that marker in id
-  *
-  *   - job execution status: GET /v2/api/jobs/status/{job-run-id} - returns one object
-  *
-  *      by external-id(NOT FOR UI) - GET /v2/api/jobs/status/{external-id}?isExternal=true
-  *        returns list of job details (there is no guarantee that externalId is unique for all jobs)
-  *
-  *
-  * workers:
-  *   list workers - GET - /v2/api/workers
-  *   stop worker - DELETE - /v2/api/workers/{id} (output should be changed)
+  * stop worker            - DELETE /v2/api/workers/{id} (output should be changed)
   *
   */
 class HttpApiV2(master: MasterService) {
 
-  import HttpApiV2._
   import Directives._
-  import StatusCodes._
+  import HttpApiV2._
   import JsonCodecs._
-  import akka.http.scaladsl.server.directives.ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.server._
 
   private val root = "v2" / "api"
@@ -63,39 +45,59 @@ class HttpApiV2(master: MasterService) {
       'uniqWorkerId ?
     ).as(JobRunQueryParams)
 
+  private val completeOpt = rejectEmptyResponse & complete _
+
   val route: Route = CorsDirective.cors() {
-    path(root / "jobs" / Segment) { routeId: String =>
-      post( postJobQuery { query =>
-          entity(as[JobParameters]) { params =>
-            val runReq = buildStartRequest(routeId, query, params)
-            val response = master.runJob(runReq, Source.Http)
-            complete(response)
-          }
-      })
+    path( root / "endpoints" ) {
+      get { complete {
+        master.listEndpoints().map(HttpEndpointInfoV2.convert)
+      }}
     } ~
-    path(root / "jobs" / "status" / Segment) { jobId: String =>
-      get( parameter('isExternal.as[Boolean] ? false) { isExternalId =>
-        rejectEmptyResponse {
-          complete {
-            if (isExternalId)
-              master.jobStatusByExternalId(jobId)
-           else
-              master.jobStatusById(jobId)
-          }
+    path( root / "endpoints" / Segment ) { endpointId =>
+      get { completeOpt {
+        master.endpointInfo(endpointId).map(HttpEndpointInfoV2.convert)
+      }}
+    } ~
+    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+      get { complete {
+        master.endpointHistory(endpointId)
+      }}
+    } ~
+    path( root / "endpoints" / Segment ) { endpointId =>
+      post( postJobQuery { query =>
+        entity(as[JobParameters]) { params =>
+          completeOpt { runJob(endpointId, query, params) }
         }
       })
     } ~
-    path(root / "jobs" / "endpoints" ) {
-      get { complete {
-        master.listRoutesInfo().map(HttpJobInfoV2.convert)
+    path( root / "jobs" / Segment ) { jobId =>
+      get { completeOpt {
+        master.jobStatusById(jobId)
       }}
     } ~
-    path(root / "workers") {
+    path( root / "workers" ) {
       get { complete(master.workers()) }
     } ~
-    path(root / "workers" / Segment) { workerId =>
+    path( root / "workers" / Segment ) { workerId =>
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
     }
+  }
+
+  private def runJob(
+    endpointId: String,
+    queryParams: JobRunQueryParams,
+    params: JobParameters): Future[Option[JobStartResponse]] = {
+
+    import cats.implicits._
+    import cats.data._
+
+    val out = for {
+      ep <- OptionT.fromOption[Future](master.endpointInfo(endpointId))
+      request = buildStartRequest(ep.definition.name, queryParams, params)
+      resp <- OptionT.liftF(master.runJob(request, Source.Http))
+    } yield resp
+
+    out.value
   }
 
   private def buildStartRequest(

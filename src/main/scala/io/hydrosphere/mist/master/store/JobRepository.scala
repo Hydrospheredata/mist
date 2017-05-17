@@ -12,6 +12,8 @@ trait JobRepository {
 
   def getByExternalId(id: String): Future[Seq[JobDetails]]
 
+  def getByEndpointId(id: String): Future[Seq[JobDetails]]
+
   def update(jobDetails: JobDetails): Future[Unit]
 
   def filteredByStatuses(statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]

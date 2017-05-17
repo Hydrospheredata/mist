@@ -61,7 +61,7 @@ object HttpJobArg {
 }
 
 
-case class HttpJobInfoV2(
+case class HttpEndpointInfoV2(
   name: String,
   lang: String,
   execute: Option[Map[String, HttpJobArg]] = None,
@@ -71,7 +71,7 @@ case class HttpJobInfoV2(
   tags: Seq[String] = Seq.empty
 )
 
-object HttpJobInfoV2 {
+object HttpEndpointInfoV2 {
 
   val PyLang = "python"
   val ScalaLang = "scala"
@@ -92,13 +92,13 @@ object HttpJobInfoV2 {
     TagTrait(classOf[MLMistJob], "ml")
   )
 
-  def convert(info: JobInfo): HttpJobInfoV2 = info match {
-    case py: PyJobInfo => HttpJobInfoV2(name = py.definition.name, lang = PyLang)
+  def convert(info: JobInfo): HttpEndpointInfoV2 = info match {
+    case py: PyJobInfo => HttpEndpointInfoV2(name = py.definition.name, lang = PyLang)
     case jvm: JvmJobInfo =>
       val inst = jvm.jobClass
       val classes = inst.supportedClasses()
       val tags = AllTags.filter(tag => classes.contains(tag.clazz)).map(_.name)
-      HttpJobInfoV2(
+      HttpEndpointInfoV2(
         name = jvm.definition.name,
         lang = ScalaLang,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),

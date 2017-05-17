@@ -107,7 +107,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
       JobDefinition("scalajob", "path_to_jar.jar", "ScalaJob", "namespace"),
       JobsLoader.Common.loadJobClass(testJobClass.getClass.getCanonicalName).get
     )
-    when(master.listRoutesInfo()).thenReturn(Seq(pyInfo, jvmInfo))
+    when(master.listEndpoints()).thenReturn(Seq(pyInfo, jvmInfo))
 
     Get("/internal/routers") ~> api ~> check {
       status === StatusCodes.OK
