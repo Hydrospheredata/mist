@@ -11,11 +11,13 @@ trait CorsDirective {
 
   import Directives._
   import StatusCodes._
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   private val defaultHeaders = Seq(
     `Access-Control-Allow-Origin`.*,
     `Access-Control-Allow-Methods`(Seq(GET, POST, PUT, DELETE, HEAD, OPTIONS))
   )
+
 
   // old akka-http doesn't have build-in rejection response mapping method
   private val rejectionsHandler = new RejectionHandler {
