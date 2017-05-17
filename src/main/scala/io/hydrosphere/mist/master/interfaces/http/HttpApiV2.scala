@@ -1,6 +1,8 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.Directives
+import akka.stream.scaladsl.Flow
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.models.{JobStartResponse, JobStartRequest, RunMode, RunSettings}
@@ -29,7 +31,10 @@ import scala.language.postfixOps
   * stop worker            - DELETE /v2/api/workers/{id} (output should be changed)
   *
   */
-class HttpApiV2(master: MasterService) {
+class HttpApiV2(
+  master: MasterService,
+  jobEventsStreamer: JobEventsStreamer
+) {
 
   import Directives._
   import HttpApiV2._
@@ -80,7 +85,20 @@ class HttpApiV2(master: MasterService) {
     } ~
     path( root / "workers" / Segment ) { workerId =>
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
+    } ~
+    path( root / "ws") {
+      handleWebsocketMessages(wsFlow())
     }
+  }
+
+  private def wsFlow(): Flow[Message, Message, Any] = {
+    import spray.json._
+    import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+
+    Flow[Message].collect {
+      case TextMessage.Strict(msg) => msg
+    }.via(jobEventsStreamer.eventsFlow())
+      .map(event => TextMessage.Strict(event.toJson.toString()))
   }
 
   private def runJob(

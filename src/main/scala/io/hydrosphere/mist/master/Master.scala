@@ -4,11 +4,12 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import interfaces.async._
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
-import io.hydrosphere.mist.master.interfaces.http.{WsEventPublisher, HttpApi, HttpApiV2, HttpUi}
+import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -28,7 +29,15 @@ object Master extends App with Logger {
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val eventPublishers = buildEventPublishers(system, materializer)
+    val streamer = JobEventsStreamer(system)
+    val wsPublisher = new JobEventPublisher {
+      override def notify(event: UpdateStatusEvent): Unit =
+        streamer.putEvent(event)
+
+      override def close(): Unit = {}
+    }
+
+    val eventPublishers = buildEventPublishers() :+ wsPublisher
 
     val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
     val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
@@ -54,8 +63,11 @@ object Master extends App with Logger {
     //masterService.recoverJobs()
 
     if (MistConfig.Http.isOn) {
+
+
+
       val api = new HttpApi(masterService)
-      val apiv2 = new HttpApiV2(masterService)
+      val apiv2 = new HttpApiV2(masterService, streamer)
       val http = HttpUi.route ~ api.route ~ apiv2.route
       Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
     }
@@ -92,7 +104,7 @@ object Master extends App with Logger {
       sys.exit(3)
   }
 
-  private def buildEventPublishers(sys: ActorSystem, materializer: ActorMaterializer): Seq[JobEventPublisher] = {
+  private def buildEventPublishers(): Seq[JobEventPublisher] = {
     val buffer = new ArrayBuffer[JobEventPublisher](3)
     if (MistConfig.Kafka.isOn) {
       import MistConfig.Kafka._
@@ -102,8 +114,6 @@ object Master extends App with Logger {
       import MistConfig.Mqtt._
       buffer += JobEventPublisher.forMqtt(host, port, publishTopic)
     }
-
-    buffer += WsEventPublisher.blabla(materializer)
 
     buffer
   }
