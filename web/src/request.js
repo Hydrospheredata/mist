@@ -1,30 +1,30 @@
 function MistRequest() {
   this.routers = function(callback) {
-    __request("GET", location.origin + "/internal/routers", {}, callback);
+    __request("GET", "../internal/routers", {}, callback);
   };
 
   this.runRouter = function(name, mode, params, callback) {
-    __request("POST", location.origin + "/api/" + name + mode, params || "{}", callback);
+    __request("POST", "../api/" + name + mode, params || "{}", callback);
   };
 
   this.jobs = function(callback) {
-    __request("GET", location.origin + "/internal/jobs", {}, callback);
+    __request("GET", "../internal/jobs", {}, callback);
   };
 
   this.killJob = function(id, namespace, callback) {
-    __request("DELETE", location.origin + "/internal/jobs/" + namespace + "/"+ id, {}, callback);
+    __request("DELETE", "../internal/jobs/" + namespace + "/"+ id, {}, callback);
   };
 
   this.workers = function(callback) {
-    __request("GET", location.origin + "/internal/workers", {}, callback);
+    __request("GET", "../internal/workers", {}, callback);
   };
 
   this.killWorker = function(namespase, callback) {
-    __request("DELETE", location.origin + "/internal/workers/" + namespase, {}, callback);
+    __request("DELETE", "../internal/workers/" + namespase, {}, callback);
   };
 
   this.killWorkers = function(callback) {
-    __request("DELETE", location.origin + "/internal/workers", {}, callback);
+    __request("DELETE", "../internal/workers", {}, callback);
   };
 
   function __request(verb, path, body, callback) {
