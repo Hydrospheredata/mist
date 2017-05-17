@@ -4,7 +4,7 @@ import java.lang.reflect.InvocationTargetException
 
 import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.feature.VectorIndexerModel
-import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
+import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector, Vectors}
 
 class LocalVectorIndexerModel(override val sparkTransformer: VectorIndexerModel) extends LocalTransformer[VectorIndexerModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -47,9 +47,8 @@ class LocalVectorIndexerModel(override val sparkTransformer: VectorIndexerModel)
     }
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
-        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, column.data map { data =>
-          val vec = data.asInstanceOf[Vector]
-          transformFunc(vec)
+        val newColumn = LocalDataColumn(sparkTransformer.getOutputCol, column.data.map(f => Vectors.dense(f.asInstanceOf[Array[Double]])) map { data =>
+          transformFunc(data).toDense.values
         })
         localData.withColumn(newColumn)
       case None => localData

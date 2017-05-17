@@ -1,14 +1,13 @@
 package io.hydrosphere.mist.api.ml
 
-import java.util.logging.LogManager
-
-import org.apache.log4j.BasicConfigurator
 import org.apache.spark.SparkConf
-import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.ml.classification.NaiveBayes
-import org.apache.spark.ml.feature.{MaxAbsScaler, _}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification._
+import org.apache.spark.ml.feature._
+import org.apache.spark.ml.regression._
+import org.apache.spark.ml.clustering._
 import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.mllib.linalg.{DenseVector => OldDenseVector, SparseVector => OldSparseVector}
+import org.apache.spark.mllib.linalg.{DenseVector => OldDenseVector}
 import org.apache.spark.ml.linalg.{DenseVector, SparseVector}
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{Assertion, BeforeAndAfterAll, FunSpec}
@@ -576,6 +575,248 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val result = model.transform(localData)
       val resultList = result.column("result").get.data.map(_.asInstanceOf[Array[Double]])
       compareArrDoubles(validation, resultList.head)
+    }
+  }
+
+  describe("StringIndexer -> VectorIndexer -> DecisionTreeClassification -> IndexToString") {
+    val path = modelPath("dtreeclassifier")
+
+    it("should train") {
+      val data = session.createDataFrame(Seq(
+        (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
+        (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),
+        (Vectors.dense(2.0, 0.5, 3.2, 4.0, 5.0), 1.0),
+        (Vectors.dense(5.0, 0.7, 1.5, 4.0, 5.0), 1.0),
+        (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
+        (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
+      )).toDF("features", "label")
+      val Array(training, _) = data.randomSplit(Array(0.7, 0.3))
+      val labelIndexer = new StringIndexer()
+        .setInputCol("label")
+        .setOutputCol("indexedLabel")
+        .fit(data)
+      val featureIndexer = new VectorIndexer()
+        .setInputCol("features")
+        .setOutputCol("indexedFeatures")
+        .setMaxCategories(4)// features with > 4 distinct values are treated as continuous.
+        .fit(data)
+      val dt = new DecisionTreeClassifier()
+        .setLabelCol("indexedLabel")
+        .setFeaturesCol("indexedFeatures")
+      val labelConverter = new IndexToString()
+        .setInputCol("prediction")
+        .setOutputCol("predictedLabel")
+        .setLabels(labelIndexer.labels)
+      val pipeline = new Pipeline()
+        .setStages(Array(labelIndexer, featureIndexer, dt, labelConverter))
+      val model = pipeline.fit(training)
+      model.write.overwrite().save(path)
+    }
+
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("features", List(
+        Array(1.0, 2.0, 3.0, 4.0, 5.0),
+        Array(8.0, 0.0, 5.0, 1.0, 7.0)
+      ))
+      val result = model.transform(localData)
+      val resLabels = result.column("predictedLabel").get.data.map(_.asInstanceOf[String])
+      assert(resLabels === "1.0" :: "0.0" :: Nil)
+    }
+  }
+
+  describe("VectorIndexer -> DecisionTreeRegression") {
+    val path = modelPath("dtreeregressor")
+
+    it("should train") {
+      val data = session.createDataFrame(Seq(
+        (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
+        (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),
+        (Vectors.dense(2.0, 0.5, 3.2, 4.0, 5.0), 1.0),
+        (Vectors.dense(5.0, 0.7, 1.5, 4.0, 5.0), 1.0),
+        (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
+        (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
+      )).toDF("features", "label")
+      val featureIndexer = new VectorIndexer().setInputCol("features").setOutputCol("indexedFeatures").setMaxCategories(4).fit(data)
+      // Train a DecisionTree model.
+      val dt = new DecisionTreeRegressor().setLabelCol("label").setFeaturesCol("indexedFeatures")
+      // Chain indexers and tree in a Pipeline.
+      val pipeline = new Pipeline().setStages(Array(featureIndexer, dt))
+      // Train model. This also runs the indexers.
+      val model = pipeline.fit(data)
+      model.write.overwrite().save(path)
+    }
+
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("features", List(
+        Array(1.0, 2.0, 3.0, 4.0, 5.0),
+        Array(8.0, 0.0, 5.0, 1.0, 7.0)
+      ))
+      val result = model.transform(localData)
+      val resLabels = result.column("prediction").get.data.map(_.asInstanceOf[Double])
+      assert(resLabels === List(1.0, 0.0))
+    }
+  }
+
+  describe("StringIndexer -> VectorIndexer -> RandomForestClassification -> IndexToString") {
+    val path = modelPath("rforestclassifier")
+
+    it("should train") {
+      val data = session.createDataFrame(Seq(
+        (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
+        (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),
+        (Vectors.dense(2.0, 0.5, 3.2, 4.0, 5.0), 1.0),
+        (Vectors.dense(5.0, 0.7, 1.5, 4.0, 5.0), 1.0),
+        (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
+        (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
+      )).toDF("features", "label")
+
+      val labelIndexer = new StringIndexer().setInputCol("label").setOutputCol("indexedLabel").fit(data)
+      val featureIndexer = new VectorIndexer().setInputCol("features").setOutputCol("indexedFeatures").setMaxCategories(4).fit(data)
+      val rf = new RandomForestClassifier().setLabelCol("indexedLabel").setFeaturesCol("indexedFeatures").setNumTrees(10)
+      val labelConverter = new IndexToString().setInputCol("prediction").setOutputCol("predictedLabel").setLabels(labelIndexer.labels)
+      val pipeline = new Pipeline().setStages(Array(labelIndexer, featureIndexer, rf, labelConverter))
+      val model = pipeline.fit(data)
+      model.write.overwrite().save(path)
+    }
+
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("features", List(
+        Array(1.0, 2.0, 3.0, 4.0, 5.0),
+        Array(8.0, 0.0, 5.0, 1.0, 7.0)
+      ))
+      val result = model.transform(localData)
+      val resLabels = result.column("predictedLabel").get.data.map(_.asInstanceOf[String])
+      assert(resLabels === "1.0" :: "0.0" :: Nil)
+    }
+  }
+
+  describe("VectorIndexer -> RandomForestRegression") {
+    val path = modelPath("rforestregression")
+
+    it("should train") {
+      val data = session.createDataFrame(Seq(
+        (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
+        (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),
+        (Vectors.dense(2.0, 0.5, 3.2, 4.0, 5.0), 1.0),
+        (Vectors.dense(5.0, 0.7, 1.5, 4.0, 5.0), 1.0),
+        (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
+        (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
+      )).toDF("features", "label")
+
+      val featureIndexer = new VectorIndexer().setInputCol("features").setOutputCol("indexedFeatures").setMaxCategories(4).fit(data)
+      val rf = new RandomForestRegressor().setLabelCol("label").setFeaturesCol("indexedFeatures")
+      val pipeline = new Pipeline().setStages(Array(featureIndexer, rf))
+      val model = pipeline.fit(data)
+      model.write.overwrite().save(path)
+    }
+
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("features", List(
+        Array(4.0, 0.2, 3.0, 4.0, 5.0),
+        Array(3.0, 0.3, 1.0, 4.1, 5.0),
+        Array(2.0, 0.5, 3.2, 4.0, 5.0),
+        Array(5.0, 0.7, 1.5, 4.0, 5.0),
+        Array(1.0, 0.1, 7.0, 4.0, 5.0),
+        Array(8.0, 0.3, 5.0, 1.0, 7.0)
+      ))
+      val result = model.transform(localData)
+      val resLabels = result.column("prediction").get.data.map(_.asInstanceOf[Double]).map(_ > 0.5)
+      val refs = List(true, true, true, true, false, false)
+      assert(resLabels === refs)
+    }
+  }
+
+  describe("LogisticRegression") {
+    val path = modelPath("logisticregression")
+
+    it("should train") {
+      val training = session.createDataFrame(Seq(
+        (0L, "a b c d e spark", 1.0),
+        (1L, "b d", 0.0),
+        (2L, "spark f g h", 1.0),
+        (3L, "hadoop mapreduce", 0.0)
+      )).toDF("id", "text", "label")
+      val tokenizer = new Tokenizer().setInputCol("text").setOutputCol("words")
+      val hashingTF = new HashingTF().setNumFeatures(1000).setInputCol(tokenizer.getOutputCol).setOutputCol("features")
+      val lr = new LogisticRegression().setMaxIter(10).setRegParam(0.01)
+      val pipeline = new Pipeline().setStages(Array(tokenizer, hashingTF, lr))
+      val model = pipeline.fit(training)
+      model.write.overwrite().save(path)
+    }
+
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("text", List(
+        "a b c d e spark",
+        "b d",
+        "spark f g h",
+        "hadoop mapreduce"
+      ))
+      val result = model.transform(localData)
+      assert(result.column("prediction").get.data === List(1.0, 0.0, 1.0, 0.0))
+    }
+  }
+
+  describe("KMeans") {
+    val path = modelPath("kmeans")
+
+    it("should train") {
+      val data = session.createDataFrame(Seq(
+        (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
+        (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),
+        (Vectors.dense(2.0, 0.5, 3.2, 4.0, 5.0), 1.0),
+        (Vectors.dense(5.0, 0.7, 1.5, 4.0, 5.0), 1.0),
+        (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
+        (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
+      )).toDF("features", "label")
+      val kmeans = new KMeans().setK(2).setSeed(1L)
+      val pipeline = new Pipeline().setStages(Array(kmeans))
+      val model = pipeline.fit(data)
+      model.write.overwrite().save(path)
+    }
+    it("should load") {
+      val model = PipelineLoader.load(path)
+    }
+    it("should transforn") {
+      val model = PipelineLoader.load(path)
+      val localData = createInputData("features", List(
+        Array(4.0, 0.2, 3.0, 4.0, 5.0),
+        Array(3.0, 0.3, 1.0, 4.1, 5.0),
+        Array(2.0, 0.5, 3.2, 4.0, 5.0),
+        Array(5.0, 0.7, 1.5, 4.0, 5.0),
+        Array(1.0, 0.1, 7.0, 4.0, 5.0),
+        Array(8.0, 0.3, 5.0, 1.0, 7.0)
+      ))
+      val result = model.transform(localData)
+      val res = result.column("prediction").get.data.map(_.asInstanceOf[Int])
+      val ref = List(0,0,0,0,1,0)
+      res.zip(ref).foreach{
+        case (resIdx, refIdx) => assert(resIdx === refIdx)
+      }
     }
   }
 
