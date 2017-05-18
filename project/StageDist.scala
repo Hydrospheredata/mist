@@ -34,7 +34,7 @@ object StageDist {
 
 object StageDistKeys {
   lazy val stageDirectory = taskKey[File]("Target directory")
-  lazy val stageActions = taskKey[Seq[StageAction]]("XX")
+  lazy val stageActions = taskKey[Seq[StageAction]]("Actiions to build stage")
   lazy val stageBuild = taskKey[File]("Build stage distributive")
   lazy val stageClean = taskKey[Unit]("Clean stage directory")
 
@@ -68,7 +68,7 @@ object StageDistSettings {
       val dir = stageBuild.value
       val name = dir.getName
       val out = s"$name.tar.gz"
-      
+
       val ps = Process(Seq("tar", "cvfz", out, name), Some(dir.getParentFile))
       ps.!
       file(out)
