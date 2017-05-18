@@ -746,7 +746,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     }
   }
 
-  describe("LogisticRegression") {
+  describe("Tokenizer -> HashingTF -> LogisticRegression") {
     val path = modelPath("logisticregression")
 
     it("should train") {
