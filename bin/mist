@@ -150,8 +150,8 @@ if [ "${jar_file}" == '' ]
 then
     MAX_VERSION=0
     MAX_VERSION_FILE=""
-    if [ -f ${MIST_HOME}/mist-assembly.jar ]; then
-      jar_file=${MIST_HOME}/mist-assembly.jar
+    if [ -f ${MIST_HOME}/mist.jar ]; then
+      jar_file=${MIST_HOME}/mist.jar
     else
       for jar in `find ${MIST_HOME}/target/scala-* -path "${MIST_HOME}/target/scala-*/mist-assembly-*"`
       do

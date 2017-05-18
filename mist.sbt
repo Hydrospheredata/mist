@@ -153,7 +153,7 @@ lazy val mist = project.in(file("."))
         StageDist.CopyFile("configs/default.conf").to("configs"),
         routes,
         StageDist.CopyFile("examples-python"),
-        StageDist.CopyFile(assembly.value),
+        StageDist.CopyFile(assembly.value).as("mist.jar"),
         StageDist.CopyFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
       )
 
