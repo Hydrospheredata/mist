@@ -38,6 +38,7 @@ object StageDistKeys {
   lazy val stageBuild = taskKey[File]("Build stage distributive")
   lazy val stageClean = taskKey[Unit]("Clean stage directory")
 
+  lazy val packageTar = taskKey[File]("Package stage to zip")
 }
 
 object StageDistSettings {
@@ -60,6 +61,17 @@ object StageDistSettings {
     },
     stageClean := {
       IO.delete(stageDirectory.value)
+    },
+    packageTar := {
+      import scala.sys.process._
+
+      val dir = stageBuild.value
+      val name = dir.getName
+      val out = s"$name.tar.gz"
+      
+      val ps = Process(Seq("tar", "cvfz", out, name), Some(dir.getParentFile))
+      ps.!
+      file(out)
     }
   )
 

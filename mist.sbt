@@ -199,15 +199,11 @@ lazy val mistRunSettings = Seq(
     }
     sparkDir
   },
+
   mistRun := {
     val log = streams.value.log
-    val jar = outputPath.in(Compile, assembly).value
-
-    val version = sparkVersion.value
     val sparkHome = sparkLocal.value.getAbsolutePath
-    val extraEnv = Seq(
-      "SPARK_HOME" -> sparkHome
-    )
+    val extraEnv = Seq("SPARK_HOME" -> sparkHome)
     val home = StageDistKeys.stageBuild.value
 
     val args = Seq("bin/mist", "start", "master")
@@ -215,10 +211,7 @@ lazy val mistRunSettings = Seq(
     log.info(s"Running mist $ps with env $extraEnv")
 
     ps.!<(StdOutLogger)
-  },
-  //assembly mist and package examples before run
-  mistRun <<= mistRun.dependsOn(assembly),
-  mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
+  }
 )
 
 lazy val dockerSettings = Seq(
@@ -226,25 +219,9 @@ lazy val dockerSettings = Seq(
     ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
   ),
   dockerfile in docker := {
-    val artifact = assembly.value
-    val examples = packageBin.in(currentExamples, Compile).value
     val localSpark = sparkLocal.value
-
     val mistHome = "/usr/share/mist"
-
-    val sparkMajor = sparkVersion.value.split('.').head
-
-    val routerConfig = s"configs/router-examples-spark$sparkMajor.conf"
-    val replacedPaths = scala.io.Source.fromFile(routerConfig).getLines()
-      .map(s => {
-        if (s.startsWith("jar_path"))
-          s"""jar_path = "$mistHome/${examples.name}""""
-        else
-          s
-      }).mkString("\n")
-
-    val dockerRoutes = file("./target/docker_routes.conf")
-    IO.write(dockerRoutes, replacedPaths.getBytes)
+    val distr = StageDistKeys.stageBuild.value
 
     new Dockerfile {
       from("anapsix/alpine-java:8")
@@ -253,19 +230,7 @@ lazy val dockerSettings = Seq(
       env("MIST_HOME", mistHome)
 
       copy(localSpark, "/usr/share/spark")
-
-      run("mkdir", "-p", s"$mistHome")
-      run("mkdir", "-p", s"$mistHome/configs")
-
-      copy(file("bin"), s"$mistHome/bin")
-
-      copy(file("configs/docker.conf"), s"$mistHome/configs/docker.conf")
-      copy(dockerRoutes, s"$mistHome/configs/router-examples.conf")
-
-      add(artifact, s"$mistHome/mist-assembly.jar")
-      add(examples, s"$mistHome/${examples.name}")
-
-      copy(file("examples-python"), mistHome + "/examples-python")
+      copy(distr, mistHome)
 
       copy(file("docker-entrypoint.sh"), "/")
       run("chmod", "+x", "/docker-entrypoint.sh")
