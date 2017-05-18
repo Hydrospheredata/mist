@@ -590,7 +590,6 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
         (Vectors.dense(1.0, 0.1, 7.0, 4.0, 5.0), 0.0),
         (Vectors.dense(8.0, 0.3, 5.0, 1.0, 7.0), 0.0)
       )).toDF("features", "label")
-      val Array(training, _) = data.randomSplit(Array(0.7, 0.3))
       val labelIndexer = new StringIndexer()
         .setInputCol("label")
         .setOutputCol("indexedLabel")
@@ -609,7 +608,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
         .setLabels(labelIndexer.labels)
       val pipeline = new Pipeline()
         .setStages(Array(labelIndexer, featureIndexer, dt, labelConverter))
-      val model = pipeline.fit(training)
+      val model = pipeline.fit(data)
       model.write.overwrite().save(path)
     }
 
@@ -617,7 +616,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val model = PipelineLoader.load(path)
     }
 
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("features", List(
         Array(1.0, 2.0, 3.0, 4.0, 5.0),
@@ -655,7 +654,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val model = PipelineLoader.load(path)
     }
 
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("features", List(
         Array(1.0, 2.0, 3.0, 4.0, 5.0),
@@ -693,7 +692,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val model = PipelineLoader.load(path)
     }
 
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("features", List(
         Array(1.0, 2.0, 3.0, 4.0, 5.0),
@@ -729,7 +728,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val model = PipelineLoader.load(path)
     }
 
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("features", List(
         Array(4.0, 0.2, 3.0, 4.0, 5.0),
@@ -768,7 +767,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
       val model = PipelineLoader.load(path)
     }
 
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("text", List(
         "a b c d e spark",
@@ -801,7 +800,7 @@ class LocalModelSpec extends FunSpec with BeforeAndAfterAll {
     it("should load") {
       val model = PipelineLoader.load(path)
     }
-    it("should transforn") {
+    it("should transform") {
       val model = PipelineLoader.load(path)
       val localData = createInputData("features", List(
         Array(4.0, 0.2, 3.0, 4.0, 5.0),
