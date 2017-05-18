@@ -15,7 +15,7 @@ lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
-lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.6.2")
+lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.5.2")
 
 lazy val mistScalaCrossCompile = currentSparkVersion match {
   case versionRegex("1", minor) => Seq("2.10.6")
@@ -79,6 +79,7 @@ lazy val mist = project.in(file("."))
   .settings(Defaults.itSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
+  .settings(StageDistSettings.settings: _*)
   .settings(dockerSettings: _*)
   .settings(
     name := "mist",
@@ -135,9 +136,30 @@ lazy val mist = project.in(file("."))
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
   ).settings(
-  ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
-  ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-)
+    ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
+    ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+  ).settings(
+    StageDistKeys.stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    StageDistKeys.stageActions := {
+      val routes = {
+        val num = if (sparkVersion.value.startsWith("1.")) "1" else "2"
+        StageDist.CopyFile(s"configs/router-examples-spark$num.conf")
+          .as("router.conf")
+          .to("configs")
+      }
+      Seq(
+        StageDist.CopyFile("bin"),
+        StageDist.MkDir("configs"),
+        StageDist.CopyFile("configs/default.conf").to("configs"),
+        routes,
+        StageDist.CopyFile("examples-python"),
+        StageDist.CopyFile(assembly.value),
+        StageDist.CopyFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+      )
+
+    }
+
+  )
 
 lazy val commandAlias = currentSparkVersion match {
   case versionRegex("1", minor) => ";mist/test;mist/it:test"
@@ -186,18 +208,9 @@ lazy val mistRunSettings = Seq(
     val extraEnv = Seq(
       "SPARK_HOME" -> sparkHome
     )
-    val home = baseDirectory.value
+    val home = StageDistKeys.stageBuild.value
 
-    val config = if (version.startsWith("1."))
-      "default_spark1.conf"
-    else
-      "default_spark2.conf"
-
-    val args = Seq(
-      "bin/mist", "start", "master",
-      "--jar", jar.getAbsolutePath,
-      "--config", s"configs/$config"
-    )
+    val args = Seq("bin/mist", "start", "master")
     val ps = Process(args, Some(home), extraEnv: _*)
     log.info(s"Running mist $ps with env $extraEnv")
 
