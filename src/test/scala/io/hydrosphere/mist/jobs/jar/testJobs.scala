@@ -31,7 +31,7 @@ object ManyArgJob extends MistJob {
 
     val expected = Seq("FromDate", "ToDate", "query", 1, "Separator")
     val given = Seq(FromDate, ToDate, query, rows, Separator)
-    
+
     val isOk = expected == given
     Map("isOk" -> isOk)
   }

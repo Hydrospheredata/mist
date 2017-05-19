@@ -48,7 +48,7 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
   }
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
-    val validated: Seq[Either[Throwable, Any]] = arguments.toSeq.map({case (name, tpe) =>
+    val validated: Seq[Either[Throwable, Any]] = arguments.map({case (name, tpe) =>
       val param = params.get(name)
       validateParam(tpe, name, param)
     })
