@@ -1,10 +1,9 @@
 package io.hydrosphere.mist.api.ml.regression
 
 import io.hydrosphere.mist.api.ml._
-import org.apache.spark.ml.linalg.{SparseVector, Vector}
+import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.regression.DecisionTreeRegressionModel
 import org.apache.spark.ml.tree.Node
-import org.apache.spark.mllib.linalg.{DenseMatrix => OldDenseMatrix, DenseVector => OldDenseVector, Matrices => OldMatrices, SparseVector => SVector, Vector => OldVector, Vectors => OldVectors}
 
 class LocalDecisionTreeRegressionModel(override val sparkTransformer: DecisionTreeRegressionModel) extends LocalTransformer[DecisionTreeRegressionModel] {
   override def transform(localData: LocalData): LocalData = {
@@ -12,8 +11,7 @@ class LocalDecisionTreeRegressionModel(override val sparkTransformer: DecisionTr
       case Some(column) =>
         val method = classOf[DecisionTreeRegressionModel].getMethod("predict", classOf[Vector])
         method.setAccessible(true)
-        val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data map { feature =>
-          val vector = feature.asInstanceOf[Vector]
+        val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data.map(f => Vectors.dense(f.asInstanceOf[Array[Double]])).map { vector =>
           method.invoke(sparkTransformer, vector).asInstanceOf[Double]
         })
         localData.withColumn(newColumn)
@@ -35,8 +33,20 @@ object LocalDecisionTreeRegressionModel extends LocalModel[DecisionTreeRegressio
       DataUtils.createNode(0, metadata, data),
       metadata.numFeatures.get.asInstanceOf[java.lang.Integer]
     )
-    inst.setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
+    inst
+      .setFeaturesCol(metadata.paramMap("featuresCol").asInstanceOf[String])
       .setPredictionCol(metadata.paramMap("predictionCol").asInstanceOf[String])
+    inst
+      .set(inst.seed, metadata.paramMap("seed").toString.toLong)
+      .set(inst.cacheNodeIds, metadata.paramMap("cacheNodeIds").toString.toBoolean)
+      .set(inst.maxDepth, metadata.paramMap("maxDepth").toString.toInt)
+      .set(inst.labelCol, metadata.paramMap("labelCol").toString)
+      .set(inst.minInfoGain, metadata.paramMap("minInfoGain").toString.toDouble)
+      .set(inst.checkpointInterval, metadata.paramMap("checkpointInterval").toString.toInt)
+      .set(inst.minInstancesPerNode, metadata.paramMap("minInstancesPerNode").toString.toInt)
+      .set(inst.maxMemoryInMB, metadata.paramMap("maxMemoryInMB").toString.toInt)
+      .set(inst.maxBins, metadata.paramMap("maxBins").toString.toInt)
+      .set(inst.impurity, metadata.paramMap("impurity").toString)
   }
 
   override implicit def getTransformer(transformer: DecisionTreeRegressionModel): LocalTransformer[DecisionTreeRegressionModel] = new LocalDecisionTreeRegressionModel(transformer)

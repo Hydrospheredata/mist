@@ -1,9 +1,8 @@
 package io.hydrosphere.mist.api.ml.clustering
 
 import io.hydrosphere.mist.api.ml._
-import org.apache.spark.ml.clustering.{GaussianMixtureModel, KMeansModel}
+import org.apache.spark.ml.clustering.KMeansModel
 import org.apache.spark.mllib.clustering.{KMeansModel => OldKMeansModel}
-import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.mllib.clustering.{KMeansModel => MLlibKMeans}
 import org.apache.spark.mllib.linalg.{Vectors, Vector => MLlibVec}
 
@@ -20,8 +19,8 @@ class LocalKMeansModel(override val sparkTransformer: KMeansModel) extends Local
   override def transform(localData: LocalData): LocalData = {
     localData.column(sparkTransformer.getFeaturesCol) match {
       case Some(column) =>
-        val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data map { feature =>
-          parent.predict(Vectors.dense(feature.asInstanceOf[List[Any]].map{_.toString.toDouble}.to[Array]))
+        val newColumn = LocalDataColumn(sparkTransformer.getPredictionCol, column.data.map(f => Vectors.dense(f.asInstanceOf[Array[Double]])).map { vector =>
+          parent.predict(vector)
         })
         localData.withColumn(newColumn)
       case None => localData

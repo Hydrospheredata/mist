@@ -6,10 +6,6 @@ import org.apache.spark.ml.linalg.Vectors
 
 class LocalOneHotEncoder(override val sparkTransformer: OneHotEncoder) extends LocalTransformer[OneHotEncoder] {
   override def transform(localData: LocalData): LocalData = {
-    val oneValue = Array(1.0)
-    val emptyValues = Array.empty[Double]
-    val emptyIndices = Array.empty[Int]
-
     localData.column(sparkTransformer.getInputCol) match {
       case Some(column) =>
         val col = column.data.asInstanceOf[List[Double]]
@@ -20,11 +16,11 @@ class LocalOneHotEncoder(override val sparkTransformer: OneHotEncoder) extends L
 
         val size = col.max.toInt
         val newData = col.map(r => {
+          val res = Array.fill(size){0.0}
           if (r < size) {
-            Vectors.sparse(size, Array(r.toInt), oneValue)
-          } else {
-            Vectors.sparse(size, emptyIndices, emptyValues)
+            res.update(r.toInt, 1.0)
           }
+          res
         })
         localData.withColumn(LocalDataColumn(sparkTransformer.getOutputCol, newData))
       case None => localData
