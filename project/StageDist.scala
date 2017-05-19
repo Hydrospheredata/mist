@@ -36,7 +36,6 @@ object StageDistKeys {
   lazy val stageDirectory = taskKey[File]("Target directory")
   lazy val stageActions = taskKey[Seq[StageAction]]("Actiions to build stage")
   lazy val stageBuild = taskKey[File]("Build stage distributive")
-  lazy val stageClean = taskKey[Unit]("Clean stage directory")
 
   lazy val packageTar = taskKey[File]("Package stage to zip")
 }
@@ -50,17 +49,16 @@ object StageDistSettings {
     stageBuild := {
       val log = streams.value.log
       val dir = stageDirectory.value
-      if (!dir.exists())
-        IO.createDirectory(dir)
+      if (dir.exists())
+        IO.delete(dir)
+
+      IO.createDirectory(dir)
       stageActions.value.foreach({
         case MkDir(name) => mkDir(name, dir)
         case copy: CopyFile => copyToDir(copy, dir)
       })
       log.info(s"Stage is builded at $dir")
       dir
-    },
-    stageClean := {
-      IO.delete(stageDirectory.value)
     },
     packageTar := {
       import scala.sys.process._

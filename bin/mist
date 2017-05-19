@@ -86,6 +86,10 @@ do
       shift
       ;;
 
+    --router-config)
+      router_config="$2"
+      ;;
+
     --jar)
       jar_file="$2"
       shift
@@ -146,6 +150,8 @@ do
 shift
 done
 
+# cd $MIST_HOME
+
 if [ "${jar_file}" == '' ]
 then
     MAX_VERSION=0
@@ -172,6 +178,11 @@ then
     if [ "${config_file}" == '' ]
     then
         config_file="${MIST_HOME}/configs/default.conf"
+    fi
+
+    if [ "${router_config}" == '' ]
+    then
+      router_config="${MIST_HOME}/configs/router.conf"
     fi
 
     if [ "${config_file}" == '' ]
@@ -236,7 +247,7 @@ then
 
     if [ "${app}" == 'master' ]
     then
-        java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master
+        java -cp "$jar_file" -Dconfig.file=${config_file} ${java_arguments} io.hydrosphere.mist.master.Master ${router_config}
     fi
 
     # TODO accept params onl for declared route in config

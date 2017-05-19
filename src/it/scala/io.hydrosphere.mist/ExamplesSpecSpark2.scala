@@ -6,8 +6,6 @@ import org.scalatest.{FunSpec, Matchers}
 
 class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers {
 
-  override val configPath: String = "examples-spark2/integration.conf"
-
   val savePathDir = "./target/it-test/ml-data"
 
   if (isSpark2) {

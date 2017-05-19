@@ -125,10 +125,10 @@ lazy val mist = project.in(file("."))
     fork in(Test, test) := true,
     fork in(IntegrationTest, test) := true,
     javaOptions in(IntegrationTest, test) ++= {
-      val jar = outputPath.in(Compile, assembly).value
+      val mistHome = StageDistKeys.stageBuild.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
-        s"-DmistJar=$jar",
+        s"-DmistHome=$mistHome",
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )

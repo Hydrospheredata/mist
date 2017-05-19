@@ -1,12 +1,9 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
@@ -21,10 +18,10 @@ import scala.language.reflectiveCalls
 /** This object is entry point of Mist project */
 object Master extends App with Logger {
 
+  val jobRoutes = new JobRoutes(routerConfigPath())
+
   implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
   implicit val materializer = ActorMaterializer()
-
-  val jobRoutes = new JobRoutes(MistConfig.Http.routerConfigPath)
 
   val workerRunner = selectRunner(MistConfig.Workers.runner)
   val store = JobRepository()
@@ -97,4 +94,13 @@ object Master extends App with Logger {
 
     }
   }
+
+  private def routerConfigPath(): String = {
+    if (args.length > 0)
+      args(0)
+    else
+      "configs/router.conf"
+  }
 }
+
+

@@ -12,7 +12,8 @@ import scalaj.http.Http
 
 class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
-  override val configPath: String = "scalajobs/integration.conf"
+  override val overrideConf= Some("scalajobs/integration.conf")
+  override val overrideRouter = Some("")
 
   describe("simple context") {
     val sparkPref = sparkVersion.split('.').head

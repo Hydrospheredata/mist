@@ -12,16 +12,23 @@ trait MistRunner {
   }
 
   val sparkHome = getProperty("sparkHome")
-  val jar = getProperty("mistJar")
+  val mistHome = getProperty("mistHome")
   val sparkVersion = getProperty("sparkVersion")
 
-  def runMist(configPath: String): Process = {
+  def runMist(
+    overrideConf: Option[String],
+    overrideRouter: Option[String]
+  ): Process = {
 
-    val reallyConfigPath = getClass.getClassLoader.getResource(configPath).getPath
-    val args = Seq(
-      "./bin/mist", "start", "master",
-      "--jar", jar,
-      "--config", reallyConfigPath)
+    def fromResource(path: String): String =
+      getClass.getClassLoader.getResource(path).getPath
+
+    def optArg(key: String, value: Option[String]): Seq[String] =
+      value.map(v => Seq(key, v)).getOrElse(Seq.empty)
+
+    val configArg = optArg("--config", overrideConf.map(fromResource))
+    val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
+    val args = Seq(s"$mistHome/bin/mist", "start", "master") ++ configArg ++ routerArg
 
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
     val ps = Process(args, None, env: _*).run(new ProcessLogger {
@@ -36,7 +43,7 @@ trait MistRunner {
   }
 
   def killMist(): Unit ={
-    Process("./bin/mist stop", None, "SPARK_HOME" -> sparkHome).run(false).exitValue()
+    Process(s"$mistHome/bin/mist stop", None, "SPARK_HOME" -> sparkHome).run(false).exitValue()
   }
 }
 
@@ -44,11 +51,13 @@ object MistRunner extends MistRunner
 
 trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
-  val configPath: String
+  val overrideConf: Option[String] = None
+  val overrideRouter: Option[String] = None
+
   private var ps: Process = null
 
   override def beforeAll {
-    ps = runMist(configPath)
+    ps = runMist(overrideConf, overrideRouter)
   }
 
   override def afterAll: Unit = {
