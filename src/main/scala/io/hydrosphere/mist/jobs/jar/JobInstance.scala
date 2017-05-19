@@ -74,10 +74,10 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
     }
   }
 
-  private def arguments: Map[String, Type] =
-    method.paramss.head.map(s => s.name.toString -> s.typeSignature).toMap
+  private def arguments: Seq[(String, Type)] =
+    method.paramss.head.map(s => s.name.toString -> s.typeSignature)
 
   def argumentsTypes: Map[String, JobArgType] =
-    arguments.mapValues(JobArgType.fromType)
+    arguments.toMap.mapValues(JobArgType.fromType)
 }
 
