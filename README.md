@@ -33,7 +33,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 ![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
 - Exposing Apache Spark jobs through REST API
 - Spark **2.1.0** support! 
-- HTTP & Messaging (MQTT) API
+- HTTP & Messaging (MQTT, Kafka) API
 - Scala and **Python** Spark jobs support
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
@@ -145,7 +145,7 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK
 - [x] Realtime ML models serving/scoring
 - [x] CLI
 - [x] Web Interface
-- [ ] Apache Kafka support
+- [x] Apache Kafka support
 - [ ] Bi-directional streaming API
 - [ ] AMQP support
 
