@@ -11,8 +11,8 @@ trait MistRunner {
     case None => throw new RuntimeException(s"Property $name is not set")
   }
 
-  val sparkHome = getProperty("sparkHome")
   val mistHome = getProperty("mistHome")
+  val sparkHome = getProperty("sparkHome")
   val sparkVersion = getProperty("sparkVersion")
 
   def runMist(

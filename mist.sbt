@@ -124,7 +124,17 @@ lazy val mist = project.in(file("."))
 
     fork in(Test, test) := true,
     fork in(IntegrationTest, test) := true,
+    fork in(IntegrationTest, testOnly) := true,
     javaOptions in(IntegrationTest, test) ++= {
+      val mistHome = StageDistKeys.stageBuild.value
+      Seq(
+        s"-DsparkHome=${sparkLocal.value}",
+        s"-DmistHome=$mistHome",
+        s"-DsparkVersion=${sparkVersion.value}",
+        "-Xmx512m"
+      )
+    },
+    javaOptions in(IntegrationTest, testOnly) ++= {
       val mistHome = StageDistKeys.stageBuild.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",

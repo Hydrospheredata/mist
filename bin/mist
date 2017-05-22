@@ -150,8 +150,6 @@ do
 shift
 done
 
-# cd $MIST_HOME
-
 if [ "${jar_file}" == '' ]
 then
     MAX_VERSION=0
