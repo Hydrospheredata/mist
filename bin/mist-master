@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+export MIST_HOME="$(cd "`dirname "$0"`"/..; pwd)"
+JAVA=$(which java)
+
+ASSEMBLY_JAR=$MIST_HOME/mist.jar
+
+CONFIG_FILE=$MIST_HOME/configs/default.conf
+ROUTER_CONFIG=$MIST_HOME/configs/router.conf
+PID_FILE=$MIST_HOME/mist.pid
+DEBUG="false"
+
+CMD=$1
+shift
+
+while [[ $# > 1 ]]
+do
+  key="$1"
+  case ${key} in
+    --config)
+      CONFIG_FILE="$2"
+      shift
+      ;;
+
+    --router-config)
+      ROUTER_CONFIG="$2"
+      shift
+      ;;
+
+    --debug)
+      DEBUG="$2"
+      shift
+      ;;
+
+    --pid)
+      PID_FILE="$2"
+      shift
+      ;;
+  esac
+shift
+done
+
+JAVA_OPTS="-Xmx512m"
+JAVA_OPTS="$JAVA_OPTS -Dmist.home=$MIST_HOME"
+JAVA_OPTS="$JAVA_OPTS -Dconfig.file=$CONFIG_FILE"
+
+function startMist() {
+  if  [ "$DEBUG" == "true" ]
+  then
+    LOGGER_CONF=$MIST_HOME/configs/logging/log4j.debug.properties  
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
+    exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG
+  else
+    if [ -f $PID_FILE ]; then
+      PID=$(cat $PID_FILE)
+      if ps -p $PID > /dev/null; then
+        echo "MIst already is running on $PID"
+        exit 1
+      else
+        rm -f $PID_FILE
+      fi    
+    fi
+    LOGGER_CONF=$MIST_HOME/configs/logging/log4j.default.properties  
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
+    $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG &
+    echo $! > $PID_FILE
+  fi
+}
+
+function stopMist() {
+  if [ -f $PID_FILE ]; then
+    PID=$(cat $PID_FILE)
+    kill -9 $PID
+    rm -f $PID_FILE
+  else
+     echo "Mist is not runned"
+     exit 1
+  fi    
+}
+
+case $CMD in
+  start)
+    startMist
+    ;;
+  
+  stop)
+    stopMist
+    ;;
+  *)
+   echo "Unsupported command: $1"
+   exit 1
+   ;;
+esac

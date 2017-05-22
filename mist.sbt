@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbtassembly.Plugin.AssemblyKeys._
+import StageDist._
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -79,7 +80,7 @@ lazy val mist = project.in(file("."))
   .settings(Defaults.itSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
-  .settings(StageDistSettings.settings: _*)
+  .settings(StageDist.settings: _*)
   .settings(dockerSettings: _*)
   .settings(
     name := "mist",
@@ -126,7 +127,7 @@ lazy val mist = project.in(file("."))
     fork in(IntegrationTest, test) := true,
     fork in(IntegrationTest, testOnly) := true,
     javaOptions in(IntegrationTest, test) ++= {
-      val mistHome = StageDistKeys.stageBuild.value
+      val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistHome=$mistHome",
@@ -135,7 +136,7 @@ lazy val mist = project.in(file("."))
       )
     },
     javaOptions in(IntegrationTest, testOnly) ++= {
-      val mistHome = StageDistKeys.stageBuild.value
+      val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistHome=$mistHome",
@@ -148,26 +149,31 @@ lazy val mist = project.in(file("."))
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-  ).settings(
-    StageDistKeys.stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
-    StageDistKeys.stageActions := {
+  )
+  .settings(
+    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    stageActions := {
       val routes = {
         val num = if (sparkVersion.value.startsWith("1.")) "1" else "2"
-        StageDist.CopyFile(s"configs/router-examples-spark$num.conf")
+        CpFile(s"configs/router-examples-spark$num.conf")
           .as("router.conf")
           .to("configs")
       }
       Seq(
-        StageDist.CopyFile("bin"),
-        StageDist.MkDir("configs"),
-        StageDist.CopyFile("configs/default.conf").to("configs"),
+        CpFile("bin"),
+        MkDir("configs"),
+        CpFile("configs/default.conf").to("configs"),
+        CpFile("configs/logging").to("configs"),
         routes,
-        StageDist.CopyFile("examples-python"),
-        StageDist.CopyFile(assembly.value).as("mist.jar"),
-        StageDist.CopyFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+        CpFile("examples-python"),
+        CpFile(assembly.value).as("mist.jar"),
+        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
       )
-
-    }
+    },
+    stageActions in basicStage +=
+      CpFile("configs/default.conf").to("configs"),
+    stageActions in dockerStage +=
+      CpFile("configs/docker.conf").as("default.conf").to("configs")
 
   )
 
@@ -214,7 +220,7 @@ lazy val mistRunSettings = Seq(
     val log = streams.value.log
     val sparkHome = sparkLocal.value.getAbsolutePath
     val extraEnv = Seq("SPARK_HOME" -> sparkHome)
-    val home = StageDistKeys.stageBuild.value
+    val home = basicStage.value
 
     val args = Seq("bin/mist", "start", "master")
     val ps = Process(args, Some(home), extraEnv: _*)
@@ -231,7 +237,7 @@ lazy val dockerSettings = Seq(
   dockerfile in docker := {
     val localSpark = sparkLocal.value
     val mistHome = "/usr/share/mist"
-    val distr = StageDistKeys.stageBuild.value
+    val distr = dockerStage.value
 
     new Dockerfile {
       from("anapsix/alpine-java:8")

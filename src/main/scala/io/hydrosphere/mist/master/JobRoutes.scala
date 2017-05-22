@@ -33,7 +33,6 @@ class JobRoutes(path: String) extends Logger {
         .foreach(e => logger.error("Invalid route configuration", e))
 
       parsed.collect({ case Success(x) => x })
-        .map(x => {logger.info(x.path); x})
     } catch {
       case e: Throwable =>
         logger.error("Router configuration reading failed", e)
