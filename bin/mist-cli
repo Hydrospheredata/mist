@@ -8,4 +8,3 @@ ASSEMBLY_JAR=$MIST_HOME/mist.jar
 JAVA_OPTS="-Xmx256m"
 
 exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.interfaces.cli.EntryPoint $@ 
-

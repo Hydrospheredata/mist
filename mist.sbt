@@ -222,7 +222,7 @@ lazy val mistRunSettings = Seq(
     val extraEnv = Seq("SPARK_HOME" -> sparkHome)
     val home = basicStage.value
 
-    val args = Seq("bin/mist", "start", "master")
+    val args = Seq("bin/mist-master", "start", "--debug", "true")
     val ps = Process(args, Some(home), extraEnv: _*)
     log.info(s"Running mist $ps with env $extraEnv")
 

@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-export MIST_HOME="$(cd "`dirname "$0"`"/..; pwd)"
-
