@@ -8,14 +8,14 @@ before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
 
 script:
-  - travis_wait sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
+  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
 
-cache:
-  directories:
-    - $HOME/.ivy2
-    - $HOME/.sbt
-    - $HOME/.coursier
-    - spark_local
+#cache:
+#  directories:
+#    - $HOME/.ivy2
+#    - $HOME/.sbt
+#    - $HOME/.coursier
+#    - spark_local
 
 env:
   global:
