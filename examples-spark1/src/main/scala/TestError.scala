@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.spark1.MistJob
+import io.hydrosphere.mist.api.MistJob
 
 object TestError extends MistJob {
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]

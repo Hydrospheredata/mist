@@ -45,6 +45,22 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     instance.run(conf, Map.empty) shouldBe Right(Map("r" -> 42))
   }
 
+  // issue #198
+  it("should apply arguments in correct order") {
+    val instance = instanceFor[ManyArgJob.type](Action.Execute)
+    val conf = new SetupConfiguration(sc, Duration(10), "", "")
+
+    val args = Map(
+      "FromDate" -> "FromDate",
+      "ToDate" -> "ToDate",
+      "query" -> "query",
+      "rows" -> 1,
+      "Separator" -> "Separator"
+    )
+
+    instance.run(conf, args) shouldBe Right(Map("isOk" -> true))
+  }
+
   def instanceFor[A](action: Action)(implicit tag: ClassTag[A]): JobInstance = {
     val clz = tag.runtimeClass
     JobsLoader.Common.loadJobInstance(clz.getCanonicalName, action).get

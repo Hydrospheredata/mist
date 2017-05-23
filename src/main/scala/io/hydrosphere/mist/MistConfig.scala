@@ -79,9 +79,6 @@ object MistConfig {
     def host: String = http.getString("host")
     /** HTTP server port */
     def port: Int = http.getInt("port")
-
-    /** Path to REST config */
-    def routerConfigPath: String = http.getString("router-config-path")
   }
 
   /** Hive Test*/

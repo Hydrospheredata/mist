@@ -1,1 +1,0 @@
-{"class":"org.apache.spark.ml.feature.DCT","timestamp":1489862281434,"sparkVersion":"2.1.0","uid":"dct_a1b4f4fba371","paramMap":{"inputCol":"features","inverse":false,"outputCol":"featuresDCT"}}
