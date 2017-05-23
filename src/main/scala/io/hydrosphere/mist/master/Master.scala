@@ -1,12 +1,9 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
@@ -21,58 +18,64 @@ import scala.language.reflectiveCalls
 /** This object is entry point of Mist project */
 object Master extends App with Logger {
 
-  implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
-  implicit val materializer = ActorMaterializer()
+  try {
+    val jobRoutes = new JobRoutes(routerConfigPath())
 
-  val jobRoutes = new JobRoutes(MistConfig.Http.routerConfigPath)
+    implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
+    implicit val materializer = ActorMaterializer()
 
-  val workerRunner = selectRunner(MistConfig.Workers.runner)
-  val store = JobRepository()
-  val statusService = system.actorOf(StatusService.props(store), "status-service")
-  val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
+    val workerRunner = selectRunner(MistConfig.Workers.runner)
+    val store = JobRepository()
+    val statusService = system.actorOf(StatusService.props(store), "status-service")
+    val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
 
-  val masterService = new MasterService(
-    workerManager,
-    statusService,
-    jobRoutes)
+    val masterService = new MasterService(
+      workerManager,
+      statusService,
+      jobRoutes)
 
-  MistConfig.Contexts.precreated foreach { name =>
-    logger.info(s"Precreate context for $name namespace")
-    workerManager ! CreateContext(name)
-  }
+    MistConfig.Contexts.precreated foreach { name =>
+      logger.info(s"Precreate context for $name namespace")
+      workerManager ! CreateContext(name)
+    }
 
-  if (MistConfig.Http.isOn) {
-    val api = new HttpApi(masterService)
-    val http = HttpUi.route ~ api.route
-    Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
-  }
+    if (MistConfig.Http.isOn) {
+      val api = new HttpApi(masterService)
+      val http = HttpUi.route ~ api.route
+      Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
+    }
 
-  // Start CLI
-  system.actorOf(
-    CliResponder.props(masterService, workerManager),
-    name = Constants.Actors.cliResponderName)
+    // Start CLI
+    system.actorOf(
+      CliResponder.props(masterService, workerManager),
+      name = Constants.Actors.cliResponderName)
 
-  AsyncInterface.init(system, masterService)
+    AsyncInterface.init(system, masterService)
 
-  // Start MQTT subscriber
-  if (MistConfig.Mqtt.isOn) {
-    logger.info("Mqtt interface is started")
-    AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt)
-  }
+    // Start MQTT subscriber
+    if (MistConfig.Mqtt.isOn) {
+      logger.info("Mqtt interface is started")
+      AsyncInterface.subscriber(AsyncInterface.Provider.Mqtt)
+    }
 
-  // Start Kafka subscriber
-  if (MistConfig.Kafka.isOn) {
-    AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
-  }
+    // Start Kafka subscriber
+    if (MistConfig.Kafka.isOn) {
+      AsyncInterface.subscriber(AsyncInterface.Provider.Kafka)
+    }
 
-  val publishers = enabledAsyncPublishers()
-  masterService.recoverJobs(publishers)
+    val publishers = enabledAsyncPublishers()
+    masterService.recoverJobs(publishers)
 
-  // We need to stop contexts on exit
-  sys addShutdownHook {
-    logger.info("Stopping all the contexts")
-    workerManager ! StopAllWorkers
-    system.shutdown()
+    // We need to stop contexts on exit
+    sys addShutdownHook {
+      logger.info("Stopping all the contexts")
+      workerManager ! StopAllWorkers
+      system.shutdown()
+    }
+  } catch {
+    case e: Throwable =>
+      logger.error("Fatal error", e)
+      sys.exit(1)
   }
 
   private def enabledAsyncPublishers(): Map[Provider, ActorRef] = {
@@ -87,9 +90,10 @@ object Master extends App with Logger {
   private def selectRunner(s: String): WorkerRunner = {
     s match {
       case "local" =>
-        val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
-        new LocalWorkerRunner(sparkHome)
-
+        sys.env.get("SPARK_HOME") match {
+          case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
+          case Some(home) => new LocalWorkerRunner(home)
+        }
       case "docker" => DockerWorkerRunner
       case "manual" => ManualWorkerRunner
       case _ =>
@@ -97,4 +101,13 @@ object Master extends App with Logger {
 
     }
   }
+
+  private def routerConfigPath(): String = {
+    if (args.length > 0)
+      args(0)
+    else
+      "configs/router.conf"
+  }
 }
+
+

@@ -32,13 +32,10 @@ class LocalWorkerRunner(sparkHome: String) extends WorkerRunner with Logger {
     import settings._
 
     val cmd = Seq(
-      s"${sys.env("MIST_HOME")}/bin/mist",
-      "start",
-      "worker",
+      s"${sys.env("MIST_HOME")}/bin/mist-worker",
       "--runner", "local",
       "--namespace", name,
       "--config", configFilePath,
-      "--jar", jarPath,
       "--run-options", settings.runOptions)
 
     val builder = Process(cmd)
@@ -53,15 +50,12 @@ object DockerWorkerRunner extends WorkerRunner {
     import settings._
 
     val cmd = Seq(
-      s"${sys.env("MIST_HOME")}/bin/mist",
-      "start",
-      "worker",
+      s"${sys.env("MIST_HOME")}/bin/mist-worker",
       "--runner", "docker",
       "--docker-host", MistConfig.Workers.dockerHost,
       "--docker-port", MistConfig.Workers.dockerPort.toString,
       "--namespace", name,
       "--config", configFilePath,
-      "--jar", jarPath,
       "--run-options", runOptions)
     val builder = Process(cmd)
     builder.run(false)

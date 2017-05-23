@@ -10,7 +10,8 @@ import spray.json.pimpString
 
 class PyJobsSpec extends FunSpec with MistItTest with Matchers {
 
-  val configPath = "pyjobs/integration.conf"
+  override val overrideConf = Some("pyjobs/integration.conf")
+  override val overrideRouter = Some("pyjobs/router.conf")
 
   it("should run simple context") {
     val req = Http("http://localhost:2004/api/simple-context-py")

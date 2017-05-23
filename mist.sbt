@@ -1,5 +1,6 @@
 import sbt.Keys._
 import sbtassembly.Plugin.AssemblyKeys._
+import StageDist._
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -15,7 +16,7 @@ lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
-lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.6.2")
+lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.5.2")
 
 lazy val mistScalaCrossCompile = currentSparkVersion match {
   case versionRegex("1", minor) => Seq("2.10.6")
@@ -79,6 +80,7 @@ lazy val mist = project.in(file("."))
   .settings(Defaults.itSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(mistRunSettings: _*)
+  .settings(StageDist.settings: _*)
   .settings(dockerSettings: _*)
   .settings(
     name := "mist",
@@ -123,11 +125,21 @@ lazy val mist = project.in(file("."))
 
     fork in(Test, test) := true,
     fork in(IntegrationTest, test) := true,
+    fork in(IntegrationTest, testOnly) := true,
     javaOptions in(IntegrationTest, test) ++= {
-      val jar = outputPath.in(Compile, assembly).value
+      val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
-        s"-DmistJar=$jar",
+        s"-DmistHome=$mistHome",
+        s"-DsparkVersion=${sparkVersion.value}",
+        "-Xmx512m"
+      )
+    },
+    javaOptions in(IntegrationTest, testOnly) ++= {
+      val mistHome = basicStage.value
+      Seq(
+        s"-DsparkHome=${sparkLocal.value}",
+        s"-DmistHome=$mistHome",
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
@@ -135,9 +147,35 @@ lazy val mist = project.in(file("."))
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
     test in IntegrationTest <<= (test in IntegrationTest).dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
   ).settings(
-  ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
-  ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-)
+    ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
+    ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
+  )
+  .settings(
+    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    stageActions := {
+      val routes = {
+        val num = if (sparkVersion.value.startsWith("1.")) "1" else "2"
+        CpFile(s"configs/router-examples-spark$num.conf")
+          .as("router.conf")
+          .to("configs")
+      }
+      Seq(
+        CpFile("bin"),
+        MkDir("configs"),
+        CpFile("configs/default.conf").to("configs"),
+        CpFile("configs/logging").to("configs"),
+        routes,
+        CpFile("examples-python"),
+        CpFile(assembly.value).as("mist.jar"),
+        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+      )
+    },
+    stageActions in basicStage +=
+      CpFile("configs/default.conf").to("configs"),
+    stageActions in dockerStage +=
+      CpFile("configs/docker.conf").as("default.conf").to("configs")
+
+  )
 
 lazy val commandAlias = currentSparkVersion match {
   case versionRegex("1", minor) => ";mist/test;mist/it:test"
@@ -177,35 +215,19 @@ lazy val mistRunSettings = Seq(
     }
     sparkDir
   },
+
   mistRun := {
     val log = streams.value.log
-    val jar = outputPath.in(Compile, assembly).value
-
-    val version = sparkVersion.value
     val sparkHome = sparkLocal.value.getAbsolutePath
-    val extraEnv = Seq(
-      "SPARK_HOME" -> sparkHome
-    )
-    val home = baseDirectory.value
+    val extraEnv = Seq("SPARK_HOME" -> sparkHome)
+    val home = basicStage.value
 
-    val config = if (version.startsWith("1."))
-      "default_spark1.conf"
-    else
-      "default_spark2.conf"
-
-    val args = Seq(
-      "bin/mist", "start", "master",
-      "--jar", jar.getAbsolutePath,
-      "--config", s"configs/$config"
-    )
+    val args = Seq("bin/mist-master", "start", "--debug", "true")
     val ps = Process(args, Some(home), extraEnv: _*)
     log.info(s"Running mist $ps with env $extraEnv")
 
     ps.!<(StdOutLogger)
-  },
-  //assembly mist and package examples before run
-  mistRun <<= mistRun.dependsOn(assembly),
-  mistRun <<= mistRun.dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
+  }
 )
 
 lazy val dockerSettings = Seq(
@@ -213,25 +235,9 @@ lazy val dockerSettings = Seq(
     ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
   ),
   dockerfile in docker := {
-    val artifact = assembly.value
-    val examples = packageBin.in(currentExamples, Compile).value
     val localSpark = sparkLocal.value
-
     val mistHome = "/usr/share/mist"
-
-    val sparkMajor = sparkVersion.value.split('.').head
-
-    val routerConfig = s"configs/router-examples-spark$sparkMajor.conf"
-    val replacedPaths = scala.io.Source.fromFile(routerConfig).getLines()
-      .map(s => {
-        if (s.startsWith("jar_path"))
-          s"""jar_path = "$mistHome/${examples.name}""""
-        else
-          s
-      }).mkString("\n")
-
-    val dockerRoutes = file("./target/docker_routes.conf")
-    IO.write(dockerRoutes, replacedPaths.getBytes)
+    val distr = dockerStage.value
 
     new Dockerfile {
       from("anapsix/alpine-java:8")
@@ -240,19 +246,7 @@ lazy val dockerSettings = Seq(
       env("MIST_HOME", mistHome)
 
       copy(localSpark, "/usr/share/spark")
-
-      run("mkdir", "-p", s"$mistHome")
-      run("mkdir", "-p", s"$mistHome/configs")
-
-      copy(file("bin"), s"$mistHome/bin")
-
-      copy(file("configs/docker.conf"), s"$mistHome/configs/docker.conf")
-      copy(dockerRoutes, s"$mistHome/configs/router-examples.conf")
-
-      add(artifact, s"$mistHome/mist-assembly.jar")
-      add(examples, s"$mistHome/${examples.name}")
-
-      copy(file("examples-python"), mistHome + "/examples-python")
+      copy(distr, mistHome)
 
       copy(file("docker-entrypoint.sh"), "/")
       run("chmod", "+x", "/docker-entrypoint.sh")

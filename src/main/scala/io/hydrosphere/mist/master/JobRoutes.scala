@@ -1,8 +1,9 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
+import java.nio.file.Paths
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ConfigValueFactory, Config, ConfigFactory}
 import io.hydrosphere.mist.jobs.{JobDefinition, JobInfo}
 import io.hydrosphere.mist.utils.Logger
 
@@ -16,8 +17,12 @@ import scala.util.{Failure, Success}
 class JobRoutes(path: String) extends Logger {
 
   private def loadConfig(): Config = {
+    val directory = Paths.get(path).getParent
     val file = new File(path)
-    ConfigFactory.parseFile(file).resolve()
+    ConfigFactory
+      .parseFile(file)
+      .withValue("location", ConfigValueFactory.fromAnyRef(directory.toString))
+      .resolve()
   }
 
   def listDefinition(): Seq[JobDefinition] = {
