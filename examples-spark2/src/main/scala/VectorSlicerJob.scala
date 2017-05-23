@@ -1,16 +1,21 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import java.util
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.attribute.{Attribute, AttributeGroup, NumericAttribute}
 import org.apache.spark.ml.feature.VectorSlicer
 import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.{Row, SparkSession}
 import org.apache.spark.sql.types.StructType
 
-object VectorSlicerJob extends MLMistJob with SQLSupport {
+object VectorSlicerJob extends MLMistJob{
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val data = util.Arrays.asList(
       Row(Vectors.sparse(3, Seq((0, -2.0), (1, 2.3)))),

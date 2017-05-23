@@ -1,11 +1,19 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import GaussianMixtureJob.context
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.linalg.{Vector, Vectors}
 import org.apache.spark.ml.regression.GBTRegressor
+import org.apache.spark.sql.SparkSession
 
-object GBTRegressionJob extends MLMistJob with SQLSupport {
+object GBTRegressionJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def constructVector(params: Map[String, Any]): Vector = {
     Vectors.sparse(
       params("size").asInstanceOf[Int],

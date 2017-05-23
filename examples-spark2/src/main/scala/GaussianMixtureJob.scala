@@ -1,11 +1,19 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-import io.hydrosphere.mist.lib.spark2.ml.{PipelineLoader, LocalDataColumn, LocalData}
+import DTreeClassificationJob.context
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.mist.api.ml.{LocalData, LocalDataColumn, PipelineLoader}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.GaussianMixture
+import org.apache.spark.sql.SparkSession
 
 
-object GaussianMixtureJob extends MLMistJob with SQLSupport {
+object GaussianMixtureJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load("jobs/data/mllib/sample_kmeans_data.txt")
 

@@ -1,11 +1,18 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-
+import BinarizerJob.context
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.DCT
-import org.apache.spark.ml.linalg.{Vectors => LVectors, Vector => LVector}
+import org.apache.spark.ml.linalg.{Vector => LVector, Vectors => LVectors}
+import org.apache.spark.sql.SparkSession
 
-object DCTJob extends MLMistJob with SQLSupport {
+object DCTJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val data = Seq(
       LVectors.dense(0.0, 1.0, -2.0, 3.0),

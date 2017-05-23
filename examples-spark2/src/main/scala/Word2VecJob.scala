@@ -2,11 +2,18 @@ import java.util
 
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.{Vector => LVector}
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.sql.SparkSession
 
-object Word2VecJob extends MLMistJob with SQLSupport {
+object Word2VecJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val documentDF = session.createDataFrame(Seq(
       "Hi I heard about Spark".split(" "),
