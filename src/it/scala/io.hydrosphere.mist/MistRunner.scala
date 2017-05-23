@@ -28,7 +28,7 @@ trait MistRunner {
 
     val configArg = optArg("--config", overrideConf.map(fromResource))
     val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
-    val args = Seq(s"$mistHome/bin/mist", "start", "master") ++ configArg ++ routerArg
+    val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
     val ps = Process(args, None, env: _*).run(new ProcessLogger {
@@ -43,7 +43,7 @@ trait MistRunner {
   }
 
   def killMist(): Unit ={
-    Process(s"$mistHome/bin/mist stop", None, "SPARK_HOME" -> sparkHome).run(false).exitValue()
+    Process(s"$mistHome/bin/mist-master stop").run(false).exitValue()
   }
 }
 

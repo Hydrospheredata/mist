@@ -10,7 +10,9 @@ if [ "$1" = 'mist' ]; then
   export IP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
   echo "$IP    master" >> /etc/hosts
 
-  ./bin/mist start master --java-args "-Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551 -Dmist.akka.remote.netty.tcp.hostname=$IP"
+  JAVA_ARGS="-Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551"
+  JAVA_ARGS="$JAVA_ARGS -Dmist.akka.remote.netty.tcp.hostname=$IP"
+  exec ./bin/mist-master start --java-args "$JAVA_ARGS" --debug true
 elif [ "$1" = 'worker' ]; then 
   if [ ! -z $3 ]; then
     echo $3 | base64 -d  > configs/default.conf
@@ -21,8 +23,7 @@ elif [ "$1" = 'worker' ]; then
   JAVA_ARGS="-Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551"
   JAVA_ARGS="$JAVA_ARGS -Dmist.akka.remote.netty.tcp.hostname=$MYIP"
   JAVA_ARGS="$JAVA_ARGS -Dmist.akka.remote.netty.tcp.bind-hostname=$MYIP"
-
-  ./bin/mist start worker --runner local --namespace $2 --java-args $JAVA_ARGS --run-options $4
+  exec ./bin/mist-worker --runner local --namespace $2 --java-args "$JAVA_ARGS" --run-options $4
 else
   exec "$@"
 fi
