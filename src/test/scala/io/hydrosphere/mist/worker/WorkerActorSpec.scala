@@ -82,7 +82,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val props = Props(
       classOf[WorkerActor],
       "test", context, runner, Duration.Inf, 2)
-    //val ref = system.actorOf(props)
 
     TestActorRef[WorkerActor](props)
   }
