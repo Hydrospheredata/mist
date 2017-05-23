@@ -10,12 +10,12 @@ before_install:
 script:
   - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
 
-#cache:
-#  directories:
-#    - $HOME/.ivy2
-#    - $HOME/.sbt
-#    - $HOME/.coursier
-#    - spark_local
+cache:
+  directories:
+    - $HOME/.ivy2
+    - $HOME/.sbt
+    - $HOME/.coursier
+    - spark_local
 
 env:
   global:
