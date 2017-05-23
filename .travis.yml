@@ -8,7 +8,7 @@ before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
 
 script:
-  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
+  - travis_wait sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
 
 cache:
   directories:
