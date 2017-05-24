@@ -21,10 +21,11 @@ import scala.language.reflectiveCalls
 object Master extends App with Logger {
 
   try {
+    val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
+
     implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
     implicit val materializer = ActorMaterializer()
 
-    val jobEndpoints = JobEndpoints.fromConfigFile(MistConfig.Http.routerConfigPath)
 
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
@@ -100,8 +101,8 @@ object Master extends App with Logger {
     }
   } catch {
     case e: Throwable =>
-      logger.error("Service is crashed", e)
-      sys.exit(3)
+      logger.error("Fatal error", e)
+      sys.exit(1)
   }
 
   private def buildEventPublishers(): Seq[JobEventPublisher] = {
@@ -121,14 +122,22 @@ object Master extends App with Logger {
   private def selectRunner(s: String): WorkerRunner = {
     s match {
       case "local" =>
-        val sparkHome = System.getenv("SPARK_HOME").ensuring(_.nonEmpty, "SPARK_HOME is not defined!")
-        new LocalWorkerRunner(sparkHome)
-
+        sys.env.get("SPARK_HOME") match {
+          case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
+          case Some(home) => new LocalWorkerRunner(home)
+        }
       case "docker" => DockerWorkerRunner
       case "manual" => ManualWorkerRunner
       case _ =>
         throw new IllegalArgumentException(s"Unknown worker runner type $s")
 
     }
+  }
+
+  private def routerConfigPath(): String = {
+    if (args.length > 0)
+      args(0)
+    else
+      "configs/router.conf"
   }
 }

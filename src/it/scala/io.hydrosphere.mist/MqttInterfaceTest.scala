@@ -17,7 +17,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
   import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
   import spray.json.pimpString
 
-  val configPath = "mqtt/integration.conf"
+  override val overrideConf = Some("mqtt/integration.conf")
 
   it("should run job by mqtt") {
     val request =

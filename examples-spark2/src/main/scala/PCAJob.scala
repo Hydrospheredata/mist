@@ -1,14 +1,19 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.PCA
-
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.sql.SparkSession
 //TODO: why model return vector from mllib??
 import org.apache.spark.mllib.linalg.{Vector => OldVector}
 
-object PCAJob extends MLMistJob with SQLSupport {
+object PCAJob extends MLMistJob {
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
+
   def train(savePath: String): Map[String, Any] = {
     val data = Array(
       Vectors.sparse(5, Seq((1, 1.0), (3, 7.0))),

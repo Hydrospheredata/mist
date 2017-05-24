@@ -4,7 +4,8 @@ import org.scalatest._
 
 class PyJobsSpec extends FunSpec with MistItTest with Matchers {
 
-  val configPath = "pyjobs/integration.conf"
+  override val overrideConf = Some("pyjobs/integration.conf")
+  override val overrideRouter = Some("pyjobs/router.conf")
 
   val interface = MistHttpInterface("localhost", 2004)
 

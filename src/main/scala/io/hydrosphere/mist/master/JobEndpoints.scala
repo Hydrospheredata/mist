@@ -1,8 +1,9 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
+import java.nio.file.Paths
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ConfigValueFactory, Config, ConfigFactory}
 import io.hydrosphere.mist.jobs.{JobDefinition, JobInfo}
 import io.hydrosphere.mist.utils.Logger
 
@@ -50,8 +51,12 @@ object JobEndpoints {
 
   def fromConfigFile(path: String): JobEndpoints = {
     val load = () => {
-      val f = new File(path)
-      ConfigFactory.parseFile(f).resolve()
+      val directory = Paths.get(path).getParent
+      val file = new File(path)
+      ConfigFactory
+        .parseFile(file)
+        .withValue("location", ConfigValueFactory.fromAnyRef(directory.toString))
+        .resolve()
     }
 
     new JobEndpoints(load)

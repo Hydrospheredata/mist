@@ -80,5 +80,36 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
       backend.expectMsgType[CancelJobRequest]
       backend.reply(JobIsCancelled("id"))
     }
+
+    it("should control queue of jobs in complex case") {
+      val probe = TestProbe()
+      val backend = TestProbe()
+
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 1, StatusService))
+
+      frontend ! WorkerUp(backend.ref)
+
+      val req1 = RunJobRequest("1", JobParams("path", "MyClass", Map.empty, Action.Execute))
+      val req2 = RunJobRequest("2", JobParams("path", "MyClass", Map.empty, Action.Execute))
+
+      probe.send(frontend, req1)
+      probe.send(frontend, req2)
+
+      backend.expectMsg(req1)
+      backend.reply(JobStarted("1"))
+      backend.reply(JobSuccess("1", Map("result" -> "1")))
+
+      backend.expectMsg(req2)
+      backend.reply(JobStarted("2"))
+      backend.reply(JobSuccess("2", Map("result" -> "2")))
+      backend.expectNoMsg()
+
+      probe.expectMsgType[ExecutionInfo]
+      probe.expectMsgType[ExecutionInfo]
+
+      val req3 = RunJobRequest("3", JobParams("path", "MyClass", Map.empty, Action.Execute))
+      probe.send(frontend, req3)
+      backend.expectMsg(req3)
+    }
   }
 }

@@ -1,4 +1,4 @@
-import io.hydrosphere.mist.lib.spark2.MistJob
+import io.hydrosphere.mist.api.MistJob
 
 object SimpleContext extends MistJob {
 

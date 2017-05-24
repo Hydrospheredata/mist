@@ -76,8 +76,7 @@ class FrontendJobExecutor(
     case r: RunJobRequest =>
       val info = queueRequest(r)
       if (counter < maxRunningJobs) {
-        sendJob(worker, info)
-        counter = counter + 1
+        sendQueued(worker)
       }
       sender() ! info
 

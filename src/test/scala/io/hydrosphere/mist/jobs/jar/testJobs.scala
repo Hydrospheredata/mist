@@ -19,3 +19,21 @@ object OptParamJob extends MistJob {
   }
 }
 
+object ManyArgJob extends MistJob {
+
+  def execute(
+    FromDate: String,
+    ToDate: String,
+    query: String,
+    rows: Int,
+    Separator: String
+  ): Map[String, Any] = {
+
+    val expected = Seq("FromDate", "ToDate", "query", 1, "Separator")
+    val given = Seq(FromDate, ToDate, query, rows, Separator)
+
+    val isOk = expected == given
+    Map("isOk" -> isOk)
+  }
+}
+

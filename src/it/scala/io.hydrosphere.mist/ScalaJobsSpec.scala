@@ -12,7 +12,8 @@ import scalaj.http.Http
 
 class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
-  override val configPath: String = "scalajobs/integration.conf"
+  override val overrideConf= Some("scalajobs/integration.conf")
+  override val overrideRouter = Some("scalajobs/router.conf")
 
   val interface = MistHttpInterface("localhost", 2004)
 
@@ -21,7 +22,7 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
     val jobSource = s"""
        |
-       | import io.hydrosphere.mist.lib.spark$sparkPref.MistJob
+       | import io.hydrosphere.mist.api.MistJob
        |
        | object SimpleContext extends MistJob {
        |

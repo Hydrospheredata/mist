@@ -1,11 +1,17 @@
-import io.hydrosphere.mist.lib.spark2._
-import io.hydrosphere.mist.lib.spark2.ml._
-
+import io.hydrosphere.mist.api._
+import io.hydrosphere.mist.api.ml._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.MaxAbsScaler
 import org.apache.spark.ml.linalg.Vectors
+import org.apache.spark.sql.SparkSession
 
-object MaxAbsScalerJob extends MLMistJob with SQLSupport {
+object MaxAbsScalerJob extends MLMistJob {
+
+  def session: SparkSession = SparkSession
+    .builder()
+    .appName(context.appName)
+    .config(context.getConf)
+    .getOrCreate()
 
   def train(savePath: String): Map[String, Any] = {
     val dataFrame = session.createDataFrame(Seq(
