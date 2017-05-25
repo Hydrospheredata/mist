@@ -7,37 +7,59 @@ import org.apache.spark.SparkConf
 
 object Worker extends App with Logger {
 
-  val name = args(0)
-  val contextName = args(1)
+  try {
 
-  val sparkConf = new SparkConf()
-    .setAppName(name)
-    .set("spark.driver.allowMultipleContexts", "true")
+    val name = args(0)
+    val contextName = args(1)
+    val mode = detectMode(name)
 
-  val sparkConfSettings = MistConfig.Contexts.sparkConf(contextName)
-  for (keyValue <- sparkConfSettings) {
-    sparkConf.set(keyValue.head, keyValue(1))
-  }
-  val context = NamedContext(name, sparkConf)
+    val sparkConf = new SparkConf()
+      .setAppName(name)
+      .set("spark.driver.allowMultipleContexts", "true")
 
-  val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+    val sparkConfSettings = MistConfig.Contexts.sparkConf(contextName)
+    for (keyValue <- sparkConfSettings) {
+      sparkConf.set(keyValue.head, keyValue(1))
+    }
+    val context = NamedContext(name, sparkConf)
 
-  val downtime = MistConfig.Contexts.downtime(name)
-  val maxJobs = MistConfig.Settings.threadNumber
+    val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
 
-  val props = ClusterWorker.props(
-    name = name,
-    workerProps = WorkerActor.props(name, context, downtime, maxJobs)
-  )
-  system.actorOf(props, s"worker-$name")
+    val props = ClusterWorker.props(
+      name = name,
+      workerProps = WorkerActor.props(mode, context)
+    )
+    system.actorOf(props, s"worker-$name")
 
-  val msg =
-    s"""Worker $name is started
+    val msg =
+      s"""Worker $name is started
        |settings:
-       |  maxJobs = $maxJobs
-       |  downtime = $downtime
+       |  mode = $mode
        |  sparkConf = ${sparkConf.getAll.mkString(",")}
-     """.stripMargin
+    """.stripMargin
 
-  logger.info(msg)
+    logger.info(msg)
+
+    system.awaitTermination()
+    context.stop()
+
+  } catch {
+    case e: Throwable =>
+      logger.error("Fatal error", e)
+  }
+
+
+  private def detectMode(name: String): WorkerMode = {
+    val modeArg = if (args.length > 2) args(2) else "--shared"
+    modeArg match {
+      case "--shared" =>
+        val downtime = MistConfig.Contexts.downtime(name)
+        val maxJobs = MistConfig.Settings.threadNumber
+        Shared(maxJobs, downtime)
+
+      case "--exclusive" => Exclusive
+      case arg => throw new IllegalArgumentException(s"Unknown worker mode $arg")
+
+    }
+  }
 }
