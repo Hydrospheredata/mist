@@ -47,7 +47,7 @@ class MasterService(
     f.mapTo[Option[JobDetails]]
   }
 
-  def workers(): Future[List[WorkerLink]] = {
+  def workers(): Future[Seq[WorkerLink]] = {
     val f = workerManager ? GetWorkers
     f.mapTo[List[WorkerLink]]
   }
