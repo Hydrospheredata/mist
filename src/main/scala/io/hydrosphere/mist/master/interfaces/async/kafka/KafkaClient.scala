@@ -55,7 +55,9 @@ class TopicConsumer[K, V](
     consumer.subscribe(Seq(topic).asJava)
     val thread = new Thread(new Runnable {
       override def run(): Unit = {
-        while (!stopped.get()) {
+        while (!stopped.get()) {  def sink(
+
+  )
           val records = consumer.poll(timeout).asScala
           records.foreach(r => f(r.key(), r.value()))
         }
@@ -89,5 +91,6 @@ object TopicConsumer {
     val consumer = new KafkaConsumer(props, new StringDeserializer, new StringDeserializer)
     new TopicConsumer(consumer, topic)
   }
+
 }
 
