@@ -4,10 +4,12 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
 import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import interfaces.async._
 import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.master.interfaces.async.kafka.TopicProducer
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.store.H2JobsRepository
@@ -21,19 +23,20 @@ import scala.language.reflectiveCalls
 object Master extends App with Logger {
 
   try {
+
     val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
 
     implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
     implicit val materializer = ActorMaterializer()
 
-
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val streamer = JobEventsStreamer(system)
+    val streamer = EventsStreamer(system)
+
     val wsPublisher = new JobEventPublisher {
       override def notify(event: UpdateStatusEvent): Unit =
-        streamer.putEvent(event)
+        streamer.push(event)
 
       override def close(): Unit = {}
     }
@@ -62,11 +65,7 @@ object Master extends App with Logger {
     //TODO: we should recover hobs before start listening on any interface
     //TODO: why we restart only async?
     //masterService.recoverJobs()
-
     if (MistConfig.Http.isOn) {
-
-
-
       val api = new HttpApi(masterService)
       val apiv2 = new HttpApiV2(masterService, streamer)
       val http = HttpUi.route ~ api.route ~ apiv2.route
@@ -109,6 +108,8 @@ object Master extends App with Logger {
     val buffer = new ArrayBuffer[JobEventPublisher](3)
     if (MistConfig.Kafka.isOn) {
       import MistConfig.Kafka._
+
+
       buffer += JobEventPublisher.forKafka(host, port, publishTopic)
     }
     if (MistConfig.Mqtt.isOn) {
