@@ -10,7 +10,7 @@ import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
   */
 trait EventsStreamer {
 
-  def eventsSource(): Source[UpdateStatusEvent, _]
+  def eventsSource(): Source[UpdateStatusEvent, Unit]
 
   def push(event: UpdateStatusEvent): Unit
 
@@ -30,13 +30,15 @@ trait EventsStreamer {
   */
 object EventsStreamer {
 
+  private val BufferSize = 500
+
   def apply(system: ActorSystem): EventsStreamer = {
     val actor = system.actorOf(Props(new BroadcastSource))
 
     new EventsStreamer {
-      override def eventsSource(): Source[UpdateStatusEvent, _] = {
-        Source.actorRef[UpdateStatusEvent](1, OverflowStrategy.fail)
-          .mapMaterializedValue(ref => actor.tell("on", ref))
+      override def eventsSource(): Source[UpdateStatusEvent, Unit] = {
+        Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropTail)
+          .mapMaterializedValue(ref => actor.tell("subscribe", ref))
       }
 
       override def push(event: UpdateStatusEvent): Unit = actor ! event

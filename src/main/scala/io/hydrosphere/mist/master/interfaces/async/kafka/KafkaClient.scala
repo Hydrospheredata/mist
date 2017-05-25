@@ -55,9 +55,7 @@ class TopicConsumer[K, V](
     consumer.subscribe(Seq(topic).asJava)
     val thread = new Thread(new Runnable {
       override def run(): Unit = {
-        while (!stopped.get()) {  def sink(
-
-  )
+        while (!stopped.get()) {
           val records = consumer.poll(timeout).asScala
           records.foreach(r => f(r.key(), r.value()))
         }

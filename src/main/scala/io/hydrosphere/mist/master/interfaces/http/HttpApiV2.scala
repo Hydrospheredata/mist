@@ -1,12 +1,8 @@
 package io.hydrosphere.mist.master.interfaces.http
 
-import spray.json._
-import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.Directives
-import akka.stream.scaladsl.{Flow, Sink}
-
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.master.{EventsStreamer, MasterService}
+import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
@@ -33,10 +29,7 @@ import scala.language.postfixOps
   * stop worker            - DELETE /v2/api/workers/{id} (output should be changed)
   *
   */
-class HttpApiV2(
-  master: MasterService,
-  jobEventsStreamer: EventsStreamer
-) {
+class HttpApiV2(master: MasterService ) {
 
   import Directives._
   import HttpApiV2._
@@ -87,35 +80,7 @@ class HttpApiV2(
     } ~
     path( root / "workers" / Segment ) { workerId =>
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
-    } ~
-    path( root / "ws") {
-      handleWebsocketMessages(allEventsWsFlow())
-    } ~
-    path( root / "jobs" / Segment / "ws") { jobId =>
-      handleWebsocketMessages(jobWsFlow(jobId))
     }
-  }
-
-  private def jobWsFlow(id: String): Flow[Message, Message, Any]= {
-    val source = jobEventsStreamer.eventsSource()
-      .filter(_.id == id)
-      .map(e => {
-        val json = e.toJson.toString()
-        TextMessage.Strict(json)
-      })
-
-    val sink = Sink.ignore
-    Flow.fromSinkAndSource(sink, source)
-  }
-
-  private def allEventsWsFlow(): Flow[Message, Message, Any] = {
-    val source = jobEventsStreamer.eventsSource().map(e => {
-      val json = e.toJson.toString()
-      TextMessage.Strict(json)
-    })
-
-    val sink = Sink.ignore
-    Flow.fromSinkAndSource(sink, source)
   }
 
   private def runJob(
@@ -123,8 +88,8 @@ class HttpApiV2(
     queryParams: JobRunQueryParams,
     params: JobParameters): Future[Option[JobStartResponse]] = {
 
-    import cats.implicits._
     import cats.data._
+    import cats.implicits._
 
     val out = for {
       ep <- OptionT.fromOption[Future](master.endpointInfo(endpointId))
