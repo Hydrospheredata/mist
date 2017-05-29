@@ -54,8 +54,17 @@ def test_mist(slaveName, sparkVersion) {
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
                 if (tag.startsWith("v")) {
+                    version = tag.replace("v", "")
                     stage('Publish in DockerHub') {
                         sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+                    }
+
+                    stage("upload tar") {
+                      sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
+                      tar = "${env.WORKSPACE}/target/mist-${version}-${sparkVersion}.tar.gz"
+                      sshagent(['hydrosphere_static_key']) {
+                        sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
+                      }
                     }
                 }
             }
