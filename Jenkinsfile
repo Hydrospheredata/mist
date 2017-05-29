@@ -53,7 +53,7 @@ def test_mist(slaveName, sparkVersion) {
                 //stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
                 stage("upload tar") {
                   sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
-                  tar = "${env.WORKSPACE}/target/mist-0.11-${sparkVersion}.tar.gz"
+                  tar = "${env.WORKSPACE}/target/mist-0.11.0-${sparkVersion}.tar.gz"
                   sshagent(['hydrosphere_static_key']) {
                     sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:/publish_dir/"
                   }
