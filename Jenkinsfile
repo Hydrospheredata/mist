@@ -21,17 +21,6 @@ parallel branches
 node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
-    /*for (int i = 0; i < versions.size(); i++) {//TODO switch to each after JENKINS-26481
-        def ver = versions.get(i)
-        def dirName = "artifact${ver}"
-        dir(dirName) {
-            unstash dirName
-        }
-        sh "ls -la ${pwd()}/${dirName}"
-    }
-    sh "ls -la ${pwd()}"*/
-
-
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
             //TODO Fetch artifacts from previous steps, using stash/unstash
