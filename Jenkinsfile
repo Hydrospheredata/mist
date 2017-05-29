@@ -55,7 +55,7 @@ def test_mist(slaveName, sparkVersion) {
                   sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
                   tar = "${env.WORKSPACE}/target/mist-0.11-${sparkVersion}.tar.gz"
                   sshagent(['hydrosphere_static_key']) {
-                    sh 'scp -vvv -o StrictHostKeyChecking=no ${tar}:hydrosphere@52.28.47.238/publish_dir/'
+                    sh "scp -vvv -o StrictHostKeyChecking=no ${tar}:hydrosphere@52.28.47.238/publish_dir/"
                   }
                 }
 
