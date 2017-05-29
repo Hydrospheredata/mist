@@ -51,6 +51,14 @@ def test_mist(slaveName, sparkVersion) {
                 }
 
                 //stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
+                stage("upload tar") {
+                  //sh "${env.WORKSPACE}/sbt/sbt mist/packageTar"
+                  sshagent(['hydrosphere_static_key']) {
+                    sh 'echo SSH_AUTH_SOCK=$SSH_AUTH_SOCK'
+                    sh 'ls -al $SSH_AUTH_SOCK || true'
+                    sh 'ssh -vvv -o StrictHostKeyChecking=no hydrosphere@52.28.47.238 uname -a'
+                  }
+                }
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
                 if (tag.startsWith("v")) {
