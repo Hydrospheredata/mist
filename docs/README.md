@@ -1,5 +1,6 @@
 **Table of Contents**
 
+- [About](/docs/about.md)
 - [Getting Started](/docs/getting-started/README.md)
 - [Use Cases & Tutorials](/docs/use-cases/README.md)
     - [Enterprise Analytics Applications](/docs/use-cases/enterprise-analytics.md)
