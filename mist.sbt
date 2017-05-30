@@ -34,7 +34,7 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.12.0"
+  version := "0.12.1"
 )
 
 lazy val spark2AdditionalDependencies = currentSparkVersion match {
