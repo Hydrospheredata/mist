@@ -257,7 +257,6 @@ lazy val dockerSettings = Seq(
       run("apk", "update")
       run("apk", "add", "python", "curl", "jq", "coreutils")
 
-      expose(2003)
       workDir(mistHome)
       entryPoint("/docker-entrypoint.sh")
     }
