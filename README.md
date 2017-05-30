@@ -52,7 +52,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 Run Docker:
 ```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.1.0 mist
+docker run -p 2004:2004 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:0.12.0-2.1.1 mist
 ```
         
 [More about docker image](https://hub.docker.com/r/hydrosphere/mist/)
