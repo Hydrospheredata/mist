@@ -11,6 +11,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
@@ -27,6 +28,7 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := currentSparkVersion,
+  sparkMajorVersion := sparkVersion.value.split('.').head,
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
@@ -56,7 +58,7 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-lib",
+    name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
     libraryDependencies ++= spark2AdditionalDependencies,
     libraryDependencies ++= Seq(
