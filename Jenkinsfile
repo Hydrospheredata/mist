@@ -27,7 +27,7 @@ node("JenkinsOnDemand") {
             for(int i = 0; i < publishVersions.size(); i++) {
               def v = publishVersions.get(i)
               sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} mistLib/sonatypeRelease"
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
             }
         }
     }
