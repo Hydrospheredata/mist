@@ -23,10 +23,9 @@ node("JenkinsOnDemand") {
 
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
-            ["1.5.2", "2.1.0"].each {
-              v = it
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${it} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${it} mistLib/sonatypeRelease"
+            for( v in ["1.5.2", "2.1.0"]) {
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${i} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${i} mistLib/sonatypeRelease"
             }
         }
     }
