@@ -8,7 +8,7 @@ import io.hydrosphere.mist.jobs.Action
 import scala.util.{Failure, Success, Try}
 import scala.reflect.runtime.universe._
 
-class JobsLoader(classLoader: ClassLoader) {
+class JobsLoader(val classLoader: ClassLoader) {
 
   def loadJobClass(className: String): Try[JobClass] = {
     loadClass(className).map(clz => {
