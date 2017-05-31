@@ -3,13 +3,13 @@
 ## Installing Hydrosphere Mist 
 
 You can install Mist by default tarball package or run it via docker.
-All of distributions already contains default configuration and our examples for a quick start.
+All of distributions contains default configuration and our examples for a quick start.
 Docker image also contains Apache Spark binaries.
 
 
 Releases:
 
-- tar.gz <http://repo.hydrosphere.io/static/> 
+- tar <http://repo.hydrosphere.io/static/> 
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
@@ -17,45 +17,51 @@ We prebuild distributives for `1.5.2`, `1.6.2`, `2.0.2`, `2.1.0` of Spark.
 Version of distributive is combination of version of mist and version of Spark.
 
 
-As example latest Mist for Spark `1.6.2` version is:
+As example latest Mist releases for Spark `1.6.2` version is:
 
 - docker image `hydrosphere/mist:0.12.0-1.6.2`
-- tar.gz <http://repo.hydrosphere.io/static/mist-0.12.0-1.6.2.tar.gz>
+- tar <http://repo.hydrosphere.io/static/mist-0.12.0-1.6.2.tar.gz>
 
-### Install from tar.gz
+### Install locally
 
 - Download [Spark](https://spark.apache.org/docs/2.1.1/)
 - Download Mist and run
 
 ```sh
 wget http://repo.hydrosphere.io/static/mist-0.12.0-2.1.1.tar.gz
-tar xvfz mist-0.12.0-2.1.1.tar.gz
-cd mist-0.12.0-2.1.1
+tar xvfz mist-0.12.1-2.1.1.tar.gz
+cd mist-0.12.1-2.1.1
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
 - Check how it works on <http://localhost:2004/ui>
 
 
-### Run docker
+### From docker image
 
 Default:
 ```sh
-
-docker run \
-   -p 2003:2003 \
+docker run -p 2004:2004 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   hydrosphere/mist:0.12.0-2.1.1
+   hydrosphere/mist:0.12.1-2.1.1 mist
 ```
 
 It is recommended to mount `./config` `./jobs` volumes to Mist docker container in advance.
 So, we'll be able to customise configs and deploy new jobs as we go along. 
 
-```
+```sh
 mkdir configs
-curl -o ./configs/mist.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
+curl -o ./configs/default.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
 mkdir jobs
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
+
+docker run \
+   -p 2004:2004 \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   -v $PWD/configs:/usr/share/mist/configs \
+   -v $PWD/jobs:/jobs \
+   hydrosphere/mist:0.12.1-2.1.1 mist
+
+docker run -p 2004:2004 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs hydrosphere/mist:0.12.1-2.1.1 mist
 ```
 
 Go to Mist UI at `http://localhost:2003/ui`
