@@ -78,7 +78,7 @@ class MasterService(
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
-    val id = req.routeId
+    val id = req.endpointId
     jobEndpoints.getDefinition(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
       case Some(d) =>
@@ -96,7 +96,7 @@ class MasterService(
 
         val registrationCommand = Register(
           request = internalRequest,
-          endpoint = req.routeId,
+          endpoint = req.endpointId,
           context = namespace,
           source = source,
           req.externalId

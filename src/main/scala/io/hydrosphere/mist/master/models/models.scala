@@ -39,7 +39,7 @@ object RunSettings {
   * New version api
   */
 case class JobStartRequest(
-  routeId: String,
+  endpointId: String,
   parameters: Map[String, Any],
   externalId: Option[String] = None,
   runSettings: RunSettings = RunSettings.Default
@@ -52,7 +52,7 @@ case class JobStartResponse(id: String)
   * (spray json not support default values)
   */
 case class AsyncJobStartRequest(
-  routeId: String,
+  endpointId: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],
   runSettings: Option[RunSettings]
@@ -60,7 +60,7 @@ case class AsyncJobStartRequest(
 
   def toCommon: JobStartRequest =
     JobStartRequest(
-      routeId,
+      endpointId,
       parameters.getOrElse(Map.empty),
       externalId,
       runSettings.getOrElse(RunSettings.Default))
