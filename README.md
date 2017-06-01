@@ -75,9 +75,9 @@ Dependencies:
 ```sh
 git clone git@github.com:Hydrospheredata/mist.git
 cd mist
-// for spark 2.1.0
+# for spark 2.1.0
 sbt -DsparkVersion=2.1.0 mist/mistRun
-// or use default
+# or use default
 sbt mist/mistRun
 ```
 
