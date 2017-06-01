@@ -24,13 +24,13 @@ Maven dependency:
 ```xml
 <dependency>
     <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark1</artifactId>
+    <artifactId>mist-lib-spark1_2.10</artifactId>
     <version>0.11.0</version>
 </dependency>
 // or if you use spark >= 2.0
 <dependency>
     <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark2</artifactId>
+    <artifactId>mist-lib-spark2_2.11</artifactId>
     <version>0.11.0</version>
 </dependency>
 ```
