@@ -107,13 +107,12 @@ lazy val mist = project.in(file("."))
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
       "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
 
-      "org.mapdb" % "mapdb" % "1.0.9",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
       "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
 
       "org.scalaj" %% "scalaj-http" % "2.3.0",
-      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
-      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+      "com.h2database" % "h2" % "1.4.194",
       "org.flywaydb" % "flyway-core" % "4.1.1",
       "org.typelevel" %% "cats" % "0.9.0"
     ),

@@ -7,17 +7,31 @@ import org.apache.spark.streaming.{Duration => SDuration}
 import scala.collection.JavaConversions._
 import scala.concurrent.duration.Duration
 
-/** Configuration wrapper */
-private[mist] object MistConfig {
+case class AsyncInterfaceConfig(
+  isOn: Boolean,
+  host: String,
+  port: Int,
+  publishTopic: String,
+  subscribeTopic: String
+)
 
-  private[mist] var config = ConfigFactory.load().resolve()
+object AsyncInterfaceConfig {
 
-  def reload(): Unit = {
-    config = {
-      ConfigFactory.invalidateCaches()
-      ConfigFactory.load().resolve()
-    }
+  def apply(config: Config): AsyncInterfaceConfig = {
+    AsyncInterfaceConfig(
+      isOn = config.getBoolean("on"),
+      host = config.getString("host"),
+      port = config.getInt("port"),
+      publishTopic = config.getString("publish-topic"),
+      subscribeTopic = config.getString("subscribe-topic")
+    )
   }
+}
+
+/** Configuration wrapper */
+object MistConfig {
+
+  private val config = ConfigFactory.load().resolve()
 
   def akkaConfig: Config = config.getConfig("mist").withOnlyPath("akka")
 
@@ -79,61 +93,8 @@ private[mist] object MistConfig {
     }
   }
   
-  trait AsyncInterfaceConfig {
-    def isOn: Boolean
-    def subscribeTopic: String
-    def publishTopic: String
-  }
-  
-  object AsyncInterfaceConfig {
-    def apply(provider: AsyncInterface.Provider): AsyncInterfaceConfig = provider match {
-      case AsyncInterface.Provider.Mqtt => Mqtt
-      case AsyncInterface.Provider.Kafka => Kafka
-    }
-  }
-
-  /** MQTT specific settings */
-  object Mqtt extends AsyncInterfaceConfig {
-    private def mqtt: Config = config.getConfig("mist.mqtt")
-
-    /** To start MQTT subscriber on not to start */
-    def isOn: Boolean = mqtt.getBoolean("on")
-
-    /** MQTT host */
-    def host: String = mqtt.getString("host")
-    /** MQTT port */
-    def port: Int = mqtt.getInt("port")
-    /** MQTT topic used for ''reading'' */
-    def subscribeTopic: String = mqtt.getString("subscribe-topic")
-    /** MQTT topic used for ''writing'' */
-    def publishTopic: String = mqtt.getString("publish-topic")
-
-  }
-  
-  /** Kafka specific settings */
-  object Kafka extends AsyncInterfaceConfig {
-    private val kafka = config.getConfig("mist.kafka")
-    
-    /** To start Kafka subscriber or not to start */
-    val isOn: Boolean = kafka.getBoolean("on")
-    
-    /** Kafka bootstrap server host */
-    lazy val host: String = kafka.getString("host")
-
-    /** Kafka bootstrap server port */
-    lazy val port: String = kafka.getString("port")
-
-    /** Kafka topic used for ''reading'' */
-    lazy val subscribeTopic: String = kafka.getString("subscribe-topic")
-
-    /** Kafka topic used for ''writing'' */
-    lazy val publishTopic: String = kafka.getString("publish-topic")
-    
-    /** Other setting (group.id, auto.offset.reset, enable.auto.commit, etc) */
-    val conf: Config = kafka.getConfig("settings")
-
-    def groupId: String = conf.getString("group.id")
-  }
+  val Mqtt = AsyncInterfaceConfig(config.getConfig("mist.mqtt"))
+  val Kafka = AsyncInterfaceConfig(config.getConfig("mist.kafka"))
 
   object Recovery {
     private def recovery: Config = config.getConfig("mist.recovery")

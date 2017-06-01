@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.utils.Logger
 
@@ -10,6 +8,7 @@ import scala.language.postfixOps
 
 case class WorkerSettings(
   name: String,
+  context: String,
   runOptions: String,
   configFilePath: String,
   jarPath: String
@@ -27,14 +26,15 @@ trait WorkerRunner {
   */
 class LocalWorkerRunner(sparkHome: String) extends WorkerRunner with Logger {
 
-
   def run(settings: WorkerSettings): Unit = {
     import settings._
 
+    //TODO: context
     val cmd = Seq(
       s"${sys.env("MIST_HOME")}/bin/mist-worker",
       "--runner", "local",
-      "--namespace", name,
+      "--name", name,
+      "--context", context,
       "--config", configFilePath,
       "--run-options", settings.runOptions)
 
@@ -54,7 +54,8 @@ object DockerWorkerRunner extends WorkerRunner {
       "--runner", "docker",
       "--docker-host", MistConfig.Workers.dockerHost,
       "--docker-port", MistConfig.Workers.dockerPort.toString,
-      "--namespace", name,
+      "--name", name,
+      "--context", context,
       "--config", configFilePath,
       "--run-options", runOptions)
     val builder = Process(cmd)

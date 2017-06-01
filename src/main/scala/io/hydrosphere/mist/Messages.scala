@@ -1,8 +1,10 @@
 package io.hydrosphere.mist
 
-import akka.actor.{ActorRef, ActorSelection, Address}
+import akka.actor.{ActorRef, Address}
+import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
+import io.hydrosphere.mist.jobs.Action
+import io.hydrosphere.mist.master.models.RunMode
 
 object Messages {
 
@@ -10,6 +12,7 @@ object Messages {
 
     case class WorkerRegistration(name: String, adress: Address)
     case class WorkerCommand(name: String, message: Any)
+    case class RunJobCommand(namespace: String, mode: RunMode, request: RunJobRequest)
 
     case class CreateContext(name: String)
 
@@ -72,21 +75,29 @@ object Messages {
 
   object StatusMessages {
 
-    case class Register(id: String, params: JobExecutionParams, source: Source)
+    case class Register(
+      request: RunJobRequest,
+      endpoint: String,
+      context: String,
+      source: Source,
+      externalId: Option[String])
 
     sealed trait UpdateStatusEvent {
       val id: String
     }
 
+    case class InitializedEvent(id: String, params: JobParams) extends UpdateStatusEvent
     case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
-    //case class UpdateStatus(id: String, status: JobDetails.Status, time: Long)
     // return full job details
     case object RunningJobs
+    case class GetEndpointHistory(id: String)
+    case class GetById(id: String)
+    case class GetByExternalId(id: String)
 
   }
 

@@ -33,7 +33,7 @@ object ExecutionInfo {
 }
 
 //TODO: cancel jobs should send info to statusService
-//TODO: if worker crashed - jobs taht us in ruunning status should be marked as Failure
+//TODO: if worker crashed - jobs that is in running status should be marked as Failure
 /**
   * Queue for jobs before sending them to worker
   */

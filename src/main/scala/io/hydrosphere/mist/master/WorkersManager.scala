@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
+import java.util.UUID
 
 import akka.actor._
 import akka.cluster.ClusterEvent._
@@ -10,6 +11,7 @@ import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
+import io.hydrosphere.mist.master.models.RunMode
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -59,6 +61,23 @@ class WorkersManager(
   val workerStates = mutable.Map[String, WorkerState]()
 
   override def receive: Receive = {
+    case RunJobCommand(namespace, mode, jobRequest) =>
+      mode match {
+        case RunMode.Default =>
+          val state = getOrRunWorker(namespace)
+          state.frontend forward jobRequest
+
+        case RunMode.UniqueContext(id) =>
+          val uuid = UUID.randomUUID().toString
+          val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
+          val name = s"$namespace-$postfix"
+          runWorker(name, namespace)
+          val defaultState = defaultWorkerState(name)
+          val state = Initializing(defaultState.frontend)
+          workerStates += name -> state
+          state.frontend forward jobRequest
+      }
+
     case WorkerCommand(name, entry) =>
       val state = getOrRunWorker(name)
       state.frontend forward entry
@@ -160,9 +179,13 @@ class WorkersManager(
     }
   }
 
-  private def runWorker(name: String): Unit = {
+  private def runWorker(name: String): Unit =
+    runWorker(name, name)
+
+  private def runWorker(name: String, context: String): Unit = {
     val settings = WorkerSettings(
       name = name,
+      context = context,
       runOptions = MistConfig.Contexts.runOptions(name),
       configFilePath = System.getProperty("config.file"),
       jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
