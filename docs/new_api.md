@@ -5,7 +5,7 @@ Glosssary:
 - Endpoint (previously was routers) - thing that describe job (path to artifact, class name, job parameters)
 - Job - fact of endpoint invocation
 - Context (namespace) - group of spark configs or settings for SparkContext creation
-- Mode - job can be runned in two worker modes: `shared` or `exlusive`
+- Mode - job can be runned in two worker modes: `shared` or `exclusive`
     - Shared - all jobs from same context are using one spark driver application
     - Exclusive - fresh driver aplication will be created for one job invocation
 
@@ -117,8 +117,7 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 }
 ```
 
-- `initialized` - job have been assigned to invocation
-    also returns all job parameters
+- `initialized` - job has been assigned to invocation, also returns all job parameters
 - `queued` - job has been queued (start worker awaiting )
 - `started` - job has been sended to worker
 - `canceled` - job has been canceled by user
