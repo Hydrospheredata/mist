@@ -11,6 +11,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
@@ -27,6 +28,7 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := currentSparkVersion,
+  sparkMajorVersion := sparkVersion.value.split('.').head,
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
@@ -34,7 +36,7 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.11.0"
+  version := "0.12.1"
 )
 
 lazy val spark2AdditionalDependencies = currentSparkVersion match {
@@ -56,7 +58,7 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-lib",
+    name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
     libraryDependencies ++= spark2AdditionalDependencies,
     libraryDependencies ++= Seq(
@@ -152,9 +154,9 @@ lazy val mist = project.in(file("."))
   .settings(
     stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
     stageActions := {
+      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
       val routes = {
-        val num = if (sparkVersion.value.startsWith("1.")) "1" else "2"
-        CpFile(s"configs/router-examples-spark$num.conf")
+        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
           .as("router.conf")
           .to("configs")
       }
@@ -167,6 +169,7 @@ lazy val mist = project.in(file("."))
         CpFile("examples-python"),
         CpFile(assembly.value).as("mist.jar"),
         CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+          .as(s"mist-examples-spark$sparkMajor.jar")
       )
     },
     stageActions in basicStage +=
@@ -187,7 +190,8 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion)
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    autoScalaLibrary := false
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
@@ -195,7 +199,8 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion)
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    autoScalaLibrary := false
   )
 
 lazy val mistRunSettings = Seq(
@@ -253,7 +258,6 @@ lazy val dockerSettings = Seq(
       run("apk", "update")
       run("apk", "add", "python", "curl", "jq", "coreutils")
 
-      expose(2003)
       workDir(mistHome)
       entryPoint("/docker-entrypoint.sh")
     }

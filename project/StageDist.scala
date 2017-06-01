@@ -1,45 +1,5 @@
 import sbt._
 import sbt.Keys._
-//import StageDistKeys._
-//import StageDist._
-
-//object StageDist {
-//
-//  sealed trait StageAction
-//
-//  case class CopyFile(
-//    file: File,
-//    renameTo: Option[String],
-//    toDir: Option[File]
-//  ) extends StageAction {
-//
-//    def as(name: String): CopyFile = copy(renameTo = Some(name))
-//    def to(dir: String): CopyFile = copy(toDir = Some(sbt.file(dir)))
-//
-//    def path: String = {
-//      val name = renameTo.getOrElse(file.getName)
-//      toDir.map(_.getPath + "/" + name).getOrElse(name)
-//    }
-//
-//  }
-//
-//  object CopyFile {
-//    def apply(f: File): CopyFile = CopyFile(f, None, None)
-//    def apply(s: String): CopyFile = CopyFile(sbt.file(s), None, None)
-//  }
-//
-//  case class MkDir(name: String) extends StageAction
-//
-//}
-//
-//object StageDistKeys {
-//  lazy val stageDirectory = taskKey[File]("Target directory")
-//  lazy val stageActions = taskKey[Seq[StageAction]]("Actions to build stage")
-//  lazy val basicStage = taskKey[File]("Build stage for basic distributive")
-//  lazy val dockerStage = taskKey[File]("Build stage for docker distributive")
-//
-//  lazy val packageTar = taskKey[File]("Package stage to zip")
-//}
 
 object StageDist {
 

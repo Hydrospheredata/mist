@@ -21,7 +21,11 @@ class ScalaRunner extends JobRunner {
       Left(s"Can not found file: $filePath")
     } else {
       context.addJar(params.filePath)
-      val load = JobsLoader.fromJar(file).loadJobInstance(className, action)
+      val jobsLoader = JobsLoader.fromJar(file)
+      // see #204
+      Thread.currentThread().setContextClassLoader(jobsLoader.classLoader)
+
+      val load = jobsLoader.loadJobInstance(className, action)
       Either.fromTry(load).flatMap(instance => {
         instance.run(context.setupConfiguration, arguments)
       }).leftMap(e => buildErrorMessage(params, e))
