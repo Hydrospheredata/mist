@@ -22,7 +22,7 @@ class AsyncInterfaceSpec extends FunSpec {
     val message =
       s"""
          |{
-         |  "routeId": "my-job",
+         |  "endpointId": "my-job",
          |  "parameters": { "x": "y" }
          |}
        """.stripMargin
