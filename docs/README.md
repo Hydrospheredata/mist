@@ -13,6 +13,7 @@
 - [Configuration](/docs/configuration.md)
 - [Low level API Reference](/docs/api-reference.md)
 - [Namespaces](/docs/context-namespaces.md)
+- [For developers](/docs/developer.md)
 - [Tests](/docs/tests.md)
 - [License](/LICENSE)
 - [Changelog](/CHANGELOG)
