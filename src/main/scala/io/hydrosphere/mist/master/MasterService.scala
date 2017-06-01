@@ -27,9 +27,9 @@ class MasterService(
 
   implicit val timeout = Timeout(10.second)
 
-  def activeJobs(): Future[List[JobDetails]] = {
+  def activeJobs(): Future[Seq[JobDetails]] = {
     val future = statusService ? StatusMessages.RunningJobs
-    future.mapTo[List[JobDetails]]
+    future.mapTo[Seq[JobDetails]]
   }
 
   def jobStatusById(id: String): Future[Option[JobDetails]] = {
@@ -49,7 +49,7 @@ class MasterService(
 
   def workers(): Future[Seq[WorkerLink]] = {
     val f = workerManager ? GetWorkers
-    f.mapTo[List[WorkerLink]]
+    f.mapTo[Seq[WorkerLink]]
   }
 
   def stopAllWorkers(): Future[Unit] = {
@@ -58,7 +58,7 @@ class MasterService(
   }
 
   def stopJob(namespace: String, runId: String): Future[Unit] = {
-    val f = workerManager ? WorkerCommand(namespace, CancelJobRequest(runId))
+    val f = workerManager ? CancelJobCommand(namespace, CancelJobRequest(runId))
     f.map(_ => ())
   }
 

@@ -10,6 +10,7 @@ NAME=""
 CONTEXT=""
 JAVA_ARGS=""
 RUNNER="local"
+MODE="shared"
 
 while [[ $# > 1 ]]
 do
@@ -54,6 +55,11 @@ do
       RUNNER="$2"
       shift
       ;;
+
+     --mode)
+      MODE="$2"
+      shift
+      ;;
   esac
 shift
 done
@@ -85,7 +91,7 @@ function startWorker() {
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dakka.roles.1=worker-$NAMESPACE"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS" 
 
-    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $NAME $CONTEXT
+    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $NAME $CONTEXT $MODE
 }
 
 function startWorkerContainer() {
@@ -106,6 +112,7 @@ function startWorkerContainer() {
             \"worker\",
             \"$NAME\",
             \"$CONTEXT\",
+            \"$MODE\",
             \"$CONFIG\",
             \"$RUN_OPTIONS\"
         ],

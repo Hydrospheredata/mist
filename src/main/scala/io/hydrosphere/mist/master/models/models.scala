@@ -1,20 +1,24 @@
 package io.hydrosphere.mist.master.models
 
-import io.hydrosphere.mist.jobs.Action
-
 /** Specify how use context/workers */
-sealed trait RunMode
+sealed trait RunMode {
+
+  def name: String = this match {
+    case RunMode.Default => "shared"
+    case e:RunMode.ExclusiveContext => "exclusive"
+  }
+}
 
 object RunMode {
 
   /** Job will share one worker with jobs that are running on the same namespace */
   case object Default extends RunMode
   /** There will be created unique worker for job execution */
-  case class UniqueContext(id: Option[String]) extends RunMode
+  case class ExclusiveContext(id: Option[String]) extends RunMode
 
   def fromString(s: String): Option[RunMode] = s match {
-    case "default" => Some(Default)
-    case "uniqueContext" => Some(UniqueContext(None))
+    case "shared" => Some(Default)
+    case "exclusive" => Some(ExclusiveContext(None))
   }
 
 }

@@ -41,11 +41,6 @@ trait JobsTable {
     string => Action(string)
   )
 
-//  implicit def tuple2JobConfiguration(tuple: (String, String, String, JobParameters, Option[String], Option[String], Action)): JobExecutionParams = tuple match {
-//    case (path, className, namespace, parameters, externalId, route, action) =>
-//      JobExecutionParams(path, className, namespace, parameters, externalId, route, action)
-//  }
-
   class JobDetailsTable(tag: Tag) extends Table[JobDetails](tag, "job_details") {
 
     def path = column[String]("path")

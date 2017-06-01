@@ -16,7 +16,7 @@ import io.hydrosphere.mist.master.models.RunMode
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -25,6 +25,7 @@ import scala.util.{Failure, Success}
   */
 sealed trait WorkerState {
   val frontend: ActorRef
+  def forward(msg: Any)(implicit context: ActorContext): Unit = frontend forward msg
 }
 
 /**
@@ -60,27 +61,20 @@ class WorkersManager(
 
   val workerStates = mutable.Map[String, WorkerState]()
 
+
   override def receive: Receive = {
-    case RunJobCommand(namespace, mode, jobRequest) =>
-      mode match {
-        case RunMode.Default =>
-          val state = getOrRunWorker(namespace)
-          state.frontend forward jobRequest
-
-        case RunMode.UniqueContext(id) =>
-          val uuid = UUID.randomUUID().toString
-          val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
-          val name = s"$namespace-$postfix"
-          runWorker(name, namespace)
-          val defaultState = defaultWorkerState(name)
-          val state = Initializing(defaultState.frontend)
-          workerStates += name -> state
-          state.frontend forward jobRequest
+    case RunJobCommand(contextId, mode, jobRequest) =>
+      workerStates.get(contextId) match {
+        case Some(s) => s.forward(jobRequest)
+        case None =>
+          val state = startWorker(contextId, mode)
+          state.forward(jobRequest)
       }
-
-    case WorkerCommand(name, entry) =>
-      val state = getOrRunWorker(name)
-      state.frontend forward entry
+    case c @ CancelJobCommand(name, req) =>
+      workerStates.get(name) match {
+        case Some(s) => s.forward(req)
+        case None => log.warning("Handled message {} for unknown worker", c)
+      }
 
     case GetWorkers =>
       sender() ! aliveWorkers
@@ -121,10 +115,16 @@ class WorkersManager(
       })
 
     case r @ WorkerResolved(name, address, ref) =>
-      val s = getOrRunWorker(name)
-      workerStates += name -> Started(s.frontend, address, ref)
-      s.frontend ! WorkerUp(ref)
-      log.info(s"Worker with $name is registered on $address")
+      workerStates.get(name) match {
+        case Some(state) =>
+          val next = Started(state.frontend, address, ref)
+          workerStates += name ->next
+          state.frontend ! WorkerUp(ref)
+          log.info(s"Worker with $name is registered on $address")
+
+        case None =>
+          log.warning("Received memberResolve from unknown worker {}", name)
+      }
 
     case UnreachableMember(m) =>
       aliveWorkers.find(_.address == m.address.toString)
@@ -135,8 +135,8 @@ class WorkersManager(
         setWorkerDown(name)
       })
 
-    case CreateContext(name) =>
-      getOrRunWorker(name)
+    case CreateContext(contextId) =>
+      startWorker(contextId, RunMode.Default)
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -149,6 +149,39 @@ class WorkersManager(
     m.getRoles
       .find(_.startsWith("worker-"))
       .map(_.replace("worker-", ""))
+  }
+
+  private def startWorker(contextId: String, mode: RunMode): WorkerState = {
+    val workerId = mode match {
+      case RunMode.Default => contextId
+      case RunMode.ExclusiveContext(id) =>
+        val uuid = UUID.randomUUID().toString
+        val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
+        s"$contextId-$postfix"
+    }
+
+    runWorker(workerId, contextId, mode)
+    val defaultState = defaultWorkerState(workerId)
+    val state = Initializing(defaultState.frontend)
+    workerStates += workerId -> state
+
+    state
+  }
+
+  private def runWorker(
+    name: String,
+    context: String,
+    mode: RunMode
+  ): Unit = {
+    val settings = WorkerSettings(
+      name = name,
+      context = context,
+      runOptions = MistConfig.Contexts.runOptions(name),
+      configFilePath = System.getProperty("config.file"),
+      jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString,
+      mode = mode
+    )
+    workerRunner.run(settings)
   }
 
   private def setWorkerDown(name: String): Unit = {
@@ -166,31 +199,6 @@ class WorkersManager(
       case None =>
         log.info(s"Received unexpected unreachable worker $name")
     }
-  }
-
-  private def getOrRunWorker(name: String): WorkerState = {
-    workerStates.getOrElse(name, defaultWorkerState(name)) match {
-      case d: Down =>
-        runWorker(name)
-        val state = Initializing(d.frontend)
-        workerStates += name -> state
-        state
-      case x => x
-    }
-  }
-
-  private def runWorker(name: String): Unit =
-    runWorker(name, name)
-
-  private def runWorker(name: String, context: String): Unit = {
-    val settings = WorkerSettings(
-      name = name,
-      context = context,
-      runOptions = MistConfig.Contexts.runOptions(name),
-      configFilePath = System.getProperty("config.file"),
-      jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
-    )
-    workerRunner.run(settings)
   }
 
   private def defaultWorkerState(name: String): WorkerState = {

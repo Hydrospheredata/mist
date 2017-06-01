@@ -34,7 +34,7 @@ trait JsonCodecs extends SprayJsonSupport
     override def write(obj: RunMode): JsValue = {
       obj match {
         case RunMode.Default => JsObject(("type", JsString("default")))
-        case RunMode.UniqueContext(id) =>
+        case RunMode.ExclusiveContext(id) =>
           JsObject(
             ("type", JsString("uniqueContext")),
             ("id", id.map(JsString(_)).getOrElse(JsNull))
@@ -55,7 +55,7 @@ trait JsonCodecs extends SprayJsonSupport
             case Some(JsString(i)) => Some(i)
             case _ => None
           }
-          RunMode.UniqueContext(id)
+          RunMode.ExclusiveContext(id)
       }
     }
   }
