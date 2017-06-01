@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
@@ -34,6 +35,7 @@ class HttpApiV2(master: MasterService ) {
   import Directives._
   import HttpApiV2._
   import JsonCodecs._
+  import ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.server._
 
   private val root = "v2" / "api"
@@ -42,7 +44,7 @@ class HttpApiV2(master: MasterService ) {
       'externalId ?,
       'context ?,
       'mode ? ,
-      'uniqWorkerId ?
+      'workerId ?
     ).as(JobRunQueryParams)
 
   private val completeOpt = rejectEmptyResponse & complete _
@@ -121,13 +123,12 @@ object HttpApiV2 {
     externalId: Option[String],
     context: Option[String],
     mode: Option[String],
-    uniqWorkerId: Option[String]
+    workerId: Option[String]
   ) {
 
     def buildRunSettings(): RunSettings = {
-      val runMode = mode.flatMap(RunMode.fromString)
-          .getOrElse(RunMode.Default) match {
-        case u: RunMode.UniqueContext => u.copy(uniqWorkerId)
+      val runMode = mode.flatMap(RunMode.fromString).getOrElse(RunMode.Default) match {
+        case u: RunMode.ExclusiveContext => u.copy(workerId)
         case x => x
       }
       RunSettings(context, runMode)

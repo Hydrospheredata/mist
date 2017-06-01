@@ -14,7 +14,8 @@ import scala.collection.mutable
 
 class NamedContext(
   val context: SparkContext,
-  namespace: String,
+  val namespace: String,
+
   streamingDuration: Duration,
   publisherConnectionString: String,
   publisherTopic: String

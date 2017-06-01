@@ -1,7 +1,7 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
-import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
+import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.master.models.RunMode
@@ -10,11 +10,11 @@ object Messages {
 
   object WorkerMessages {
 
-    case class WorkerRegistration(name: String, adress: Address)
-    case class WorkerCommand(name: String, message: Any)
-    case class RunJobCommand(namespace: String, mode: RunMode, request: RunJobRequest)
+    case class WorkerRegistration(name: String, address: Address)
+    case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest)
+    case class CancelJobCommand(name: String, request: CancelJobRequest)
 
-    case class CreateContext(name: String)
+    case class CreateContext(contextId: String)
 
     case object GetWorkers
     case object GetActiveJobs

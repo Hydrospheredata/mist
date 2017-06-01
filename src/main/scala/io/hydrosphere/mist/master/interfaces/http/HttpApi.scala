@@ -67,7 +67,7 @@ class HttpApi(master: MasterService) extends Logger {
               Action.Execute
 
             val request = JobStartRequest(
-              routeId = routeId,
+              endpointId = routeId,
               parameters = jobParams,
               externalId = None,
               runSettings = RunSettings.Default

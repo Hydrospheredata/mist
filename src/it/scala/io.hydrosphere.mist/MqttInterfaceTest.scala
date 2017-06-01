@@ -23,7 +23,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
     val request =
       """
         |{
-        |  "routeId": "simple-context-py",
+        |  "endpointId": "simple-context-py",
         |  "parameters": {
         |    "numbers": [1, 2, 3]
         |  }

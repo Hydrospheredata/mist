@@ -89,7 +89,7 @@ case class StopWorkerCmd(name: String) extends RemoteUnitCliCommand {
 
 case class StopJobCmd(namespace: String, id: String) extends RemoteCliCommand[JobIsCancelled] {
 
-  override val request = WorkerCommand(namespace, CancelJobRequest(id))
+  override val request = CancelJobCommand(namespace, CancelJobRequest(id))
 
   override val headers = List("ID", "TIME")
 

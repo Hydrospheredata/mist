@@ -27,9 +27,9 @@ class MasterService(
 
   implicit val timeout = Timeout(10.second)
 
-  def activeJobs(): Future[List[JobDetails]] = {
+  def activeJobs(): Future[Seq[JobDetails]] = {
     val future = statusService ? StatusMessages.RunningJobs
-    future.mapTo[List[JobDetails]]
+    future.mapTo[Seq[JobDetails]]
   }
 
   def jobStatusById(id: String): Future[Option[JobDetails]] = {
@@ -47,9 +47,9 @@ class MasterService(
     f.mapTo[Option[JobDetails]]
   }
 
-  def workers(): Future[List[WorkerLink]] = {
+  def workers(): Future[Seq[WorkerLink]] = {
     val f = workerManager ? GetWorkers
-    f.mapTo[List[WorkerLink]]
+    f.mapTo[Seq[WorkerLink]]
   }
 
   def stopAllWorkers(): Future[Unit] = {
@@ -58,7 +58,7 @@ class MasterService(
   }
 
   def stopJob(namespace: String, runId: String): Future[Unit] = {
-    val f = workerManager ? WorkerCommand(namespace, CancelJobRequest(runId))
+    val f = workerManager ? CancelJobCommand(namespace, CancelJobRequest(runId))
     f.map(_ => ())
   }
 
@@ -78,7 +78,7 @@ class MasterService(
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
-    val id = req.routeId
+    val id = req.endpointId
     jobEndpoints.getDefinition(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
       case Some(d) =>
@@ -96,7 +96,7 @@ class MasterService(
 
         val registrationCommand = Register(
           request = internalRequest,
-          endpoint = req.routeId,
+          endpoint = req.endpointId,
           context = namespace,
           source = source,
           req.externalId
