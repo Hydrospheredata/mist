@@ -70,15 +70,13 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val updateEventF = new JsonFormat[UpdateStatusEvent] {
 
     implicit val iniF = jsonFormat2(InitializedEvent)
-    implicit val queueF = jsonFormat1(QueuedEvent)
+    implicit val queueF = jsonFormat2(QueuedEvent)
     implicit val startedF = jsonFormat2(StartedEvent)
     implicit val canceledF = jsonFormat2(CanceledEvent)
     implicit val finishedF = jsonFormat3(FinishedEvent)
     implicit val failedF = jsonFormat3(FailedEvent)
 
     override def write(obj: UpdateStatusEvent): JsValue = {
-/*      val initial = obj.toJson.asJsObject*/
-
       val (name, initial) = obj match {
         case x: InitializedEvent => "initialized" -> x.toJson
         case x: QueuedEvent => "queued" -> x.toJson

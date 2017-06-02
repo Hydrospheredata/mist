@@ -56,6 +56,7 @@ trait JobsTable {
     def endTime = column[Option[Long]]("end_time")
     def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
     def status = column[JobDetails.Status]("status")
+    def workerId = column[Option[String]]("worker_id")
 
     override def * : ProvenShape[JobDetails] = {
       val shapedValue = (
@@ -71,7 +72,8 @@ trait JobsTable {
         startTime,
         endTime,
         jobResult,
-        status
+        status,
+        workerId
         ).shaped
       shapedValue.<>({
         tuple => JobDetails(
@@ -84,12 +86,13 @@ trait JobsTable {
           startTime = tuple._10,
           endTime = tuple._11,
           jobResult = tuple._12,
-          status = tuple._13
+          status = tuple._13,
+          workerId = tuple._14
         )
       }, {
         (j: JobDetails) => Some(
           (j.params.filePath, j.params.className, j.context, j.params.arguments, j.externalId,
-            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status)
+            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status, j.workerId)
         )
       })
     }

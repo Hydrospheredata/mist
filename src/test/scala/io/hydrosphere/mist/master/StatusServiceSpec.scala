@@ -85,7 +85,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
     val expected = Table(
       ("event", "details"),
-      (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
+      (QueuedEvent("id", "yoyo"), baseDetails.copy(status = Status.Queued, workerId = Some("yoyo"))),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Running, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Aborted, endTime = Some(1))),
       (FinishedEvent("id", 1, Map("1" -> 2)),

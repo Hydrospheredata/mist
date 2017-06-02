@@ -70,7 +70,7 @@ object StatusService {
     event match {
        //TODO
       case InitializedEvent(_, _) => d
-      case QueuedEvent(_) => d.withStatus(Status.Queued)
+      case QueuedEvent(_, id) => d.copy(workerId = Some(id)).withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)
       case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Aborted)
       case FinishedEvent(_, time, result) =>

@@ -55,12 +55,11 @@ case class Started(
 class WorkersManager(
   statusService: ActorRef,
   workerRunner: WorkerRunner
-)extends Actor with ActorLogging {
+) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
 
   val workerStates = mutable.Map[String, WorkerState]()
-
 
   override def receive: Receive = {
     case RunJobCommand(contextId, mode, jobRequest) =>

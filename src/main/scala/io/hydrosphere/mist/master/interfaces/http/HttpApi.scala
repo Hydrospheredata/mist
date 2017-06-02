@@ -26,7 +26,7 @@ class HttpApi(master: MasterService) extends Logger {
     } ~
     path("internal" / "jobs" / Segment / Segment) { (namespace, jobId) =>
       delete {
-        completeU { master.stopJob(namespace, jobId) }
+        completeU { master.stopJob(jobId).map(_ => ()) }
       }
     } ~
     path("internal" / "workers" ) {

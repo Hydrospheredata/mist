@@ -65,11 +65,7 @@ class FrontendJobExecutor(
       context become withWorker(worker)
 
     case CancelJobRequest(id) =>
-      jobs.get(id).foreach(info => {
-        queue.dequeueFirst(_.request.id == id)
-        jobs -= id
-        sender() ! JobIsCancelled(id)
-      })
+      cancelQueuedJob(sender(), id)
   }
 
   private def withWorker(worker: ActorRef): Receive = common orElse {
@@ -149,7 +145,7 @@ class FrontendJobExecutor(
     queue += info
     jobs += req.id -> info
 
-    statusService ! QueuedEvent(req.id)
+    statusService ! QueuedEvent(req.id, name)
 
     info
   }

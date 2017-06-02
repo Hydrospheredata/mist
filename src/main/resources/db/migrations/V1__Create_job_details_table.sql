@@ -11,5 +11,6 @@ CREATE TABLE `job_details`(
     `start_time`    BIGINT,
     `end_time`      BIGINT,
     `job_result`    TEXT,
-    `status`        TEXT NOT NULL
+    `status`        TEXT NOT NULL,
+    `worker_id`     TEXT
 );

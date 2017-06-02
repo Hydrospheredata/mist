@@ -95,7 +95,8 @@ case class JobDetails(
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
   jobResult: Option[Either[String, Map[String, Any]]] = None,
-  status: JobDetails.Status = JobDetails.Status.Initialized
+  status: JobDetails.Status = JobDetails.Status.Initialized,
+  workerId: Option[String] = None
 ) {
 
   def withStartTime(time: Long): JobDetails = copy(startTime = Some(time))
@@ -112,8 +113,9 @@ case class JobDetails(
   def withFailure(message: String): JobDetails =
     copy(jobResult = Some(Left(message)))
 
-
   def withStatus(status: JobDetails.Status): JobDetails =
     copy(status = status)
+
+  def isCancellable: Boolean = workerId.isDefined && !status.isFinished
 }
 

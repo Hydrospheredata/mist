@@ -18,20 +18,22 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
 
   import JsonCodecs._
 
+  val details = JobDetails(
+    params = JobParams("path", "className", Map.empty, Action.Execute),
+    jobId = "id",
+    source = Source.Http,
+    endpoint = "endpoint",
+    context = "context",
+    externalId = None
+  )
+
   it("should serve active jobs") {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
 
     when(master.activeJobs()).thenReturn(
       Future.successful(
-        List(JobDetails(
-          params = JobParams("path", "className", Map.empty, Action.Execute),
-          jobId = "id",
-          source = Source.Http,
-          endpoint = "endpoint",
-          context = "context",
-          externalId = None
-        ))
+        List(details)
       )
     )
 
@@ -47,8 +49,7 @@ class HttpApiSpec extends FunSpec with Matchers with ScalatestRouteTest {
     val master = mock(classOf[MasterService])
     val api = new HttpApi(master).route
 
-    when(master.stopJob(any[String], any[String])).
-      thenReturn(Future.successful(()))
+    when(master.stopJob(any[String])).thenReturn(Future.successful(Some(details)))
 
     Delete("/internal/jobs/namespace/id") ~> api ~> check {
       status === StatusCodes.OK

@@ -44,6 +44,6 @@ private[mist] trait JobDetailsJsonSerialization extends JobConfigurationJsonSeri
 
 
   implicit val jobParamsF = jsonFormat4(JobParams.apply)
-  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat10(JobDetails.apply)
+  implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat11(JobDetails.apply)
   
 }

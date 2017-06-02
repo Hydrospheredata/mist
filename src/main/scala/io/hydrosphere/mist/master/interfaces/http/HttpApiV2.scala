@@ -77,6 +77,11 @@ class HttpApiV2(master: MasterService ) {
         master.jobStatusById(jobId)
       }}
     } ~
+    path( root / "jobs" / Segment ) { jobId =>
+      delete { completeOpt {
+        master.stopJob(jobId)
+      }}
+    } ~
     path( root / "workers" ) {
       get { complete(master.workers()) }
     } ~

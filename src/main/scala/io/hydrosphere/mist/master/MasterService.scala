@@ -5,6 +5,8 @@ import java.util.UUID
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.Register
@@ -57,10 +59,21 @@ class MasterService(
     f.map(_ => ())
   }
 
-  def stopJob(namespace: String, runId: String): Future[Unit] = {
-    val f = workerManager ? CancelJobCommand(namespace, CancelJobRequest(runId))
-    f.map(_ => ())
+  def stopJob(jobId: String): Future[Option[JobDetails]] = {
+    def tryCancel(d: JobDetails): Future[Unit] = d.workerId match {
+      case Some(id) if d.isCancellable =>
+        val f = workerManager ? CancelJobCommand(id, CancelJobRequest(jobId))
+        f.map(_ => ())
+      case _ => Future.successful(())
+    }
+
+    val out = for {
+      details <- OptionT(jobStatusById(jobId))
+      _ <- OptionT.liftF(tryCancel(details))
+    } yield details
+    out.value
   }
+
 
   def stopWorker(id: String): Future[String] = {
     workerManager ! StopWorker(id)

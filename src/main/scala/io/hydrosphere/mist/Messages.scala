@@ -12,7 +12,7 @@ object Messages {
 
     case class WorkerRegistration(name: String, address: Address)
     case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest)
-    case class CancelJobCommand(name: String, request: CancelJobRequest)
+    case class CancelJobCommand(workerId: String, request: CancelJobRequest)
 
     case class CreateContext(contextId: String)
 
@@ -87,7 +87,7 @@ object Messages {
     }
 
     case class InitializedEvent(id: String, params: JobParams) extends UpdateStatusEvent
-    case class QueuedEvent(id: String) extends UpdateStatusEvent
+    case class QueuedEvent(id: String, workerId: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
