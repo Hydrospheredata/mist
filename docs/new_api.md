@@ -76,6 +76,18 @@ Glosssary:
       <td>None</td>
       <td>List of all jobs that was runned on all endpoints</td>
     </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/jobs/{id}</td>
+      <td>None</td>
+      <td>Get info about particular job</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td>/v2/api/jobs/{id}</td>
+      <td>None</td>
+      <td>Try cancel job execution</td>
+    </tr>
   </tbody>
 </table>
 
