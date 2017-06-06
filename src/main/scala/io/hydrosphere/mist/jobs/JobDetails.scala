@@ -96,7 +96,8 @@ case class JobDetails(
   endTime: Option[Long] = None,
   jobResult: Option[Either[String, Map[String, Any]]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  workerId: Option[String] = None
+  workerId: Option[String] = None,
+  createTime: Long = System.currentTimeMillis()
 ) {
 
   def withStartTime(time: Long): JobDetails = copy(startTime = Some(time))

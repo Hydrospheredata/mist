@@ -39,14 +39,14 @@ class MasterService(
     f.mapTo[Option[JobDetails]]
   }
 
-  def endpointHistory(id: String): Future[Seq[JobDetails]] = {
-    val f = statusService ? StatusMessages.GetEndpointHistory(id)
+  def endpointHistory(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] = {
+    val f = statusService ? StatusMessages.GetEndpointHistory(id, limit, offset)
     f.mapTo[Seq[JobDetails]]
   }
 
-  def jobStatusByExternalId(id: String): Future[Option[JobDetails]] = {
-    val f = statusService ? StatusMessages.GetByExternalId(id)
-    f.mapTo[Option[JobDetails]]
+  def getHistory(limit: Int, offset: Int): Future[Seq[JobDetails]] = {
+    val f = statusService ? StatusMessages.GetHistory(limit, offset)
+    f.mapTo[Seq[JobDetails]]
   }
 
   def workers(): Future[Seq[WorkerLink]] = {

@@ -47,6 +47,13 @@ class HttpApiV2(master: MasterService ) {
       'workerId ?
     ).as(JobRunQueryParams)
 
+  private val limitedQuery = {
+    parameters(
+      'limit.?(25),
+      'offset.?(0)
+    ).as(LimitOffsetQuery)
+  }
+
   private val completeOpt = rejectEmptyResponse & complete _
 
   val route: Route = CorsDirective.cors() {
@@ -61,8 +68,10 @@ class HttpApiV2(master: MasterService ) {
       }}
     } ~
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
-      get { complete {
-        master.endpointHistory(endpointId)
+      get { limitedQuery { limits =>
+        complete {
+          master.endpointHistory(endpointId, limits.limit, limits.offset)
+        }
       }}
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
@@ -71,6 +80,13 @@ class HttpApiV2(master: MasterService ) {
           completeOpt { runJob(endpointId, query, params) }
         }
       })
+    } ~
+    path( root / "jobs") {
+      get { limitedQuery { limits =>
+        complete {
+          master.getHistory(limits.limit, limits.offset)
+        }
+      }}
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       get { completeOpt {
@@ -139,5 +155,10 @@ object HttpApiV2 {
       RunSettings(context, runMode)
     }
   }
+
+  case class LimitOffsetQuery(
+    limit: Int,
+    offset: Int
+  )
 
 }

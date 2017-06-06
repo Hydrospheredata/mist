@@ -57,6 +57,7 @@ trait JobsTable {
     def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
     def status = column[JobDetails.Status]("status")
     def workerId = column[Option[String]]("worker_id")
+    def createTime = column[Long]("create_time")
 
     override def * : ProvenShape[JobDetails] = {
       val shapedValue = (
@@ -73,7 +74,8 @@ trait JobsTable {
         endTime,
         jobResult,
         status,
-        workerId
+        workerId,
+        createTime
         ).shaped
       shapedValue.<>({
         tuple => JobDetails(
@@ -87,12 +89,13 @@ trait JobsTable {
           endTime = tuple._11,
           jobResult = tuple._12,
           status = tuple._13,
-          workerId = tuple._14
+          workerId = tuple._14,
+          createTime = tuple._15
         )
       }, {
         (j: JobDetails) => Some(
           (j.params.filePath, j.params.className, j.context, j.params.arguments, j.externalId,
-            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status, j.workerId)
+            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status, j.workerId, j.createTime)
         )
       })
     }
@@ -114,10 +117,6 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(table.filter(_.jobId === id).result).map(_.headOption)
   }
 
-  override def getByExternalId(id: String): Future[Seq[JobDetails]] = {
-    run(table.filter(_.externalId === id).result)
-  }
-
   override def update(jobDetails: JobDetails): Future[Unit] = {
     run(table.insertOrUpdate(jobDetails)).map(_ => ())
   }
@@ -126,13 +125,19 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(table.filter(_.status inSetBind statuses).result)
   }
 
-  override def all(): Future[Seq[JobDetails]] =
-    run(table.result)
+  override def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]] = {
+    val query = table.sortBy(_.createTime.desc).drop(offset).take(limit)
+    run(query.result)
+  }
 
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
 
-  override def getByEndpointId(id: String): Future[Seq[JobDetails]] = {
-    run(table.filter(_.endpoint === id).result)
+  override def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] = {
+    val query = table.filter(_.endpoint === id)
+      .sortBy(_.createTime.desc)
+      .drop(offset).take(limit)
+
+    run(query.result)
   }
 }
 

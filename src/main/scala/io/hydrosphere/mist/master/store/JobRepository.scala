@@ -10,15 +10,13 @@ trait JobRepository {
 
   def get(jobId: String): Future[Option[JobDetails]]
 
-  def getByExternalId(id: String): Future[Seq[JobDetails]]
-
-  def getByEndpointId(id: String): Future[Seq[JobDetails]]
+  def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]]
 
   def update(jobDetails: JobDetails): Future[Unit]
 
   def filteredByStatuses(statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
 
-  def all(): Future[Seq[JobDetails]]
+  def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]]
 
   def clear(): Future[Unit]
 

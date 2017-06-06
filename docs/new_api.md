@@ -52,7 +52,12 @@ Glosssary:
     <tr>
       <td>GET</td>
       <td>/v2/api/endpoints/{id}/jobs</td>
-      <td>None</td>
+      <td>Query params:
+        <ul>
+          <li>limit - optional (default 25)</li>
+          <li>offset - optional (default 0)</li>
+        </ul>
+      </td>
       <td>List of jobs that was runned on that endpoint</td>
     </tr>
 
@@ -73,7 +78,12 @@ Glosssary:
     <tr>
       <td>GET</td>
       <td>/v2/api/jobs</td>
-      <td>None</td>
+      <td>Query params:
+        <ul>
+          <li>limit - optional (default 25)</li>
+          <li>offset - optional (default 0)</li>
+        </ul>
+      </td>
       <td>List of all jobs that was runned on all endpoints</td>
     </tr>
     <tr>

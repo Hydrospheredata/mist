@@ -52,7 +52,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val master = mock(classOf[MasterService])
       val api = new HttpApiV2(master).route
 
-      when(master.endpointHistory(any(classOf[String])))
+      when(master.endpointHistory(any(classOf[String]), any(classOf[Int]), any(classOf[Int])))
         .thenReturn(Future.successful(
           Seq(
             JobDetails("id", "1",

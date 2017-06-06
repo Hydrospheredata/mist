@@ -4,7 +4,6 @@ import akka.pattern._
 import akka.actor.{Actor, ActorLogging, Props}
 import cats.implicits._
 import cats.data._
-import io.hydrosphere.mist.Messages.JobMessages.JobStarted
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
@@ -49,11 +48,11 @@ class StatusService(
     case GetById(id) =>
       store.get(id) pipeTo sender()
 
-    case GetByExternalId(id) =>
-      store.getByExternalId(id) pipeTo sender()
+    case GetEndpointHistory(id, limit, offset) =>
+      store.getByEndpointId(id, limit, offset) pipeTo sender()
 
-    case GetEndpointHistory(id) =>
-      store.getByEndpointId(id) pipeTo sender()
+    case GetHistory(limit, offset) =>
+      store.getAll(limit, offset) pipeTo sender()
   }
 
   private def updateDetails(e: UpdateStatusEvent): Future[Option[JobDetails]] = {

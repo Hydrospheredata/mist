@@ -4,7 +4,7 @@ CREATE TABLE `job_details`(
     `namespace`     TEXT NOT NULL,
     `parameters`    TEXT NOT NULL,
     `external_id`   TEXT,
-    `endpoint`         TEXT,
+    `endpoint`      TEXT,
     `action`        TEXT NOT NULL,
     `source`        TEXT NOT NULL,
     `job_id`        VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -12,5 +12,6 @@ CREATE TABLE `job_details`(
     `end_time`      BIGINT,
     `job_result`    TEXT,
     `status`        TEXT NOT NULL,
-    `worker_id`     TEXT
+    `worker_id`     TEXT,
+    `create_time`   BIGINT NOT NULL
 );

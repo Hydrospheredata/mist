@@ -37,7 +37,7 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
   it should "clear" in {
     (1 to 10).foreach(i => repo.update(fixtureJobDetails(s"jobId $i")).await)
     repo.clear().await
-    repo.all().await.size shouldBe 0
+    repo.getAll(10, 0).await.size shouldBe 0
   }
 
   it should "filter by status" in {
