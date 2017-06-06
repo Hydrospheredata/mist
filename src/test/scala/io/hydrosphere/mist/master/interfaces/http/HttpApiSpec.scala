@@ -6,6 +6,7 @@ import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{JobStartRequest, RunSettings}
 import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import org.mockito.Matchers._

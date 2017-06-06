@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
 import io.hydrosphere.mist.Messages.StatusMessages.{FinishedEvent, UpdateStatusEvent}
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
 import org.junit.runner.Description
@@ -14,7 +15,7 @@ import org.testcontainers.containers.wait.Wait
 
 class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
 
-  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+  import JsonCodecs._
   import spray.json.pimpString
 
   override val overrideConf = Some("mqtt/integration.conf")
