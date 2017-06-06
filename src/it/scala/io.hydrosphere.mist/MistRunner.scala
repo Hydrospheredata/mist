@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import io.hydrosphere.mist.jobs.JobResult
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.scalatest._
 import scala.sys.process._
 
@@ -89,7 +90,7 @@ case class MistHttpInterface(
   timeout: Int = 120
 ) {
 
-  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+  import JsonCodecs._
   import spray.json.pimpString
   import spray.json._
   import scalaj.http.Http

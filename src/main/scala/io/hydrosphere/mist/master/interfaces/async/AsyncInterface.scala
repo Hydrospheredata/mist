@@ -2,10 +2,11 @@ package io.hydrosphere.mist.master.interfaces.async
 
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 import spray.json.{DeserializationException, JsonParser, pimpString}
-import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+import JsonCodecs._
 
 class AsyncInterface(
   masterService: MasterService,

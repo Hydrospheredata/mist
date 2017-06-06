@@ -5,6 +5,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{JobDefinition, PyJobInfo, Action, JobDetails}
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.{WorkerLink, MasterService}
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import org.mockito.Matchers._

@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.interfaces.async.kafka.TopicProducer
 import org.eclipse.paho.client.mqttv3.{MqttMessage, MqttConnectOptions, MqttAsyncClient}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
@@ -16,7 +17,7 @@ trait JobEventPublisher {
 object JobEventPublisher {
 
   import spray.json._
-  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+  import JsonCodecs._
 
   def forKafka(host: String, port: Int, topic: String): JobEventPublisher = {
     new JobEventPublisher {

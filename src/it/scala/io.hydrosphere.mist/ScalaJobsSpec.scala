@@ -3,9 +3,10 @@ package io.hydrosphere.mist
 import java.nio.file.{Files, Paths}
 
 import io.hydrosphere.mist.jobs.JobResult
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.scalatest.{FunSpec, Matchers}
 
-import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+import JsonCodecs._
 import spray.json.pimpString
 
 import scalaj.http.Http

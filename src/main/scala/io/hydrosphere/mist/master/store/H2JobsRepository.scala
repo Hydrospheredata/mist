@@ -5,7 +5,8 @@ import java.nio.file.Paths
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.jobs.{JobDetails, _}
-import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import JsonCodecs._
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
