@@ -2,6 +2,8 @@ package io.hydrosphere.mist.master
 
 import akka.pattern._
 import akka.actor.{Actor, ActorLogging, Props}
+import cats.implicits._
+import cats.data._
 import io.hydrosphere.mist.Messages.JobMessages.JobStarted
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails
@@ -10,6 +12,7 @@ import io.hydrosphere.mist.master.store.JobRepository
 import StatusService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 class StatusService(
@@ -29,9 +32,16 @@ class StatusService(
         callNotifiers(event)
       })
 
-    case x: UpdateStatusEvent =>
-      handleUpdateStatus(x)
-      callNotifiers(x)
+    case e: UpdateStatusEvent =>
+      val origin = sender()
+      updateDetails(e).onComplete({
+        case Success(Some(details)) =>
+          origin ! details
+          callNotifiers(e)
+
+        case Success(None) => log.warning(s"Received $e for unknown job")
+        case Failure(err) => log.error(err, "Update job details with {} failed", e)
+      })
 
     case RunningJobs =>
       store.filteredByStatuses(activeStatuses) pipeTo sender()
@@ -46,14 +56,14 @@ class StatusService(
       store.getByEndpointId(id) pipeTo sender()
   }
 
-  private def handleUpdateStatus(e: UpdateStatusEvent): Unit = {
-    store.get(e.id).map({
-      case Some(d) =>
-        val updated = applyStatusEvent(d, e)
-        store.update(updated)
-      case None =>
-        log.warning(s"Received $e for unknown job")
-    })
+  private def updateDetails(e: UpdateStatusEvent): Future[Option[JobDetails]] = {
+    val result = for {
+      details <- OptionT(store.get(e.id))
+      updated = applyStatusEvent(details, e)
+      _ <- OptionT.liftF(store.update(updated))
+    } yield updated
+
+    result.value
   }
 
   private def callNotifiers(event: UpdateStatusEvent): Unit =
@@ -68,7 +78,6 @@ object StatusService {
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {
-       //TODO
       case InitializedEvent(_, _) => d
       case QueuedEvent(_, id) => d.copy(workerId = Some(id)).withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)

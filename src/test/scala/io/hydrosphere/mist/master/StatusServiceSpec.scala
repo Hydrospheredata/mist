@@ -56,6 +56,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
       )
       Future.successful(Some(jobDetails))
     })
+    when(store.update(any[JobDetails])).thenReturn(Future.successful(()))
 
     val publisher = mock(classOf[JobEventPublisher])
 

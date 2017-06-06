@@ -66,11 +66,13 @@ class MasterService(
         f.map(_ => ())
       case _ => Future.successful(())
     }
-
     val out = for {
       details <- OptionT(jobStatusById(jobId))
       _ <- OptionT.liftF(tryCancel(details))
-    } yield details
+      // we should do second request to store,
+      // because there is correct situation that job can be completed before cancelling
+      updated <- OptionT(jobStatusById(jobId))
+    } yield updated
     out.value
   }
 
