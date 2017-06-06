@@ -32,8 +32,7 @@ object ExecutionInfo {
 
 }
 
-//TODO: cancel jobs should send info to statusService
-//TODO: if worker crashed - jobs taht us in ruunning status should be marked as Failure
+//TODO: if worker crashed - jobs that is in running status should be marked as Failure
 /**
   * Queue for jobs before sending them to worker
   */
@@ -65,11 +64,7 @@ class FrontendJobExecutor(
       context become withWorker(worker)
 
     case CancelJobRequest(id) =>
-      jobs.get(id).foreach(info => {
-        queue.dequeueFirst(_.request.id == id)
-        jobs -= id
-        sender() ! JobIsCancelled(id)
-      })
+      cancelQueuedJob(sender(), id)
   }
 
   private def withWorker(worker: ActorRef): Receive = common orElse {
@@ -112,8 +107,10 @@ class FrontendJobExecutor(
     f.onSuccess({
       case x @ JobIsCancelled(id, time) =>
         log.info("Job {} is cancelled", id)
-        statusService ! CanceledEvent(id, time)
-        sender ! x
+        val event = CanceledEvent(id, time)
+        sendStatusUpdate(event).foreach(_ => {
+          sender ! JobIsCancelled(id)
+        })
     })
     f.onFailure({
       case e: Throwable =>
@@ -124,8 +121,8 @@ class FrontendJobExecutor(
   private def cancelQueuedJob(sender: ActorRef, id: String): Unit = {
     queue.dequeueFirst(_.request.id == id)
     jobs -= id
-    sender ! JobIsCancelled(id)
-    statusService ! CanceledEvent(id, System.currentTimeMillis())
+    val event = CanceledEvent(id, System.currentTimeMillis())
+    sendStatusUpdate(event).foreach(_ => sender ! JobIsCancelled(id))
   }
 
   private def onJobDone(resp: JobResponse): Unit = {
@@ -144,12 +141,15 @@ class FrontendJobExecutor(
     })
   }
 
+  private def sendStatusUpdate(e: UpdateStatusEvent): Future[Unit] =
+    statusService.ask(e)(Timeout(5.second)).map(_ => ())
+
   private def queueRequest(req: RunJobRequest): ExecutionInfo = {
     val info = ExecutionInfo(req, JobDetails.Status.Queued)
     queue += info
     jobs += req.id -> info
 
-    statusService ! QueuedEvent(req.id)
+    statusService ! QueuedEvent(req.id, name)
 
     info
   }

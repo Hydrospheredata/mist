@@ -2,90 +2,98 @@ package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
+import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages._
-import io.hydrosphere.mist.jobs.JobDetails.{Status, Source}
-import io.hydrosphere.mist.jobs.{Action, JobDetails, JobExecutionParams}
-import io.hydrosphere.mist.master.interfaces.async.AsyncInterface.Provider
+import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
+import io.hydrosphere.mist.jobs.{Action, JobDetails}
 import io.hydrosphere.mist.master.store.JobRepository
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
+import org.scalatest.prop.TableDrivenPropertyChecks._
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{FunSpecLike, Matchers}
-import org.scalatest.prop.TableDrivenPropertyChecks._
+
+import scala.concurrent.Future
 
 class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
   with FunSpecLike
   with Matchers
   with Eventually {
 
-  val jobExecutionParams = JobExecutionParams(
-    path = "path",
-    className = "MyClass",
-    namespace = "namespace",
-    parameters = Map("1" -> 2),
-    externalId = Some("externalId"),
-    route = Some("route"),
-    action = Action.Execute
-  )
+  val params = JobParams("path", "className", Map.empty, Action.Execute)
 
   it("should register jobs") {
     val store = mock(classOf[JobRepository])
+    when(store.update(any[JobDetails]))
+      .thenReturn(Future.successful(()))
 
-    val status = system.actorOf(StatusService.props(store))
+    val status = system.actorOf(StatusService.props(store, Seq.empty))
 
-    status ! Register("id", jobExecutionParams, Source.Async(Provider.Kafka))
+    status ! Register(
+      RunJobRequest("id", params),
+      "endpoint",
+      "context",
+       Source.Async("Kafka"),
+       None
+    )
 
-    eventually(timeout(Span(1, Seconds))) {
+    eventually(timeout(Span(3, Seconds))) {
       verify(store).update(any[JobDetails])
     }
   }
 
-  it("should update status") {
+  it("should update status in storage and call publisher") {
     val store = mock(classOf[JobRepository])
     when(store.get(any[String])).thenReturn({
       val jobDetails = JobDetails(
-        configuration = jobExecutionParams,
+        params = params,
         jobId = "id",
-        source = Source.Http
+        source = Source.Http,
+        endpoint = "endpoint",
+        context = "context",
+        externalId = None
       )
-      Some(jobDetails)
+      Future.successful(Some(jobDetails))
     })
+    when(store.update(any[JobDetails])).thenReturn(Future.successful(()))
 
-    val status = system.actorOf(StatusService.props(store))
+    val publisher = mock(classOf[JobEventPublisher])
+
+    val status = system.actorOf(StatusService.props(store, Seq(publisher)))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 
     eventually(timeout(Span(1, Seconds))) {
       verify(store).update(any[JobDetails])
     }
-  }
 
+    eventually(timeout(Span(1, Seconds))) {
+      verify(publisher).notify(any[StartedEvent])
+    }
+  }
 
   describe("event conversion") {
 
-    val conf = JobExecutionParams(
-      "path",
-      "className",
-      "namespace",
-      Map.empty, None, Some("sd"), Action.Execute)
-
     val baseDetails = JobDetails(
-      configuration = conf,
-      source = Source.Cli,
-      jobId = "id"
-    )
+        params = params,
+        jobId = "id",
+        source = Source.Http,
+        endpoint = "endpoint",
+        context = "context",
+        externalId = None
+      )
 
     val expected = Table(
       ("event", "details"),
-      (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
+      (QueuedEvent("id", "yoyo"), baseDetails.copy(status = Status.Queued, workerId = Some("yoyo"))),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Running, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Aborted, endTime = Some(1))),
       (FinishedEvent("id", 1, Map("1" -> 2)),
-        baseDetails.copy(status = Status.Stopped, endTime = Some(1), jobResult = Some(Left(Map("1" -> 2))))),
+        baseDetails.copy(status = Status.Stopped, endTime = Some(1), jobResult = Some(Right(Map("1" -> 2))))),
 
       (FailedEvent("id", 1, "error"),
-        baseDetails.copy(status = Status.Error, endTime = Some(1), jobResult = Some(Right("error"))))
+        baseDetails.copy(status = Status.Error, endTime = Some(1), jobResult = Some(Left("error"))))
 
 
     )

@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.testkit.{TestProbe, TestKit}
 import io.hydrosphere.mist.Messages.JobMessages._
+import io.hydrosphere.mist.Messages.StatusMessages.{QueuedEvent, CanceledEvent}
 import io.hydrosphere.mist.Messages.WorkerMessages.WorkerUp
 import io.hydrosphere.mist.jobs.{JobDetails, Action}
 import org.scalatest.{Matchers, FunSpecLike}
@@ -28,14 +29,21 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
     }
 
     it("should cancel jobs") {
-
       val probe = TestProbe()
-      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, StatusService))
+      val status = TestProbe()
+      val frontend = system.actorOf(FrontendJobExecutor.props("test", 5, status.ref))
 
-      probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+      val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
+
+      probe.send(frontend, RunJobRequest("id", params))
       probe.expectMsgType[ExecutionInfo]
 
       probe.send(frontend, CancelJobRequest("id"))
+
+      status.expectMsgType[QueuedEvent]
+      status.expectMsgType[CanceledEvent]
+      status.reply(JobDetails("endp", "id", params, "context", None, JobDetails.Source.Http))
+
       probe.expectMsgType[JobIsCancelled]
     }
   }

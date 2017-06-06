@@ -9,9 +9,9 @@ class ExamplesSpecSpark1 extends FunSpec with MistItTest with Matchers {
 
     it("run simple context") {
       val result = interface.runJob("simple-context",
-        Map(
           "numbers" -> List(1, 2, 3),
-          "multiplier" -> 2))
+          "multiplier" -> 2
+      )
 
       result.success shouldBe true
     }

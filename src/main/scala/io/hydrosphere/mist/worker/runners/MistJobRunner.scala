@@ -14,7 +14,7 @@ object MistJobRunner extends JobRunner {
     if (!file.exists()) {
       Left(s"Can not found file locally: $file")
     } else {
-      val specificRunner =  selectRunner(filePath)
+      val specificRunner = selectRunner(filePath)
       specificRunner.run(params, context)
     }
   }

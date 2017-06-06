@@ -6,16 +6,23 @@ JAVA=$(which java)
 ASSEMBLY_JAR=$MIST_HOME/mist.jar
 
 CONFIG_FILE=$MIST_HOME/configs/default.conf
-NAMESPACE=""
+NAME=""
+CONTEXT=""
 JAVA_ARGS=""
 RUNNER="local"
+MODE="shared"
 
 while [[ $# > 1 ]]
 do
   key="$1"
   case ${key} in
-    --namespace)
-      NAMESPACE="$2"
+    --name)
+      NAME="$2"
+      shift
+      ;;
+
+    --context)
+      CONTEXT="$2"
       shift
       ;;
 
@@ -48,14 +55,25 @@ do
       RUNNER="$2"
       shift
       ;;
+
+     --mode)
+      MODE="$2"
+      shift
+      ;;
   esac
 shift
 done
 
 function startWorker() {
-    if [ "$NAMESPACE" == '' ]
+    if [ "$NAME" == '' ]
     then
-        (>&2 echo "You must specify --namespace")
+        (>&2 echo "You must specify --name")
+        exit 3
+    fi
+
+    if [ "$CONTEXT" == '' ]
+    then
+        (>&2 echo "You must specify --context")
         exit 3
     fi
 
@@ -73,7 +91,7 @@ function startWorker() {
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dakka.roles.1=worker-$NAMESPACE"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS" 
 
-    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $NAMESPACE
+    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $NAME $CONTEXT $MODE
 }
 
 function startWorkerContainer() {
@@ -92,7 +110,9 @@ function startWorkerContainer() {
         \"Image\":\"$image\",
         \"Cmd\": [
             \"worker\",
-            \"$NAMESPACE\",
+            \"$NAME\",
+            \"$CONTEXT\",
+            \"$MODE\",
             \"$CONFIG\",
             \"$RUN_OPTIONS\"
         ],
