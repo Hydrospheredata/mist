@@ -12,9 +12,11 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.async.kafka.TopicProducer
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
+import io.hydrosphere.mist.master.logging.TcpServer
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
+import org.apache.log4j.net.SocketServer
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
@@ -91,7 +93,7 @@ object Master extends App with Logger {
       logger.info("Kafka interface is started")
     }
 
-
+    TcpServer.start("localhost", 2345)
 
     // We need to stop contexts on exit
     sys addShutdownHook {
@@ -109,7 +111,6 @@ object Master extends App with Logger {
     val buffer = new ArrayBuffer[JobEventPublisher](3)
     if (MistConfig.Kafka.isOn) {
       import MistConfig.Kafka._
-
 
       buffer += JobEventPublisher.forKafka(host, port, publishTopic)
     }
@@ -142,4 +143,5 @@ object Master extends App with Logger {
     else
       "configs/router.conf"
   }
+
 }

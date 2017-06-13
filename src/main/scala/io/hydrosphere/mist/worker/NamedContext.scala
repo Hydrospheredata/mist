@@ -17,8 +17,6 @@ class NamedContext(
   val namespace: String,
 
   streamingDuration: Duration,
-  publisherConnectionString: String,
-  publisherTopic: String
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -77,28 +75,9 @@ object NamedContext {
   def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
     val duration = MistConfig.Contexts.streamingDuration(namespace)
     //TODO: if there is no global publisher configuration??
-    val publisherConf = globalPublisherConfiguration()
-    val publisherTopic = globalPublisherTopic()
 
     val context = new SparkContext(sparkConf)
     new NamedContext(context, namespace, duration, publisherConf, publisherTopic)
   }
 
-  private def globalPublisherConfiguration(): String = {
-    if (MistConfig.Kafka.isOn)
-      s"kafka://${MistConfig.Kafka.host}:${MistConfig.Kafka.port}"
-    else if (MistConfig.Mqtt.isOn)
-      s"mqtt://tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}"
-    else
-      ""
-  }
-
-  private def globalPublisherTopic(): String = {
-    if (MistConfig.Kafka.isOn)
-      MistConfig.Kafka.publishTopic
-    else if (MistConfig.Mqtt.isOn)
-      MistConfig.Mqtt.publishTopic
-    else
-      ""
-  }
 }

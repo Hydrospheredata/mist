@@ -1,6 +1,6 @@
-import io.hydrosphere.mist.api.MistJob
+import io.hydrosphere.mist.api.{MistJob, MistLogging}
 
-object SimpleContext extends MistJob {
+object SimpleContext extends MistJob with MistLogging {
 
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
@@ -11,6 +11,11 @@ object SimpleContext extends MistJob {
   def execute(numbers: List[Int], multiplier: Option[Int]): Map[String, Any] = {
     val multiplierValue = multiplier.getOrElse(2)
     val rdd = context.parallelize(numbers)
-    Map("result" -> rdd.map(x => x * multiplierValue).collect())
+    logger.info("HELLLO")
+    Map("result" -> rdd.map(x => {
+      val z = x * multiplierValue
+      logger.info(s"Inside! $x")
+      x
+    }).collect())
   }
 }
