@@ -7,6 +7,7 @@ import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
+import org.apache.spark.util.SparkClassLoader
 
 class ScalaRunner extends JobRunner {
 
@@ -21,15 +22,23 @@ class ScalaRunner extends JobRunner {
       Left(s"Can not found file: $filePath")
     } else {
       context.addJar(params.filePath)
-      val jobsLoader = JobsLoader.fromJar(file)
-      // see #204
-      Thread.currentThread().setContextClassLoader(jobsLoader.classLoader)
+      val loader = prepareClassloader(file)
+      val jobsLoader = new JobsLoader(loader)
 
       val load = jobsLoader.loadJobInstance(className, action)
       Either.fromTry(load).flatMap(instance => {
         instance.run(context.setupConfiguration, arguments)
       }).leftMap(e => buildErrorMessage(params, e))
     }
+  }
+
+  // see #204, #220
+  private def prepareClassloader(file: File): ClassLoader = {
+    val existing = this.getClass.getClassLoader
+    val url = file.toURI.toURL
+    val patched = SparkClassLoader.withURLs(existing, url)
+    Thread.currentThread().setContextClassLoader(patched)
+    patched
   }
 
   private def buildErrorMessage(params: JobParams, e: Throwable): String = {
