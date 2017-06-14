@@ -74,7 +74,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
       it(s"should cancel job in $name mode") {
         val runner = new JobRunner {
-          override def run(p: JobParams, c: NamedContext): Either[String, Map[String, Any]] = {
+          override def run(req: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = {
             val sc = c.context
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
             Right(Map("r" -> "Ok"))
@@ -126,7 +126,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   def testRunner(f: => Either[String, Map[String, Any]]): JobRunner = {
     new JobRunner {
-      def run(p: JobParams, c: NamedContext): Either[String, Map[String, Any]] = f
+      def run(p: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = f
     }
   }
 }

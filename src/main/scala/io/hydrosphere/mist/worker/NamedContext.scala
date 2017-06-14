@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.api.SetupConfiguration
+import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
@@ -15,8 +15,7 @@ import scala.collection.mutable
 class NamedContext(
   val context: SparkContext,
   val namespace: String,
-
-  streamingDuration: Duration,
+  streamingDuration: Duration
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -29,12 +28,12 @@ class NamedContext(
     }
   }
 
-  def setupConfiguration: SetupConfiguration = {
+  def setupConfiguration(jobId: String): SetupConfiguration = {
     SetupConfiguration(
       context = context,
       streamingDuration = streamingDuration,
-      publisherConnectionString = publisherConnectionString,
-      publisherTopic = publisherTopic
+      info = RuntimeJobInfo(jobId, namespace),
+      loggingConf = Some(CentralLoggingConf("localhost", 2345))
     )
   }
 
@@ -74,10 +73,9 @@ object NamedContext {
 
   def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
     val duration = MistConfig.Contexts.streamingDuration(namespace)
-    //TODO: if there is no global publisher configuration??
 
     val context = new SparkContext(sparkConf)
-    new NamedContext(context, namespace, duration, publisherConf, publisherTopic)
+    new NamedContext(context, namespace, duration)
   }
 
 }

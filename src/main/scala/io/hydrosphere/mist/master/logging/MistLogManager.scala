@@ -12,10 +12,8 @@ class MistLogManager(dumpDirectory: String) {
 
   def store(event: LogEvent): Unit = {
     val path = mkPath(event.from)
-    Future {
-      val message = event.mkString
-      Files.write(path, message.getBytes)
-    }
+    val message = event.mkString
+    Files.write(path, message.getBytes)
   }
 
   def getById(id: String): Array[Byte] = {
@@ -25,10 +23,6 @@ class MistLogManager(dumpDirectory: String) {
     } else {
       Array.empty
     }
-  }
-
-  def getLevel(i: Int): Level = {
-    Level.toLevel(i)
   }
 
   private def mkPath(entryId: String): Path =

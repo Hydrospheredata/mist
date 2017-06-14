@@ -16,7 +16,6 @@ trait MistLogging extends ContextSupport {
   private var jobId: String = _
 
   override private[mist] def setup(conf: SetupConfiguration): Unit = {
-    super.setup(conf)
     this.loggingConf = conf.loggingConf
     this.jobId = conf.info.id
   }
@@ -28,6 +27,7 @@ trait MistLogging extends ContextSupport {
 
   @transient
   lazy val logger = {
+    println("WTF?")
     val logger = Logger.getLogger(getClass)
 
     loggingConf.foreach(cfg => {
@@ -50,13 +50,15 @@ private[mist] case class LogEvent(
   def mkString: String = {
     val date = formatDate
     val error = if (throwable.length > 0) throwable.mkString("\nError:", "\n\t", "") else ""
-    s"$log4jLevel $date [$from] $message $error"
+    s"$formatLevel $date [$from] $message $error"
   }
 
   private def formatDate: String = {
     val inst = Instant.ofEpochMilli(timeStamp)
     DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(inst)
   }
+
+  private def formatLevel: String = Level.toLevel(level).toString
 }
 
 

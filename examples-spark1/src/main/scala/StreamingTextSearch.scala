@@ -1,9 +1,9 @@
-import io.hydrosphere.mist.api.{MistJob, Publisher, StreamingSupport}
+import io.hydrosphere.mist.api.{MistJob, MistLogging, StreamingSupport}
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with StreamingSupport with Publisher{
+object StreamingTextSearch extends MistJob with StreamingSupport with MistLogging {
   def execute(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
 
@@ -16,11 +16,12 @@ object StreamingTextSearch extends MistJob with StreamingSupport with Publisher{
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
 
     filtredStream.foreachRDD{ (rdd, time) =>
-//      publisher.publish(Map(
-//        "time" -> time,
-//        "length" -> rdd.collect().length,
-//        "collection" -> rdd.collect().toList.toString
-//      ).toString())
+      val message = Map(
+        "time" -> time,
+        "length" -> rdd.collect().length,
+        "collection" -> rdd.collect().toList.toString
+      ).mkString(",")
+      logger.info(message)
     }
 
     ssc.start()

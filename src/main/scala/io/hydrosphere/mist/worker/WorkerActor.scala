@@ -25,7 +25,7 @@ trait JobStarting { that: Actor =>
     val id = req.id
     val future = Future {
       namedContext.context.setJobGroup(req.id, req.id)
-      runner.run(req.params, namedContext)
+      runner.run(req, namedContext)
     }
 
     future.onComplete(r => {
