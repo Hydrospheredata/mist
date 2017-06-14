@@ -24,10 +24,6 @@ class ScalaRunner extends JobRunner {
       context.addJar(params.filePath)
       val loader = prepareClassloader(file)
       val jobsLoader = new JobsLoader(loader)
-      //val jobsLoader = JobsLoader.fromJar(file)
-      // see #204
-
-      //Thread.currentThread().setContextClassLoader(jobsLoader.classLoader)
 
       val load = jobsLoader.loadJobInstance(className, action)
       Either.fromTry(load).flatMap(instance => {
@@ -36,6 +32,7 @@ class ScalaRunner extends JobRunner {
     }
   }
 
+  // see #204, #220
   private def prepareClassloader(file: File): ClassLoader = {
     val existing = this.getClass.getClassLoader
     val url = file.toURI.toURL
