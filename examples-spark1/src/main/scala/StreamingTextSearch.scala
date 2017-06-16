@@ -1,12 +1,10 @@
-import io.hydrosphere.mist.api.{MistJob, MistLogging, StreamingSupport}
+import io.hydrosphere.mist.api._
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with StreamingSupport with MistLogging {
+object StreamingTextSearch extends MistJob2 with StreamingSupport2 with MistLogging2 {
   def execute(filter: String): Map[String, Any] = {
-    context.setLogLevel("INFO")
-
     val ssc = streamingContext
 
     val rddQueue = new mutable.Queue[RDD[String]]()

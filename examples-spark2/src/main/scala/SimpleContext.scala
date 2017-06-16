@@ -9,9 +9,7 @@ object SimpleContext extends MistJob {
     * @return result of the job
     */
   def execute(numbers: List[Int], multiplier: Option[Int]): Map[String, Any] = {
-    println("WTF????")
     val multiplierValue = multiplier.getOrElse(2)
-    println(context)
     val rdd = context.parallelize(numbers)
     Map("result" -> rdd.map(x => x * multiplierValue).collect())
   }

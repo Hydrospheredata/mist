@@ -17,7 +17,7 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   var sc: SparkContext = _
 
   val jobInfo = RuntimeJobInfo("test", "test")
-  val setupConf = new SetupConfiguration(sc, Duration(10), jobInfo, None)
+  def setupConf = SetupConfiguration(sc, Duration(10), jobInfo, None)
 
   override def beforeAll = {
     sc = new SparkContext(conf)

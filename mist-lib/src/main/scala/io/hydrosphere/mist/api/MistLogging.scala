@@ -16,6 +16,7 @@ trait MistLogging extends ContextSupport {
   private var jobId: String = _
 
   override private[mist] def setup(conf: SetupConfiguration): Unit = {
+    super.setup(conf)
     this.loggingConf = conf.loggingConf
     this.jobId = conf.info.id
   }

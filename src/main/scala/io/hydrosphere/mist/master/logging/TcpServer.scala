@@ -23,6 +23,7 @@ object TcpServer extends Logger {
       val x = Flow[ByteString]
         .map(bs => kryoDeserializer.deserialize(bs.toArray))
         .map(e => {
+          logger.info(s"INCOMING $e")
           ByteString.empty
         })
       conn.handleWith(x)
