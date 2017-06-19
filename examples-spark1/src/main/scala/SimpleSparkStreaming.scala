@@ -18,6 +18,8 @@ object SimpleSparkStreaming extends MistJob with StreamingSupport with MistLoggi
     val mappedStream = inputStream.map(x => (x % 10, 1))
     val reducedStream = mappedStream.reduceByKey(_ + _)
 
+    val logger = getLogger
+
     reducedStream.foreachRDD{ (rdd, time) =>
       val message = Map(
         "time" -> time,

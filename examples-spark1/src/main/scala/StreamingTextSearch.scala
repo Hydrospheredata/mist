@@ -3,7 +3,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob2 with StreamingSupport2 with MistLogging2 {
+object StreamingTextSearch extends MistJob with StreamingSupport with MistLogging {
   def execute(filter: String): Map[String, Any] = {
     val ssc = streamingContext
 
@@ -12,6 +12,8 @@ object StreamingTextSearch extends MistJob2 with StreamingSupport2 with MistLogg
     val inputStream = ssc.queueStream(rddQueue)
 
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
+
+    val logger = getLogger
 
     filtredStream.foreachRDD{ (rdd, time) =>
       val message = Map(

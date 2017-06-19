@@ -1,19 +1,20 @@
 package io.hydrosphere.mist.master.logging
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 
 import io.hydrosphere.mist.api.LogEvent
-import org.apache.log4j.Level
-
-import scala.concurrent.Future
 
 //TODO: security problem - check path!
-class MistLogManager(dumpDirectory: String) {
+class LogStore(dumpDirectory: String) {
 
   def store(event: LogEvent): Unit = {
     val path = mkPath(event.from)
-    val message = event.mkString
-    Files.write(path, message.getBytes)
+    val message = event.mkString + "\n"
+    val f = path.toFile
+    if (!f.exists())
+      Files.createFile(path)
+
+    Files.write(path, message.getBytes, StandardOpenOption.APPEND)
   }
 
   def getById(id: String): Array[Byte] = {
@@ -24,6 +25,8 @@ class MistLogManager(dumpDirectory: String) {
       Array.empty
     }
   }
+
+  def pathToLogs(entryId: String): String = mkPath(entryId).toString
 
   private def mkPath(entryId: String): Path =
     Paths.get(dumpDirectory, s"$entryId.log")

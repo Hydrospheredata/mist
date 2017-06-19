@@ -1,22 +1,22 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
+import java.nio.file.Paths
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
 import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
-import interfaces.async._
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.master.interfaces.async.kafka.TopicProducer
+import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.logging.TcpServer
+import io.hydrosphere.mist.master.logging.{LogStore, TcpServer}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
-import org.apache.log4j.net.SocketServer
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
@@ -34,6 +34,7 @@ object Master extends App with Logger {
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
+    val logStore = initLogsStore()
     val streamer = EventsStreamer(system)
 
     val wsPublisher = new JobEventPublisher {
@@ -69,7 +70,7 @@ object Master extends App with Logger {
     //masterService.recoverJobs()
     if (MistConfig.Http.isOn) {
       val api = new HttpApi(masterService)
-      val apiv2 = new HttpApiV2(masterService)
+      val apiv2 = new HttpApiV2(masterService, logStore)
       val apiv2Ws = new WSApi(streamer)
       val http = HttpUi.route ~ api.route ~ apiv2.route ~ apiv2Ws.route
       Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
@@ -93,7 +94,8 @@ object Master extends App with Logger {
       logger.info("Kafka interface is started")
     }
 
-    TcpServer.start("localhost", 2345)
+
+    TcpServer.start("localhost", 2345, logStore, statusService)
 
     // We need to stop contexts on exit
     sys addShutdownHook {
@@ -120,6 +122,17 @@ object Master extends App with Logger {
     }
 
     buffer
+  }
+
+  def initLogsStore(): LogStore = {
+    val path = Paths.get(
+      sys.env.getOrElse("MIST_HOME", "."),
+      "mist-logs"
+    )
+    val directory = path.toFile
+    if (!directory.exists()) directory.mkdir()
+
+     new LogStore(path.toString)
   }
 
   private def selectRunner(s: String): WorkerRunner = {

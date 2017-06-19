@@ -1,18 +1,19 @@
 package io.hydrosphere.mist.api
 
-import java.io.ByteArrayOutputStream
-import java.net.Socket
-import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDate}
+import java.util.concurrent.atomic.AtomicInteger
 
-import com.twitter.chill.ScalaKryoInstantiator
-import org.apache.log4j.spi.LoggingEvent
-import org.apache.log4j.{AppenderSkeleton, Level, Logger}
+import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
+import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.util.ByteString
+import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
+import com.typesafe.config.ConfigFactory
+import org.apache.log4j.Level
+import org.apache.spark.TaskContext
 
 trait MistLogging extends ContextSupport {
 
   private var loggingConf: Option[CentralLoggingConf] = None
-  private var tcpAppender: TcpAppender = _
   private var jobId: String = _
 
   override private[mist] def setup(conf: SetupConfiguration): Unit = {
@@ -21,22 +22,13 @@ trait MistLogging extends ContextSupport {
     this.jobId = conf.info.id
   }
 
-  override private[mist] def stop(): Unit = {
-    if (tcpAppender != null)
-      tcpAppender.close()
+  def getLogger: MLogger = loggingConf match {
+    case Some(conf) => MLogger(conf.host, conf.port, jobId)
+    case None => throw new IllegalStateException("Can not instantiate logger here")
   }
 
-  @transient
-  lazy val logger = {
-    println("WTF?")
-    val logger = Logger.getLogger(getClass)
-
-    loggingConf.foreach(cfg => {
-      tcpAppender = new TcpAppender(cfg.host, cfg.port, jobId)
-      logger.addAppender(tcpAppender)
-    })
-
-    logger
+  override private[mist] def stop(): Unit = {
+    super.stop()
   }
 
 }
@@ -55,50 +47,106 @@ private[mist] case class LogEvent(
   }
 
   private def formatDate: String = {
-    val inst = Instant.ofEpochMilli(timeStamp)
-    DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(inst)
+//    val inst = Instant.ofEpochMilli(timeStamp)
+    //val date = LocalDateTime.ofInstant(inst.atZone(ZoneId.))
+//    val date = timeStamp.toString
+//    DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(inst)
+    timeStamp.toString
   }
 
   private def formatLevel: String = Level.toLevel(level).toString
 }
 
-
-private[mist] class TcpAppender(
+case class MLogger(
   host: String,
   port: Int,
-  from: String) extends AppenderSkeleton {
+  sourceId: String
+) {
 
-  import com.esotericsoftware.kryo.io.Output
-
-  val instantiator = new ScalaKryoInstantiator
-  instantiator.setRegistrationRequired(false)
-  val kryo = instantiator.newKryo()
-
-  val socket = new Socket(host, port)
-  val outStream = socket.getOutputStream
-
-  override def append(e: LoggingEvent): Unit = {
-    val event = LogEvent(
-       from,
-       e.getRenderedMessage,
-       e.timeStamp,
-       e.getLevel.toInt,
-       e.getThrowableStrRep
-    )
-
-    val bytesOut = new ByteArrayOutputStream(512)
-    val output = new Output(bytesOut)
-    kryo.writeObject(output, event)
-    val bytes = output.getBuffer
-
-    outStream.write(bytes)
-    outStream.flush()
+  @transient
+  lazy val writer = {
+    val writer = SocketWriter.newWriter(host, port)
+    val taskCtx = TaskContext.get()
+    if (taskCtx != null)
+      taskCtx.addTaskCompletionListener(_ => SocketWriter.deregister())
+    writer
   }
 
-  override def requiresLayout(): Boolean = false
-
-  override def close(): Unit = {
-    socket.close()
+  def info(msg: String): Unit = synchronized {
+    val event = LogEvent(
+      sourceId,
+      msg,
+      System.currentTimeMillis(),
+      2000,
+      Array.empty
+    )
+    writer.write(event)
   }
 }
 
+class Writer(host: String, port: Int) {
+
+  implicit val sys = ActorSystem("log-writer", ConfigFactory.empty)
+  implicit val mat = ActorMaterializer()
+
+  val kryoPool = {
+    val inst = new ScalaKryoInstantiator
+    inst.setRegistrationRequired(false)
+    KryoPool.withByteArrayOutputStream(10, inst)
+  }
+
+  val inputActor = {
+    def encode(a: Any): ByteString = {
+      val body = ByteString(kryoPool.toBytesWithoutClass(a))
+      val length = body.length
+      val head = new Array[Byte](4)
+      head(0) = (length >> 24).toByte
+      head(1) = (length >> 16).toByte
+      head(2) = (length >> 8).toByte
+      head(3) = length.toByte
+
+      ByteString(head) ++ body
+    }
+
+    Source.actorRef[LogEvent](1000, OverflowStrategy.dropHead)
+      .map(encode)
+      .via(Tcp().outgoingConnection(host, port))
+      .toMat(Sink.ignore)(Keep.left).run()
+  }
+
+  def write(e: LogEvent): Unit = {
+    inputActor ! e
+  }
+
+  def close(): Unit = {
+    println("TRY CLOSE")
+  }
+
+}
+
+object SocketWriter {
+
+  val links = new AtomicInteger(0)
+  private var writer: Writer = null
+
+  def newWriter(host: String, port: Int): Writer = {
+    if (links.get == 0) {
+      synchronized {
+        writer = new Writer(host, port)
+      }
+    }
+    links.incrementAndGet()
+    writer
+  }
+
+  def deregister(): Unit = {
+    println(s"Deregister ${links.get}")
+    if (links.decrementAndGet == 0 ) {
+      synchronized {
+        //writer.close()
+        println("CLOSE ACTION")
+        writer = null
+      }
+    }
+  }
+}

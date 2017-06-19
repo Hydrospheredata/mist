@@ -22,16 +22,16 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
       args     <- validateParams(params)
       instance <- Either.catchNonFatal(createInstance(conf))
       response <- Either.catchOnly[Throwable](invokeMethod(instance, args))
-      _        <- Either.catchNonFatal(instance.close())
+      _        <- Either.catchNonFatal(instance.stop())
     } yield response
 
-  private def createInstance(conf: SetupConfiguration): MistJobnstanciator = {
-    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistJobnstanciator]
+  private def createInstance(conf: SetupConfiguration): ContextSupport = {
+    val i = clazz.getField("MODULE$").get(null).asInstanceOf[ContextSupport]
     i.setup(conf)
     i
   }
 
-  private def invokeMethod(inst: MistJobnstanciator, args: Seq[AnyRef]): JobResponse = {
+  private def invokeMethod(inst: ContextSupport, args: Seq[AnyRef]): JobResponse = {
     val name = method.fullName.split('.').last
     val target = clazz.getMethods.find(_.getName == name)
     target match {

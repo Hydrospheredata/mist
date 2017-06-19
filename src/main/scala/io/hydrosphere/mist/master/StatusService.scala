@@ -9,6 +9,7 @@ import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.store.JobRepository
 import StatusService._
+import io.hydrosphere.mist.api.LogEvent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -30,6 +31,9 @@ class StatusService(
         val event = InitializedEvent(req.id, req.params)
         callNotifiers(event)
       })
+
+    case log: LogEvent =>
+      callNotifiers(ReceivedLog(log.from, log))
 
     case e: UpdateStatusEvent =>
       val origin = sender()
