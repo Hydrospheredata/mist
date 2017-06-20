@@ -3,7 +3,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object SimpleSparkStreaming extends MistJob with StreamingSupport with MistLogging {
+object SimpleSparkStreaming extends MistJob with StreamingSupport with Logging {
 
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden

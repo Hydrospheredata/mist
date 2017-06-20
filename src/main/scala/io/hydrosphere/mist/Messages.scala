@@ -2,7 +2,7 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
-import io.hydrosphere.mist.api.LogEvent
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.master.models.RunMode
@@ -90,7 +90,7 @@ object Messages {
     case class InitializedEvent(id: String, params: JobParams) extends UpdateStatusEvent
     case class QueuedEvent(id: String, workerId: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class ReceivedLog(id: String, e:LogEvent) extends UpdateStatusEvent
+    case class ReceivedLog(id: String, e: LogEvent) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent

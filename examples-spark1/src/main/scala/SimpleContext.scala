@@ -1,6 +1,6 @@
 import io.hydrosphere.mist.api._
 
-object SimpleContext extends MistJob with SQLSupport with MistLogging {
+object SimpleContext extends MistJob with SQLSupport with Logging {
 
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden

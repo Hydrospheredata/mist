@@ -98,8 +98,7 @@ class HttpApiV2(master: MasterService, logStore: LogStore) {
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
         val p = logStore.pathToLogs(jobId)
-        println(s"??? $p")
-        getFromFile(p, ContentType)
+        getFromFile(p)
       }
     } ~
     path( root / "jobs" / Segment ) { jobId =>

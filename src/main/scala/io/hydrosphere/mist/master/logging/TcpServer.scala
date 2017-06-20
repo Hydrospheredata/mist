@@ -8,8 +8,7 @@ import akka.stream.io.Framing
 import akka.stream.scaladsl.{Tcp, _}
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
-import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.api.LogEvent
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.Future
@@ -44,10 +43,5 @@ object TcpServer extends Logger {
     }))(Keep.left).run()
   }
 
-//  def main(arg: Array[String]): Unit = {
-//    implicit val sys = ActorSystem("xxx", ConfigFactory.empty())
-//    implicit val mat = ActorMaterializer()
-//    start("localhost", 2345, println)
-//  }
 }
 

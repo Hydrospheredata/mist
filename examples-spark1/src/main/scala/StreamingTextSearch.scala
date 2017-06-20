@@ -3,7 +3,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with StreamingSupport with MistLogging {
+object StreamingTextSearch extends MistJob with StreamingSupport with Logging {
   def execute(filter: String): Map[String, Any] = {
     val ssc = streamingContext
 

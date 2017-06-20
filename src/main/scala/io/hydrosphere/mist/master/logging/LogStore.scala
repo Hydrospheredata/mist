@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.logging
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 
-import io.hydrosphere.mist.api.LogEvent
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 
 //TODO: security problem - check path!
 class LogStore(dumpDirectory: String) {
