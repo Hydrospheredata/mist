@@ -1,6 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
 import java.nio.file.Paths
 
 import akka.actor.ActorSystem
@@ -13,7 +12,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.logging.{LogStore, TcpServer}
+import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogsStore, TcpServer}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -34,7 +33,7 @@ object Master extends App with Logger {
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val logStore = initLogsStore()
+    val logsMappnigs = LogStorageMappings.create(MistConfig.logServer.dumpDirectory)
     val streamer = EventsStreamer(system)
 
     val wsPublisher = new JobEventPublisher {
@@ -70,7 +69,7 @@ object Master extends App with Logger {
     //masterService.recoverJobs()
     if (MistConfig.Http.isOn) {
       val api = new HttpApi(masterService)
-      val apiv2 = new HttpApiV2(masterService, logStore)
+      val apiv2 = new HttpApiV2(masterService, logsMappnigs)
       val apiv2Ws = new WSApi(streamer)
       val http = HttpUi.route ~ api.route ~ apiv2.route ~ apiv2Ws.route
       Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
@@ -95,7 +94,7 @@ object Master extends App with Logger {
     }
 
 
-    TcpServer.start("localhost", 2345, logStore, statusService)
+    //TcpServer.start("localhost", 2345, logStore, statusService)
 
     // We need to stop contexts on exit
     sys addShutdownHook {
@@ -122,17 +121,6 @@ object Master extends App with Logger {
     }
 
     buffer
-  }
-
-  def initLogsStore(): LogStore = {
-    val path = Paths.get(
-      sys.env.getOrElse("MIST_HOME", "."),
-      "mist-logs"
-    )
-    val directory = path.toFile
-    if (!directory.exists()) directory.mkdir()
-
-     new LogStore(path.toString)
   }
 
   private def selectRunner(s: String): WorkerRunner = {

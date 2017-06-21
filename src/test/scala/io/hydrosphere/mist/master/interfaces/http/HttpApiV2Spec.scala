@@ -1,12 +1,15 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import java.nio.file.Paths
+
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{JobDefinition, PyJobInfo, Action, JobDetails}
+import io.hydrosphere.mist.jobs.{Action, JobDefinition, JobDetails, PyJobInfo}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.{WorkerLink, MasterService}
+import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -18,13 +21,15 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
   import JsonCodecs._
 
+  val mappings = new LogStorageMappings(Paths.get("."))
+
   describe("endpoint") {
 
     val pyInfo = PyJobInfo(JobDefinition("x", "path", "class", "namespace"))
 
     it("should run job") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
       when(master.endpointInfo(any(classOf[String]))).thenReturn(Some(pyInfo))
 
       when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
@@ -37,7 +42,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should return endpoints") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
       when(master.listEndpoints()).thenReturn(Seq(pyInfo))
 
       Get("/v2/api/endpoints") ~> api ~> check {
@@ -51,7 +56,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should return history for endpoint") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
 
       when(master.endpointHistory(any(classOf[String]), any(classOf[Int]), any(classOf[Int])))
         .thenReturn(Future.successful(
@@ -84,7 +89,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should return jobs status by id") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
       when(master.jobStatusById(any(classOf[String])))
         .thenReturn(Future.successful(Some(jobDetails)))
 
@@ -100,7 +105,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should return workers") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
       when(master.workers()).thenReturn(Future.successful(Seq(
         WorkerLink("worker", "address")
       )))
@@ -114,7 +119,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should stop worker") {
       val master = mock(classOf[MasterService])
-      val api = new HttpApiV2(master).route
+      val api = new HttpApiV2(master, mappings).route
 
       when(master.stopWorker(any[String])).thenReturn(Future.successful("id"))
 
