@@ -15,7 +15,8 @@ import scala.collection.mutable
 class NamedContext(
   val context: SparkContext,
   val namespace: String,
-  streamingDuration: Duration
+  streamingDuration: Duration,
+  loggingConf: Option[CentralLoggingConf]
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -33,7 +34,7 @@ class NamedContext(
       context = context,
       streamingDuration = streamingDuration,
       info = RuntimeJobInfo(jobId, namespace),
-      loggingConf = Some(CentralLoggingConf("localhost", 2345))
+      loggingConf = loggingConf
     )
   }
 
@@ -73,9 +74,13 @@ object NamedContext {
 
   def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
     val duration = MistConfig.Contexts.streamingDuration(namespace)
+    val loggingConf = Some(CentralLoggingConf(
+      MistConfig.LogService.host,
+      MistConfig.LogService.port
+    ))
 
     val context = new SparkContext(sparkConf)
-    new NamedContext(context, namespace, duration)
+    new NamedContext(context, namespace, duration, loggingConf)
   }
 
 }

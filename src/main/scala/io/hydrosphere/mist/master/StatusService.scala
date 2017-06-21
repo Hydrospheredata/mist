@@ -5,7 +5,6 @@ import akka.pattern._
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.Messages.StatusMessages._
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.StatusService._
@@ -31,9 +30,6 @@ class StatusService(
         val event = InitializedEvent(req.id, req.params)
         callNotifiers(event)
       })
-
-    case log: LogEvent =>
-      callNotifiers(ReceivedLog(log.from, log))
 
     case e: UpdateStatusEvent =>
       val origin = sender()

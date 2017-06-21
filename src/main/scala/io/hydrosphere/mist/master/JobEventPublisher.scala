@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
+import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.interfaces.async.kafka.TopicProducer
-import org.eclipse.paho.client.mqttv3.{MqttMessage, MqttConnectOptions, MqttAsyncClient}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.eclipse.paho.client.mqttv3.{MqttAsyncClient, MqttConnectOptions, MqttMessage}
 
 trait JobEventPublisher {
 
-  def notify(event: UpdateStatusEvent): Unit
+  def notify(event: SystemEvent): Unit
 
   def close(): Unit
 
@@ -16,14 +16,14 @@ trait JobEventPublisher {
 
 object JobEventPublisher {
 
-  import spray.json._
   import JsonCodecs._
+  import spray.json._
 
   def forKafka(host: String, port: Int, topic: String): JobEventPublisher = {
     new JobEventPublisher {
       val producer = TopicProducer(host, port, topic)
 
-      override def notify(event: UpdateStatusEvent): Unit = {
+      override def notify(event: SystemEvent): Unit = {
         val json = event.toJson
         producer.send("", json)
       }
@@ -47,7 +47,7 @@ object JobEventPublisher {
         client
       }
 
-      override def notify(event: UpdateStatusEvent): Unit = {
+      override def notify(event: SystemEvent): Unit = {
         val json = event.toJson
         val message = new MqttMessage(json.getBytes())
         client.publish(topic, message)

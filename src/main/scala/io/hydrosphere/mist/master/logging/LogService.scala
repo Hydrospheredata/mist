@@ -1,13 +1,25 @@
 package io.hydrosphere.mist.master.logging
 
 import java.nio.ByteOrder
-import java.nio.file.{Files, StandardOpenOption}
 
+import akka.actor.{ActorRef, ActorSystem}
+import akka.pattern.ask
+import akka.stream.ActorMaterializer
 import akka.stream.io.Framing
-import akka.stream.scaladsl.{FileIO, Flow}
-import akka.util.ByteString
+import akka.stream.scaladsl.{Flow, Keep, Sink, Tcp}
+import akka.util.{ByteString, Timeout}
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
+import io.hydrosphere.mist.Messages.StatusMessages.ReceivedLogs
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.master.{EventsStreamer, JobEventPublisher}
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
+
+case class WriteRequest(
+  id: String,
+  events: Seq[LogEvent]
+)
 
 case class LogUpdate(
   jobId: String,
@@ -16,39 +28,20 @@ case class LogUpdate(
 )
 
 
-class LogService(storage: LogsStore) {
+class LogService(writersGroup: ActorRef) {
 
-  def writeToLog(entryId: String, events: Seq[LogEvent]): Unit = {
-    val path = storage.mkPath(entryId)
-    val data = events.map(_.mkString).mkString("\n")
-
-    val f = path.toFile
-    if (!f.exists())
-      Files.createFile(path)
-
-    Files.write(path, data.getBytes, StandardOpenOption.APPEND)
-
-    FileIO.toFile(path.toFile, append = true)
+  val storeFlow: Flow[LogEvent, LogUpdate, Unit] = {
+    Flow[LogEvent]
+      .groupBy(1000, _.from)
+      .groupedWithin(1000, 1 second)
+      .mapAsync(10)(events => {
+        implicit val timeout = Timeout(10 second)
+        val jobId = events.head.from
+        val f = writersGroup ? WriteRequest(jobId, events)
+        f.mapTo[LogUpdate]
+      })
+      .mergeSubstreams
   }
-
-  def eventsToByteString(events: Seq[LogEvent]): ByteString = {
-    val data = events.map(_.mkString).mkString("\n")
-    ByteString(data)
-  }
-
-//  def storeFlow: Flow[LogEvent, LogEvent, Unit] = {
-//    val x = Flow[LogEvent]
-//      .groupBy(1000, _.from)
-//      .groupedWithin(1000, 1 second)
-//      .map(e => e.head.from -> eventsToByteString(e))
-//      .mapAsync()
-//  }
-//
-//  def writeToFile(entryId: String, events: Seq[LogEvent]): Future[LogUpdate] = {
-//    Future {
-//
-//    }
-//  }
 
   def connectionFlow[B](
     eventHandler: Flow[LogEvent, B, Any],
@@ -75,23 +68,27 @@ class LogService(storage: LogsStore) {
 
 object LogService {
 
-//  def start(config: LogServiceConfig): LogService = {
-//    import config._
-//
-//    val store = LogsStore(config.dumpDirectory)
-//
-//    val handler = Flow[LogEvent]
-//      .groupBy(1000, _.from)
-//      .groupedWithin(100, 1 second)
-//      .mapAsync()
-//
-//    val tcp = Tcp().bind(host, port)
-//    tcp.toMat(Sink.foreach(connection =>
-//
-//      val flow = connectionFlow()
-//      connection.handleWith()
-//    ))
-//  }
+  def start(
+    host: String, port: Int,
+    mappings: LogStorageMappings,
+    eventPublishers: Seq[JobEventPublisher]
+  )(implicit sys: ActorSystem, mat: ActorMaterializer): Future[Tcp.ServerBinding] = {
 
+    val writersGroup = sys.actorOf(WritersGroup.props(mappings), "writers-group")
+    val service = new LogService(writersGroup)
+
+    val eventsStreamerSink = Sink.foreach[LogUpdate](upd => {
+      val event = ReceivedLogs(upd.jobId, upd.events, upd.bytesOffset)
+      eventPublishers.foreach(_.notify(event))
+    })
+
+    Tcp().bind(host, port).toMat(Sink.foreach(conn => {
+
+      val handle = service.connectionFlow(
+        service.storeFlow.alsoTo(eventsStreamerSink)
+      )
+      conn.handleWith(handle)
+    }))(Keep.left).run()
+  }
 
 }

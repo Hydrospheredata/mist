@@ -1,18 +1,16 @@
 package io.hydrosphere.mist.master
 
-import java.nio.file.Paths
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
+import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogsStore, TcpServer}
+import io.hydrosphere.mist.master.logging.{LogService, LogStorageMappings}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -28,16 +26,17 @@ object Master extends App with Logger {
     val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
 
     implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
+
     implicit val materializer = ActorMaterializer()
 
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val logsMappnigs = LogStorageMappings.create(MistConfig.logServer.dumpDirectory)
+    val logsMappings = LogStorageMappings.create(MistConfig.LogService.dumpDirectory)
     val streamer = EventsStreamer(system)
 
     val wsPublisher = new JobEventPublisher {
-      override def notify(event: UpdateStatusEvent): Unit =
+      override def notify(event: SystemEvent): Unit =
         streamer.push(event)
 
       override def close(): Unit = {}
@@ -69,9 +68,9 @@ object Master extends App with Logger {
     //masterService.recoverJobs()
     if (MistConfig.Http.isOn) {
       val api = new HttpApi(masterService)
-      val apiv2 = new HttpApiV2(masterService, logsMappnigs)
+      val apiv2 = new HttpApiV2(masterService, logsMappings)
       val apiv2Ws = new WSApi(streamer)
-      val http = HttpUi.route ~ api.route ~ apiv2.route ~ apiv2Ws.route
+      val http = HttpUi.route ~ api.route ~ apiv2Ws.route ~ apiv2.route
       Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
     }
 
@@ -94,7 +93,9 @@ object Master extends App with Logger {
     }
 
 
-    //TcpServer.start("localhost", 2345, logStore, statusService)
+    LogService.start(
+      MistConfig.LogService.host, MistConfig.LogService.port,
+      logsMappings, eventPublishers)
 
     // We need to stop contexts on exit
     sys addShutdownHook {

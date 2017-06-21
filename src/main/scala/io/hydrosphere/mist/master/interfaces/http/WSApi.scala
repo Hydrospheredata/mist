@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.Directives
 import akka.stream.scaladsl.{Flow, Sink}
+import io.hydrosphere.mist.Messages.StatusMessages.{ReceivedLogs, UpdateStatusEvent}
 import io.hydrosphere.mist.master.EventsStreamer
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import spray.json._
@@ -19,16 +20,24 @@ class WSApi(streamer: EventsStreamer) {
 
   val route = CorsDirective.cors() {
     path( "v2" / "api" / "jobs" / "ws") {
-      handleWebsocketMessages(allEventsWsFlow())
+      get {
+        handleWebsocketMessages(allEventsWsFlow())
+      }
     } ~
     path( "v2" / "api" / "jobs" / Segment / "ws") { jobId =>
-      handleWebsocketMessages(jobWsFlow(jobId))
+      get {
+        handleWebsocketMessages(jobWsFlow(jobId))
+      }
     }
   }
 
   private def jobWsFlow(id: String): Flow[Message, Message, Any]= {
     val source = streamer.eventsSource()
-      .filter(_.id == id)
+      .filter({
+        case e: UpdateStatusEvent => e.id == id
+        case e: ReceivedLogs => e.jobId == id
+        case _ => false
+      })
       .map(e => {
         val json = e.toJson.toString()
         TextMessage.Strict(json)
