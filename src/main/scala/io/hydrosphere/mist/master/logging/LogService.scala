@@ -16,29 +16,17 @@ import io.hydrosphere.mist.master.{EventsStreamer, JobEventPublisher}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-case class WriteRequest(
-  id: String,
-  events: Seq[LogEvent]
-)
-
-case class LogUpdate(
-  jobId: String,
-  events: Seq[LogEvent],
-  bytesOffset: Long
-)
 
 
-class LogService(writersGroup: ActorRef) {
+class LogService(writer: LogsWriter) {
 
   val storeFlow: Flow[LogEvent, LogUpdate, Unit] = {
     Flow[LogEvent]
       .groupBy(1000, _.from)
       .groupedWithin(1000, 1 second)
       .mapAsync(10)(events => {
-        implicit val timeout = Timeout(10 second)
         val jobId = events.head.from
-        val f = writersGroup ? WriteRequest(jobId, events)
-        f.mapTo[LogUpdate]
+        writer.write(jobId, events)
       })
       .mergeSubstreams
   }
@@ -74,8 +62,8 @@ object LogService {
     eventPublishers: Seq[JobEventPublisher]
   )(implicit sys: ActorSystem, mat: ActorMaterializer): Future[Tcp.ServerBinding] = {
 
-    val writersGroup = sys.actorOf(WritersGroup.props(mappings), "writers-group")
-    val service = new LogService(writersGroup)
+    val writer = LogsWriter(mappings, sys)
+    val service = new LogService(writer)
 
     val eventsStreamerSink = Sink.foreach[LogUpdate](upd => {
       val event = ReceivedLogs(upd.jobId, upd.events, upd.bytesOffset)

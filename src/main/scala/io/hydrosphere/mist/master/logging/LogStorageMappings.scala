@@ -17,7 +17,7 @@ class LogStorageMappings(dir: Path) {
       throw new RuntimeException(s"Entry $id contains unacceptable symbols")
   }
 
-  def fileName(id: String): String = s"$id.log"
+  def fileName(id: String): String = s"job-$id.log"
 
   def accept(id: String): Boolean = {
     val length = id.length

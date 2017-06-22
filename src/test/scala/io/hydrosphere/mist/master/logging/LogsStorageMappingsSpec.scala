@@ -8,7 +8,7 @@ class LogsStorageMappingsSpec extends FunSpec with Matchers {
 
   it("should return path to logs") {
     val mappings = new LogStorageMappings(Paths.get("dir"))
-    mappings.pathFor("ascf") shouldBe Paths.get("dir", "ascf.log")
+    mappings.pathFor("ascf") shouldBe Paths.get("dir", "job-ascf.log")
   }
 
   it("shouldn't accept insecure id") {

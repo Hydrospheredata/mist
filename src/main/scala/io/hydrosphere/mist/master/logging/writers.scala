@@ -3,9 +3,26 @@ package io.hydrosphere.mist.master.logging
 import java.nio.file._
 
 import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
+case class WriteRequest(
+  id: String,
+  events: Seq[LogEvent]
+)
+
+case class LogUpdate(
+  jobId: String,
+  events: Seq[LogEvent],
+  bytesOffset: Long
+)
+/**
+  * Single file writer
+  */
 class WriterActor(path: Path) extends Actor {
 
   override def preStart(): Unit = {
@@ -29,7 +46,15 @@ class WriterActor(path: Path) extends Actor {
   }
 }
 
-class WritersGroup(mappings: LogStorageMappings) extends Actor {
+object WriterActor {
+
+  def props(path: Path): Props = Props(classOf[WriterActor], path)
+}
+
+/**
+  * Group of file writers
+  */
+class WritersGroupActor(mappings: LogStorageMappings) extends Actor {
 
   var idToRef = Map.empty[String, ActorRef]
   var refToId = Map.empty[ActorRef, String]
@@ -46,7 +71,7 @@ class WritersGroup(mappings: LogStorageMappings) extends Actor {
 
   def create(id: String): ActorRef = {
     val path = mappings.pathFor(id)
-    val props = Props(classOf[WriterActor], path).withDispatcher("writers-blocking-dispatcher")
+    val props = WriterActor.props(path).withDispatcher("writers-blocking-dispatcher")
     val actor = context.actorOf(props, s"writer-$id")
     context.watch(actor)
 
@@ -63,10 +88,31 @@ class WritersGroup(mappings: LogStorageMappings) extends Actor {
   }
 }
 
-object WritersGroup {
+object WritersGroupActor {
 
   def props(mappings: LogStorageMappings): Props = {
-    Props(classOf[WritersGroup], mappings)
+    Props(classOf[WritersGroupActor], mappings)
+  }
+}
+
+trait LogsWriter {
+
+  def write(from: String, events: Seq[LogEvent]): Future[LogUpdate]
+
+}
+
+object LogsWriter {
+
+  def apply(mappings: LogStorageMappings, f: ActorRefFactory): LogsWriter = {
+    new LogsWriter {
+      val actor = f.actorOf(WritersGroupActor.props(mappings), "writers-group")
+      implicit val timeout = Timeout(10 second)
+
+      override def write(from: String, events: Seq[LogEvent]): Future[LogUpdate] = {
+        val f = actor ? WriteRequest(from, events)
+        f.mapTo[LogUpdate]
+      }
+    }
   }
 }
 
