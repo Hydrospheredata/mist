@@ -10,9 +10,8 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
-import io.hydrosphere.mist.master.logging.LogService
+import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.RunMode
 
 import scala.collection.JavaConversions._
@@ -57,7 +56,7 @@ case class Started(
 class WorkersManager(
   statusService: ActorRef,
   workerRunner: WorkerRunner,
-  logService: LogService
+  jobsLogger: JobsLogger
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
@@ -70,8 +69,7 @@ class WorkersManager(
         case Some(s) =>
           s.forward(jobRequest)
         case None =>
-          val event = LogEvent.mkInfo(jobRequest.id, s"Starting worker $contextId")
-          logService.putLog(event)
+          jobsLogger.info(jobRequest.id, s"Starting worker $contextId")
           val state = startWorker(contextId, mode)
           state.forward(jobRequest)
       }
@@ -229,9 +227,9 @@ object WorkersManager {
   def props(
     statusService: ActorRef,
     workerRunner: WorkerRunner,
-    logService: LogService
+    jobsLogger: JobsLogger
   ): Props = {
-    Props(classOf[WorkersManager], statusService, workerRunner, logService)
+    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)

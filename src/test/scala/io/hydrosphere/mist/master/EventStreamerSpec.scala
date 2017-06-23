@@ -35,28 +35,5 @@ class EventStreamerSpec extends TestKit(ActorSystem("streamer"))
       StartedEvent("2", 1)
     )
   }
-
-  it("asda") {
-    import scala.collection.JavaConverters._
-
-    def find(s: String, cfg: Config, path: Seq[String]): Option[Seq[String]] = {
-      val entrys = cfg.root().entrySet()
-      entrys.asScala.find(e => e.getKey == s) match {
-        case None =>
-          val objects = entrys.asScala.filter(e => e.getValue.valueType() == ConfigValueType.OBJECT)
-          objects.map(e => {
-            val next = cfg.getConfig(e.getKey)
-            find(s, next, path :+ e.getKey)
-          }).collectFirst({case Some(x) => x})
-
-        case Some(x) => Some(path)
-      }
-    }
-
-    val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
-    val cfg = system.dispatchers.cachingConfig
-    println(find("writers-blocking-dispatcher", cfg, Seq.empty))
-    println(system.dispatchers.hasDispatcher("writers-blocking-dispatcher"))
-//    println(system.dispatchers.cachingConfig.root().render(ConfigRenderOptions.defaults()))
-  }
+  
 }

@@ -101,7 +101,7 @@ class LogService(
   serverBinding: Tcp.ServerBinding
 ) {
 
-  def putLog(e: LogEvent): Unit = storeInput ! e
+  def getLogger: JobsLogger = JobsLogger.fromActorRef(storeInput)
 
   def close(): Future[Unit] = serverBinding.unbind()
 

@@ -51,7 +51,7 @@ object Master extends App with Logger {
 
     val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
     val workerManager = system.actorOf(
-      WorkersManager.props(statusService, workerRunner, logsService), "workers-manager")
+      WorkersManager.props(statusService, workerRunner, logsService.getLogger), "workers-manager")
 
     val masterService = new MasterService(
       workerManager,
