@@ -2,7 +2,6 @@ package io.hydrosphere.mist.master.logging
 
 import akka.actor.Props
 import akka.stream.actor.ActorPublisher
-import akka.stream.actor.ActorPublisherMessage.Cancel
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 
 /**
@@ -12,10 +11,7 @@ import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
   */
 class DummyPublisher extends ActorPublisher[LogEvent] {
   override def receive: Receive = {
-    case e: LogEvent =>
-      println(s"EVENT $e")
-      onNext(e)
-//    case Cancel => context.stop(self)
+    case e: LogEvent => onNext(e)
   }
 }
 
