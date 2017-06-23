@@ -12,7 +12,7 @@ import org.mockito.Matchers._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
-class LogServiceSpec extends TestKit(ActorSystem("log-service-test"))
+class LogStreamsSpec extends TestKit(ActorSystem("log-service-test"))
   with FunSpecLike
   with Matchers {
 
@@ -23,11 +23,12 @@ class LogServiceSpec extends TestKit(ActorSystem("log-service-test"))
     when(writer.write(any(classOf[String]), any(classOf[Seq[LogEvent]])))
       .thenReturn(Future.successful(LogUpdate("jobId", Seq.empty, 1)))
 
-    val service = new LogService(writer)
 
-    val source = Source.single(LogEvent.mkDebug("id", "message"))
+    val out = Source.single(LogEvent.mkDebug("id", "message"))
+      .via(LogStreams.storeFlow(writer))
+      .take(1)
+      .toMat(Sink.seq)(Keep.right).run()
 
-    val out = source.via(service.storeFlow).take(1).toMat(Sink.seq)(Keep.right).run()
     val updates = Await.result(out, Duration.Inf)
 
     updates.size shouldBe 1

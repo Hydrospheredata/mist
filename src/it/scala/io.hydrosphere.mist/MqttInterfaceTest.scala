@@ -3,7 +3,7 @@ package io.hydrosphere.mist
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
-import io.hydrosphere.mist.Messages.StatusMessages.{FinishedEvent, UpdateStatusEvent}
+import io.hydrosphere.mist.Messages.StatusMessages.{FinishedEvent, SystemEvent, UpdateStatusEvent}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
@@ -39,7 +39,7 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
       override def messageArrived(topic: String, message: MqttMessage): Unit = {
         val data = new String(message.getPayload)
         try {
-          val result = data.parseJson.convertTo[UpdateStatusEvent]
+          val result = data.parseJson.convertTo[SystemEvent]
           result match {
             case x: FinishedEvent =>
               resultReceived.set(true)

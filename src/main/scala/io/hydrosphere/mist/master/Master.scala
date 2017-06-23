@@ -10,7 +10,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.logging.{LogService, LogStorageMappings}
+import io.hydrosphere.mist.master.logging.{LogStreams, LogStorageMappings}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.{Constants, MistConfig}
@@ -32,7 +32,6 @@ object Master extends App with Logger {
     val workerRunner = selectRunner(MistConfig.Workers.runner)
     val store = H2JobsRepository(MistConfig.History.filePath)
 
-    val logsMappings = LogStorageMappings.create(MistConfig.LogService.dumpDirectory)
     val streamer = EventsStreamer(system)
 
     val wsPublisher = new JobEventPublisher {
@@ -44,8 +43,15 @@ object Master extends App with Logger {
 
     val eventPublishers = buildEventPublishers() :+ wsPublisher
 
+    val logsMappings = LogStorageMappings.create(MistConfig.LogService.dumpDirectory)
+    val logsService = LogStreams.runService(
+      MistConfig.LogService.host, MistConfig.LogService.port,
+      logsMappings, eventPublishers
+    )
+
     val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
-    val workerManager = system.actorOf(WorkersManager.props(statusService, workerRunner), "workers-manager")
+    val workerManager = system.actorOf(
+      WorkersManager.props(statusService, workerRunner, logsService), "workers-manager")
 
     val masterService = new MasterService(
       workerManager,
@@ -93,9 +99,6 @@ object Master extends App with Logger {
     }
 
 
-    LogService.start(
-      MistConfig.LogService.host, MistConfig.LogService.port,
-      logsMappings, eventPublishers)
 
     // We need to stop contexts on exit
     sys addShutdownHook {

@@ -11,9 +11,9 @@ object SimpleContext extends MistJob with SQLSupport with Logging {
   def execute(numbers: List[Int], multiplier: Option[Int]): Map[String, Any] = {
     val logger = getLogger
     val multiplierValue = multiplier.getOrElse(2)
-    val rdd = context.parallelize((1 to 1000).flatMap(x => numbers.map(_ * x)))
-    logger.info("HELLLO")
-    val x = rdd.map(x => { val z = x * multiplierValue; logger.info(s"SDHSDH $x"); z }).collect()
+    val rdd = context.parallelize(numbers)
+    logger.info(s"Hello from SimpleContext")
+    val x = rdd.map(x => x * multiplierValue).collect()
     Map("result" -> x)
   }
 }
