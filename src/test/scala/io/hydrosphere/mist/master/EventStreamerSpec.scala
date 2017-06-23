@@ -35,5 +35,5 @@ class EventStreamerSpec extends TestKit(ActorSystem("streamer"))
       StartedEvent("2", 1)
     )
   }
-  
+
 }
