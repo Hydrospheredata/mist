@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.master
 
-import akka.pattern._
 import akka.actor.{Actor, ActorLogging, Props}
-import cats.implicits._
+import akka.pattern._
 import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
+import io.hydrosphere.mist.master.StatusService._
 import io.hydrosphere.mist.master.store.JobRepository
-import StatusService._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

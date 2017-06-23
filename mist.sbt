@@ -39,17 +39,13 @@ lazy val commonSettings = Seq(
   version := "0.12.1"
 )
 
-lazy val spark2AdditionalDependencies = currentSparkVersion match {
-  case versionRegex("1", minor) => Seq()
+lazy val libraryAdditionalDependencies = currentSparkVersion match {
+  case versionRegex("1", minor) => Seq.empty
   case _ => Seq(
     "org.json4s" %% "json4s-native" % "3.2.10",
     "org.apache.parquet" % "parquet-column" % "1.7.0",
     "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
-    "org.apache.parquet" % "parquet-avro" % "1.7.0",
-
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-    "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
-    "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
+    "org.apache.parquet" % "parquet-avro" % "1.7.0"
   )
 }
 
@@ -60,10 +56,13 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(
     name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies ++= spark2AdditionalDependencies,
+    libraryDependencies ++= libraryAdditionalDependencies,
     libraryDependencies ++= Seq(
-      "org.apache.kafka" % "kafka-clients" % "0.8.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
+      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
+
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
+      "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
     )
   )
 
@@ -102,6 +101,8 @@ lazy val mist = project.in(file("."))
 
       "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+
+      "com.twitter" %% "chill" % "0.9.2",
 
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",

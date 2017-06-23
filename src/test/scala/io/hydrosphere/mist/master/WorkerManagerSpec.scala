@@ -14,6 +14,7 @@ import scala.concurrent.duration._
 import scala.util.Success
 import WorkerManagerSpec._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
+import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.RunMode
 
 class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
@@ -28,11 +29,16 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
   val StatusService = TestProbe().ref
 
+  def testManager(): ActorRef = {
+    system.actorOf(
+      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger))
+  }
+
   implicit override val patienceConfig =
     PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(5, Millis)))
 
   it("should connect frond and back") {
-    val manager = system.actorOf(WorkersManager.props(StatusService, NothingRunner))
+    val manager = testManager()
 
     val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
     manager ! RunJobCommand("test", RunMode.Default, RunJobRequest("id", params))
@@ -53,7 +59,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
   ignore("fix later") {
     it("should return active workers") {
-      val manager = system.actorOf(WorkersManager.props(StatusService, NothingRunner))
+      val manager = testManager()
 
       manager ! GetWorkers
       expectMsg(List.empty[String])

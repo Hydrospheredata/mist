@@ -3,21 +3,21 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl._
-import io.hydrosphere.mist.Messages.StatusMessages.UpdateStatusEvent
+import io.hydrosphere.mist.Messages.StatusMessages.{SystemEvent, UpdateStatusEvent}
 
 /**
   * TODO: Rewrite MQTT and Kafka publisher in akka-streams-way
   */
 trait EventsStreamer {
 
-  def eventsSource(): Source[UpdateStatusEvent, Unit]
+  def eventsSource(): Source[SystemEvent, Unit]
 
-  def push(event: UpdateStatusEvent): Unit
+  def push(event: SystemEvent): Unit
 
   def asPublisher: JobEventPublisher = {
 
     new JobEventPublisher {
-      override def notify(event: UpdateStatusEvent): Unit =
+      override def notify(event: SystemEvent): Unit =
         push(event)
 
       override def close(): Unit = {}
@@ -36,12 +36,12 @@ object EventsStreamer {
     val actor = system.actorOf(Props(new BroadcastSource))
 
     new EventsStreamer {
-      override def eventsSource(): Source[UpdateStatusEvent, Unit] = {
+      override def eventsSource(): Source[SystemEvent, Unit] = {
         Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropTail)
           .mapMaterializedValue(ref => actor.tell("subscribe", ref))
       }
 
-      override def push(event: UpdateStatusEvent): Unit = actor ! event
+      override def push(event: SystemEvent): Unit = actor ! event
     }
 
   }
@@ -56,7 +56,7 @@ object EventsStreamer {
         subscribers += ref
         context.watch(ref)
 
-      case event: UpdateStatusEvent =>
+      case event: SystemEvent =>
         subscribers.foreach(_ ! event)
 
       case Terminated(ref) =>

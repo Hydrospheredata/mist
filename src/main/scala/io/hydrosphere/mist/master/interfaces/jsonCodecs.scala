@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.interfaces
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, JobResponse}
 import io.hydrosphere.mist.Messages.StatusMessages._
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.WorkerLink
@@ -157,7 +158,9 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
 
-  implicit val updateEventF = new JsonFormat[UpdateStatusEvent] {
+  implicit val logEventF = jsonFormat5(LogEvent.apply)
+
+  implicit val updateEventF = new JsonFormat[SystemEvent] {
 
     implicit val iniF = jsonFormat2(InitializedEvent)
     implicit val queueF = jsonFormat2(QueuedEvent)
@@ -166,7 +169,9 @@ trait JsonCodecs extends SprayJsonSupport
     implicit val finishedF = jsonFormat3(FinishedEvent)
     implicit val failedF = jsonFormat3(FailedEvent)
 
-    override def write(obj: UpdateStatusEvent): JsValue = {
+    implicit val receivedLogF = jsonFormat3(ReceivedLogs)
+
+    override def write(obj: SystemEvent): JsValue = {
       val (name, initial) = obj match {
         case x: InitializedEvent => "initialized" -> x.toJson
         case x: QueuedEvent => "queued" -> x.toJson
@@ -174,13 +179,14 @@ trait JsonCodecs extends SprayJsonSupport
         case x: CanceledEvent => "canceled" -> x.toJson
         case x: FinishedEvent => "finished" -> x.toJson
         case x: FailedEvent => "failed" -> x.toJson
+        case x: ReceivedLogs => "logs" -> x.toJson
       }
 
       val merged = initial.asJsObject.fields + ("event" -> JsString(name))
       JsObject(merged)
     }
 
-    override def read(json: JsValue): UpdateStatusEvent = {
+    override def read(json: JsValue): SystemEvent = {
       val obj = json.asJsObject
       val name = obj.fields.getOrElse("event", JsString(""))
       name match {
@@ -189,6 +195,7 @@ trait JsonCodecs extends SprayJsonSupport
         case JsString("started") => obj.convertTo[StartedEvent]
         case JsString("finished") => obj.convertTo[FinishedEvent]
         case JsString("failed") => obj.convertTo[FailedEvent]
+        case JsString("logs") => obj.convertTo[ReceivedLogs]
         case x => throw new IllegalArgumentException(s"Unknown event type $x")
       }
     }

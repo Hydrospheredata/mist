@@ -5,6 +5,7 @@ import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.logging.{LogStorageMappings}
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
@@ -31,7 +32,9 @@ import scala.language.postfixOps
   * stop worker            - DELETE /v2/api/workers/{id} (output should be changed)
   *
   */
-class HttpApiV2(master: MasterService ) {
+class HttpApiV2(
+  master: MasterService,
+  logsMappnigs: LogStorageMappings) {
 
   import Directives._
   import HttpApiV2._
@@ -93,6 +96,11 @@ class HttpApiV2(master: MasterService ) {
       get { completeOpt {
         master.jobStatusById(jobId)
       }}
+    } ~
+    path( root / "jobs" / Segment / "logs") { jobId =>
+      get {
+        getFromFile(logsMappnigs.pathFor(jobId).toFile)
+      }
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       delete { completeOpt {

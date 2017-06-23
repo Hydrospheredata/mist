@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker.runners.scala
 import java.io.File
 
 import cats.implicits._
-import io.hydrosphere.mist.Messages.JobMessages.JobParams
+import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
@@ -12,9 +12,10 @@ import org.apache.spark.util.SparkClassLoader
 class ScalaRunner extends JobRunner {
 
   override def run(
-    params: JobParams,
+    request: RunJobRequest,
     context: NamedContext): Either[String, Map[String, Any]] = {
 
+    val params = request.params
     import params._
 
     val file = new File(filePath)
@@ -27,7 +28,7 @@ class ScalaRunner extends JobRunner {
 
       val load = jobsLoader.loadJobInstance(className, action)
       Either.fromTry(load).flatMap(instance => {
-        instance.run(context.setupConfiguration, arguments)
+        instance.run(context.setupConfiguration(request.id), arguments)
       }).leftMap(e => buildErrorMessage(params, e))
     }
   }

@@ -2,6 +2,7 @@ package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
+import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.master.models.RunMode
@@ -82,7 +83,8 @@ object Messages {
       source: Source,
       externalId: Option[String])
 
-    sealed trait UpdateStatusEvent {
+    sealed trait SystemEvent
+    sealed trait UpdateStatusEvent extends SystemEvent {
       val id: String
     }
 
@@ -92,6 +94,8 @@ object Messages {
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
+
+    case class ReceivedLogs(jobId: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
 
     // return full job details
     case object RunningJobs

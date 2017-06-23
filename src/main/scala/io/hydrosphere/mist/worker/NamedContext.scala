@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.io.File
 
 import io.hydrosphere.mist.MistConfig
-import io.hydrosphere.mist.api.SetupConfiguration
+import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
@@ -15,10 +15,8 @@ import scala.collection.mutable
 class NamedContext(
   val context: SparkContext,
   val namespace: String,
-
   streamingDuration: Duration,
-  publisherConnectionString: String,
-  publisherTopic: String
+  loggingConf: Option[CentralLoggingConf]
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -31,12 +29,12 @@ class NamedContext(
     }
   }
 
-  def setupConfiguration: SetupConfiguration = {
+  def setupConfiguration(jobId: String): SetupConfiguration = {
     SetupConfiguration(
       context = context,
       streamingDuration = streamingDuration,
-      publisherConnectionString = publisherConnectionString,
-      publisherTopic = publisherTopic
+      info = RuntimeJobInfo(jobId, namespace),
+      loggingConf = loggingConf
     )
   }
 
@@ -76,29 +74,13 @@ object NamedContext {
 
   def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
     val duration = MistConfig.Contexts.streamingDuration(namespace)
-    //TODO: if there is no global publisher configuration??
-    val publisherConf = globalPublisherConfiguration()
-    val publisherTopic = globalPublisherTopic()
+    val loggingConf = Some(CentralLoggingConf(
+      MistConfig.LogService.host,
+      MistConfig.LogService.port
+    ))
 
     val context = new SparkContext(sparkConf)
-    new NamedContext(context, namespace, duration, publisherConf, publisherTopic)
+    new NamedContext(context, namespace, duration, loggingConf)
   }
 
-  private def globalPublisherConfiguration(): String = {
-    if (MistConfig.Kafka.isOn)
-      s"kafka://${MistConfig.Kafka.host}:${MistConfig.Kafka.port}"
-    else if (MistConfig.Mqtt.isOn)
-      s"mqtt://tcp://${MistConfig.Mqtt.host}:${MistConfig.Mqtt.port}"
-    else
-      ""
-  }
-
-  private def globalPublisherTopic(): String = {
-    if (MistConfig.Kafka.isOn)
-      MistConfig.Kafka.publishTopic
-    else if (MistConfig.Mqtt.isOn)
-      MistConfig.Mqtt.publishTopic
-    else
-      ""
-  }
 }

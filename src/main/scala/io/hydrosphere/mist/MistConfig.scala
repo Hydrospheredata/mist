@@ -1,7 +1,6 @@
 package io.hydrosphere.mist
 
 import com.typesafe.config.{Config, ConfigException, ConfigFactory, ConfigValue}
-import io.hydrosphere.mist.master.interfaces.async.AsyncInterface
 import org.apache.spark.streaming.{Duration => SDuration}
 
 import scala.collection.JavaConversions._
@@ -14,6 +13,23 @@ case class AsyncInterfaceConfig(
   publishTopic: String,
   subscribeTopic: String
 )
+
+case class LogServiceConfig(
+  host: String,
+  port: Int,
+  dumpDirectory: String
+)
+
+object LogServiceConfig {
+
+  def apply(config: Config): LogServiceConfig = {
+    LogServiceConfig(
+      host = config.getString("host"),
+      port = config.getInt("port"),
+      dumpDirectory = config.getString("dump_directory")
+    )
+  }
+}
 
 object AsyncInterfaceConfig {
 
@@ -92,9 +108,11 @@ object MistConfig {
       }
     }
   }
-  
+
   val Mqtt = AsyncInterfaceConfig(config.getConfig("mist.mqtt"))
   val Kafka = AsyncInterfaceConfig(config.getConfig("mist.kafka"))
+
+  val LogService = LogServiceConfig(config.getConfig("mist.log_service"))
 
   object Recovery {
     private def recovery: Config = config.getConfig("mist.recovery")

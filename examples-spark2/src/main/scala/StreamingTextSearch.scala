@@ -3,7 +3,7 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object StreamingTextSearch extends MistJob with StreamingSupport with Publisher {
+object StreamingTextSearch extends MistJob with StreamingSupport with Logging {
   def execute(filter: String): Map[String, Any] = {
     context.setLogLevel("INFO")
 
@@ -15,8 +15,9 @@ object StreamingTextSearch extends MistJob with StreamingSupport with Publisher 
 
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
 
+    val logger = getLogger
     filtredStream.foreachRDD{ (rdd, time) =>
-      publisher.publish(Map(
+      logger.info(Map(
         "time" -> time,
         "length" -> rdd.collect().length,
         "collection" -> rdd.collect().toList.toString
