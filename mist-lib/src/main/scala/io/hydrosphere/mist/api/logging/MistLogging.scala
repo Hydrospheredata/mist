@@ -101,7 +101,7 @@ private [mist] object MistLogging {
 
   class RemoteLogsWriter(host: String, port: Int) extends LogsWriter {
 
-    private val sys = ActorSystem("logs-writer", ConfigFactory.empty)
+    private val sys = ActorSystem("logs-writer", RemoteLogsWriter.systemConfig)
     private val mat = ActorMaterializer()(sys)
 
     val kryoPool = {
@@ -141,6 +141,10 @@ private [mist] object MistLogging {
   }
 
   object RemoteLogsWriter {
+
+    val systemConfig = ConfigFactory.parseString(
+      "akka.daemonic = on"
+    )
 
     @transient
     private val writers = new ConcurrentHashMap[Key, RemoteLogsWriter]()
