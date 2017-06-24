@@ -193,7 +193,7 @@ class WorkersManager(
         s match {
           case d: Down => // ignore event - it's already down
           case _ =>
-            workerStates += name -> Down(s.frontend)
+            workerStates -= name
             s.frontend ! WorkerDown
             log.info(s"Worker for $name is marked down")
             workerRunner.onStop(name)

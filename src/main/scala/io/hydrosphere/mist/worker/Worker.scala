@@ -49,6 +49,7 @@ object Worker extends App with Logger {
     logger.info(msg)
 
     system.awaitTermination()
+    logger.info(s"Shutdown worker appilication $name $contextName")
     context.stop()
 
   } catch {
