@@ -1,26 +1,27 @@
 package io.hydrosphere.mist.master.interfaces.cli
 
-import akka.actor.{ActorSystem, Props}
-import akka.pattern.ask
+import akka.actor.ActorSystem
 import akka.util.Timeout
 import io.hydrosphere.mist.{Constants, MistConfig}
 
 import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.language.{implicitConversions, postfixOps}
-import scala.sys.process._
-import scala.util.Random
 
 object EntryPoint extends App {
+
+  val masterAddress = args(0)
 
   implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
   implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
 
   private val responder = {
-    val address = MistConfig.Akka.Worker.serverList.head + "/user/" + Constants.Actors.cliResponderName
-    system.actorSelection(address)
+    val address = s"akka.tcp://$masterAddress/user/${Constants.Actors.cliResponderName}"
+    val resolve = system.actorSelection(address).resolveOne()
+    Await.result(resolve, Duration.Inf)
   }
 
-  var argInput = args.mkString(" ")
+  var argInput = args.drop(1).mkString(" ")
 
   if(argInput.isEmpty) {
     println("Hello! This is a Mist command-line interface.")
@@ -46,6 +47,8 @@ object EntryPoint extends App {
       case Exit =>
         system.shutdown
         sys.exit(0)
+      case Help =>
+        printHelp()
     })
 
     if (parsed.isEmpty) {
@@ -58,6 +61,7 @@ object EntryPoint extends App {
     println(s" ----------------------------------------------------------------- \n" +
       s"|             Mist Command Line Interface                          | \n" +
       s" ----------------------------------------------------------------- \n" +
+      s"${Constants.CLI.Commands.help} \t print help \n" +
       s"${Constants.CLI.Commands.startJob} <router> <extId> \t start job \n" +
       s"${Constants.CLI.Commands.listWorkers} \t \t \t \t List all started workers \n" +
       s"${Constants.CLI.Commands.listJobs} \t \t \t \t List all started jobs \n" +

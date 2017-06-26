@@ -4,31 +4,32 @@ import scala.concurrent.duration._
 
 object Constants {
   object Actors {
-    final val syncJobRunnerName = "SyncJobRunner"
-    final val asyncJobRunnerName = "AsyncJobRunner"
-    final val clusterManagerName = "ClusterManager"
-    final val mqttServiceName = "MQTTService"
-    final val kafkaServiceName = "KafkaService"
-    final val contextNode = "ContextNode"
-    final val cliName = "CLI"
-    final val cliResponderName = "CliResponder"
+    val syncJobRunnerName = "SyncJobRunner"
+    val asyncJobRunnerName = "AsyncJobRunner"
+    val clusterManagerName = "ClusterManager"
+    val mqttServiceName = "MQTTService"
+    val kafkaServiceName = "KafkaService"
+    val contextNode = "ContextNode"
+    val cliName = "CLI"
+    val cliResponderName = "CliResponder"
   }
 
   object CLI {
     object Commands {
-      final val stopWorker = "kill worker"
-      final val stopJob = "kill job"
-      final val listWorkers = "list workers"
-      final val listRouters = "list routers"
-      final val listJobs = "list jobs"
-      final val stopAllWorkers = "kill all"
-      final val exit = "exit"
-      final val startJob = "start job"
+      val help = "help"
+      val stopWorker = "kill worker"
+      val stopJob = "kill job"
+      val listWorkers = "list workers"
+      val listRouters = "list routers"
+      val listJobs = "list jobs"
+      val stopAllWorkers = "kill all"
+      val exit = "exit"
+      val startJob = "start job"
     }
 
-    final val noWorkersMsg = "no workers"
-    final val internalUserInterfaceActorName = "InternalUIActor"
-    final val timeoutDuration = 60.second
-    final val stopAllWorkers = "All contexts are scheduled for shutdown."
+    val noWorkersMsg = "no workers"
+    val internalUserInterfaceActorName = "InternalUIActor"
+    val timeoutDuration = 60.second
+    val stopAllWorkers = "All contexts are scheduled for shutdown."
   }
 }
