@@ -39,61 +39,57 @@ SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 
 ### From docker image
 
-Default:
-```sh
-docker run -p 2004:2004 \
-   -v /var/run/docker.sock:/var/run/docker.sock \
-   hydrosphere/mist:0.12.1-2.1.1 mist
-```
-
 It is recommended to mount `./config` `./jobs` volumes to Mist docker container in advance.
 So, we'll be able to customise configs and deploy new jobs as we go along. 
 
+For spark 2.1.1:
 ```sh
-mkdir configs
-curl -o ./configs/default.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
 mkdir jobs
+mkdir my_config
+curl -o ./my_config/docker.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/default.conf 
+curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples-spark2.conf
 
 docker run \
    -p 2004:2004 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   -v $PWD/configs:/usr/share/mist/configs \
+   -v $PWD/my_config:/my_config \
    -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.12.1-2.1.1 mist
-
-docker run -p 2004:2004 -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs hydrosphere/mist:0.12.1-2.1.1 mist
+   hydrosphere/mist:0.12.2-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
 
-Go to Mist UI at `http://localhost:2003/ui`
+For spark 1.6.2
+
+```sh
+mkdir jobs
+mkdir my_config
+curl -o ./my_config/docker.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/default.conf 
+curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples-spark2.conf
+
+docker run \
+   -p 2004:2004 \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   -v $PWD/my_config:/my_config \
+   -v $PWD/jobs:/jobs \
+   hydrosphere/mist:0.12.2-1.6.2 mist --config /my_config/docker.conf --router-config /my_config/router.conf
+```
+
+- Check how it works on <http://localhost:2004/ui>
 
 ![Hydrosphere Mist UI](http://dv9c7babquml0.cloudfront.net/docs-images/hydrisphere-mist-ui.png)
 
 You could check running workers and jobs as well as execute/debug API routes right from the web browser.
 
 ### (Optional) Connecting to your existing Apache Spark cluster
-If you would like to install Hydrosphere Mist on top of existing Apache Spark installation, please follow high level scheme and detailed steps outlined below. 
+If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
+you should edit a config and specifying an address of your existing Apache Spark master.
 
-![Mist Spark Master config](http://dv9c7babquml0.cloudfront.net/docs-images/mist-spark-master.png)
-
-#### (1/3) Creating or copying Mist config file and saving it in `./configs` directory  
-
-```
-mkdir configs
-curl -o ./configs/mist.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/docker.conf
-```
-
-#### (2/3) Editing a config and specifying an address of your existing Apache Spark master
+For local installation it's placed at `${MIST_HOME}/config/default.conf`.
+For docker it's in `my_config/docker.conf`
 
 ```
 mist.context-defaults.spark-conf = {
   spark.master = "spark://IP:PORT"
 }
-```
-
-#### (3/3) Running Mist docker container with mounted config file
-
-```
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
 ```
 
 ## What's next

@@ -4,15 +4,13 @@ set -e
 cd ${MIST_HOME}
 
 if [ "$1" = 'mist' ]; then
-  if [ -e "configs/user.conf" ]; then
-    cp -f configs/user.conf configs/default.conf
-  fi
   export IP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
   echo "$IP    master" >> /etc/hosts
 
-  JAVA_ARGS="-Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551"
-  JAVA_ARGS="$JAVA_ARGS -Dmist.akka.remote.netty.tcp.hostname=$IP"
-  exec ./bin/mist-master start --java-args "$JAVA_ARGS" --debug true
+  JAVA_OPTS="$JAVA_OPTS -Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551"
+  JAVA_OPTS="$JAVA_OPTS -Dmist.akka.remote.netty.tcp.hostname=$IP"
+  shift
+  exec ./bin/mist-master start --debug true $@
 elif [ "$1" = 'worker' ]; then 
   if [ ! -z $3 ]; then
     echo $3 | base64 -d  > configs/default.conf
