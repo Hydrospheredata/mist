@@ -60,7 +60,7 @@ class HttpApiV2(
 
   private val completeOpt = rejectEmptyResponse & complete _
 
-  val route: Route = CorsDirective.cors() {
+  val route: Route = {
     path( root / "endpoints" ) {
       get { complete {
         master.listEndpoints().map(HttpEndpointInfoV2.convert)

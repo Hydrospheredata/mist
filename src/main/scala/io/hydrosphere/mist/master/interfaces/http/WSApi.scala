@@ -18,7 +18,7 @@ class WSApi(streamer: EventsStreamer) {
   import Directives._
   import JsonCodecs._
 
-  val route = CorsDirective.cors() {
+  val route = {
     path( "v2" / "api" / "jobs" / "ws") {
       get {
         handleWebsocketMessages(allEventsWsFlow())

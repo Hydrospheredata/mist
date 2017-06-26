@@ -74,9 +74,12 @@ object Master extends App with Logger {
     //masterService.recoverJobs()
     if (MistConfig.Http.isOn) {
       val api = new HttpApi(masterService)
-      val apiv2 = new HttpApiV2(masterService, logsMappings)
-      val apiv2Ws = new WSApi(streamer)
-      val http = HttpUi.route ~ api.route ~ apiv2Ws.route ~ apiv2.route
+      val apiv2 = {
+        val api = new HttpApiV2(masterService, logsMappings)
+        val ws = new WSApi(streamer)
+        CorsDirective.cors() { api.route ~ ws.route }
+      }
+      val http = HttpUi.route ~ api.route ~ apiv2
       Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
     }
 
