@@ -8,4 +8,5 @@ trait ContextSupport {
 
   private[mist] def setup(conf: SetupConfiguration) = _context = conf.context
   private[mist] def stop(): Unit = {}
+
 }

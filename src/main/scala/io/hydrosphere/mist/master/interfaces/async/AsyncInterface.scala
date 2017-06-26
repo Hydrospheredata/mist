@@ -1,76 +1,40 @@
 package io.hydrosphere.mist.master.interfaces.async
 
-import akka.actor.{ActorContext, ActorRef, ActorSystem}
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.interfaces.async.kafka.{KafkaActorWrapper, KafkaPublisher, KafkaSubscriber}
-import io.hydrosphere.mist.master.interfaces.async.mqtt.{MqttActorWrapper, MqttPublisher, MqttSubscriber}
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.models._
+import io.hydrosphere.mist.utils.Logger
+import spray.json.{DeserializationException, JsonParser, pimpString}
+import JsonCodecs._
 
-private[mist] object AsyncInterface {
+class AsyncInterface(
+  masterService: MasterService,
+  input: AsyncInput,
+  source: Source
+) extends Logger {
 
-  sealed trait Provider
-  object Provider {
-    
-    def apply(string: String): Provider = string match {
-      case "mqtt" => Mqtt
-      case "kafka" => Kafka
-    }
-    
-    case object Mqtt extends Provider {
-      override def toString: String = "mqtt"
-    }
-    case object Kafka extends Provider {
-      override def toString: String = "kafka"
-    }
-  }
-  
-  var system: ActorSystem = _
-  var masterService: MasterService = _
-  
-  def init(system: ActorSystem, masterService: MasterService): Unit = {
-    this.system = system
-    this.masterService = masterService
-  }
-  
-  def subscriber(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
-    case Provider.Mqtt =>
-      inContext match {
-        case Some(context) =>
-          context.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
-        case None =>
-          system.actorOf(MqttSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
-      }
-    case Provider.Kafka =>
-      inContext match {
-        case Some(context) =>
-          context.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
-        case None =>
-          system.actorOf(KafkaSubscriber.props(publisher(provider, inContext), actorWrapper(provider, inContext), masterService))
-      }
+  def start(): this.type  = {
+    input.start(process)
+    this
   }
 
-  def publisher(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
-    case Provider.Mqtt =>
-        inContext match {
-          case Some(context) => context.actorOf(MqttPublisher.props(actorWrapper(provider, inContext)))
-          case None => system.actorOf(MqttPublisher.props(actorWrapper(provider, inContext))) 
-        }
-    case Provider.Kafka =>
-        inContext match {
-          case Some(context) => context.actorOf(KafkaPublisher.props())
-          case None => system.actorOf(KafkaPublisher.props())
-        }
+  private def process(message: String): Unit = {
+    try {
+      val json = message.parseJson
+      val request = json.convertTo[AsyncJobStartRequest]
+      masterService.runJob(request.toCommon, source)
+    } catch {
+      case e: DeserializationException =>
+        logger.warn(s"Message $message does not conform with start request")
+      case e: JsonParser.ParsingException =>
+        logger.warn(s"Handled invalid message $message")
+      case e: Throwable =>
+        logger.error(s"Error occurred during handling message $message", e)
+    }
   }
-  
-  private def actorWrapper(provider: Provider, inContext: Option[ActorContext] = None): ActorRef = provider match {
-    case Provider.Mqtt =>
-      inContext match {
-        case Some(context) => context.actorOf(MqttActorWrapper.props())
-        case None => system.actorOf(MqttActorWrapper.props())
-      }
-    case Provider.Kafka =>
-      inContext match {
-        case Some(context) => context.actorOf(KafkaActorWrapper.props())
-        case None => system.actorOf(KafkaActorWrapper.props())
-      }
-  }
+
+  def close(): Unit = input.close()
+
 }
+

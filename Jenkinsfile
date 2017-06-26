@@ -23,13 +23,12 @@ node("JenkinsOnDemand") {
 
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
-            //TODO Fetch artifacts from previous steps, using stash/unstash
-
-            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark1/publishSigned"
-            sh "${env.WORKSPACE}/sbt/sbt mistLibSpark1/sonatypeRelease"
-
-            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLibSpark2/publishSigned"
-            sh "${env.WORKSPACE}/sbt/sbt mistLibSpark2/sonatypeRelease"
+            publishVersions = ["1.5.2", "2.1.0"]
+            for(int i = 0; i < publishVersions.size(); i++) {
+              def v = publishVersions.get(i)
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
+            }
         }
     }
 }

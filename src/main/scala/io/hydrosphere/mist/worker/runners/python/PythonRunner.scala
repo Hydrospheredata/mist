@@ -2,35 +2,35 @@ package io.hydrosphere.mist.worker.runners.python
 
 import java.io.File
 
-import io.hydrosphere.mist.Messages.JobMessages.JobParams
+import io.hydrosphere.mist.Messages.JobMessages.RunJobRequest
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
+import io.hydrosphere.mist.worker.runners.python.wrappers._
 import py4j.GatewayServer
-import wrappers._
 
 import scala.sys.process._
 
-class PythonEntryPoint(jobParams: JobParams, context: NamedContext) {
+class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
   val sparkContextWrapper: NamedContext = context
-  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(jobParams)
-  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration)
+  val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(req.params)
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration(req.id))
 
 }
 
 class PythonRunner extends JobRunner with Logger {
 
   override def run(
-    params: JobParams,
+    req: RunJobRequest,
     context: NamedContext): Either[String, Map[String, Any]] = {
 
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
-      val entryPoint = new PythonEntryPoint(params, context)
+      val entryPoint = new PythonEntryPoint(req, context)
 
       val gatewayServer: GatewayServer = new GatewayServer(entryPoint, 0)
       try {

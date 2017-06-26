@@ -1,6 +1,7 @@
 package io.hydrosphere.mist
 
 import io.hydrosphere.mist.jobs.JobResult
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.scalatest._
 import scala.sys.process._
 
@@ -31,13 +32,14 @@ trait MistRunner {
     val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
-    val ps = Process(args, None, env: _*).run(new ProcessLogger {
-      override def buffer[T](f: => T): T = f
-
-      override def out(s: => String): Unit = ()
-
-      override def err(s: => String): Unit = ()
-    })
+//    val ps = Process(args, None, env: _*).run(new ProcessLogger {
+//      override def buffer[T](f: => T): T = f
+//
+//      override def out(s: => String): Unit = ()
+//
+//      override def err(s: => String): Unit = ()
+//    })
+    val ps = Process(args, None, env: _*).run()
     Thread.sleep(5000)
     ps
   }
@@ -82,36 +84,30 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
     runOnlyIf(isSpark1, "SKIP TEST - ONLY FOR SPARK1")(body)
 }
 
-case class MistHttpInterface(host: String, port: Int) {
+case class MistHttpInterface(
+  host: String,
+  port: Int,
+  timeout: Int = 120
+) {
 
-  import io.hydrosphere.mist.master.interfaces.http.JsonCodecs._
+  import JsonCodecs._
   import spray.json.pimpString
   import spray.json._
   import scalaj.http.Http
 
-  def runJob(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
-    callApi(routeId, params, Execute, timeout)
-
   def runJob(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Execute, 60)
-
-  def train(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
-    callApi(routeId, params, Train, timeout)
+    callApi(routeId, params.toMap, Execute)
 
   def train(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Train, 60)
-
-  def serve(routeId: String, params: Map[String, Any], timeout: Int = 30): JobResult =
-    callApi(routeId, params, Serve, timeout)
+    callApi(routeId, params.toMap, Train)
 
   def serve(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Serve, 60)
+    callApi(routeId, params.toMap, Serve)
 
   private def callApi(
     routeId: String,
     params: Map[String, Any],
-    action: ActionType,
-    timeout: Int = 30): JobResult = {
+    action: ActionType): JobResult = {
 
     val millis = timeout * 1000
 

@@ -1,6 +1,6 @@
-import io.hydrosphere.mist.api.MistJob
+import io.hydrosphere.mist.api.{ContextSupport, MistJob}
 
-object SimpleContext extends MistJob {
+object SimpleContext extends MistJob with ContextSupport {
 
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden

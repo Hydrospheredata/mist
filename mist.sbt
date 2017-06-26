@@ -11,6 +11,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
 
@@ -27,6 +28,7 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := currentSparkVersion,
+  sparkMajorVersion := sparkVersion.value.split('.').head,
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
@@ -34,20 +36,16 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.12.0"
+  version := "0.12.1"
 )
 
-lazy val spark2AdditionalDependencies = currentSparkVersion match {
-  case versionRegex("1", minor) => Seq()
+lazy val libraryAdditionalDependencies = currentSparkVersion match {
+  case versionRegex("1", minor) => Seq.empty
   case _ => Seq(
     "org.json4s" %% "json4s-native" % "3.2.10",
     "org.apache.parquet" % "parquet-column" % "1.7.0",
     "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
-    "org.apache.parquet" % "parquet-avro" % "1.7.0",
-
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-    "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
-    "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
+    "org.apache.parquet" % "parquet-avro" % "1.7.0"
   )
 }
 
@@ -56,12 +54,15 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := "mist-lib",
+    name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies ++= spark2AdditionalDependencies,
+    libraryDependencies ++= libraryAdditionalDependencies,
     libraryDependencies ++= Seq(
-      "org.apache.kafka" % "kafka-clients" % "0.8.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
+      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
+
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+      "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
+      "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
     )
   )
 
@@ -101,17 +102,18 @@ lazy val mist = project.in(file("."))
       "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
 
+      "com.twitter" %% "chill" % "0.9.2",
+
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
       "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
 
-      "org.mapdb" % "mapdb" % "1.0.9",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
       "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
 
       "org.scalaj" %% "scalaj-http" % "2.3.0",
-      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j", "slf4j-log4j12"),
-      "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
+      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+      "com.h2database" % "h2" % "1.4.194",
       "org.flywaydb" % "flyway-core" % "4.1.1",
       "org.typelevel" %% "cats" % "0.9.0"
     ),
@@ -153,9 +155,9 @@ lazy val mist = project.in(file("."))
   .settings(
     stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
     stageActions := {
+      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
       val routes = {
-        val num = if (sparkVersion.value.startsWith("1.")) "1" else "2"
-        CpFile(s"configs/router-examples-spark$num.conf")
+        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
           .as("router.conf")
           .to("configs")
       }
@@ -168,6 +170,7 @@ lazy val mist = project.in(file("."))
         CpFile("examples-python"),
         CpFile(assembly.value).as("mist.jar"),
         CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+          .as(s"mist-examples-spark$sparkMajor.jar")
       )
     },
     stageActions in basicStage +=
@@ -188,7 +191,8 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion)
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    autoScalaLibrary := false
   )
 
 lazy val examplesSpark2 = project.in(file("examples-spark2"))
@@ -196,7 +200,8 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion)
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    autoScalaLibrary := false
   )
 
 lazy val mistRunSettings = Seq(
@@ -254,7 +259,6 @@ lazy val dockerSettings = Seq(
       run("apk", "update")
       run("apk", "add", "python", "curl", "jq", "coreutils")
 
-      expose(2003)
       workDir(mistHome)
       entryPoint("/docker-entrypoint.sh")
     }

@@ -4,7 +4,7 @@ import akka.pattern.pipe
 import akka.actor.{Actor, ActorRef, Props}
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.{ListRoutes, StatusMessages}
-import io.hydrosphere.mist.master.{JobRoutes, MasterService}
+import io.hydrosphere.mist.master.{JobEndpoints$, MasterService}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.duration._

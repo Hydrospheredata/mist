@@ -35,7 +35,8 @@ object StageDist {
     if (dir.exists())
       IO.delete(dir)
 
-    IO.createDirectory(dir)
+    if (!dir.exists)
+      IO.createDirectory(dir)
     val actions = (stageActions in key).value
     actions.foreach({
       case MkDir(name) => mkDir(name, dir)

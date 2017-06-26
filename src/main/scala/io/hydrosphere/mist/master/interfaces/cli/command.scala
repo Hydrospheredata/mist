@@ -9,7 +9,7 @@ import io.hydrosphere.mist.Messages.ListRoutes
 import io.hydrosphere.mist.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.jobs.{JobDefinition, JobDetails}
-import io.hydrosphere.mist.master.{JobExecutionStatus, WorkerLink}
+import io.hydrosphere.mist.master.WorkerLink
 import org.joda.time.DateTime
 
 import scala.concurrent.Await
@@ -59,10 +59,10 @@ object RunningJobsCmd extends RemoteCliCommand[List[JobDetails]] {
     resp.map(s => {
       Row.create(
         s.jobId,
-        s.startTime.map(toTimeSting(_)).getOrElse(""),
-        s.configuration.namespace,
-        s.configuration.externalId.getOrElse(""),
-        s.configuration.route.getOrElse(""),
+        s.startTime.map(toTimeSting).getOrElse(""),
+        s.context,
+        s.externalId.getOrElse(""),
+        s.endpoint,
         s.source.toString,
         s.status.toString
       )
@@ -89,7 +89,7 @@ case class StopWorkerCmd(name: String) extends RemoteUnitCliCommand {
 
 case class StopJobCmd(namespace: String, id: String) extends RemoteCliCommand[JobIsCancelled] {
 
-  override val request = WorkerCommand(namespace, CancelJobRequest(id))
+  override val request = CancelJobCommand(namespace, CancelJobRequest(id))
 
   override val headers = List("ID", "TIME")
 

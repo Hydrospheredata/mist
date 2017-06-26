@@ -1,6 +1,6 @@
-import io.hydrosphere.mist.api.MistJob
+import io.hydrosphere.mist.api.{ContextSupport, MistJob}
 
-object SimpleTextSearch extends MistJob {
+object SimpleTextSearch extends MistJob with ContextSupport {
 
   def execute(filePath: String, filters: List[String]): Map[String, Any] = {
     var data = context.textFile(filePath)

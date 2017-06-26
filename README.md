@@ -1,8 +1,6 @@
 [![Build Status](https://jenkins.hydrosphere.io/buildStatus/icon?job=hydrosphere/mist/master)](https://jenkins.hydrosphere.io/job/hydrosphere/job/mist/job/master/)
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg)](https://travis-ci.org/Hydrospheredata)
-[![Coverage Status](https://coveralls.io/repos/github/Hydrospheredata/mist/badge.svg?branch=master)](https://coveralls.io/github/Hydrospheredata/mist?branch=master)
-[![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist_2.10/)
-[![Dependency Status](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000/badge.svg?style=flat)](https://www.versioneye.com/user/projects/5710b0cdfcd19a0045441000)
+[![GitHub version](https://badge.fury.io/gh/hydrospheredata%2Fmist.svg)](https://badge.fury.io/gh/hydrospheredata%2Fmist) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist-lib-spark2_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist-lib-spark2_2.11/)
 [![Docker Hub Pulls](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)
 # Hydrosphere Mist
 
@@ -43,68 +41,55 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 ## Getting Started with Mist
 
-###### Dependencies
+##### Download locally
+
+Dependencies:
+
 - jdk = 8
-- spark >= 1.5.2 (earlier versions were not tested)
-- MQTT Server (optional)
+- [spark](http://spark.apache.org/downloads.html) >= 1.5.2 (earlier versions were not tested)
 
-###### Run mist   
+- Download mist from <http://repo.hydrosphere.io/static/>
+   ```sh
+   wget http://repo.hydrosphere.io/static/mist-0.12.0-2.1.1.tar.gz
+   tar xvfz mist-0.12.1-2.1.1.tar.gz
+   cd mist-0.12.1-2.1.1
+   SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
+   ```
+- Check how it works on http://localhost:2004/ui
 
-Run Docker:
-```
-docker run -p 2003:2003 -v /var/run/docker.sock:/var/run/docker.sock -d hydrosphere/mist:master-2.1.0 mist
-```
+
+##### Run from docker
+
+- Run Docker:
+    ```sh
+    docker run -p 2004:2004\
+        -v /var/run/docker.sock:/var/run/docker.sock
+        -d hydrosphere/mist:0.12.0-2.1.1 mist
+    ```
+- Check how it works on http://localhost:2004/ui
         
 [More about docker image](https://hub.docker.com/r/hydrosphere/mist/)
         
-Run Jar:
-```
-sbt -DsparkVersion=${SPARK_VERSION} mistRun
+#### From sources
+
+```sh
+git clone git@github.com:Hydrospheredata/mist.git
+cd mist
+# for spark 2.1.0
+sbt -DsparkVersion=2.1.0 mist/mistRun
+# or use default
+sbt mist/mistRun
 ```
 
-###### Run example
+##### Run example
 
 ```
-sbt "project examples" package
-
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/simple-context --data '{"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
+curl --header "Content-Type: application/json" \
+     -X POST http://localhost:2004/api/simple-context \
+     --data '{"numbers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]}'
 ```
 
 Check out [Complete Getting Started Guide](/docs/getting-started/README.md)
-
-## Building from source
-
-* Build the project
-
-```
-git clone https://github.com/hydrospheredata/mist.git
-cd mist
-sbt -DsparkVersion=2.1.0 assembly 
-```
-    
-* Run
-
-```
-./bin/mist start master
-```
-
-## Development mode
-
-```sh
-# clone mist repo 
-git clone https://github.com/Hydrospheredata/mist
-
-# available spark versions: 1.5.2, 1.6.2, 2.0.2, 2.1.0
-export SPARK_VERSION=2.1.0
-docker create --name mist-${SPARK_VERSION} -v /usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION}
-docker run --name mosquitto-${SPARK_VERSION} -d ansi/mosquitto
-docker run --name hdfs-${SPARK_VERSION} --volumes-from mist-${SPARK_VERSION} -d hydrosphere/hdfs start
-
-# run tests
-docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} tests
-# or run mist
-docker run -v /var/run/docker.sock:/var/run/docker.sock --link mosquitto-${SPARK_VERSION}:mosquitto --link hdfs-${SPARK_VERSION}:hdfs -v $PWD:/usr/share/mist hydrosphere/mist:tests-${SPARK_VERSION} mist
-```
 
 ## What's next
 

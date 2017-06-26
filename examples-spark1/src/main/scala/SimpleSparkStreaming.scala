@@ -1,9 +1,10 @@
-import io.hydrosphere.mist.api.{MistJob, Publisher, StreamingSupport}
+import io.hydrosphere.mist.api._
 import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable
 
-object SimpleSparkStreaming extends MistJob with StreamingSupport with Publisher {
+object SimpleSparkStreaming extends MistJob with StreamingSupport with Logging {
+
   /** Contains implementation of spark job with ordinary [[org.apache.spark.SparkContext]]
     * Abstract method must be overridden
     *
@@ -17,12 +18,15 @@ object SimpleSparkStreaming extends MistJob with StreamingSupport with Publisher
     val mappedStream = inputStream.map(x => (x % 10, 1))
     val reducedStream = mappedStream.reduceByKey(_ + _)
 
+    val logger = getLogger
+
     reducedStream.foreachRDD{ (rdd, time) =>
-      publisher.publish(Map(
+      val message = Map(
         "time" -> time,
         "length" -> rdd.collect().length,
         "collection" -> rdd.collect().toList.toString
-      ).toString())
+      ).mkString(",")
+      logger.info(message)
     }
 
     ssc.start()
