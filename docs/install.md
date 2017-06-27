@@ -104,9 +104,13 @@ you should edit a config and specifying an address of your existing Apache Spark
 For local installation it's placed at `${MIST_HOME}/config/default.conf`.
 For docker it's in `my_config/docker.conf`
 
+For standalone cluster your config should looks like that:
 ```
   mist.context-defaults.spark-conf = {
     spark.master = "spark://IP:PORT"
   }
 ```
+If you want use your Yarn or Mesos cluster, there is not something special configuration from Mist side excluding `spark-master` conf.
+Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
+Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set them up before starting Mist
 

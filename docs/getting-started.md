@@ -9,4 +9,5 @@
 - [Configuration](/docs/configuration.md)
 - [Contexts](/docs/context-namespace.md)
 - [For developer](/docs/developer.md)
+- [CLI](/docs/cli.md)
 - [Use cases](/docs/use-cases/README.md)
