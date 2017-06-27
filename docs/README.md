@@ -8,7 +8,7 @@
 - [Http API](/docs/http_api.md)
 - [Reactive API](/docs/reactive_api.md)
 - [Configuration](/docs/configuration.md)
-- [Contexts](/docs/context-namespace.md)
+- [Contexts](/docs/context-namespaces.md)
 - [For developer](/docs/developer.md)
 - [CLI](/docs/cli.md)
 * [Learn from Use Cases and Tutorials](/docs/use-cases/README.md)
