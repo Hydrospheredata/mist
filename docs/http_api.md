@@ -93,6 +93,12 @@ Glosssary:
       <td>Get info about particular job</td>
     </tr>
     <tr>
+      <td>GET</td>
+      <td>/v2/api/jobs/{id}/logs</td>
+      <td>None</td>
+      <td>Logs from job</td>
+    </tr>
+    <tr>
       <td>DELETE</td>
       <td>/v2/api/jobs/{id}</td>
       <td>None</td>
@@ -140,7 +146,7 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 ```
 
 - `initialized` - job has been assigned to invocation, also returns all job parameters
-- `queued` - job has been queued (start worker awaiting )
+- `queued` - job has been queued (wait before worker assign job)
 - `started` - job has been sended to worker
 - `canceled` - job has been canceled by user
 - `finished`- job has been finished successfully, also has `result` field
@@ -152,7 +158,7 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 For new UI there is websocket interface for listening lifecycle event from jobs
 Events start sending to client after socket opening on one of available paths:
 - `/v2/api/jobs/ws` - subscribe to events from all jobs
-- `/v2/api/jobs/{id}/{ws}` - subscribe to events from particalur job
+- `/v2/api/jobs/{id}/ws` - subscribe to events from particular job
 
 
 
