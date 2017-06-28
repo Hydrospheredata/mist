@@ -5,6 +5,7 @@
 Endpoint is an abstraction over jobs.
 Every endpoints is combination of `artifactFile`, `className` of class that implements MistJob and default `namespace`.
 Endpoints are configured in `./configs/router.conf` or can be passed to mist-master using `--router-conf` argument
+It allows building user friendly endpoints by exposing only domain specific parameters. It semantically decouples job internals and business logic.
 
 Example configuration:
 

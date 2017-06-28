@@ -1,6 +1,6 @@
 ## Install Hydrosphere Mist 
 
-You can install Mist by default tarball package or run it in docker.
+You can install Mist from default tarball package or run it in docker.
 All of distributions have default configuration and our examples for a quick start.
 Docker image also has Apache Spark binaries for a quick start.
 

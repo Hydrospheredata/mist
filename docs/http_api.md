@@ -59,7 +59,7 @@ Glosssary:
           <li>offset - optional (default 0)</li>
         </ul>
       </td>
-      <td>List of jobs that was runned on that endpoint</td>
+      <td>List of jobs that was run with given endpoint</td>
     </tr>
 
   </tbody>
