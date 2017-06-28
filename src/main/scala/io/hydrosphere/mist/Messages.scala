@@ -107,4 +107,5 @@ object Messages {
 
   // only for cli
   case object ListRoutes
+  case class RunJobCli(endpointId: String, extId: Option[String], params: Map[String, Any])
 }

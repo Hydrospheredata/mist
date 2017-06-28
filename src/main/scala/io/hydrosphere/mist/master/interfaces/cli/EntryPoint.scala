@@ -41,20 +41,18 @@ object EntryPoint extends App {
 
     argInput = if (argInput.nonEmpty) "exit" else ""
 
-    val parsed = Command.parse(input)
-    parsed.foreach({
-      case remote: RemoteCliCommand[_] => remote.exec(responder)
-      case Exit =>
-        system.shutdown
-        sys.exit(0)
-      case Help =>
-        printHelp()
-    })
-
-    if (parsed.isEmpty) {
-      printHelp()
+    Command.parse(input) match {
+      case Right(cmd) => cmd match {
+        case remote: RemoteCliCommand[_] => remote.exec(responder)
+        case Help => printHelp()
+        case Empty =>
+        case Exit =>
+          system.shutdown
+          sys.exit(0)
+      }
+      case Left(error) =>
+        println(s"Error: $error")
     }
-
   }
 
   private def printHelp(): Unit = {
