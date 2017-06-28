@@ -36,7 +36,7 @@ Link for direct download if you don't use a dependency manager:
 
 ###### Mist Scala Spark Job 
 
-In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
+Extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
 
 ```scala
 import io.hydrosphere.mist.lib.spark1._
@@ -97,7 +97,7 @@ object MyJob extends MistJob with Logging {
 }
 
 ```
-That logs will be agrreagated on mist-master and you can access them from console or via http-api
+These logs will be agrreagated on mist-master and you can access them from console or http-api
 
 
 
@@ -141,3 +141,6 @@ class MyOldSparkJob(MistJob, WithSQLSupport, WithHiveSupport):
         ...
         return dict()
 ```
+
+### Next
+- [Run your Mist Job](/docs/run-job.md)

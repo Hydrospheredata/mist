@@ -4,10 +4,11 @@ Glosssary:
 
 - Endpoint (previously was routers) - thing that describe job (path to artifact, class name, job parameters)
 - Job - fact of endpoint invocation
-- Context (namespace) - group of spark configs or settings for SparkContext creation
-- Mode - job can be runned in two worker modes: `shared` or `exclusive`
+- Namespace - SparkContext configs and Mist configs for given SparkContext 
+- Worker - Mist slave instance that holds Spark Driver application
+- Mode - job can be run in two worker modes: `shared` or `exclusive`
     - Shared - all jobs from same context are using one spark driver application
-    - Exclusive - fresh driver aplication will be created for one job invocation
+    - Exclusive - fresh driver application will be created for one job invocation
 
 #### Rest
 
@@ -38,7 +39,7 @@ Glosssary:
       <td>POST</td>
       <td>/v2/api/endpoints/{id}</td>
       <td>
-        <p>Post data: endpoint (MistJob) arguments </p>
+        <p>Post body: endpoint (MistJob) arguments </p>
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
@@ -132,3 +133,7 @@ Glosssary:
     </tr>
   </tbody>
 </table>
+
+### Next 
+- [Reactive API](/docs/reactive_api.md)
+- [CLI](/docs/cli.md)

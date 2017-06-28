@@ -1,8 +1,8 @@
 ## Install Hydrosphere Mist 
 
-You can install Mist by default tarball package or run it via docker.
-All of distributions contains default configuration and our examples for a quick start.
-Docker image also contains Apache Spark binaries.
+You can install Mist by default tarball package or run it in docker.
+All of distributions have default configuration and our examples for a quick start.
+Docker image also has Apache Spark binaries for a quick start.
 
 
 Releases:
@@ -11,11 +11,11 @@ Releases:
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
-We prebuild distributives for `1.5.2`, `1.6.2`, `2.0.2`, `2.1.0` of Spark.
-Version of distributive is combination of version of mist and version of Spark.
+We prebuilt Mist for `1.5.2`, `1.6.2`, `2.0.2`, `2.1.0` Spark versions.
+Version of distributive is a combination of Mist and Spark versions.
 
 
-As example latest Mist releases for Spark `1.6.2` version is:
+For example latest Mist release for Spark `1.6.2` version is:
 
 - docker image `hydrosphere/mist:0.12.0-1.6.2`
 - tar <http://repo.hydrosphere.io/static/mist-0.12.0-1.6.2.tar.gz>
@@ -81,11 +81,11 @@ docker run \
 Mist has built-in UI where you could check running workers and jobs as well as execute/debug API routes right from the web browser.
 By default it's available by `/ui` path.
 Link on it for local installation <http://localhost:2004/ui>.
-Also Mist contains prebuilded examples from: 
+Also Mist has prebuilt examples for: 
 - [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples-spark1/src/main/scala)
 - [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples-spark2/src/main/scala)
 - [python](https://github.com/Hydrospheredata/mist/tree/master/examples-python)
-You can run that examples from ui or via any another interface that supported by Mist.
+You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SimpleContext](https://github.com/Hydrospheredata/mist/blob/master/examples-spark1/src/main/scala/SimpleContext.scala)
 from examples looks like that:
 ```sh
@@ -94,7 +94,7 @@ curl --header "Content-Type: application/json" \
      -d '{"numbers": [1, 2, 3]}'
 
 ```
-NOTE: here we use `force=true` to obtain job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
+NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
 
 ### Connecting to your existing Apache Spark cluster
@@ -114,3 +114,6 @@ If you want use your Yarn or Mesos cluster, there is not something special confi
 Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
 Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set them up before starting Mist
 
+### Next
+- [Mistify your Spark job](/docs/mist-job.md)
+- [Run your Mist Job](/docs/run-job.md)

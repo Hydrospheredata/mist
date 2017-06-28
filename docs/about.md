@@ -1,12 +1,16 @@
 ## What is Hydrosphere Mist?
 
-Hydrosphere Mist is an open-source service for exposing analytics jobs and machine learning models as web services.
+Hydrosphere Mist is an open-source a Multi-tenancy and Multi-user Spark server.
+
+ is an open-source service for exposing analytics jobs and machine learning models as web services.
 
 With Hydrosphere Mist, you can quickly connect Apache Spark programs and machine learning models trained by Apache Spark with end user applications:
  - Serve (or score) machine learning models from the REST API with low latency and high throughput
  - Run parametrized Apache Spark jobs from REST API and receive synchronous or asynchronous results
  - Subscribe to streaming jobs and receive reactive stream of results
  - Modify (parametrize) streaming jobs on the fly from the application layer
+
+Please note that real-time serving capabilities has ben moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project.
 
 Our primary goal is to simplify and facilitate delivery of smart end-to-end solutions on top of machine learning stack.
 

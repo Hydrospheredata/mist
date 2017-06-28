@@ -4,44 +4,47 @@
 [![Docker Hub Pulls](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)
 # Hydrosphere Mist
 
-[Hydrosphere](http://hydrosphere.io) Mist is a service for exposing analytical jobs and machine learning models as web services.
+[Hydrosphere](http://hydrosphere.io) Mist is a Multi-tenancy and Multi-user Spark server.
 
-Mist provides an API for Scala & Python Apache Spark jobs and for machine learning models trained in Apache Spark.
+Main features:
+* **Serverless**. Get abstracted from resource isolation, sharing and auto-scaling. 
+* **REST** HTTP & Messaging (MQTT, Kafka) API for Scala & Python Spark jobs.
+* Compatibility with EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark distributions.
+* Spark **MLLib serving** that has been moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project
 
-It implements Spark as a Service and creates a unified API layer for building enterprise solutions and services on top of a big data stack.
-
-**[Getting Started Guide and documentation](/docs/README.md)**
-
-------
+It implements Spark Compute as a Service and creates a unified API layer for building enterprise solutions and services on top of a big data stack.
 
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 
 Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
-**Table of Contents**
-- [Features](#features)
-- [Getting Started with Mist](#getting-started-with-mist)
-- [Development mode](#development-mode)
-- [Version Information](#version-information)
-- [Roadmap](#roadmap)
-- [Contact](#contact)
-- [More docs](#more-docs)
+-----------------
 
-## Features
+**[Getting Started Guide and user documentation](/docs/README.md)**
 
-- Realtime low latency models serving/scoring
-![Mist Local Serving](http://dv9c7babquml0.cloudfront.net/docs-images/mist-model-serving.jpg)
-- Spark Contexts orchestration - Cluster of Sark Clusters: manages multiple Spark contexts in separate JVMs or Dockers
+-----------------
+
+## More Features
+
+- Spark Contexts orchestration - Cluster of Spark Clusters: manages multiple Spark contexts in separate JVMs or Dockers
 ![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
-- Exposing Apache Spark jobs through REST API
-- Spark **2.1.0** support! 
-- HTTP & Messaging (MQTT, Kafka) API
+- Realtime low latency serving/scoring for ML Lib models. Moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project
+![Mist Local Serving](http://dv9c7babquml0.cloudfront.net/docs-images/mist-model-serving.jpg)
+- Clear end-user REST API
+```javascript
+    POST /weather-forecast
+    {
+        lat: “37.777114”,
+        long: “-122.419631”
+        radius: 100
+    }
+```
+- Spark **2.1.1** support! 
 - Scala and **Python** Spark jobs support
 - Support for Spark SQL and Hive
 - High Availability and Fault Tolerance
 - Self Healing after driver program failure
 - Powerful logging
-- Clear end-user API
 
 ## Version Information
 
@@ -73,7 +76,14 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 - [x] CLI
 - [x] Web Interface
 - [x] Apache Kafka support
+- [ ] AWS ECS cloudformation package 
+- [ ] AWS EMR cloudformation package
+- [ ] Hortonworks Ambari package
+- [ ] Kerberos integration
+- [ ] DC/OS package
+- [ ] Dynamic auto-configurable Spark settings based on jobs history
 - [ ] Bi-directional streaming API
+- [ ] Spark Structural Streaming API
 - [ ] AMQP support
 
 
