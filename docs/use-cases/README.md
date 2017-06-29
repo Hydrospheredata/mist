@@ -2,7 +2,7 @@
 
 There are 3 canonical use cases when Hydrosphere Mist is applicable:
 
-## (1) Enterprise Analytics Applications
+## (1) Batch Prediction Applications
 ### Technical nature
 Applications and services execute parameterized Apache Spark jobs via REST or Messaging API. Assuming that jobs results could not be pre-calculated in advance.
 
@@ -16,7 +16,7 @@ Forecasting (ad campaign, energy savings, others)
 Ad-hoc analytics tools for business users (hosted notebooks - web apps for business users)
 
 ### Read More
-Please check out detailed overview and coding tutorial for [Enterprise Analytics Applications](/docs/use-cases/enterprise-analytics.md).
+Please check out detailed overview and coding tutorial for [Batch Prediction Applications](/docs/use-cases/enterprise-analytics.md).
 
 ## (2) Realtime Machine Learning Applications
 ### Technical nature

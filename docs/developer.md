@@ -1,7 +1,7 @@
 ### About build
 
-Mist is currently support Spark versions from 1.5.2 to latest.
-Spark version inside  build conrolled via sbt settings, that has default value `1.5.2` or can be setted by arg `-DsparkVersion=${VERSION}`.
+Mist supports Spark versions from 1.5.2 to latest.
+Spark version inside build is set in sbt settings, that has default value `1.5.2` or can be set by arg `-DsparkVersion=${VERSION}`.
 Example `sbt -DsparkVersion=2.1.0 mist/compile`
 
 ###### Run mist in dev mode
@@ -15,15 +15,15 @@ Example `sbt -DsparkVersion=2.1.0 mist/compile`
 ##### Run it tests
 
 `sbt mist/it:test`
-Note: Inegrations tests require installed docker
+Note: Integrations tests require installed docker
 
 #### Docker tags
 
-Becase we support many spark versions docker image tags has format "${MIST-VERSION}-${SPARK-VERSION}".
+Since we support multiple spark versions docker image tags has format "${MIST-VERSION}-${SPARK-VERSION}".
 
 ##### Build and run docker image
 
-Note: Inside docker mist spawn worker by cloning self contaner and running it via docker-daemon
+Note: Inside docker mist spawn worker by cloning self container and running it in docker-daemon
 For that purpose `docker.sock` should be mounted to container.
 ```
 sbt -DsparkVersion=2.1.0 mist/docker // will create hydrosphere/mist:0.12.0-2.1.0

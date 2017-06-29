@@ -1,4 +1,4 @@
-# Enterprise Analytics Applications
+# Batch Prediction Applications
 
 ## Overview
 
@@ -47,13 +47,13 @@ As you see our original Apache Spark program has hardcoded ERROR and MySQL filte
 
 It takes 3 lines of code to Mistify the program.
 
-````
-import io.hydrosphere.mist.lib.spark2._
+````scala
+import io.hydrosphere.mist.api.{ContextSupport, MistJob}
 
-object LogSearchJob extends MistJob {
+object SimpleTextSearch extends MistJob with ContextSupport {
 
-  override def execute(path: String, filters: List[String]): Map[String, Any] = {
-    var data = context.textFile(path)
+  def execute(filePath: String, filters: List[String]): Map[String, Any] = {
+    var data = context.textFile(filePath)
 
     filters.foreach { currentFilter =>
       data = data.filter(line => line.toUpperCase.contains(currentFilter.toUpperCase))
@@ -63,52 +63,58 @@ object LogSearchJob extends MistJob {
   }
 }
 ````
-A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/SimpleTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/SimpleTextSearch.scala)
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/SimpleTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/SimpleTextSearch.scala)
 
 Mist job accepts user parameters map, in our case we expect path to the log file and filter names. Then we pass those to the regular Spark program we had before.
 
 ### (3/6) Configuring Router
 
-Mist provides a Router abstraction that maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
+Mist provides a Endpoints or Routers abstraction that maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
 
-Create or edit file `./configs/router.conf` to add a router for the log search application:
+Create or edit file `./my_config/router.conf` to add a router for the log search application:
 
-````
+````hocon
+jar_path = ${MIST_HOME}"/mist-examples-spark2.jar"
 log-search = {
-    path = '/jobs/search-job.jar', // local or HDFS file path
-    className = LogSearchJob$',
-    namespace = 'production-namespace'
+  path = ${jar_path}
+  className = "SimpleTextSearch$"
+  namespace = "foo"
 }
 ````
 
-This route describes REST API endpoint /api/log-search, so client application could send a simple REST request and get result back:
+This route describes REST API endpoint `/api/endpoint/log-search`, so client application could send a simple REST request and get result back:
 ````
-POST /api/log-search
+POST /api/v2/endpoints/log-search
 {
-    "filter": “ERROR”
+    "filePath": "/path/to/log-file"
+    "filters": [“ERROR”]
 }
 ````
 
 ### (4/5) Starting Mist 
-Start Mist and make sure that Router config you have created in step (3/5) and directory with search-job.jar has been mounted to the Docker container.  
+Start Mist and make sure that Router config you have created in step (3/6) and directory with search-job.jar has been mounted to the Docker container.  
 
-````
+````sh
 mkdir jobs
-docker run -p 2003:2003 --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
+mkdir my_config
+docker run \
+   -p 2004:2004 \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   -v $PWD/my_config:/my_config \
+   -v $PWD/jobs:/jobs \
+   hydrosphere/mist:0.12.2-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ````
 
 ### (5/6) Deploying a job
 
-Use `sbt package` or your own favourite build pipeline to package Scala programs. Then copy compiled .jar or Python .py file into the path attribute specified in log-search route (see step 3/5).
+Use `sbt package` or your own favourite build tool to package Scala programs. Then copy compiled .jar or Python .py file into the path attribute specified in log-search route (see step 3/5). It could be local folder, HDFS directory or Maven URL.
 
-```
+```sh
 sbt package
 cp ./target/scala-2.11/search-job.jar ./jobs
 ```
 
-That’s it - all that you need to deploy a job is to copy it to the local or HDFS directory Mist has access to. The resulting configuration & deployment scheme looks as following:
-
-![Mist Configuration Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-config-scheme.png)
+That’s it - all that you need to deploy a job is to copy it to the local or HDFS directory Mist has access to. 
 
 Please note that Mist is a service, so it is not required to be restarted every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
 
@@ -116,7 +122,7 @@ Please note that Mist is a service, so it is not required to be restarted every 
 
 Here we go. Let's create a test log file and try your API endpoints using cURL:
 
-```
+```sh 
 cat >> ./jobs/text_search.log << EOF
 error error mysql
 exception
@@ -124,7 +130,9 @@ error mongodb
 hydrosphere mist no errors
 EOF
 
-curl --header "Content-Type: application/json" -X POST http://localhost:2003/api/log-search --data '{"filters": ["ERROR", "MySQL"], "filePath": "/jobs/text_search.log"}'
+curl --header "Content-Type: application/json" \
+         -X POST http://localhost:2004/v2/api/endpoints/log-search?force=true \
+         --data '{"filters": ["ERROR", "MySQL"], "filePath": "/jobs/text_search.log"}'
 ```
 
 Also you could use Mist web console to test/debug routes.

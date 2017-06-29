@@ -1,6 +1,6 @@
 ## Context namespaces
 
-Mist creates and orchestrates Apache Spark contexts automatically. All created contexts have their own namespace. Every job is run in a namespace. In fact namespace is separate named Spark context. For reasons of simplicity namespace is an arbitrary string which is specified by user e.g. `foo`, `report`, `forecast_only_namespace`.
+Mist creates and orchestrates Apache Spark contexts automatically. All created contexts have their own namespace. Every job is run in a namespace. In fact namespace describes a named Spark context and Mist settings for this Spark context. For reasons of simplicity namespace is an arbitrary string which is specified by user e.g. `foo`, `report`, `forecast_only_namespace`.
 
 By default when you request a job to run the first time, Mist creates a namespace and new Spark context. The second request will use the created namespace so the context will be alive while Mist is running. This behavior can be changed in the [configuration](configuration.md): `mist.contextSetting.onstart` allows you to specify namespaces which must be run on start; `disposable` setting kills the context right after using it. 
 

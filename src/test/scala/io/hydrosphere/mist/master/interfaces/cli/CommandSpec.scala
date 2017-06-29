@@ -16,12 +16,13 @@ class CommandSpec extends FunSpec with Matchers {
     (Constants.CLI.Commands.listRouters, ListRoutesCmd),
     (Constants.CLI.Commands.stopAllWorkers, StopAllWorkersCmd),
     (s"${Constants.CLI.Commands.stopJob} namespace job", StopJobCmd("namespace", "job")),
-    (Constants.CLI.Commands.exit, Exit)
+    (Constants.CLI.Commands.exit, Exit),
+    (Constants.CLI.Commands.startJob + " xxx '{\"a\":\"b\"}'", StartJobCmd("xxx", None, Map("a" -> "b")))
   )
 
   it("should parse input") {
     forAll(expected) { (input: String, cmd: Command) =>
-      Command.parse(input) shouldBe Some(cmd)
+      Command.parse(input) shouldBe Right(cmd)
     }
   }
 }

@@ -35,7 +35,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
         .thenReturn(Future.successful(JobStartResponse("1")))
 
-      Post(s"/v2/api/endpoints/x", Map("1" -> "Hello")) ~> api ~> check {
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
         status === StatusCodes.OK
       }
     }
