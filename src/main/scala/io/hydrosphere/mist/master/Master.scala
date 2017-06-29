@@ -71,7 +71,9 @@ object Master extends App with Logger {
 
     //TODO: we should recover hobs before start listening on any interface
     //TODO: why we restart only async?
-    //masterService.recoverJobs()
+
+    masterService.recoverJobs()
+
     if (MistConfig.Http.isOn) {
       val api = new HttpApi(masterService)
       val apiv2 = {

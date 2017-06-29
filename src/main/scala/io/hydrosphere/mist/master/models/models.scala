@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.models
 
+import java.util.UUID
+
 /** Specify how use context/workers */
 sealed trait RunMode {
 
@@ -42,7 +44,8 @@ case class JobStartRequest(
   endpointId: String,
   parameters: Map[String, Any],
   externalId: Option[String] = None,
-  runSettings: RunSettings = RunSettings.Default
+  runSettings: RunSettings = RunSettings.Default,
+  id: String = UUID.randomUUID().toString
 )
 
 case class JobStartResponse(id: String)
