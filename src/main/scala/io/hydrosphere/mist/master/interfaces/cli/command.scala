@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.cli
 
-import akka.actor.ActorSelection
+import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import io.hydrosphere.mist.Constants
@@ -17,6 +17,7 @@ import scala.concurrent.duration._
 
 sealed trait Command
 case object Exit extends Command
+case object Help extends Command
 
 trait RemoteCliCommand[Resp] extends Command {
 
@@ -26,7 +27,7 @@ trait RemoteCliCommand[Resp] extends Command {
 
   implicit val timeout = Timeout(10.second)
 
-  def exec(ref: ActorSelection): Unit = {
+  def exec(ref: ActorRef): Unit = {
     val future = ref ? request
     val r1 = Await.result(future, 10.second)
     val result = r1.asInstanceOf[Resp]
@@ -49,12 +50,12 @@ trait RemoteUnitCliCommand extends RemoteCliCommand[Unit] {
 }
 
 
-object RunningJobsCmd extends RemoteCliCommand[List[JobDetails]] {
+object RunningJobsCmd extends RemoteCliCommand[Seq[JobDetails]] {
 
   override val request = RunningJobs
   override val headers = List("UID", "START TIME", "NAMESPACE", "EXT ID", "ROUTE", "SOURCE", "STATUS")
 
-  override def convert(resp: List[JobDetails]): List[Row] = {
+  override def convert(resp: Seq[JobDetails]): Seq[Row] = {
     def toTimeSting(i: Long) = new DateTime(i).toString
     resp.map(s => {
       Row.create(
@@ -71,12 +72,12 @@ object RunningJobsCmd extends RemoteCliCommand[List[JobDetails]] {
 
 }
 
-object ListWorkersCmd extends RemoteCliCommand[List[WorkerLink]] {
+object ListWorkersCmd extends RemoteCliCommand[Seq[WorkerLink]] {
 
   override val request = GetWorkers
   override val headers = List("ID", "ADDRESS")
 
-  override def convert(resp: List[WorkerLink]): Seq[Row] =
+  override def convert(resp: Seq[WorkerLink]): Seq[Row] =
     resp.map(s => Row.create(s.name, s.address))
 
 }
@@ -139,6 +140,9 @@ object Command {
 
     case Constants.CLI.Commands.exit =>
       Some(Exit)
+
+    case Constants.CLI.Commands.help =>
+      Some(Help)
 
     case _ => None
   }

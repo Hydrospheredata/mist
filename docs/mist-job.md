@@ -1,19 +1,15 @@
 ## Spark Job at Mist
 
-###### Building Mist jobs
+Our examples: 
+- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples-spark1/src/main/scala)
+- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples-spark2/src/main/scala)
+- [python](https://github.com/Hydrospheredata/mist/tree/master/examples-python)
 
-Mist library artifacts have difference between spark versions.
-
-|spark version |artifact        |import                                     |
-|--------------|----------------|-------------------------------------------|
-| < 2.0        | mist-lib-spark1| `import io.hydrosphere.mist.lib.spark1._` | 
-| >= 2.0       | mist-lib-spark2| `import io.hydrosphere.mist.lib.spark2._` |
+### Scala
 
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-resolvers += Resolver.sonatypeRepo("releases")
-
 libraryDependencies += "io.hydrosphere" %% "mist-lib-spark1" % "0.11.0"
 // or if you use spark >= 2.0
 libraryDependencies += "io.hydrosphere" %% "mist-lib-spark2" % "0.11.0"
@@ -40,16 +36,16 @@ Link for direct download if you don't use a dependency manager:
 
 ###### Mist Scala Spark Job 
 
-In order to prepare your job to be executed by Hydrosphere Mist you should extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
+Extend scala `object` from MistJob and implement method `execute(): Map[String, Any]`:
 
 ```scala
-import io.hydrosphere.mist.lib.spark{1|2}._
+import io.hydrosphere.mist.lib.spark1._
 
 object MyCoolMistJob extends MistJob {
     def execute(): Map[String, Any] = {
         val rdd = context.parallelize()
         ...
-        return result.asInstance[Map[String, Any]]
+        Map.empty[String, Any]
     }
 } 
 ```
@@ -59,13 +55,13 @@ All subclasses have `context` field which is `SparkContext` instance. Method `ex
 Spark >= 2.0.0 provides `SparkSession` API. Mist manages Apache Spark sessions as well as contexts. You should use `SQLSupport` and `HiveSupport` Mist traits to add `SparkSession` and `HiveQL` API into your job.
 
 ```scala
-import io.hydrosphere.mist.lib.spark${VERSION}._
+import io.hydrosphere.mist.lib.spark1._
 
 object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
     def execute(): Map[String, Any] = {
         val dataFrame = session.read.load("file.parquet")
         ...
-        return Map[String, Any].empty
+        Map.empty[String, Any]
     }
 }
 ```
@@ -73,18 +69,36 @@ object MyCoolSessionJob extends MistJob with SQLSupport with HiveSupport {
 Spark < 2.0.0 `SQLContext` and `HiveContext` API is accessible through `SQLSupport` and `HiveContext` Mist traits. 
 
 ```scala
-import io.hydrosphere.mist.lib.spark${VERSION}._
+import io.hydrosphere.mist.lib.spark1._
 
 object MyOldSparkJob extends MistJob with SQLSupport with HiveSupport {
     def execute(): Map[String, Any] = {
         val dataFrame = sqlContext.read.load("file.parquet") // or hiveContext.read.load("file.parquet")
         ...
-        return Map[String, Any].empty
+        Map.empty[String, Any]
     }
 }
 ```
 
 Inside `execute` method you can write any code you want as it is an ordinary Apache Spark application.
+
+To provide more information about how job works or you can use built-in logger:
+```scala
+import io.hydrosphere.mist.lib.spark1._
+
+object MyJob extends MistJob with Logging {
+
+    def execute(): Map[String, Any] = {
+        val logger = getLogger
+        logger.debug("Debug string")
+        ...
+        Map.empty[String, Any]
+    }
+}
+
+```
+These logs will be agrreagated on mist-master and you can access them from console or http-api
+
 
 
 ###### Mist Python Spark Job 
@@ -127,3 +141,6 @@ class MyOldSparkJob(MistJob, WithSQLSupport, WithHiveSupport):
         ...
         return dict()
 ```
+
+### Next
+- [Run your Mist Job](/docs/run-job.md)

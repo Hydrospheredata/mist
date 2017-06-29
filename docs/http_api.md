@@ -4,10 +4,11 @@ Glosssary:
 
 - Endpoint (previously was routers) - thing that describe job (path to artifact, class name, job parameters)
 - Job - fact of endpoint invocation
-- Context (namespace) - group of spark configs or settings for SparkContext creation
-- Mode - job can be runned in two worker modes: `shared` or `exclusive`
+- Namespace - SparkContext configs and Mist configs for given SparkContext 
+- Worker - Mist slave instance that holds Spark Driver application
+- Mode - job can be run in two worker modes: `shared` or `exclusive`
     - Shared - all jobs from same context are using one spark driver application
-    - Exclusive - fresh driver aplication will be created for one job invocation
+    - Exclusive - fresh driver application will be created for one job invocation
 
 #### Rest
 
@@ -36,9 +37,9 @@ Glosssary:
     </tr>
     <tr>
       <td>POST</td>
-      <td>/v2/api/endpoints/{id}</td>
+      <td>/v2/api/endpoints/{id}/jobs</td>
       <td>
-        <p>Post data: endpoint (MistJob) arguments </p>
+        <p>Post body: endpoint (MistJob) arguments </p>
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
@@ -58,7 +59,7 @@ Glosssary:
           <li>offset - optional (default 0)</li>
         </ul>
       </td>
-      <td>List of jobs that was runned on that endpoint</td>
+      <td>List of jobs that was run with given endpoint</td>
     </tr>
 
   </tbody>
@@ -91,6 +92,12 @@ Glosssary:
       <td>/v2/api/jobs/{id}</td>
       <td>None</td>
       <td>Get info about particular job</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/jobs/{id}/logs</td>
+      <td>None</td>
+      <td>Logs from job</td>
     </tr>
     <tr>
       <td>DELETE</td>
@@ -127,44 +134,6 @@ Glosssary:
   </tbody>
 </table>
 
-
-#### Livecycle events
-
-There were several async interfaces described bellow, that can listen livecycle events from jobs.
-All events have 2 required fields: `event`, `id`, and some of them provide more:
-```js
-{
-  "event": "event-name",
-  "id": "job id"
-}
-```
-
-- `initialized` - job has been assigned to invocation, also returns all job parameters
-- `queued` - job has been queued (start worker awaiting )
-- `started` - job has been sended to worker
-- `canceled` - job has been canceled by user
-- `finished`- job has been finished successfully, also has `result` field
-- `failed` - job has been finished unsuccessfully, also has `error` field
-
-
-#### Websocket
-
-For new UI there is websocket interface for listening lifecycle event from jobs
-Events start sending to client after socket opening on one of available paths:
-- `/v2/api/jobs/ws` - subscribe to events from all jobs
-- `/v2/api/jobs/{id}/{ws}` - subscribe to events from particalur job
-
-
-
-#### Async (MQTT, Kafka)
-
-That types of interfaces are can listen livecycle events and send requests for starting new jobs.
-Start request is json message and should has following format:
-```js
-{
-  "endpointId": "endpointId",
-  "parameters": {"foo": "bar"}, // job arguments
-  "externalId": "myId" // optional
-}
-
-```
+### Next 
+- [Reactive API](/docs/reactive_api.md)
+- [CLI](/docs/cli.md)

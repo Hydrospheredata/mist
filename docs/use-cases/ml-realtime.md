@@ -13,6 +13,8 @@ Fraud detection, ad serving, preventive maintenance, content recommendations, ar
 
 ## Tutorial
 
+**Please note we have moved realtime serving feature to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project. So, the tutorial content might be outdated**
+
 Let’s take a canonical machine learning tutorial from Apache Spark documentation, extend it to real world scenario and deploy an end-to-end solution with Hydrosphere Mist.
 
 ### (1/6) Taking basic Apache Spark ML pipeline
