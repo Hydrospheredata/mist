@@ -67,7 +67,7 @@ object StreamingTextSearch extends MistJob with StreamingSupport with Logging {
 }
 ````
 
-A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/StreamingTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/StreamingTextSearch.scala)
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/StreamingTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/StreamingTextSearch.scala)
 
 ### (2/6) Checking Router config
 Mist provides a Router abstraction which maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints a by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.

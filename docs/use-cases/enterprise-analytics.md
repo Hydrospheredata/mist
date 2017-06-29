@@ -63,7 +63,7 @@ object SimpleTextSearch extends MistJob with ContextSupport {
   }
 }
 ````
-A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/SimpleTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/SimpleTextSearch.scala)
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/SimpleTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples-spark2/src/main/scala/SimpleTextSearch.scala)
 
 Mist job accepts user parameters map, in our case we expect path to the log file and filter names. Then we pass those to the regular Spark program we had before.
 

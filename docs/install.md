@@ -17,8 +17,8 @@ Version of distributive is a combination of Mist and Spark versions.
 
 For example latest Mist release for Spark `1.6.2` version is:
 
-- docker image `hydrosphere/mist:0.12.0-1.6.2`
-- tar <http://repo.hydrosphere.io/static/mist-0.12.0-1.6.2.tar.gz>
+- docker image `hydrosphere/mist:0.12.2-1.6.2`
+- tar <http://repo.hydrosphere.io/static/mist-0.12.2-1.6.2.tar.gz>
 
 ### Install locally
 
@@ -26,9 +26,9 @@ For example latest Mist release for Spark `1.6.2` version is:
 - Download Mist and run
 
 ```sh
-wget http://repo.hydrosphere.io/static/mist-0.12.0-2.1.1.tar.gz
-tar xvfz mist-0.12.1-2.1.1.tar.gz
-cd mist-0.12.1-2.1.1
+wget http://repo.hydrosphere.io/static/mist-0.12.2-2.1.1.tar.gz
+tar xvfz mist-0.12.2-2.1.1.tar.gz
+cd mist-0.12.2-2.1.1
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
