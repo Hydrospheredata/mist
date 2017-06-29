@@ -3,8 +3,10 @@ package io.hydrosphere.mist.master.interfaces.cli
 import akka.pattern.pipe
 import akka.actor.{Actor, ActorRef, Props}
 import akka.util.Timeout
-import io.hydrosphere.mist.Messages.{ListRoutes, StatusMessages}
+import io.hydrosphere.mist.Messages.{ListRoutes, RunJobCli, StatusMessages}
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.models.JobStartRequest
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.duration._
@@ -23,6 +25,10 @@ class CliResponder(
   override def receive: Receive = {
     case ListRoutes =>
       sender ! masterService.routeDefinitions()
+
+    case r: RunJobCli =>
+      val req = JobStartRequest(r.endpointId, r.params, r.extId)
+      masterService.runJob(req, Source.Cli).pipeTo(sender())
 
     case StatusMessages.RunningJobs =>
       val f = masterService.activeJobs()

@@ -11,6 +11,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.jobs.{JobDefinition, JobDetails}
 import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.models.JobStartResponse
 import org.joda.time.DateTime
 
 import scala.concurrent.Await
@@ -89,7 +90,6 @@ case class StopWorkerCmd(name: String) extends RemoteUnitCliCommand {
   override val request = StopWorker(name)
 }
 
-
 case class StopJobCmd(namespace: String, id: String) extends RemoteCliCommand[JobIsCancelled] {
 
   override val request = CancelJobCommand(namespace, CancelJobRequest(id))
@@ -121,15 +121,22 @@ case class StartJobCmd(
   endpoint: String,
   extId: Option[String],
   params: Map[String, Any]
-) extends RemoteUnitCliCommand {
+) extends RemoteCliCommand[JobStartResponse] {
+
   override val request = RunJobCli(endpoint, extId, params)
+
+  override def convert(resp: JobStartResponse): Seq[Row] = {
+    Seq(Row.create(resp.id))
+  }
+
+  override val headers: List[String] = List("ID")
 }
 
 object Command {
 
   import Constants.CLI.Commands
 
-  val startR = "(\\w+)\\s(\\w+\\s)?('.+')?".r
+  val startR = "([a-zA-Z0-9-_]+)\\s([a-zA-Z0-9-_]+\\s)?('.+')?".r
 
   def parse(input: String): Either[String, Command] = input match {
     case msg if msg.startsWith(Commands.listJobs) =>
