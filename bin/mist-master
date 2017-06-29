@@ -48,7 +48,7 @@ done
 
 
 function startMist() {
-  JAVA_OPTS="-Xmx512m"
+  JAVA_OPTS="$JAVA_OPTS -Xmx512m"
   JAVA_OPTS="$JAVA_OPTS -Dmist.home=$MIST_HOME"
   JAVA_OPTS="$JAVA_OPTS -Dconfig.file=$CONFIG_FILE"
   JAVA_OPTS="$JAVA_OPTS $JAVA_ARGS"

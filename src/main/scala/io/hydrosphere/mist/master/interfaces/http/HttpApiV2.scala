@@ -3,9 +3,10 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.jobs.{Action, JobResult}
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.logging.{LogStorageMappings}
+import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
@@ -34,7 +35,7 @@ import scala.language.postfixOps
   */
 class HttpApiV2(
   master: MasterService,
-  logsMappnigs: LogStorageMappings) {
+  logsMappings: LogStorageMappings) {
 
   import Directives._
   import HttpApiV2._
@@ -45,9 +46,10 @@ class HttpApiV2(
   private val root = "v2" / "api"
   private val postJobQuery =
     parameters(
+      'force ? (false),
       'externalId ?,
       'context ?,
-      'mode ? ,
+      'mode ?,
       'workerId ?
     ).as(JobRunQueryParams)
 
@@ -81,7 +83,11 @@ class HttpApiV2(
     path( root / "endpoints" / Segment ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
-          completeOpt { runJob(endpointId, query, params) }
+          if (query.force) {
+            completeOpt { runJobForce(endpointId, query, params) }
+          } else {
+            completeOpt { runJob(endpointId, query, params) }
+          }
         }
       })
     } ~
@@ -99,7 +105,7 @@ class HttpApiV2(
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
-        getFromFile(logsMappnigs.pathFor(jobId).toFile)
+        getFromFile(logsMappings.pathFor(jobId).toFile)
       }
     } ~
     path( root / "jobs" / Segment ) { jobId =>
@@ -132,6 +138,23 @@ class HttpApiV2(
     out.value
   }
 
+  private def runJobForce(
+    endpointId: String,
+    queryParams: JobRunQueryParams,
+    params: JobParameters
+  ): Future[Option[JobResult]] = {
+
+    import cats.data._
+    import cats.implicits._
+    val out = for {
+      ep <- OptionT.fromOption[Future](master.endpointInfo(endpointId))
+      request = buildStartRequest(ep.definition.name, queryParams, params)
+      resp <- OptionT.liftF(master.forceJobRun(request, Source.Http, Action.Execute))
+    } yield resp
+
+    out.value
+  }
+
   private def buildStartRequest(
     routeId: String,
     queryParams: JobRunQueryParams,
@@ -150,6 +173,7 @@ class HttpApiV2(
 object HttpApiV2 {
 
   case class JobRunQueryParams(
+    force: Boolean,
     externalId: Option[String],
     context: Option[String],
     mode: Option[String],

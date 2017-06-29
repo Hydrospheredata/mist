@@ -36,40 +36,46 @@ Let’s take a use case from [Enterprise Analytics Section](/docs/use-cases/ente
 
 Let’s take a SimpleTextSearch Mist job and modify it to use Spark Streaming context and return asynchronous result to upstream. Note that engineer who writes a code is abstracted from transport layer, he does not give much attention to MQTT, Kafka or any other messaging system he will be using.
 
-````
-import io.hydrosphere.mist.lib.spark2._
+````scala
+import io.hydrosphere.mist.api._
 import org.apache.spark.rdd.RDD
 
-object StreamingTextSearch extends MistJob with Publisher with StreamingSupport {
-  override def execute(filter: String): Map[String, Any] = {
-    val ssc = createStreamingContext
+object StreamingTextSearch extends MistJob with StreamingSupport with Logging {
+  def execute(filter: String): Map[String, Any] = {
+    context.setLogLevel("INFO")
 
-    val inputStream = ssc.queueStream(...)
+    val ssc = streamingContext
+
+    val rddQueue = new mutable.Queue[RDD[String]]()
+
+    val inputStream = ssc.queueStream(rddQueue)
 
     val filtredStream = inputStream.filter(x => x.toUpperCase.contains(filter.toUpperCase))
 
+    val logger = getLogger
     filtredStream.foreachRDD{ (rdd, time) =>
-      publish(Map(
+      logger.info(Map(
         "time" -> time,
         "length" -> rdd.collect().length,
         "collection" -> rdd.collect().toList.toString
-      ))
+      ).toString())
     }
-    ...
+
+    ...  
     Map.empty[String, Any]
   }
 }
 ````
 
-A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/StreamingTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/master/examples/src/main/scala/StreamingTextSearch.scala)
+A full source code could be found at [https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/StreamingTextSearch.scala](https://github.com/Hydrospheredata/mist/blob/update_docs/examples-spark2/src/main/scala/StreamingTextSearch.scala)
 
 ### (2/6) Checking Router config
 Mist provides a Router abstraction which maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints a by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
 
-Create or edit file `./configs/router.conf` to add a router for our log search application:
-````
+Create or edit file `./my_config/router.conf` to add a router for our log search application:
+````hocon
 streaming-log-search = {
-    path = '/jobs/log-streaming.jar', // local or HDFS file path
+    path = '/jobs/log-streaming.jar', // local, HDFS or Maven file path
     className = StreamingTextSearch$',
     namespace = 'streaming'
 }
@@ -79,16 +85,22 @@ Please note that Router config could be edited after Mist start, so you could ad
 ### (3/6) Starting Mist with MQTT
 Check that MQTT is switched on in Mist config.
 
+```hocon
+mist.mqtt {
+  on = true
+  host = "localhost"
+  port = 1883
+  subscribe-topic = "foo"
+  publish-topic = "foo"
+}
 ```
-mist.mqtt.on = true
-mist.mqtt.host = "localhost"
-mist.mqtt.port = 1883
-mist.mqtt.subscribe-topic = "foo"
-mist.mqtt.publish-topic = "foo"
+
+Check streaming context settings
+````hocon
 # Inifinity timeout and duration window for Streaming context
 mist.context.streaming.timeout = Inf
 mist.context.streaming.streaming-duration = 1 seconds
-```
+````
 
 Starting Mist is straightforward. For MQTT it is required just to link an MQTT container.
 
@@ -96,7 +108,14 @@ Starting Mist is straightforward. For MQTT it is required just to link an MQTT c
 docker run --name mosquitto--2.1.0 -d ansi/mosquitto
 #create jobs directory and mount it to Mist. So, you'll be able to copy new jobs there
 mkdir jobs
-docker run -p 2003:2003 --link mosquitto-2.1.0:mosquitto --name mist -v /var/run/docker.sock:/var/run/docker.sock -v $PWD/configs:/usr/share/mist/configs -v $PWD/jobs:/jobs -d hydrosphere/mist:master-2.1.0 mist
+mkdir my_config
+docker run \
+   -p 2004:2004 \
+   --link mosquitto-2.1.0:mosquitto \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   -v $PWD/my_config:/my_config \
+   -v $PWD/jobs:/jobs \
+   hydrosphere/mist:0.12.2-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
 
 ### (4/6) Deploying a job
@@ -114,23 +133,20 @@ It is possible to start any Mist job using REST endpoint. For the testing and de
 Also it is very useful to start system streaming jobs from CLI:
 
 ```
-docker exec -i mist bash -c "/usr/share/mist/bin/mist start job --config /usr/share/mist/configs/docker.conf --route streaming-log-search —-parameters """{\“filter\”:[\”error\”]}""“
+docker exec -i mist bash -c "/usr/share/mist/bin/mist-cli mist@127.0.0.1:2551 start job streaming-log-search '{"filter":["error"]}'
 ```
-
-The resulting configuration & deployment scheme looks as follows:
-
-![Mist Configuration Scheme](http://dv9c7babquml0.cloudfront.net/docs-images/mist-config-scheme.png)
 
 Please note that Mist is a service. Therefore, you do not have to restart it every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
 
 ### (5/6) Testing
-Use MQTT client like MQTTLens Chrome extension to connect to MQTT topic specified in Mist config.
+Use MQTT client to connect to MQTT topic specified in Mist config.
 If everything goes well, you’ll be able to see incoming messages from Hydrosphere Mist.
 
 ![MQTT Client Screenshot](http://dv9c7babquml0.cloudfront.net/docs-images/mist-streaming-mqtt-screenshot.png)
 
 ### (6/6) Applying a new filter on the fly
-Now imagine a real application when user can define error filters and apply those in real-time. Also, error filters might be much more complex than simple regular expression; it might be a machine learning model for anomaly detection and noise filtering. And this could be defined, switched on and off from the client application. These use cases seem pretty basic but currently, there is no straightforward way to implement those. We are working on bi-directional API which will enable such type of interactions between Apache Spark streaming applications and other microservices. 
+Now imagine a real application when user can define error filters and apply those in real-time. Also, error filters might be much more complex than simple regular expression; it might be a machine learning model for anomaly detection and noise filtering. And this could be defined, switched on and off from the client application. These use cases seem pretty basic but currently, there is no straightforward way to implement those. 
+We are working on bi-directional API which will enable such type of interactions between Apache Spark streaming applications and other microservices. 
 
 
 ### What’s next? 

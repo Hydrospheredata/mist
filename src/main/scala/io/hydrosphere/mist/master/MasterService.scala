@@ -9,8 +9,9 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
-import io.hydrosphere.mist.Messages.StatusMessages.Register
+import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
+import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
@@ -98,7 +99,7 @@ class MasterService(
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
       case Some(d) =>
         val internalRequest = RunJobRequest(
-          id = UUID.randomUUID().toString,
+          id = req.id,
           JobParams(
             filePath = d.path,
             className = d.className,
@@ -149,81 +150,27 @@ class MasterService(
     promise.future
   }
 
-//  private def buildParams(
-//    routeId: String,
-//    action: Action,
-//    arguments: JobParameters,
-//    externalId: Option[String]
-//  ): Option[JobExecutionParams] = {
-//    jobRoutes.getDefinition(routeId).map(d => {
-//      JobExecutionParams.fromDefinition(
-//        definition = d,
-//        action = action,
-//        parameters = arguments,
-//        externalId = externalId
-//      )
-//    })
-//  }
+  def recoverJobs(): Unit = {
+    activeJobs().onSuccess({ case jobs =>
+      jobs.foreach(details => {
+        details.source match {
+          case a: Async => restartJob(details)
+          case _ =>
+            logger.info(s"Mark job $details as aborted")
+            statusService ? FailedEvent(
+              details.jobId,
+              System.currentTimeMillis(),
+              "Worker was stopped"
+            )
+        }
+      })
+      logger.info("Job recovery done")
+    })
+  }
 
-//  private def toRequest(execParams: JobExecutionParams): RunJobRequest = {
-//    RunJobRequest(
-//      id = UUID.randomUUID().toString,
-//      JobParams(
-//        filePath = execParams.path,
-//        className = execParams.className,
-//        arguments = execParams.parameters,
-//        action = execParams.action
-//      )
-//    )
-//  }
-
-//  def recoverJobs(): Future[Unit] = {
-//    for {
-//      jobs <- activeJobs()
-//
-//    }
-//  }
-
-//  def recoverJobs(publishers: Map[Provider, ActorRef]): Unit = {
-//    activeJobs().onSuccess({ case jobs =>
-//      jobs.foreach(details => {
-//        details.source match {
-//          case a: Async if publishers.get(a.provider).isDefined =>
-//            publishers.get(a.provider).foreach(ref => {
-//              logger.info(s"Job $details is restarted")
-//              restartAsync(details, ref)
-//            })
-//          case _ =>
-//            logger.info(s"Mark job $details as aborted")
-//            statusService ! FailedEvent(
-//              details.jobId,
-//              System.currentTimeMillis(),
-//              "Worker was stopped"
-//            )
-//        }
-//      })
-//      logger.info("Job recovery done")
-//    })
-//  }
-
-//  private def restartAsync(job: JobDetails, publisher: ActorRef): Future[JobResult] = {
-//    val future = startJob(
-//      //TODO: get!
-//      job.configuration.route.get,
-//      job.configuration.action,
-//      job.configuration.parameters,
-//      job.source,
-//      job.configuration.externalId)
-//
-//    future.onComplete({
-//      case Success(jobResult) => publisher ! jobResult
-//      case Failure(e) =>
-//        logger.error(s"Job $job execution failed", e)
-//        val msg = s"Job execution failed for $job. Error message ${e.getMessage}"
-//        publisher ! msg
-//    })
-//
-//    future
-//  }
+  private def restartJob(job: JobDetails): Unit = {
+    val req = JobStartRequest(job.endpoint, job.params.arguments, job.externalId, id = job.jobId)
+    runJob(req, job.source, Action.Execute)
+  }
 
 }
