@@ -1,3 +1,9 @@
+2017-06-05 Mist v0.12.2
+
+    New http api
+    Better events for reactive interface
+    Update documentation
+
 2017-3-15 Mist v0.10.0
 
     More local transformers from mllib
