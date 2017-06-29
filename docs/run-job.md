@@ -25,7 +25,7 @@ There is several ways to run job on endpoint:
    - Run job - obtain id assciated with that run request:
     ```sh
     curl --header "Content-Type: application/json" \
-         -X POST http://localhost:2004/v2/api/endpoints/my-awesome-job?force=true \
+         -X POST http://localhost:2004/v2/api/endpoints/my-awesome-job/jobs?force=true \
          --data '{"arg": "value"}'
     ```
 - Send message over Kafka or Mqtt with format:

@@ -90,7 +90,7 @@ For example http call for [SimpleContext](https://github.com/Hydrospheredata/mis
 from examples looks like that:
 ```sh
 curl --header "Content-Type: application/json" \
-     -X POST "http://localhost:2004/v2/api/endpoints/simple-context?force=true"
+     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"
      -d '{"numbers": [1, 2, 3]}'
 
 ```
