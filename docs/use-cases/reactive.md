@@ -133,7 +133,7 @@ It is possible to start any Mist job using REST endpoint. For the testing and de
 Also it is very useful to start system streaming jobs from CLI:
 
 ```
-docker exec -i mist bash -c "/usr/share/mist/bin/mist start job --config /usr/share/mist/configs/docker.conf --route streaming-log-search —-parameters """{\“filter\”:[\”error\”]}""“
+docker exec -i mist bash -c "/usr/share/mist/bin/mist-cli mist@127.0.0.1:2551 start job streaming-log-search '{"filter":["error"]}'
 ```
 
 Please note that Mist is a service. Therefore, you do not have to restart it every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
