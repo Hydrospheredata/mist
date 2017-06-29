@@ -37,7 +37,7 @@ Glosssary:
     </tr>
     <tr>
       <td>POST</td>
-      <td>/v2/api/endpoints/{id}</td>
+      <td>/v2/api/endpoints/{id}/jobs</td>
       <td>
         <p>Post body: endpoint (MistJob) arguments </p>
         <p>Query params:

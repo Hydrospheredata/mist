@@ -80,7 +80,7 @@ class HttpApiV2(
         }
       }}
     } ~
-    path( root / "endpoints" / Segment ) { endpointId =>
+    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
           if (query.force) {
