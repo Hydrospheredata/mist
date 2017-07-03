@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker
 
 import java.io.File
 
-import io.hydrosphere.mist.MistConfig
+import io.hydrosphere.mist.WorkerConfig
 import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
@@ -59,28 +59,20 @@ class NamedContext(
 
 object NamedContext {
 
-  def apply(namespace: String): NamedContext = {
+  def apply(namespace: String, contextName: String, config: WorkerConfig): NamedContext = {
+    val contextConfig = config.contextsSettings.configFor(contextName)
+
     val sparkConf = new SparkConf()
-      .setAppName(namespace)
-      .set("spark.driver.allowMultipleContexts", "true")
-
-    val sparkConfSettings = MistConfig.Contexts.sparkConf(namespace)
-
-    for (keyValue: List[String] <- sparkConfSettings) {
-      sparkConf.set(keyValue.head, keyValue(1))
-    }
-    NamedContext(namespace, sparkConf)
-  }
-
-  def apply(namespace: String, sparkConf: SparkConf): NamedContext = {
-    val duration = MistConfig.Contexts.streamingDuration(namespace)
-    val loggingConf = Some(CentralLoggingConf(
-      MistConfig.LogService.host,
-      MistConfig.LogService.port
-    ))
+    sparkConf.setAll(contextConfig.sparkConf)
+    sparkConf.setAppName(namespace)
 
     val context = new SparkContext(sparkConf)
-    new NamedContext(context, namespace, duration, loggingConf)
+    new NamedContext(
+      context,
+      namespace,
+      Duration(contextConfig.streamingDuration.toMillis),
+      Some(CentralLoggingConf(config.logs.host, config.logs.port))
+    )
   }
 
 }

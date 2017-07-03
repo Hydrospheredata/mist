@@ -2,7 +2,8 @@ package io.hydrosphere.mist.master.interfaces.cli
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import io.hydrosphere.mist.{Constants, MistConfig}
+import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.Constants
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -13,7 +14,7 @@ object EntryPoint extends App {
   val masterAddress = args(0)
 
   implicit val timeout = Timeout.durationToTimeout(Constants.CLI.timeoutDuration)
-  implicit val system = ActorSystem("mist", MistConfig.Akka.CLI.settings)
+  implicit val system = ActorSystem("mist", ConfigFactory.load("cli").getConfig("mist.cli"))
 
   private val responder = {
     val address = s"akka.tcp://$masterAddress/user/${Constants.Actors.cliResponderName}"

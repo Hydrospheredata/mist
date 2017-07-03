@@ -1,8 +1,10 @@
 package io.hydrosphere.mist.worker
 
+import java.io.File
+
 import akka.actor.ActorSystem
-import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.{ContextConfig, WorkerConfig}
 import org.apache.spark
 import org.apache.spark._
 
@@ -12,7 +14,11 @@ object Worker extends App with Logger {
 
     val name = args(0)
     val contextName = args(1)
-    val mode = detectMode(name)
+
+    val config = WorkerConfig.load(new File("configs/default.conf"))
+    val contextSettings = config.contextsSettings.configFor(contextName)
+
+    val mode = detectMode(contextSettings, name)
 
     logger.info(s"Try starting on spark: ${spark.SPARK_VERSION}")
 
@@ -20,18 +26,18 @@ object Worker extends App with Logger {
       .setAppName(name)
       .set("spark.driver.allowMultipleContexts", "true")
 
-    val sparkConfSettings = MistConfig.Contexts.sparkConf(contextName)
-    for (keyValue <- sparkConfSettings) {
-      sparkConf.set(keyValue.head, keyValue(1))
+    for (keyValue <- contextSettings.sparkConf) {
+      sparkConf.set(keyValue._1, keyValue._2)
     }
 
-    val context = try { NamedContext(name, sparkConf) }
+    val context = try { NamedContext(name, contextName, config) }
     catch {
       case e: Throwable =>
         throw new RuntimeException("Spark context initialization failed", e)
     }
 
-    val system = ActorSystem("mist", MistConfig.Akka.Worker.settings)
+    //TODO
+    val system = ActorSystem("mist")
 
     val props = ClusterWorker.props(
       name = name,
@@ -57,12 +63,12 @@ object Worker extends App with Logger {
       logger.error("Fatal error", e)
   }
 
-  private def detectMode(name: String): WorkerMode = {
+  private def detectMode(config: ContextConfig, name: String): WorkerMode = {
     val modeArg = if (args.length > 2) args(2) else "shared"
     modeArg match {
       case "shared" =>
-        val downtime = MistConfig.Contexts.downtime(name)
-        val maxJobs = MistConfig.Settings.threadNumber
+        val downtime = config.downtime
+        val maxJobs = config.maxJobs
         Shared(maxJobs, downtime)
 
       case "exclusive" => Exclusive
