@@ -6,44 +6,45 @@ import org.joda.time.DateTime
 object JobDetails {
   
   sealed trait Status{
-  val isFinished: Boolean
+    val isFinished: Boolean
   }
   
-  sealed trait Finished {
+  sealed trait Done {
     val isFinished = true
   }
   
-  sealed trait NotFinished {
+  sealed trait InProgress {
     val isFinished = false
   }
+
   object Status {
 
     def apply(string: String): Status = string match {
-      case "Initialized" => Initialized
-      case "Queued" => Queued
-      case "Running" => Running
-      case "Stopped" => Stopped
-      case "Aborted" => Aborted
-      case "Error" => Error
+      case "initialized" => Initialized
+      case "queued" => Queued
+      case "started" => Started
+      case "finished" => Finished
+      case "canceled" => Canceled
+      case "failed" => Failed
     }
 
-    case object Initialized extends Status with NotFinished {
-      override def toString: String = "Initialized"
+    case object Initialized extends Status with InProgress {
+      override def toString: String = "initialized"
     }
-    case object Queued extends Status with NotFinished {
-      override def toString: String = "Queued"
+    case object Queued extends Status with InProgress {
+      override def toString: String = "queued"
     }
-    case object Running extends Status with NotFinished {
-      override def toString: String = "Running"
+    case object Started extends Status with InProgress {
+      override def toString: String = "started"
     }
-    case object Stopped extends Status with Finished {
-      override def toString: String = "Stopped"
+    case object Finished extends Status with Done {
+      override def toString: String = "finished"
     }
-    case object Aborted extends Status with Finished {
-      override def toString: String = "Aborted"
+    case object Canceled extends Status with Done {
+      override def toString: String = "canceled"
     }
-    case object Error extends Status with Finished {
-      override def toString: String = "Error"
+    case object Failed extends Status with Done {
+      override def toString: String = "failed"
     }
 
   }
