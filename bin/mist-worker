@@ -28,18 +28,8 @@ do
       shift
       ;;
 
-    --config)
-      CONFIG_FILE="$2"
-      shift
-      ;;
-
     --run-options)
       RUN_OPTIONS="$2"
-      shift
-      ;;
-
-    --java-args)
-      JAVA_ARGS="$2"
       shift
       ;;
 
@@ -141,8 +131,6 @@ then
 
     SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
     MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
-    DRIVER_JAVA_OPTIONS="-Dconfig.file=$CONFIG_FILE"
-    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dakka.roles.1=worker-$NAME"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
 
     exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS

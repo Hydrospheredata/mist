@@ -14,7 +14,7 @@ if [ "$1" = 'mist' ]; then
 elif [ "$1" = 'worker' ]; then 
   if [ ! -z $5 ]; then
     echo $5 | base64 -d  > configs/default.conf
-  fi  
+  fi
   export IP=`getent hosts master | awk '{ print $1 }'`
   export MYIP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
 

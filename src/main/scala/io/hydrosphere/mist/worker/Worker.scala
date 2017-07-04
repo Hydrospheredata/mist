@@ -110,7 +110,6 @@ object Worker extends App with Logger {
     val arguments = WorkerArguments.parse(args)
     val name = arguments.name
 
-
     val mode = arguments.workerMode
     logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
 
@@ -121,8 +120,11 @@ object Worker extends App with Logger {
     }
 
     val seedNodes = Seq(arguments.masterNode).asJava
+    val roles = Seq(name).asJava
     val config = ConfigFactory.load("worker")
       .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
+      .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
+
     val system = ActorSystem("mist", config)
 
     val props = ClusterWorker.props(

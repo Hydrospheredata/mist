@@ -1,12 +1,9 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.jobs.JobDetails.Source
@@ -21,15 +18,20 @@ import io.hydrosphere.mist.{Constants, MasterConfig}
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
 
+
 /** This object is entry point of Mist project */
 object Master extends App with Logger {
 
   try {
 
-    val configPath = "configs/default.conf"
-    val config = MasterConfig.load(configPath)
+    val appArguments = MasterAppArguments.parse(args) match {
+      case Some(arg) => arg
+      case None => sys.exit(1)
+    }
 
-    val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
+    val config = MasterConfig.load(appArguments.configPath)
+
+    val jobEndpoints = JobEndpoints.fromConfigFile(appArguments.routerConfigPath)
 
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
@@ -133,13 +135,6 @@ object Master extends App with Logger {
     }
 
     buffer
-  }
-
-  private def routerConfigPath(): String = {
-    if (args.length > 0)
-      args(0)
-    else
-      "configs/router.conf"
   }
 
 }

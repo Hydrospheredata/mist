@@ -2,65 +2,65 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import io.hydrosphere.mist.{ContextsSettings, EndpointConfig, LogServiceConfig, MasterConfig, WorkersSettingsConfig}
 import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.{ContextConfig, MasterConfig}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.sys.process._
 
-case class WorkerSettings(
-  name: String,
-  context: String,
-  runOptions: String,
-  configFilePath: String,
-  jarPath: String,
-  mode: RunMode
-)
+trait WorkerRunner {
 
-trait WorkerDriver {
+  def runWorker(name: String, context: String, mode: RunMode): Unit
 
-  def run(settings: WorkerSettings): Unit
+  def onStop(name: String): Unit = {}
+}
 
-  def onStop(name: String): Unit = ()
+trait ShellWorkerScript {
+
+  def workerArgs(
+    name: String,
+    context: String,
+    mode: RunMode,
+    config: MasterConfig): Seq[String] = {
+
+    val contextConfig = config.contextsSettings.configFor(context)
+
+    Seq[String](
+      "--run-options", contextConfig.runOptions,
+      "--master", s"${config.cluster.host}:${config.cluster.port}",
+      "--name", name,
+      "--context-name", context,
+      "--spark-conf", mkSparkConfString(contextConfig),
+      "--max-jobs", contextConfig.maxJobs.toString,
+      "--downtime", durationToArg(contextConfig.downtime),
+      "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
+      "--log-service", s"${config.logs.host}:${config.logs.port}",
+      "--mode", mode.name
+    )
+  }
+
+  def mkSparkConfString(ctxConfig: ContextConfig): String =
+    ctxConfig.sparkConf.map({case (k, v) => s"$k=$v"}).mkString(",")
+
+  def durationToArg(d: Duration): String = d match {
+    case f: FiniteDuration => s"${f.toSeconds}s"
+    case _ => "Inf"
+  }
+
 }
 
 /**
   * Spawn workers on the same host
   */
-class LocalWorkerDriver(
-  cluster: EndpointConfig,
-  contextsSettings: ContextsSettings,
-  logging: LogServiceConfig,
-  sparkHome: String
-) extends WorkerDriver with Logger {
+class LocalWorkerRunner(config: MasterConfig)
+  extends WorkerRunner with ShellWorkerScript with Logger {
 
-  def run(settings: WorkerSettings): Unit = {
-    import settings._
-
-    val contextConfig = contextsSettings.configFor(context)
-    val contextArg = contextConfig.sparkConf
-      .map({case (k, v) => s"$k=$v"}).mkString(",")
-
-    def durationToArg(d: Duration): String = d match {
-      case f: FiniteDuration => s"${f.toSeconds}s"
-      case _ => "Inf"
-    }
-
-    val cmd = Seq(
-      s"${sys.env("MIST_HOME")}/bin/mist-worker",
-      "--runner", "local2",
-      "--master", s"${cluster.host}:${cluster.port}",
-      "--name", name,
-      "--context-name", context,
-      "--spark-conf", contextArg,
-      "--max-jobs", contextConfig.maxJobs.toString,
-      "--downtime", durationToArg(contextConfig.downtime),
-      "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
-      "--log-service", s"${logging.host}:${logging.port}",
-      "--mode", settings.mode.name,
-      "--run-options", settings.runOptions)
+  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    val cmd =
+      Seq[String](s"${sys.env("MIST_HOME")}/bin/mist-worker", "--runner", "local") ++
+      workerArgs(name, context, mode, config)
 
     val builder = Process(cmd)
     builder.run(false)
@@ -68,37 +68,34 @@ class LocalWorkerDriver(
 
 }
 
-class DockerWorkerDriver(dockerHost: String, dockerPort: Int) extends WorkerDriver {
+class DockerWorkerRunner(config: MasterConfig)
+  extends WorkerRunner with ShellWorkerScript {
 
-  def run(settings: WorkerSettings): Unit = {
-    import settings._
-
-    val cmd = Seq(
-      s"${sys.env("MIST_HOME")}/bin/mist-worker",
-      "--runner", "docker",
-      "--docker-host", dockerHost,
-      "--docker-port", dockerPort.toString,
-      "--name", name,
-      "--context", context,
-      "--config", configFilePath,
-      "--mode", settings.mode.name,
-      "--run-options", runOptions)
+  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    val cmd =
+      Seq(s"${sys.env("MIST_HOME")}/bin/mist-worker",
+          "--runner", "docker",
+          "--docker-host", config.workers.dockerHost,
+          "--docker-port", config.workers.toString) ++
+      workerArgs(name, context, mode, config)
     val builder = Process(cmd)
     builder.run(false)
   }
+
 }
 
-class ManualWorkerDriver(runCmd: String, stopCmd: String) extends WorkerDriver {
+class ManualWorkerRunner(
+  config: MasterConfig,
+  jarPath: String) extends WorkerRunner {
 
-  override def run(settings: WorkerSettings): Unit = {
-    import settings._
+  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    val contextConfig = config.contextsSettings.configFor(context)
     Process(
-      Seq("bash", "-c", runCmd),
+      Seq("bash", "-c", config.workers.cmd),
       None,
       "MIST_WORKER_NAMESPACE" -> name,
-      "MIST_WORKER_CONFIG" -> configFilePath,
       "MIST_WORKER_JAR_PATH" -> jarPath,
-      "MIST_WORKER_RUN_OPTIONS" -> runOptions
+      "MIST_WORKER_RUN_OPTIONS" -> contextConfig.runOptions
     ).run(false)
   }
 
@@ -111,54 +108,27 @@ class ManualWorkerDriver(runCmd: String, stopCmd: String) extends WorkerDriver {
   }
 
   private def withStopCommand(f: String => Unit): Unit = {
-    if (stopCmd.nonEmpty) f(stopCmd)
+    val cmd = config.workers.cmdStop
+    if (cmd.nonEmpty) f(cmd)
   }
 
 }
 
-trait WorkerRunner {
-
-  def runWorker(name: String, context: String, mode: RunMode): Unit
-
-  def onStop(name: String): Unit = {}
-}
 
 object WorkerRunner {
 
   def create(config: MasterConfig): WorkerRunner = {
-
-    val driver = selectDriver(config)
-    val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
-
-    new WorkerRunner {
-
-      override def runWorker(name: String, context: String, mode: RunMode): Unit = {
-        val settings = WorkerSettings(
-          name = name,
-          context = context,
-          runOptions = config.contextsSettings.configFor(context).runOptions,
-          //TODO
-          configFilePath = "",
-          jarPath = jarPath,
-          mode = mode
-        )
-        driver.run(settings)
-      }
-
-      override def onStop(name: String): Unit = driver.onStop(name)
-    }
-  }
-
-  def selectDriver(config: MasterConfig): WorkerDriver = {
     val runnerType = config.workers.runner
     runnerType match {
       case "local" =>
         sys.env.get("SPARK_HOME") match {
           case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
-          case Some(home) => new LocalWorkerDriver(config.cluster, config.contextsSettings, config.logs, home)
+          case Some(home) => new LocalWorkerRunner(config)
         }
-      case "docker" => new DockerWorkerDriver(config.workers.dockerHost, config.workers.dockerPort)
-      case "manual" => new ManualWorkerDriver(config.workers.cmd, config.workers.cmdStop)
+      case "docker" => new DockerWorkerRunner(config)
+      case "manual" =>
+        val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
+        new ManualWorkerRunner(config, jarPath)
       case _ =>
         throw new IllegalArgumentException(s"Unknown worker runner type $runnerType")
 
