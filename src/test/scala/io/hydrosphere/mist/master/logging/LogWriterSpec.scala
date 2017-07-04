@@ -6,6 +6,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.pattern.ask
 import akka.testkit.{TestActorRef, TestKit}
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
@@ -13,7 +14,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class LogWriterSpec extends TestKit(ActorSystem("log-writer-test"))
+class LogWriterSpec extends TestKit(ActorSystem("log-writer-test", ConfigFactory.load("master")))
   with FunSpecLike
   with Matchers
   with BeforeAndAfterAll {

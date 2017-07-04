@@ -1,11 +1,11 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.testkit.{TestActorRef, TestActor, TestKit, TestProbe}
+import akka.testkit.{TestActor, TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.worker.runners.JobRunner
-import org.apache.spark.SparkConf
+import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
@@ -29,7 +29,8 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   override def beforeAll {
-    context = NamedContext("test", conf)
+    val spContext = new SparkContext(conf)
+    context = new NamedContext(spContext, "test")
   }
 
   describe("common behavior") {
@@ -75,7 +76,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       it(s"should cancel job in $name mode") {
         val runner = new JobRunner {
           override def run(req: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = {
-            val sc = c.context
+            val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
             Right(Map("r" -> "Ok"))
           }

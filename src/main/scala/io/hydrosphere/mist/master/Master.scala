@@ -27,27 +27,14 @@ object Master extends App with Logger {
   try {
 
     val configPath = "configs/default.conf"
-    val rawConfig = {
-      val default = ConfigFactory.load("master")
-      println(default.root().render())
-      val user = ConfigFactory.parseFile(new File(configPath))
-      val cfg = user.resolveWith(default)
-      cfg
-    }
-
-    val config = MasterConfig.load(new File(configPath))
+    val config = MasterConfig.load(configPath)
 
     val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
 
-    implicit val system = ActorSystem("mist", rawConfig)
-
+    implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
 
-    val workerRunner = WorkerRunner.create(
-      configPath,
-      config.workersConfig,
-      config.contextsSettings
-    )
+    val workerRunner = WorkerRunner.create(config)
 
     val store = H2JobsRepository(config.dbPath)
 
@@ -147,21 +134,6 @@ object Master extends App with Logger {
 
     buffer
   }
-
-//  private def selectRunner(s: String): WorkerRunner = {
-//    s match {
-//      case "local" =>
-//        sys.env.get("SPARK_HOME") match {
-//          case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
-//          case Some(home) => new LocalWorkerRunner(home)
-//        }
-//      case "docker" => DockerWorkerRunner
-//      case "manual" => ManualWorkerRunner
-//      case _ =>
-//        throw new IllegalArgumentException(s"Unknown worker runner type $s")
-//
-//    }
-//  }
 
   private def routerConfigPath(): String = {
     if (args.length > 0)

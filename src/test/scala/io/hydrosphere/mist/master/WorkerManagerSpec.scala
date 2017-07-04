@@ -23,8 +23,8 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with Matchers
   with Eventually {
 
-  val NothingRunner = new WorkerDriver {
-    override def run(settings: WorkerSettings): Unit = {}
+  val NothingRunner = new WorkerRunner {
+    override def runWorker(name: String, context: String, mode: RunMode): Unit = {}
   }
 
   val StatusService = TestProbe().ref
