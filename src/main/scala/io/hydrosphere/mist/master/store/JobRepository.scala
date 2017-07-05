@@ -10,13 +10,16 @@ trait JobRepository {
 
   def get(jobId: String): Future[Option[JobDetails]]
 
-  def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]]
+  def getByEndpointId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
+  def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] =
+    getByEndpointId(id, limit, offset, Seq.empty)
 
   def update(jobDetails: JobDetails): Future[Unit]
 
   def filteredByStatuses(statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
 
-  def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]]
+  def getAll(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
+  def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]] = getAll(limit, offset, Seq.empty)
 
   def clear(): Future[Unit]
 

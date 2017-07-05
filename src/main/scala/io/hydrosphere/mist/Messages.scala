@@ -4,7 +4,7 @@ import akka.actor.{ActorRef, Address}
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.Action
+import io.hydrosphere.mist.jobs.{Action, JobDetails}
 import io.hydrosphere.mist.master.models.RunMode
 
 object Messages {
@@ -99,8 +99,8 @@ object Messages {
 
     // return full job details
     case object RunningJobs
-    case class GetHistory(limit: Int, offset: Int)
-    case class GetEndpointHistory(id: String, limit: Int, offset: Int)
+    case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
+    case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetById(id: String)
 
   }

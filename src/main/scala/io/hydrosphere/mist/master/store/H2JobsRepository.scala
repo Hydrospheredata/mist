@@ -126,16 +126,18 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(table.filter(_.status inSetBind statuses).result)
   }
 
-  override def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]] = {
-    val query = table.sortBy(_.createTime.desc).drop(offset).take(limit)
+  override def getAll(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
+    val filtered = if (statuses.nonEmpty) table.filter(_.status inSet statuses) else table
+    val query = filtered.sortBy(_.createTime.desc).drop(offset).take(limit)
     run(query.result)
   }
 
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
 
-  override def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] = {
-    val query = table.filter(_.endpoint === id)
-      .sortBy(_.createTime.desc)
+  override def getByEndpointId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
+    val byId = table.filter(_.endpoint === id)
+    val filtered = if (statuses.nonEmpty) byId.filter(_.status inSet statuses) else byId
+    val query = filtered.sortBy(_.createTime.desc)
       .drop(offset).take(limit)
 
     run(query.result)

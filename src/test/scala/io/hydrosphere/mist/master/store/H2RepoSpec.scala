@@ -42,12 +42,12 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
 
   it should "filter by status" in {
     (1 to 2).foreach(i => {
-      val details = fixtureJobDetails(s"jobId $i", JobDetails.Status.Running)
+      val details = fixtureJobDetails(s"jobId $i", JobDetails.Status.Started)
       repo.update(details).await
     })
     repo.update(fixtureJobDetails("ignore")).await
 
-    val runningJobs = repo.filteredByStatuses(List(JobDetails.Status.Running))
+    val runningJobs = repo.filteredByStatuses(List(JobDetails.Status.Started))
     runningJobs.await.size shouldBe 2
   }
 

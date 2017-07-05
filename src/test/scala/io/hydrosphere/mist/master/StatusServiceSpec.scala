@@ -87,13 +87,13 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
     val expected = Table(
       ("event", "details"),
       (QueuedEvent("id", "yoyo"), baseDetails.copy(status = Status.Queued, workerId = Some("yoyo"))),
-      (StartedEvent("id", 1), baseDetails.copy(status = Status.Running, startTime = Some(1))),
-      (CanceledEvent("id", 1), baseDetails.copy(status = Status.Aborted, endTime = Some(1))),
+      (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
+      (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled, endTime = Some(1))),
       (FinishedEvent("id", 1, Map("1" -> 2)),
-        baseDetails.copy(status = Status.Stopped, endTime = Some(1), jobResult = Some(Right(Map("1" -> 2))))),
+        baseDetails.copy(status = Status.Finished, endTime = Some(1), jobResult = Some(Right(Map("1" -> 2))))),
 
       (FailedEvent("id", 1, "error"),
-        baseDetails.copy(status = Status.Error, endTime = Some(1), jobResult = Some(Left("error"))))
+        baseDetails.copy(status = Status.Failed, endTime = Some(1), jobResult = Some(Left("error"))))
 
 
     )
@@ -105,7 +105,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
     }
 
     it("should ignore failure if job is canceled") {
-      val canceled = baseDetails.copy(status = Status.Aborted)
+      val canceled = baseDetails.copy(status = Status.Canceled)
       val event = FailedEvent("id", 1, "error")
       StatusService.applyStatusEvent(canceled, event) shouldBe canceled
     }

@@ -79,7 +79,7 @@ class FrontendJobExecutor(
       jobs.get(id).foreach(info => {
         log.info(s"Job has been started $id")
         statusService ! StartedEvent(id, time)
-        info.updateStatus(JobDetails.Status.Running)
+        info.updateStatus(JobDetails.Status.Started)
       })
 
     case done: JobResponse =>
@@ -95,7 +95,7 @@ class FrontendJobExecutor(
         val originSender = sender()
         if (i.status == JobDetails.Status.Queued) {
           cancelQueuedJob(originSender, id)
-        } else if (i.status == JobDetails.Status.Running) {
+        } else if (i.status == JobDetails.Status.Started) {
           cancelRunningJob(originSender, worker, id)
         }
       })

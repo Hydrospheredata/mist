@@ -19,7 +19,7 @@ class StatusService(
   notifiers: Seq[JobEventPublisher]
 ) extends Actor with ActorLogging {
 
-  val activeStatuses = List(Status.Queued, Status.Running, Status.Initialized)
+  val activeStatuses = List(Status.Queued, Status.Started, Status.Initialized)
 
   override def receive: Receive = {
     case Register(req, endpoint, ctx, source, externalId) =>
@@ -48,11 +48,11 @@ class StatusService(
     case GetById(id) =>
       store.get(id) pipeTo sender()
 
-    case GetEndpointHistory(id, limit, offset) =>
-      store.getByEndpointId(id, limit, offset) pipeTo sender()
+    case GetEndpointHistory(id, limit, offset, statuses) =>
+      store.getByEndpointId(id, limit, offset, statuses) pipeTo sender()
 
-    case GetHistory(limit, offset) =>
-      store.getAll(limit, offset) pipeTo sender()
+    case GetHistory(limit, offset, statuses) =>
+      store.getAll(limit, offset, statuses) pipeTo sender()
   }
 
   private def updateDetails(e: UpdateStatusEvent): Future[Option[JobDetails]] = {
@@ -79,15 +79,15 @@ object StatusService {
     event match {
       case InitializedEvent(_, _) => d
       case QueuedEvent(_, id) => d.copy(workerId = Some(id)).withStatus(Status.Queued)
-      case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Running)
-      case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Aborted)
+      case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Started)
+      case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Canceled)
       case FinishedEvent(_, time, result) =>
-        d.withEndTime(time).withJobResult(result).withStatus(Status.Stopped)
+        d.withEndTime(time).withJobResult(result).withStatus(Status.Finished)
       case FailedEvent(_, time, error) =>
-        if (d.status == Status.Aborted)
+        if (d.status == Status.Canceled)
           d
         else
-          d.withEndTime(time).withStatus(Status.Error).withFailure(error)
+          d.withEndTime(time).withStatus(Status.Failed).withFailure(error)
     }
   }
 }
