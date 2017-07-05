@@ -57,6 +57,7 @@ Glosssary:
         <ul>
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
+          <li>status - optional, repeated (values: started, finished ... )</li>
         </ul>
       </td>
       <td>List of jobs that was run with given endpoint</td>
@@ -83,6 +84,7 @@ Glosssary:
         <ul>
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
+          <li>status - optional, repeated (values: started, finished ... )</li>
         </ul>
       </td>
       <td>List of all jobs that was runned on all endpoints</td>
