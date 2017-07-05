@@ -48,11 +48,11 @@ class StatusService(
     case GetById(id) =>
       store.get(id) pipeTo sender()
 
-    case GetEndpointHistory(id, limit, offset) =>
-      store.getByEndpointId(id, limit, offset) pipeTo sender()
+    case GetEndpointHistory(id, limit, offset, statuses) =>
+      store.getByEndpointId(id, limit, offset, statuses) pipeTo sender()
 
-    case GetHistory(limit, offset) =>
-      store.getAll(limit, offset) pipeTo sender()
+    case GetHistory(limit, offset, statuses) =>
+      store.getAll(limit, offset, statuses) pipeTo sender()
   }
 
   private def updateDetails(e: UpdateStatusEvent): Future[Option[JobDetails]] = {

@@ -58,7 +58,8 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val master = mock(classOf[MasterService])
       val api = new HttpApiV2(master, mappings).route
 
-      when(master.endpointHistory(any(classOf[String]), any(classOf[Int]), any(classOf[Int])))
+      when(master.endpointHistory(
+        any(classOf[String]), any(classOf[Int]), any(classOf[Int]), any[Seq[JobDetails.Status]]))
         .thenReturn(Future.successful(
           Seq(
             JobDetails("id", "1",
@@ -67,7 +68,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
           )
         ))
 
-      Get("/v2/api/endpoints/id/jobs") ~> api ~> check {
+      Get("/v2/api/endpoints/id/jobs?status=started") ~> api ~> check {
         status === StatusCodes.OK
 
         val jobs = responseAs[Seq[JobDetails]]
@@ -99,6 +100,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
         rsp.isDefined shouldBe true
       }
     }
+
   }
 
   describe("workers") {

@@ -1,9 +1,10 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{Action, JobResult}
+import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
@@ -40,6 +41,7 @@ class HttpApiV2(
   import Directives._
   import HttpApiV2._
   import JsonCodecs._
+  import akka.http.scaladsl.model.StatusCodes
   import ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.server._
 
@@ -53,7 +55,7 @@ class HttpApiV2(
       'workerId ?
     ).as(JobRunQueryParams)
 
-  private val limitedQuery = {
+  private val jobsQuery = {
     parameters(
       'limit.?(25),
       'offset.?(0)
@@ -74,9 +76,16 @@ class HttpApiV2(
       }}
     } ~
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
-      get { limitedQuery { limits =>
-        complete {
-          master.endpointHistory(endpointId, limits.limit, limits.offset)
+      get { (jobsQuery & parameter('status * )) { (limits, statuses) =>
+        toStatuses(statuses) match {
+          case Left(errors) =>
+            complete {
+              HttpResponse(StatusCodes.BadRequest, entity = errors.mkString(","))
+            }
+          case Right(statuses) =>
+            complete {
+              master.endpointHistory(endpointId, limits.limit, limits.offset, statuses)
+            }
         }
       }}
     } ~
@@ -91,10 +100,17 @@ class HttpApiV2(
         }
       })
     } ~
-    path( root / "jobs") {
-      get { limitedQuery { limits =>
-        complete {
-          master.getHistory(limits.limit, limits.offset)
+    path( root / "jobs" ) {
+      get { (jobsQuery & parameter('status * )) { (limits, statuses) =>
+        toStatuses(statuses) match {
+          case Left(errors) =>
+            complete {
+              HttpResponse(StatusCodes.BadRequest, entity = errors.mkString(","))
+            }
+          case Right(statuses) =>
+            complete {
+              master.getHistory(limits.limit, limits.offset, statuses)
+            }
         }
       }}
     } ~
@@ -118,6 +134,22 @@ class HttpApiV2(
     } ~
     path( root / "workers" / Segment ) { workerId =>
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
+    }
+  }
+
+
+  private def toStatuses(s: Iterable[String]): Either[List[String], List[JobDetails.Status]] = {
+    import scala.util._
+
+    val (errors, valid) = s.map(s => Try(JobDetails.Status(s)))
+      .foldLeft((List.empty[String], List.empty[JobDetails.Status])) {
+        case (acc, Failure(e)) => (acc._1 :+ e.getMessage, acc._2)
+        case (acc, Success(status)) => (acc._1, acc._2 :+ status)
+    }
+    if (errors.nonEmpty) {
+      Left(errors)
+    } else {
+      Right(valid)
     }
   }
 

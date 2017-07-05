@@ -26,6 +26,7 @@ object JobDetails {
       case "finished" => Finished
       case "canceled" => Canceled
       case "failed" => Failed
+      case x => throw new IllegalArgumentException(s"Unknown status $x")
     }
 
     case object Initialized extends Status with InProgress {
