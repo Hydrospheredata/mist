@@ -21,10 +21,13 @@ object MasterAppArguments {
 
   }
 
-  val default = MasterAppArguments(
-    Paths.get("configs", "default.conf").toString,
-    Paths.get("configs", "router.conf").toString
-  )
+  val default = {
+    val root = Paths.get(sys.env.getOrElse("MIST_HOME", "."))
+    MasterAppArguments(
+      root.resolve("configs").resolve("default.conf").toString,
+      root.resolve("configs").resolve("router.conf").toString
+    )
+  }
 
   def parse(args: Seq[String]): Option[MasterAppArguments] = parser.parse(args, default)
 }
