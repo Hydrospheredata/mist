@@ -39,7 +39,7 @@ TODO: describe all events
 
 For new UI there is a websocket interface for listening to lifecycle events from jobs
 Events are sent to the client to the following paths:
-- `/v2/api/jobs/ws` - subscribe to events from all jobs
+- `/v2/api/ws` - subscribe to all events from mist
 - `/v2/api/jobs/{id}/ws` - subscribe to events from particular job
 
 ### Next 
