@@ -1,4 +1,4 @@
-package io.hydrosphere.mist
+package io.hydrosphere.mist.master
 
 import java.io.File
 

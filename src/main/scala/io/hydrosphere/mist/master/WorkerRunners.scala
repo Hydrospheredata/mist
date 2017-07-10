@@ -4,7 +4,6 @@ import java.io.File
 
 import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.{ContextConfig, MasterConfig}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

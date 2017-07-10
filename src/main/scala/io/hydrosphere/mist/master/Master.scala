@@ -13,7 +13,7 @@ import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.{Constants, MasterConfig}
+import io.hydrosphere.mist.Constants
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls

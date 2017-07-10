@@ -18,16 +18,6 @@ while [[ $# > 1 ]]
 do
   key="$1"
   case ${key} in
-    --name)
-      NAME="$2"
-      shift
-      ;;
-
-    --context)
-      CONTEXT="$2"
-      shift
-      ;;
-
     --run-options)
       RUN_OPTIONS="$2"
       shift
@@ -45,11 +35,6 @@ do
 
     --runner)
       RUNNER="$2"
-      shift
-      ;;
-
-     --mode)
-      MODE="$2"
       shift
       ;;
   esac

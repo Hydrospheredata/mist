@@ -2,7 +2,6 @@ package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.ContextsSettings
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
