@@ -73,19 +73,24 @@ function startWorker() {
 }
 
 function prepareArg(){
-  while [[ $# > 0 ]]
-  do
-    key="$1"
-    case ${key} in
-      --runner)
+  function toLine() {
+      while [[ $# > 0 ]]
+      do
+        key="$1"
+        case ${key} in
+          --runner)
+            shift
+            ;;
+          *)
+           echo "\"$key\","
+           ;;
+        esac 
         shift
-        ;;
-      *)
-       echo $key
-       ;;
-    esac 
-    shift
-  done
+      done
+  }
+
+  line=$(toLine $@)
+  echo ${line: : -1}
 }
 
 function startWorkerContainer() {
@@ -102,13 +107,10 @@ function startWorkerContainer() {
     config=`base64 -w 0 $MIST_HOME/configs/default.conf`
 
     export IP=`getent hosts master | awk '{ print $1 }'`
-    export MYIP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
-    cmd="/usr/share/mist/bin/mist-worker --master ${IP}:2551 "$(prepareArg $ORIGIN_ARGS)
-    echo "WTF??"
-    echo $cmd
+    cmd="\"/usr/share/mist/bin/mist-worker\", \"--master ${IP}:2551\", $(prepareArg $ORIGIN_ARGS)"
     request="{
         \"Image\":\"$image\",
-        \"Cmd\": [ \"$cmd\" ],
+        \"Cmd\": [ $cmd ],
         \"Labels\": $labels,
         \"HostConfig\": {
             \"Links\": $links

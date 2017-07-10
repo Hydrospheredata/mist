@@ -28,7 +28,6 @@ trait ShellWorkerScript {
     val contextConfig = config.contextsSettings.configFor(context)
 
     Seq[String](
-      "--run-options", contextConfig.runOptions,
       "--master", s"${config.cluster.host}:${config.cluster.port}",
       "--name", name,
       "--context-name", context,
@@ -76,7 +75,7 @@ class DockerWorkerRunner(config: MasterConfig)
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-worker",
           "--runner", "docker",
           "--docker-host", config.workers.dockerHost,
-          "--docker-port", config.workers.toString) ++
+          "--docker-port", config.workers.dockerPort.toString) ++
       workerArgs(name, context, mode, config)
     val builder = Process(cmd)
     builder.run(false)

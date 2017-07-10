@@ -1,16 +1,18 @@
 package io.hydrosphere.mist.worker
 
 import io.hydrosphere.mist.api.CentralLoggingConf
-
 import akka.actor.ActorSystem
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.NetUtils
+
 import org.apache.spark._
 
 import scala.concurrent.duration._
 
 
 case class WorkerArguments(
+  bindAddress: String = "localhost:0",
   masterAddress: String = "",
   name: String = "",
   contextName: String = "",
@@ -43,6 +45,9 @@ case class WorkerArguments(
       CentralLoggingConf(pair(0), pair(1).toInt)
   })
 
+  def bindHost: String = bindAddress.split(":")(0)
+  def bindPort: Int = bindAddress.split(":")(1).toInt
+
   def createNamedContext: NamedContext = {
     val sparkContext = new SparkContext(sparkConf)
     new NamedContext(
@@ -63,6 +68,8 @@ object WorkerArguments {
     override def reportWarning(msg: String): Unit = {}
 
     head("mist-worker")
+
+    opt[String]("bind-address").action((x, a) => a)
 
     opt[String]("master").action((x, a) => a.copy(masterAddress = x))
       .text("host:port to master")
@@ -93,7 +100,8 @@ object WorkerArguments {
   }
 
   def parse(args: Seq[String]): WorkerArguments = {
-    parser.parse(args, WorkerArguments()) match {
+    val localAddress = NetUtils.findLocalInetAddress().getHostAddress.toString
+    parser.parse(args, WorkerArguments(bindAddress = s"$localAddress:0")) match {
       case Some(workerArgs) => workerArgs
       case None => sys.exit(1)
     }
@@ -120,10 +128,12 @@ object Worker extends App with Logger {
     }
 
     val seedNodes = Seq(arguments.masterNode).asJava
-    val roles = Seq(name).asJava
+    val roles = Seq(s"worker-$name").asJava
     val config = ConfigFactory.load("worker")
       .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
       .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
+      .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))
+      .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(arguments.bindPort))
 
     val system = ActorSystem("mist", config)
 

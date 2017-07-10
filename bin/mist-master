@@ -56,7 +56,7 @@ function startMist() {
   if  [ "$DEBUG" == "true" ]
   then
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.debug.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
     exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG
   else
     if [ -f $PID_FILE ]; then
@@ -69,7 +69,7 @@ function startMist() {
       fi    
     fi
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.default.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
     $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG &
     echo $! > $PID_FILE
   fi
