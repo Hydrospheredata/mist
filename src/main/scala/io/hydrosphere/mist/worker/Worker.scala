@@ -16,7 +16,7 @@ case class WorkerArguments(
   masterAddress: String = "",
   name: String = "",
   contextName: String = "",
-  sparkConfString: String = "",
+  sparkConfParams: Map[String, String] = Map.empty,
   maxJobs: Int = -1,
   downtime: Duration = Duration.Inf,
   mode: String = "shared",
@@ -25,11 +25,7 @@ case class WorkerArguments(
 ) {
 
   def sparkConf: SparkConf = {
-    val params = sparkConfString.split(",").map(x => {
-      val pair = x.split("=")
-      pair(0) -> pair(1)
-    })
-    new SparkConf().setAppName(name).setAll(params)
+    new SparkConf().setAppName(name).setAll(sparkConfParams)
   }
 
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
@@ -80,8 +76,10 @@ object WorkerArguments {
     opt[String]("context-name").action((x, a) => a.copy(contextName = x))
       .text("Mist context name")
 
-    opt[String]("spark-conf").action((x,a) => a.copy(sparkConfString = x))
-      .text("Spark context configuration")
+    opt[String]("spark-conf").unbounded.action((x,a) => {
+      val kv = x.split("=")
+      a.copy(sparkConfParams = a.sparkConfParams + (kv(0) -> kv(1)))
+    }).text("Spark context configuration")
 
     opt[String]("mode").action((x, a) => a.copy(mode = x))
       .validate({
@@ -99,12 +97,14 @@ object WorkerArguments {
     opt[String]("log-service").optional().action((x, a) => a.copy(logServiceAddress = Some(x)))
   }
 
-  def parse(args: Seq[String]): WorkerArguments = {
-    val localAddress = NetUtils.findLocalInetAddress().getHostAddress.toString
-    parser.parse(args, WorkerArguments(bindAddress = s"$localAddress:0")) match {
-      case Some(workerArgs) => workerArgs
-      case None => sys.exit(1)
-    }
+  def parse(args: Seq[String]): Option[WorkerArguments] = {
+    val localAddress = NetUtils.findLocalInetAddress().getHostAddress
+    parser.parse(args, WorkerArguments(bindAddress = s"$localAddress:0"))
+  }
+
+  def forceParse(args: Seq[String]): WorkerArguments = parse(args) match {
+    case Some(workerArgs) => workerArgs
+    case None => sys.exit(1)
   }
 
 }
@@ -115,7 +115,7 @@ object Worker extends App with Logger {
 
   try {
 
-    val arguments = WorkerArguments.parse(args)
+    val arguments = WorkerArguments.forceParse(args)
     val name = arguments.name
 
     val mode = arguments.workerMode
@@ -147,7 +147,7 @@ object Worker extends App with Logger {
       s"""Worker $name is started
           |settings:
           |  mode = $mode
-          |  sparkConf = ${arguments.sparkConfString}
+          |  sparkConf = ${arguments.sparkConfParams.mkString(",")}
     """.stripMargin
 
     logger.info(msg)

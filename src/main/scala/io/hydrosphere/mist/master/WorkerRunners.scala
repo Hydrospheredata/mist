@@ -30,17 +30,18 @@ trait ShellWorkerScript {
       "--master", s"${config.cluster.host}:${config.cluster.port}",
       "--name", name,
       "--context-name", context,
-      "--spark-conf", mkSparkConfString(contextConfig),
       "--max-jobs", contextConfig.maxJobs.toString,
       "--downtime", durationToArg(contextConfig.downtime),
       "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
       "--log-service", s"${config.logs.host}:${config.logs.port}",
       "--mode", mode.name
-    )
+    ) ++ mkSparkConf(contextConfig)
   }
 
-  def mkSparkConfString(ctxConfig: ContextConfig): String =
-    ctxConfig.sparkConf.map({case (k, v) => s"$k=$v"}).mkString(",")
+  def mkSparkConf(ctxConfig: ContextConfig): Seq[String] = {
+    ctxConfig.sparkConf.toList.map({case (k, v) => s"$k=$v"})
+      .flatMap(p=> Seq("--spark-conf", p))
+  }
 
   def durationToArg(d: Duration): String = d match {
     case f: FiniteDuration => s"${f.toSeconds}s"
