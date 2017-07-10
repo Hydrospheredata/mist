@@ -7,6 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
+import io.hydrosphere.mist.ContextsSettings
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
@@ -22,7 +23,8 @@ import scala.util.{Failure, Success}
 class MasterService(
   workerManager: ActorRef,
   statusService: ActorRef,
-  jobEndpoints: JobEndpoints
+  jobEndpoints: JobEndpoints,
+  val contextsSettings: ContextsSettings
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global

@@ -64,7 +64,9 @@ object Master extends App with Logger {
     val masterService = new MasterService(
       workerManager,
       statusService,
-      jobEndpoints)
+      jobEndpoints,
+      config.contextsSettings
+    )
 
     config.contextsSettings.precreated.foreach(context => {
       val name = context.name

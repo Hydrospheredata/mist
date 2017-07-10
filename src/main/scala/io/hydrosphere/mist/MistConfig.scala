@@ -115,6 +115,8 @@ case class ContextsSettings(
   def precreated: Seq[ContextConfig] = contexts.values.filter(_.precreated).toSeq
 
   def configFor(name: String): ContextConfig = contexts.getOrElse(name, default)
+
+  def getAll: Seq[ContextConfig] = default +: contexts.values.toList
 }
 
 object ContextsSettings {

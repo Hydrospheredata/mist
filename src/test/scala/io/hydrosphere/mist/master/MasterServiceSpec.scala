@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
+import io.hydrosphere.mist.ContextsSettings
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
@@ -24,11 +25,12 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val statusService = TestProbe()
 
     val endpoints = mock(classOf[JobEndpoints])
+    val contextSettings = mock(classOf[ContextsSettings])
 
     when(endpoints.getDefinition(any[String]))
       .thenReturn(Some(JobDefinition("name", "path.py", "MyJob", "namespace")))
 
-    val service = new MasterService(workerManager.ref, statusService.ref, endpoints)
+    val service = new MasterService(workerManager.ref, statusService.ref, endpoints, contextSettings)
 
     val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
     val f = service.runJob(req, Source.Http)
