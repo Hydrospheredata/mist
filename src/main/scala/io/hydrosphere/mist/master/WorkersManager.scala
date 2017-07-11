@@ -9,7 +9,6 @@ import akka.cluster._
 import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
-import io.hydrosphere.mist.MistConfig
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.RunMode
@@ -163,28 +162,12 @@ class WorkersManager(
         s"$contextId-$postfix"
     }
 
-    runWorker(workerId, contextId, mode)
+    workerRunner.runWorker(workerId, contextId, mode)
     val defaultState = defaultWorkerState(workerId)
     val state = Initializing(defaultState.frontend)
     workerStates += workerId -> state
 
     state
-  }
-
-  private def runWorker(
-    name: String,
-    context: String,
-    mode: RunMode
-  ): Unit = {
-    val settings = WorkerSettings(
-      name = name,
-      context = context,
-      runOptions = MistConfig.Contexts.runOptions(name),
-      configFilePath = System.getProperty("config.file"),
-      jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString,
-      mode = mode
-    )
-    workerRunner.run(settings)
   }
 
   private def setWorkerDown(name: String): Unit = {

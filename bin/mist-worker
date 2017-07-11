@@ -12,32 +12,14 @@ JAVA_ARGS=""
 RUNNER="local"
 MODE="shared"
 
+ORIGIN_ARGS=$@
+
 while [[ $# > 1 ]]
 do
   key="$1"
   case ${key} in
-    --name)
-      NAME="$2"
-      shift
-      ;;
-
-    --context)
-      CONTEXT="$2"
-      shift
-      ;;
-
-    --config)
-      CONFIG_FILE="$2"
-      shift
-      ;;
-
     --run-options)
       RUN_OPTIONS="$2"
-      shift
-      ;;
-
-    --java-args)
-      JAVA_ARGS="$2"
       shift
       ;;
 
@@ -55,28 +37,11 @@ do
       RUNNER="$2"
       shift
       ;;
-
-     --mode)
-      MODE="$2"
-      shift
-      ;;
   esac
 shift
 done
 
 function startWorker() {
-    if [ "$NAME" == '' ]
-    then
-        (>&2 echo "You must specify --name")
-        exit 3
-    fi
-
-    if [ "$CONTEXT" == '' ]
-    then
-        (>&2 echo "You must specify --context")
-        exit 3
-    fi
-
     if [ "$SPARK_HOME" == '' ]
     then
         (>&2 echo "You must specify SPARK_HOME env variable")
@@ -87,11 +52,30 @@ function startWorker() {
 
     SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
     MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
-    DRIVER_JAVA_OPTIONS="-Dconfig.file=$CONFIG_FILE"
-    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dakka.roles.1=worker-$NAME"
-    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS" 
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
 
-    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $NAME $CONTEXT $MODE
+    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS
+}
+
+function prepareArg(){
+  function toLine() {
+      while [[ $# > 0 ]]
+      do
+        key="$1"
+        case ${key} in
+          --runner)
+            shift
+            ;;
+          *)
+           echo "\"$key\","
+           ;;
+        esac 
+        shift
+      done
+  }
+
+  line=$(toLine $@)
+  echo ${line: : -1}
 }
 
 function startWorkerContainer() {
@@ -106,16 +90,12 @@ function startWorkerContainer() {
     links="[\"$containerName:/master\"]"
     labels=`echo $parentContainer | jq -r '.Config.Labels'`
     config=`base64 -w 0 $MIST_HOME/configs/default.conf`
+
+    export IP=`getent hosts master | awk '{ print $1 }'`
+    cmd="\"/usr/share/mist/bin/mist-worker\", \"--master ${IP}:2551\", $(prepareArg $ORIGIN_ARGS)"
     request="{
         \"Image\":\"$image\",
-        \"Cmd\": [
-            \"worker\",
-            \"$NAME\",
-            \"$CONTEXT\",
-            \"$MODE\",
-            \"$CONFIG\",
-            \"$RUN_OPTIONS\"
-        ],
+        \"Cmd\": [ $cmd ],
         \"Labels\": $labels,
         \"HostConfig\": {
             \"Links\": $links
@@ -132,6 +112,15 @@ then
 elif [ "$RUNNER" == 'docker' ]
 then
     startWorkerContainer
+elif [ "$RUNNER" == 'local2' ]
+then
+    export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
+
+    SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
+    MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
+
+    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS
 else
     (>&2 echo "runner arg $RUNNER is invalid")
     exit 3

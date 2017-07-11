@@ -103,6 +103,7 @@ lazy val mist = project.in(file("."))
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
 
       "com.twitter" %% "chill" % "0.9.2",
+      "com.github.scopt" %% "scopt" % "3.6.0",
 
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",

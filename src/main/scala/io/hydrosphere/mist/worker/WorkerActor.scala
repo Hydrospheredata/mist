@@ -24,7 +24,7 @@ trait JobStarting { that: Actor =>
   def startJob(req: RunJobRequest)(implicit ec: ExecutionContext): Future[Either[String, Map[String, Any]]] = {
     val id = req.id
     val future = Future {
-      namedContext.context.setJobGroup(req.id, req.id)
+      namedContext.sparkContext.setJobGroup(req.id, req.id)
       runner.run(req, namedContext)
     }
 
@@ -77,7 +77,7 @@ class SharedWorkerActor(
     case CancelJobRequest(id) =>
       activeJobs.get(id) match {
         case Some(u) =>
-          namedContext.context.cancelJobGroup(id)
+          namedContext.sparkContext.cancelJobGroup(id)
           sender() ! JobIsCancelled(id)
         case None =>
           log.warning(s"Can not cancel unknown job $id")
@@ -128,7 +128,7 @@ class ExclusiveWorker(
 
   def execute(executionUnit: ExecutionUnit): Receive = {
     case CancelJobRequest(id) =>
-      namedContext.context.cancelJobGroup(id)
+      namedContext.sparkContext.cancelJobGroup(id)
       sender() ! JobIsCancelled(id)
       context.stop(self)
 

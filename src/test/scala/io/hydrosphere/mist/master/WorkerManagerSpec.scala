@@ -24,7 +24,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with Eventually {
 
   val NothingRunner = new WorkerRunner {
-    override def run(settings: WorkerSettings): Unit = {}
+    override def runWorker(name: String, context: String, mode: RunMode): Unit = {}
   }
 
   val StatusService = TestProbe().ref

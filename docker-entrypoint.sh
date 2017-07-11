@@ -7,14 +7,13 @@ if [ "$1" = 'mist' ]; then
   export IP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
   echo "$IP    master" >> /etc/hosts
 
-  JAVA_OPTS="$JAVA_OPTS -Dmist.akka.cluster.seed-nodes.0=akka.tcp://mist@$IP:2551"
-  JAVA_OPTS="$JAVA_OPTS -Dmist.akka.remote.netty.tcp.hostname=$IP"
+  export JAVA_OPTS="$JAVA_OPTS -Dmist.cluster.host=$IP"
   shift
   exec ./bin/mist-master start --debug true $@
 elif [ "$1" = 'worker' ]; then 
   if [ ! -z $5 ]; then
     echo $5 | base64 -d  > configs/default.conf
-  fi  
+  fi
   export IP=`getent hosts master | awk '{ print $1 }'`
   export MYIP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
 

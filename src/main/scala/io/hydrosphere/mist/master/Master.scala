@@ -10,27 +10,48 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.logging.{LogStreams, LogStorageMappings}
+import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.{Constants, MistConfig}
+import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
+
 
 /** This object is entry point of Mist project */
 object Master extends App with Logger {
 
   try {
 
-    val jobEndpoints = JobEndpoints.fromConfigFile(routerConfigPath())
+    val appArguments = MasterAppArguments.parse(args) match {
+      case Some(arg) => arg
+      case None => sys.exit(1)
+    }
 
-    implicit val system = ActorSystem("mist", MistConfig.Akka.Main.settings)
+    val config = MasterConfig.load(appArguments.configPath)
 
+    if (config.security.enabled) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      import config.security._
+
+      val ps = KInitLauncher.create(keytab, principal, interval)
+      ps.run().onFailure({
+        case e: Throwable =>
+          logger.error("KInit process failed", e)
+          sys.exit(1)
+      })
+    }
+
+    val jobEndpoints = JobEndpoints.fromConfigFile(appArguments.routerConfigPath)
+
+    implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
 
-    val workerRunner = selectRunner(MistConfig.Workers.runner)
-    val store = H2JobsRepository(MistConfig.History.filePath)
+    val workerRunner = WorkerRunner.create(config)
+
+    val store = H2JobsRepository(config.dbPath)
 
     val streamer = EventsStreamer(system)
 
@@ -41,11 +62,11 @@ object Master extends App with Logger {
       override def close(): Unit = {}
     }
 
-    val eventPublishers = buildEventPublishers() :+ wsPublisher
+    val eventPublishers = buildEventPublishers(config) :+ wsPublisher
 
-    val logsMappings = LogStorageMappings.create(MistConfig.LogService.dumpDirectory)
+    val logsMappings = LogStorageMappings.create(config.logs.dumpDirectory)
     val logsService = LogStreams.runService(
-      MistConfig.LogService.host, MistConfig.LogService.port,
+      config.logs.host, config.logs.port,
       logsMappings, eventPublishers
     )
 
@@ -56,25 +77,24 @@ object Master extends App with Logger {
     val masterService = new MasterService(
       workerManager,
       statusService,
-      jobEndpoints)
+      jobEndpoints,
+      config.contextsSettings
+    )
 
-    MistConfig.Contexts.precreated foreach { name =>
+    config.contextsSettings.precreated.foreach(context => {
+      val name = context.name
       logger.info(s"Precreate context for $name namespace")
       workerManager ! CreateContext(name)
-    }
+    })
 
     // Start CLI
     system.actorOf(
       CliResponder.props(masterService, workerManager),
       name = Constants.Actors.cliResponderName)
 
-
-    //TODO: we should recover hobs before start listening on any interface
-    //TODO: why we restart only async?
-
     masterService.recoverJobs()
 
-    if (MistConfig.Http.isOn) {
+    val http = {
       val api = new HttpApi(masterService)
       val apiv2 = {
         val api = new HttpApiV2(masterService, logsMappings)
@@ -82,12 +102,12 @@ object Master extends App with Logger {
         CorsDirective.cors() { api.route ~ ws.route }
       }
       val http = HttpUi.route ~ api.route ~ apiv2
-      Http().bindAndHandle(http, MistConfig.Http.host, MistConfig.Http.port)
+      Http().bindAndHandle(http, config.http.host, config.http.port)
     }
 
     // Start MQTT subscriber
-    if (MistConfig.Mqtt.isOn) {
-      import MistConfig.Mqtt._
+    if (config.mqtt.isOn) {
+      import config.mqtt._
 
       val input = AsyncInput.forMqtt(host, port, subscribeTopic)
       new AsyncInterface(masterService, input, Source.Async("Mqtt")).start()
@@ -95,8 +115,8 @@ object Master extends App with Logger {
     }
 
     // Start Kafka subscriber
-    if (MistConfig.Kafka.isOn) {
-      import MistConfig.Kafka._
+    if (config.kafka.isOn) {
+      import config.kafka._
 
       val input = AsyncInput.forKafka(host, port, subscribeTopic)
       new AsyncInterface(masterService, input, Source.Async("Kafka")).start()
@@ -117,41 +137,19 @@ object Master extends App with Logger {
       sys.exit(1)
   }
 
-  private def buildEventPublishers(): Seq[JobEventPublisher] = {
+  private def buildEventPublishers(config: MasterConfig): Seq[JobEventPublisher] = {
     val buffer = new ArrayBuffer[JobEventPublisher](3)
-    if (MistConfig.Kafka.isOn) {
-      import MistConfig.Kafka._
+    if (config.kafka.isOn) {
+      import config.kafka._
 
       buffer += JobEventPublisher.forKafka(host, port, publishTopic)
     }
-    if (MistConfig.Mqtt.isOn) {
-      import MistConfig.Mqtt._
+    if (config.mqtt.isOn) {
+      import config.mqtt._
       buffer += JobEventPublisher.forMqtt(host, port, publishTopic)
     }
 
     buffer
-  }
-
-  private def selectRunner(s: String): WorkerRunner = {
-    s match {
-      case "local" =>
-        sys.env.get("SPARK_HOME") match {
-          case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
-          case Some(home) => new LocalWorkerRunner(home)
-        }
-      case "docker" => DockerWorkerRunner
-      case "manual" => ManualWorkerRunner
-      case _ =>
-        throw new IllegalArgumentException(s"Unknown worker runner type $s")
-
-    }
-  }
-
-  private def routerConfigPath(): String = {
-    if (args.length > 0)
-      args(0)
-    else
-      "configs/router.conf"
   }
 
 }

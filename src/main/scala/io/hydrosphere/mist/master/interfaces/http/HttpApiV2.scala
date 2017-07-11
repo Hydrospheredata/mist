@@ -134,6 +134,9 @@ class HttpApiV2(
     } ~
     path( root / "workers" / Segment ) { workerId =>
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
+    } ~
+    path ( root / "contexts" ) {
+      get { complete(master.contextsSettings.getAll) }
     }
   }
 

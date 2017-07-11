@@ -25,3 +25,16 @@ Configuration files are in [HOCON format](https://github.com/typesafehub/config/
 | `mist.context.<namespace>.streaming-duration` | 1 second      | Spark Streaming Duration in `<namespace>`                                                                                                                                                                                                                                                                                                                                                                               |
 |                                       |                       |                                                                                                                                                                                                                                                                                                                                                                                        |
 | `mist.context-settings.onstart`       | [] (_Empty array_)    | List of namespaces (Saprk Contexts) to pre-instantiate when Mist starts      
+
+### Enable Kerberos
+
+
+```hocon
+mist {
+  security {
+    enabled = true
+    keytab = ${path_to_keytab}
+    principal = ${your_principal}
+  }
+}
+```

@@ -6,13 +6,14 @@ import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
-import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.master.{ContextConfig, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http.{HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import spray.json._
 
 import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 
 trait AnyJsonFormat extends DefaultJsonProtocol {
 
@@ -159,6 +160,30 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
 
   implicit val logEventF = jsonFormat5(LogEvent.apply)
+
+  implicit val durationF = new JsonFormat[Duration] {
+
+    override def write(obj: Duration): JsValue = {
+      obj match {
+        case x :FiniteDuration => JsString(s"${x.toSeconds}s")
+        case _ => JsString("Inf")
+      }
+    }
+
+    override def read(json: JsValue): Duration = json match {
+      case JsString("Inf") => Duration.Inf
+      case JsString(s) =>
+        if (s.endsWith("s")) {
+          val millis = s.replace("s", "").toLong
+          millis.seconds
+        } else {
+          throw DeserializationException(s"$s should have format [Inf|%d+s] ")
+        }
+      case x => throw DeserializationException(s"Duration should be JsString")
+    }
+  }
+
+  implicit val contextConfigF = jsonFormat7(ContextConfig.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 

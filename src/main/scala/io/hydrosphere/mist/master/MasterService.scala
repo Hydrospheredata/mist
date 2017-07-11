@@ -22,7 +22,8 @@ import scala.util.{Failure, Success}
 class MasterService(
   workerManager: ActorRef,
   statusService: ActorRef,
-  jobEndpoints: JobEndpoints
+  jobEndpoints: JobEndpoints,
+  val contextsSettings: ContextsSettings
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global

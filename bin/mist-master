@@ -14,6 +14,8 @@ JAVA_ARGS=""
 CMD=$1
 shift
 
+ORIGIN_ARGS=$@
+
 while [[ $# > 1 ]]
 do
   key="$1"
@@ -50,14 +52,13 @@ done
 function startMist() {
   JAVA_OPTS="$JAVA_OPTS -Xmx512m"
   JAVA_OPTS="$JAVA_OPTS -Dmist.home=$MIST_HOME"
-  JAVA_OPTS="$JAVA_OPTS -Dconfig.file=$CONFIG_FILE"
   JAVA_OPTS="$JAVA_OPTS $JAVA_ARGS"
 
   if  [ "$DEBUG" == "true" ]
   then
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.debug.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
-    exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
+    exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS
   else
     if [ -f $PID_FILE ]; then
       PID=$(cat $PID_FILE)
@@ -69,8 +70,8 @@ function startMist() {
       fi    
     fi
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.default.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF" 
-    $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ROUTER_CONFIG &
+    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
+    $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS &
     echo $! > $PID_FILE
   fi
 }
