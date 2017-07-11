@@ -31,6 +31,7 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 - `canceled` - job has been canceled by user
 - `finished`- job has been finished successfully, also has `result` field
 - `failed` - job has been finished unsuccessfully, also has `error` field
+-  `logs` - [struct](https://github.com/Hydrospheredata/mist/blob/4bd40459e4c6780d2b3e7d6fe6e6e1c9f5c14174/src/main/scala/io/hydrosphere/mist/Messages.scala#L98)
 
 TODO: describe all events
 
