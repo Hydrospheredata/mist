@@ -14,6 +14,7 @@ import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.reflectiveCalls
@@ -30,6 +31,18 @@ object Master extends App with Logger {
     }
 
     val config = MasterConfig.load(appArguments.configPath)
+
+    if (config.security.enabled) {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      import config.security._
+
+      val ps = KInitLauncher.create(keytab, principal, interval)
+      ps.run().onFailure({
+        case e: Throwable =>
+          logger.error("KInit process failed", e)
+          sys.exit(1)
+      })
+    }
 
     val jobEndpoints = JobEndpoints.fromConfigFile(appArguments.routerConfigPath)
 

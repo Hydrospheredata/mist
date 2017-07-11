@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.security
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success, Try}
 import sys.process._
 
 object KInitLauncher {
@@ -21,9 +22,10 @@ object KInitLauncher {
     private val promise = Promise[Unit]
 
     def run(): Future[Unit] = {
-      execOnce() match {
-        case 0 => loop()
-        case x => Future.failed(new RuntimeException("Kinit process failed"))
+      Try(execOnce()) match {
+        case Success(0) => loop()
+        case Success(x) => Future.failed(new RuntimeException(s"Kinit process failed with exit code $x"))
+        case Failure(e) => Future.failed(new RuntimeException("Kinit process failed", e))
       }
     }
 

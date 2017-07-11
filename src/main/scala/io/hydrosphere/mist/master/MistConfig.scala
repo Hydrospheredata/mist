@@ -5,7 +5,9 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
+
+import ConfigUtils._
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -141,6 +143,24 @@ object ContextsSettings {
 
 }
 
+case class SecurityConfig(
+  enabled: Boolean,
+  keytab: String,
+  principal: String,
+  interval: FiniteDuration
+)
+
+object SecurityConfig {
+  def apply(c: Config): SecurityConfig = {
+    SecurityConfig(
+      enabled = c.getBoolean("enabled"),
+      keytab = c.getString("keytab"),
+      principal = c.getString("principal"),
+      interval = c.getFiniteDuration("interval")
+    )
+  }
+}
+
 case class MasterConfig(
   cluster: EndpointConfig,
   http: EndpointConfig,
@@ -150,6 +170,7 @@ case class MasterConfig(
   workers: WorkersSettingsConfig,
   contextsSettings: ContextsSettings,
   dbPath: String,
+  security: SecurityConfig,
   raw: Config
 )
 
@@ -173,6 +194,7 @@ object MasterConfig {
       workers = WorkersSettingsConfig(mist.getConfig("workers")),
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
+      security = SecurityConfig(mist.getConfig("security")),
       raw = config
     )
   }
@@ -201,5 +223,19 @@ object WorkerConfig {
       contextsSettings = ContextsSettings(mist),
       raw = config
     )
+  }
+}
+
+object ConfigUtils {
+
+  implicit class ExtConfig(c: Config) {
+
+    def getFiniteDuration(path: String): FiniteDuration =
+      getScalaDuration(path) match {
+        case f: FiniteDuration => f
+        case _ => throw new IllegalArgumentException(s"Can not crate finite duration from $path")
+      }
+
+    def getScalaDuration(path: String): Duration = Duration(c.getString(path))
   }
 }
