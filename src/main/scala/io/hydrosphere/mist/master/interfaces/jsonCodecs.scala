@@ -1,12 +1,13 @@
 package io.hydrosphere.mist.master.interfaces
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import io.hydrosphere.mist.Messages.JobMessages.{JobParams, JobResponse}
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
-import io.hydrosphere.mist.master.{ContextConfig, WorkerLink}
+import io.hydrosphere.mist.master.WorkerLink
+import io.hydrosphere.mist.master.contexts.ContextConfig
 import io.hydrosphere.mist.master.interfaces.http.{HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError

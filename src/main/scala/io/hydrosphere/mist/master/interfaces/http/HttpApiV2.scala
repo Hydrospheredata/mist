@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.contexts.ContextConfig
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
@@ -137,6 +138,11 @@ class HttpApiV2(
     } ~
     path ( root / "contexts" ) {
       get { complete(master.contextsSettings.getAll) }
+    } ~
+    path (root / "contexts" ) {
+      post { entity(as[ContextConfig]) { context =>
+        complete { master.contexts2.save(context) }
+      }}
     }
   }
 

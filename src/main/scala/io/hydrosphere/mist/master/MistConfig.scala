@@ -6,8 +6,8 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration.{Duration, FiniteDuration}
-
 import ConfigUtils._
+import io.hydrosphere.mist.master.contexts.ContextConfig
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -81,33 +81,33 @@ object WorkersSettingsConfig {
 
 }
 
-case class ContextConfig(
-  name: String,
-  sparkConf: Map[String, String],
-  downtime: Duration,
-  maxJobs: Int,
-  precreated: Boolean,
-  runOptions: String,
-  streamingDuration: Duration
-)
-
-object ContextConfig {
-
-  def apply(name: String, config: Config): ContextConfig = {
-    ContextConfig(
-      name = name,
-      sparkConf = config.getConfig("spark-conf").entrySet()
-        .filter(entry => entry.getValue.valueType() == ConfigValueType.STRING)
-        .map(entry => entry.getKey -> entry.getValue.unwrapped().asInstanceOf[String])
-        .toMap,
-      downtime = Duration(config.getString("downtime")),
-      maxJobs = config.getInt("max-parallel-jobs"),
-      precreated = config.getBoolean("precreated"),
-      runOptions = config.getString("run-options"),
-      streamingDuration = Duration(config.getString("streaming-duration"))
-    )
-  }
-}
+//case class ContextConfig(
+//  name: String,
+//  sparkConf: Map[String, String],
+//  downtime: Duration,
+//  maxJobs: Int,
+//  precreated: Boolean,
+//  runOptions: String,
+//  streamingDuration: Duration
+//)
+//
+//object ContextConfig {
+//
+//  def apply(name: String, config: Config): ContextConfig = {
+//    ContextConfig(
+//      name = name,
+//      sparkConf = config.getConfig("spark-conf").entrySet()
+//        .filter(entry => entry.getValue.valueType() == ConfigValueType.STRING)
+//        .map(entry => entry.getKey -> entry.getValue.unwrapped().asInstanceOf[String])
+//        .toMap,
+//      downtime = Duration(config.getString("downtime")),
+//      maxJobs = config.getInt("max-parallel-jobs"),
+//      precreated = config.getBoolean("precreated"),
+//      runOptions = config.getString("run-options"),
+//      streamingDuration = Duration(config.getString("streaming-duration"))
+//    )
+//  }
+//}
 
 case class ContextsSettings(
   default: ContextConfig,
@@ -127,7 +127,7 @@ object ContextsSettings {
 
   def apply(config: Config): ContextsSettings = {
     val defaultCfg = config.getConfig("context-defaults")
-    val default = ContextConfig("default", defaultCfg)
+    val default = ContextConfig.fromConfig("default", defaultCfg)
 
     val contextsCfg = config.getConfig("context")
     val contexts = contextsCfg.entrySet().filter(entry => {
@@ -135,7 +135,7 @@ object ContextsSettings {
     }).map(entry => {
       val name = entry.getKey
       val cfg = contextsCfg.getConfig(name).withFallback(defaultCfg)
-      name -> ContextConfig(name, cfg)
+      name -> ContextConfig.fromConfig(name, cfg)
     }).toMap
 
     ContextsSettings(default, contexts)
@@ -170,6 +170,7 @@ case class MasterConfig(
   workers: WorkersSettingsConfig,
   contextsSettings: ContextsSettings,
   dbPath: String,
+  contextsPath: String,
   security: SecurityConfig,
   raw: Config
 )
@@ -194,6 +195,7 @@ object MasterConfig {
       workers = WorkersSettingsConfig(mist.getConfig("workers")),
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
+      contextsPath = mist.getString("contexts-store.path"),
       security = SecurityConfig(mist.getConfig("security")),
       raw = config
     )
