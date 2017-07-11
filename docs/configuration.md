@@ -28,6 +28,7 @@ Configuration files are in [HOCON format](https://github.com/typesafehub/config/
 
 ### Enable Kerberos
 
+Example:
 
 ```hocon
 mist {
@@ -35,6 +36,7 @@ mist {
     enabled = true
     keytab = ${path_to_keytab}
     principal = ${your_principal}
+    interval = 30 minutes # default 1 hour
   }
 }
 ```
