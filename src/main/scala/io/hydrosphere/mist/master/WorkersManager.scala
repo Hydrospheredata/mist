@@ -170,22 +170,6 @@ class WorkersManager(
     state
   }
 
-//  private def runWorker(
-//    name: String,
-//    context: String,
-//    mode: RunMode
-//  ): Unit = {
-//    val settings = WorkerSettings(
-//      name = name,
-//      context = context,
-//      runOptions = MistConfig.Contexts.runOptions(name),
-//      configFilePath = System.getProperty("config.file"),
-//      jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString,
-//      mode = mode
-//    )
-//    workerRunner.run(settings)
-//  }
-
   private def setWorkerDown(name: String): Unit = {
     workerStates.get(name) match {
       case Some(s) =>
