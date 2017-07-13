@@ -26,8 +26,20 @@ object EndpointConfig {
 
   def apply(config: Config): EndpointConfig =
     EndpointConfig(config.getString("host"), config.getInt("port"))
-
 }
+
+case class HttpConfig(
+  host: String,
+  port: Int,
+  uiPath: String
+)
+
+object HttpConfig {
+
+  def apply(config: Config): HttpConfig =
+    HttpConfig(config.getString("host"), config.getInt("port"), config.getString("ui"))
+}
+
 
 case class LogServiceConfig(
   host: String,
@@ -163,7 +175,7 @@ object SecurityConfig {
 
 case class MasterConfig(
   cluster: EndpointConfig,
-  http: EndpointConfig,
+  http: HttpConfig,
   mqtt: AsyncInterfaceConfig,
   kafka: AsyncInterfaceConfig,
   logs: LogServiceConfig,
@@ -187,7 +199,7 @@ object MasterConfig {
     val mist = config.getConfig("mist")
     MasterConfig(
       cluster = EndpointConfig(mist.getConfig("cluster")),
-      http = EndpointConfig(mist.getConfig("http")),
+      http = HttpConfig(mist.getConfig("http")),
       mqtt = AsyncInterfaceConfig(mist.getConfig("mqtt")),
       kafka = AsyncInterfaceConfig(mist.getConfig("kafka")),
       logs = LogServiceConfig(mist.getConfig("log-service")),
@@ -199,31 +211,6 @@ object MasterConfig {
     )
   }
 
-}
-
-case class WorkerConfig(
-  logs: LogServiceConfig,
-  contextsSettings: ContextsSettings,
-  raw: Config
-)
-
-object WorkerConfig {
-
-  def load(filePath: String): WorkerConfig = {
-    val default = ConfigFactory.load("mist")
-    val user = ConfigFactory.parseFile(new File(filePath))
-    val cfg = user.withFallback(default).resolve()
-    parse(cfg)
-  }
-
-  def parse(config: Config): WorkerConfig = {
-    val mist = config.getConfig("mist")
-    WorkerConfig(
-      logs = LogServiceConfig(mist.getConfig("log-service")),
-      contextsSettings = ContextsSettings(mist),
-      raw = config
-    )
-  }
 }
 
 object ConfigUtils {

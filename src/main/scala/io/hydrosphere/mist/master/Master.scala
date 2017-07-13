@@ -101,7 +101,7 @@ object Master extends App with Logger {
         val ws = new WSApi(streamer)
         CorsDirective.cors() { api.route ~ ws.route }
       }
-      val http = HttpUi.route ~ api.route ~ apiv2
+      val http = new HttpUi(config.http.uiPath).route ~ api.route ~ apiv2
       Http().bindAndHandle(http, config.http.host, config.http.port)
     }
 
