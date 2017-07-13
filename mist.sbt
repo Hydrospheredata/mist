@@ -162,6 +162,14 @@ lazy val mist = project.in(file("."))
           .as("router.conf")
           .to("configs")
       }
+      val ui = {
+        val dir = baseDirectory.value / "ui"
+        if (!(dir / "node_modules").exists()) {
+          Process("npm i", dir).!
+        }
+        val cmd = Seq("node", "node-modules/angular/cli/bin/ng", "build", "--prod", "--aot")
+        Process(cmd, dir).!
+      }
       Seq(
         CpFile("bin"),
         MkDir("configs"),
