@@ -11,9 +11,13 @@ class HttpUi(path: String) extends Directives {
 
   import StatusCodes._
 
-  val index = path + "/index.html"
+  private val index = path + "/index.html"
 
-  private val notFound = RejectionHandler.newBuilder()
+  /**
+    * Handle spa reloading or direct links
+    * If there is not any requested file - respond with index.html
+    */
+  private val fallbackToSpa = RejectionHandler.newBuilder()
     .handleNotFound(getFromFile(index))
     .result()
 
@@ -26,7 +30,7 @@ class HttpUi(path: String) extends Directives {
         pathSingleSlash {
           getFromFile(index)
         } ~
-        handleRejections(notFound) {
+        handleRejections(fallbackToSpa) {
           getFromDirectory(path)
         }
       }
