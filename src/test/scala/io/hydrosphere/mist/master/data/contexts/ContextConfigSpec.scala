@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.contexts
+package io.hydrosphere.mist.master.data.contexts
 
 import com.typesafe.config.{ConfigFactory, ConfigRenderOptions}
 import org.scalatest._
@@ -45,13 +45,6 @@ class ContextConfigSpec extends FunSpec with Matchers {
       runOptions = "--key",
       streamingDuration = 1.minutes
     )
-//    val options = ConfigRenderOptions.defaults()
-//      .setComments(false)
-//      .setOriginComments(false)
-//      .setJson(false)
-//      .setFormatted(true)
-//    println(context.toRaw.root.render(options))
-
     val raw = context.toRaw
     raw.getInt("downtime") shouldBe 60 * 1000 * 10
     raw.getInt("max-parallel-jobs") shouldBe 10

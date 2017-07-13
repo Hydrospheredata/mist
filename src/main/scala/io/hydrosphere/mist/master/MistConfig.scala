@@ -7,7 +7,7 @@ import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
 import scala.collection.JavaConversions._
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import ConfigUtils._
-import io.hydrosphere.mist.master.contexts.ContextConfig
+import io.hydrosphere.mist.master.data.contexts.ContextConfig
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -81,45 +81,14 @@ object WorkersSettingsConfig {
 
 }
 
-//case class ContextConfig(
-//  name: String,
-//  sparkConf: Map[String, String],
-//  downtime: Duration,
-//  maxJobs: Int,
-//  precreated: Boolean,
-//  runOptions: String,
-//  streamingDuration: Duration
-//)
-//
-//object ContextConfig {
-//
-//  def apply(name: String, config: Config): ContextConfig = {
-//    ContextConfig(
-//      name = name,
-//      sparkConf = config.getConfig("spark-conf").entrySet()
-//        .filter(entry => entry.getValue.valueType() == ConfigValueType.STRING)
-//        .map(entry => entry.getKey -> entry.getValue.unwrapped().asInstanceOf[String])
-//        .toMap,
-//      downtime = Duration(config.getString("downtime")),
-//      maxJobs = config.getInt("max-parallel-jobs"),
-//      precreated = config.getBoolean("precreated"),
-//      runOptions = config.getString("run-options"),
-//      streamingDuration = Duration(config.getString("streaming-duration"))
-//    )
-//  }
-//}
 
+/**
+  * Context settings that are preconfigured in main config
+  */
 case class ContextsSettings(
   default: ContextConfig,
   contexts: Map[String, ContextConfig]
-) {
-
-  def precreated: Seq[ContextConfig] = contexts.values.filter(_.precreated).toSeq
-
-  def configFor(name: String): ContextConfig = contexts.getOrElse(name, default)
-
-  def getAll: Seq[ContextConfig] = default +: contexts.values.toList
-}
+)
 
 object ContextsSettings {
 

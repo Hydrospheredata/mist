@@ -13,7 +13,6 @@ import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.contexts.DirectoryContextStore
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
 
@@ -24,8 +23,7 @@ class MasterService(
   workerManager: ActorRef,
   statusService: ActorRef,
   jobEndpoints: JobEndpoints,
-  val contextsSettings: ContextsSettings,
-  val contexts2: DirectoryContextStore
+  val contextsSettings: ContextsSettings
 ) extends Logger {
 
   import scala.concurrent.ExecutionContext.Implicits.global

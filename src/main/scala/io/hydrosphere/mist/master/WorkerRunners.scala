@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import io.hydrosphere.mist.master.contexts.ContextConfig
+import io.hydrosphere.mist.master.data.contexts.ContextConfig
 import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.utils.Logger
 

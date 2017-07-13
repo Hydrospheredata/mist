@@ -14,7 +14,7 @@ import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.Constants
-import io.hydrosphere.mist.master.contexts.DirectoryContextStore
+//import io.hydrosphere.mist.master.data.contexts.DirectoryContextStore
 import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
@@ -75,17 +75,15 @@ object Master extends App with Logger {
     val workerManager = system.actorOf(
       WorkersManager.props(statusService, workerRunner, logsService.getLogger), "workers-manager")
 
-    val contextStore = DirectoryContextStore.create(
-      config.contextsPath,
-      config.contextsSettings.default,
-      config.contextsSettings.default.toRaw
-    )
+//    val contextStore = DirectoryContextStore.create(
+//      config.contextsPath,
+//      config.contextsSettings.default
+//    )
     val masterService = new MasterService(
       workerManager,
       statusService,
       jobEndpoints,
-      config.contextsSettings,
-      contextStore
+      config.contextsSettings
     )
 
     config.contextsSettings.precreated.foreach(context => {

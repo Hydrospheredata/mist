@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.contexts.ContextConfig
+import io.hydrosphere.mist.master.data.contexts.ContextConfig
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
@@ -16,25 +16,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 
-/**
-  * New http api
-  *
-  * endpoint list          - GET /v2/api/endpoints
-  *
-  * endpoint               - GET /v2/api/endpoints/{id}
-  *
-  * start job              - POST /v2/api/endpoints/{id}
-  *                          POST DATA: jobs args as map { "arg-name": "arg-value", ...}
-  *
-  * endpoint's job history - GET /v2/api/endpoints/{id}/jobs
-  *
-  * job info by id         - GET /v2/api/jobs/{id}
-  *
-  * list workers           - GET /v2/api/workers
-  *
-  * stop worker            - DELETE /v2/api/workers/{id} (output should be changed)
-  *
-  */
 class HttpApiV2(
   master: MasterService,
   logsMappings: LogStorageMappings) {
@@ -137,9 +118,9 @@ class HttpApiV2(
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
     } ~
     path ( root / "contexts" ) {
-      get { complete(master.contextsSettings.getAll) }
+      get { complete(master.contexts2.contexts) }
     } ~
-    path (root / "contexts" ) {
+    path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>
         complete { master.contexts2.save(context) }
       }}

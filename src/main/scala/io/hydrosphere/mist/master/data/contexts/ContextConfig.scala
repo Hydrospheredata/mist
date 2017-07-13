@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.contexts
+package io.hydrosphere.mist.master.data.contexts
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions, ConfigValue, ConfigValueFactory, ConfigValueType}
 
