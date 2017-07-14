@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.data
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.locks.ReentrantReadWriteLock
+import java.util.concurrent.locks.{Lock, ReentrantReadWriteLock}
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
 import io.hydrosphere.mist.utils.{Logger, fs}
@@ -23,38 +23,31 @@ import FsStorage._
 class FsStorage[A : ConfigRepr](
   dir: Path,
   renderOptions: ConfigRenderOptions = DefaultRenderOptions
-) extends Logger {
+) extends Logger with RwLock {
 
   self =>
 
-  private val rwLock = new ReentrantReadWriteLock()
   private val repr = implicitly[ConfigRepr[A]]
 
   def entries: Seq[A] = {
     def files = dir.toFile.listFiles(fs.mkFilter(_.endsWith(".conf")))
 
-    rwLock.readLock().lock()
-    try {
+    withReadLock {
       files.map(parseFile).foldLeft(List.empty[A])({
         case (list, Failure(e)) =>
           logger.warn("Invalid configuration", e)
           list
         case (list, Success(context)) => list :+ context
       })
-    } finally {
-      rwLock.readLock().unlock()
     }
   }
 
   def entry(name: String): Option[A] = {
     val filePath = dir.resolve(s"$name.conf")
-    rwLock.readLock().lock()
 
-    try {
+    withReadLock {
       val file = filePath.toFile
       if (file.exists()) parseFile(file).toOption else None
-    } finally {
-      rwLock.readLock().unlock()
     }
   }
 
@@ -70,16 +63,14 @@ class FsStorage[A : ConfigRepr](
     val data = config.root().render(renderOptions)
 
     val filePath = dir.resolve(s"$name.conf")
-    rwLock.writeLock().lock()
-    try {
+
+    withWriteLock {
       Files.write(filePath, data.getBytes)
       entry
-    } finally {
-      rwLock.writeLock().unlock()
     }
   }
 
-  def withDefaults(defaults: Seq[A]): FsStorage[A] =
+  def withDefaults(defaults: Seq[A]): self.type =
     new FsStorage[A](dir, renderOptions) {
       override def entries: Seq[A] = defaults ++ self.entries
 
@@ -99,12 +90,6 @@ object FsStorage {
       .setJson(false)
       .setFormatted(true)
 
-  def create[A: ConfigRepr](path: String): FsStorage[A] = {
-    val p = Paths.get(path)
-    val dir = p.toFile
-    if (!dir.exists()) dir.mkdir()
-    else if (dir.isFile) throw new IllegalArgumentException(s"Path $path already exists as file")
+  def create[A: ConfigRepr](path: String): FsStorage[A] = new FsStorage[A](checkDirectory(path))
 
-    new FsStorage[A](p)
-  }
 }

@@ -4,10 +4,13 @@ import java.nio.file.Path
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
 import io.hydrosphere.mist.master.ContextsSettings
-import io.hydrosphere.mist.master.data.{ConfigRepr, FsStorage$}
+import io.hydrosphere.mist.master.data._
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 
+class ContextsStorage(dir: Path) extends FsStorage[ContextConfig](dir) {
+  def precreated: Seq[ContextConfig] = entries.filter(_.precreated)
+}
 
 object ContextsStorage {
 
@@ -59,8 +62,15 @@ object ContextsStorage {
     }
   }
 
-  def create(dir: String, contextsSettings: ContextsSettings): FsStorage[ContextConfig] = {
-//    FileEntryStorage.create[ContextConfig](dir)
-//      .withDefaults(contextsSettings)
+
+  def create(dir: String, contextsSettings: ContextsSettings): ContextsStorage = {
+    val defaults = contextsSettings.default +: contextsSettings.contexts.values.toList
+    create(dir, defaults)
   }
+
+  def create(dir: String, defaults: Seq[ContextConfig]): ContextsStorage =
+    create(dir).withDefaults(defaults)
+
+  def create(dir: String): ContextsStorage = new ContextsStorage(checkDirectory(dir))
+
 }
