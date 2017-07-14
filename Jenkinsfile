@@ -40,6 +40,9 @@ def test_mist(slaveName, sparkVersion) {
                 stage('Clone project ' + sparkVersion) {
                     checkout scm
                     sh "cd ${env.WORKSPACE}"
+
+                    sh "sed -i 's#git@github.com:#https://github.com/#' .gitmodules"
+                    sh "git submodule update --init --recursive"
                 }
 
                 stage('Build and test') {
