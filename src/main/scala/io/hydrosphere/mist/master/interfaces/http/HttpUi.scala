@@ -3,15 +3,22 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.directives.ContentTypeResolver.Default
 import akka.http.scaladsl.server.{Directives, RejectionHandler, Route}
+
 /**
   * Server static ui resources
   */
-object HttpUi extends Directives {
+class HttpUi(path: String) extends Directives {
 
   import StatusCodes._
 
-  private val notFound = RejectionHandler.newBuilder()
-    .handleNotFound(complete(HttpResponse(NotFound, entity = "Not found")))
+  private val index = path + "/index.html"
+
+  /**
+    * Handle spa reloading or direct links
+    * If there is not any requested file - respond with index.html
+    */
+  private val fallbackToSpa = RejectionHandler.newBuilder()
+    .handleNotFound(getFromFile(index))
     .result()
 
   val route: Route = {
@@ -21,10 +28,10 @@ object HttpUi extends Directives {
           redirect("/ui/", PermanentRedirect)
         } ~
         pathSingleSlash {
-          getFromResource("web/index.html", Default("web/index.html"), getClass.getClassLoader)
+          getFromFile(index)
         } ~
-        handleRejections(notFound) {
-          getFromResourceDirectory("web", getClass.getClassLoader)
+        handleRejections(fallbackToSpa) {
+          getFromDirectory(path)
         }
       }
     }

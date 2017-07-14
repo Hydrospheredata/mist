@@ -14,6 +14,7 @@ lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
+lazy val buildUi: TaskKey[File] = taskKey[File]("Build UI")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
@@ -80,7 +81,7 @@ lazy val mist = project.in(file("."))
   .configs(IntegrationTest)
   .settings(Defaults.itSettings: _*)
   .settings(commonAssemblySettings: _*)
-  .settings(mistRunSettings: _*)
+  .settings(mistMiscTasks: _*)
   .settings(StageDist.settings: _*)
   .settings(dockerSettings: _*)
   .settings(
@@ -171,7 +172,8 @@ lazy val mist = project.in(file("."))
         CpFile("examples-python"),
         CpFile(assembly.value).as("mist.jar"),
         CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
-          .as(s"mist-examples-spark$sparkMajor.jar")
+          .as(s"mist-examples-spark$sparkMajor.jar"),
+        CpFile(buildUi.value).as("ui")
       )
     },
     stageActions in basicStage +=
@@ -205,7 +207,7 @@ lazy val examplesSpark2 = project.in(file("examples-spark2"))
     autoScalaLibrary := false
   )
 
-lazy val mistRunSettings = Seq(
+lazy val mistMiscTasks = Seq(
   sparkLocal := {
     val log = streams.value.log
     val version = sparkVersion.value
@@ -220,6 +222,17 @@ lazy val mistRunSettings = Seq(
       SparkLocal.downloadSpark(version, local)
     }
     sparkDir
+  },
+
+  buildUi := {
+    val dir = baseDirectory.value / "ui"
+    if (!(dir / "node_modules").exists()) {
+      Process("npm i", dir).!
+    }
+    val cmd = Seq("node", "node_modules/@angular/cli/bin/ng", "build", "--prod", "--aot", "--base-href", "/ui/" )
+    Process(cmd, dir).!
+
+    dir / "dist"
   },
 
   mistRun := {
