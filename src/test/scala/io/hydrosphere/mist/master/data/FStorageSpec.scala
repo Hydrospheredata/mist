@@ -6,21 +6,18 @@ import com.typesafe.config.{Config, ConfigValueFactory}
 import org.apache.commons.io.FileUtils
 import org.scalatest._
 
-class FileEntryStorageSpec
-  extends FunSpec with Matchers with BeforeAndAfter {
+class FStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   case class TestEntry(
     name: String,
     value: Int
-  )
+  ) extends NamedConfig
 
   implicit val testEntryConfigRepr = new ConfigRepr[TestEntry] {
     import scala.collection.JavaConverters._
 
-    override def name(a: TestEntry): String = a.name
-
-    override def fromConfig(name: String, config: Config): TestEntry = {
-      TestEntry(name, config.getInt("value"))
+    override def fromConfig(config: Config): TestEntry = {
+      TestEntry(config.getString("name"), config.getInt("value"))
     }
 
     override def toConfig(a: TestEntry): Config = {
@@ -39,8 +36,8 @@ class FileEntryStorageSpec
   it("should store files") {
     val storage = FsStorage.create[TestEntry](path)
 
-    storage.write(TestEntry("one", 1))
-    storage.write(TestEntry("two", 2))
+    storage.write("one", TestEntry("one", 1))
+    storage.write("two", TestEntry("two", 2))
 
     storage.entries should contain allOf(
       TestEntry("one", 1),

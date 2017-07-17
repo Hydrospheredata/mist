@@ -7,6 +7,7 @@ import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.master.data.contexts.ContextsStorage
 import io.hydrosphere.mist.master.models.JobStartRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -24,12 +25,12 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val statusService = TestProbe()
 
     val endpoints = mock(classOf[JobEndpoints])
-    val contextSettings = mock(classOf[ContextsSettings])
+    val contexts = mock(classOf[ContextsStorage])
 
     when(endpoints.getDefinition(any[String]))
       .thenReturn(Some(JobDefinition("name", "path.py", "MyJob", "namespace")))
 
-    val service = new MasterService(workerManager.ref, statusService.ref, endpoints, contextSettings)
+    val service = new MasterService(workerManager.ref, statusService.ref, endpoints, contexts)
 
     val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
     val f = service.runJob(req, Source.Http)

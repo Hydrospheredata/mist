@@ -12,6 +12,7 @@ class ContextConfigSpec extends FunSpec with Matchers {
     val cfg = ConfigFactory.parseString(
       """
         |{
+        |  name = "test"
         |  spark-conf {
         |    x = "z"
         |    a = 1
@@ -26,7 +27,7 @@ class ContextConfigSpec extends FunSpec with Matchers {
       """.stripMargin
     )
 
-    val context = ContextConfig.fromConfig("test", cfg)
+    val context = ContextConfig.Repr.fromConfig(cfg)
     context.sparkConf shouldBe Map("x" -> "z", "a" -> "1")
     context.downtime shouldBe Duration.Inf
     context.maxJobs shouldBe 100
@@ -45,13 +46,13 @@ class ContextConfigSpec extends FunSpec with Matchers {
       runOptions = "--key",
       streamingDuration = 1.minutes
     )
-    val raw = context.toRaw
-    raw.getInt("downtime") shouldBe 60 * 1000 * 10
+    val raw = ContextConfig.Repr.toConfig(context)
+    Duration(raw.getString("downtime")) shouldBe 10.minutes
     raw.getInt("max-parallel-jobs") shouldBe 10
     raw.getBoolean("precreated") shouldBe false
     raw.getString("spark-conf.x") shouldBe "y"
     raw.getString("spark-conf.z") shouldBe "4"
-    raw.getInt("streaming-duration") shouldBe 60 * 1000
+    Duration(raw.getString("streaming-duration")) shouldBe 1.minutes
   }
 
 }

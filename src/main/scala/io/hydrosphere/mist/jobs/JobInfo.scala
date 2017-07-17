@@ -32,11 +32,11 @@ object JobInfo {
     resolveFile.flatMap(file => {
       file.getName match {
         case p if p.endsWith(".py") =>
-          val info = new PyJobInfo(definition)
+          val info = PyJobInfo(definition)
           Success(info)
         case p if p.endsWith(".jar") =>
           val inst = JobsLoader.fromJar(file).loadJobClass(definition.className)
-          inst.map(i => new JvmJobInfo(definition, i))
+          inst.map(i => JvmJobInfo(definition, i))
         case p =>
           val msg = s"Unknown file format $p for $definition"
           Failure(new IllegalArgumentException(msg))

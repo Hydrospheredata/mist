@@ -7,6 +7,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.data.contexts.ContextConfig
+import io.hydrosphere.mist.master.data.endpoints.{EndpointConfig, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
@@ -18,7 +19,9 @@ import scala.language.postfixOps
 
 class HttpApiV2(
   master: MasterService,
-  logsMappings: LogStorageMappings) {
+  logsMappings: LogStorageMappings,
+  endpoints: EndpointsStorage
+) {
 
   import Directives._
   import HttpApiV2._
@@ -50,6 +53,11 @@ class HttpApiV2(
     path( root / "endpoints" ) {
       get { complete {
         master.listEndpoints().map(HttpEndpointInfoV2.convert)
+      }}
+    } ~
+    path( root / "endpoints" ) {
+      post { entity(as[EndpointConfig]) { req =>
+        complete { endpoints.write(req.name, req) }
       }}
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
@@ -118,11 +126,11 @@ class HttpApiV2(
       delete { completeU(master.stopWorker(workerId).map(_ => ())) }
     } ~
     path ( root / "contexts" ) {
-      get { complete(master.contexts2.contexts) }
+      get { complete(master.contexts.entries) }
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>
-        complete { master.contexts2.save(context) }
+        complete { master.contexts.write(context.name, context) }
       }}
     }
   }

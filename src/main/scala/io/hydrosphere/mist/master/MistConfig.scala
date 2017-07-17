@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory, ConfigValueType}
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -17,15 +17,15 @@ case class AsyncInterfaceConfig(
   subscribeTopic: String
 )
 
-case class EndpointConfig(
+case class HostPortConfig(
   host: String,
   port: Int
 )
 
-object EndpointConfig {
+object HostPortConfig {
 
-  def apply(config: Config): EndpointConfig =
-    EndpointConfig(config.getString("host"), config.getInt("port"))
+  def apply(config: Config): HostPortConfig =
+    HostPortConfig(config.getString("host"), config.getInt("port"))
 }
 
 case class HttpConfig(
@@ -93,7 +93,6 @@ object WorkersSettingsConfig {
 
 }
 
-
 /**
   * Context settings that are preconfigured in main config
   */
@@ -108,7 +107,7 @@ object ContextsSettings {
 
   def apply(config: Config): ContextsSettings = {
     val defaultCfg = config.getConfig("context-defaults")
-    val default = ContextConfig.fromConfig("default", defaultCfg)
+    val default = ContextConfig.Repr.fromConfig(defaultCfg.withValue("name", ConfigValueFactory.fromAnyRef(Default)))
 
     val contextsCfg = config.getConfig("context")
     val contexts = contextsCfg.entrySet().filter(entry => {
@@ -116,7 +115,7 @@ object ContextsSettings {
     }).map(entry => {
       val name = entry.getKey
       val cfg = contextsCfg.getConfig(name).withFallback(defaultCfg)
-      name -> ContextConfig.fromConfig(name, cfg)
+      name -> ContextConfig.Repr.fromConfig(cfg.withValue("name", ConfigValueFactory.fromAnyRef(name)))
     }).toMap
 
     ContextsSettings(default, contexts)
@@ -143,7 +142,7 @@ object SecurityConfig {
 }
 
 case class MasterConfig(
-  cluster: EndpointConfig,
+  cluster: HostPortConfig,
   http: HttpConfig,
   mqtt: AsyncInterfaceConfig,
   kafka: AsyncInterfaceConfig,
@@ -168,7 +167,7 @@ object MasterConfig {
   def parse(config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
     MasterConfig(
-      cluster = EndpointConfig(mist.getConfig("cluster")),
+      cluster = HostPortConfig(mist.getConfig("cluster")),
       http = HttpConfig(mist.getConfig("http")),
       mqtt = AsyncInterfaceConfig(mist.getConfig("mqtt")),
       kafka = AsyncInterfaceConfig(mist.getConfig("kafka")),

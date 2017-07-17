@@ -8,6 +8,7 @@ import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.master.data.contexts.ContextConfig
+import io.hydrosphere.mist.master.data.endpoints.EndpointConfig
 import io.hydrosphere.mist.master.interfaces.http.{HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
@@ -157,6 +158,7 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val jobStartRequestF = jsonFormat5(JobStartRequest)
   implicit val asynJobStartRequestF = jsonFormat4(AsyncJobStartRequest)
+  implicit val endpointConfig = jsonFormat4(EndpointConfig.apply)
 
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
 

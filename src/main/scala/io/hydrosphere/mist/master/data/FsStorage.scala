@@ -1,26 +1,15 @@
 package io.hydrosphere.mist.master.data
 
 import java.io.File
-import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.locks.{Lock, ReentrantReadWriteLock}
+import java.nio.file.{Files, Path}
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
+import com.typesafe.config.{ConfigFactory, ConfigRenderOptions, ConfigValueFactory}
+import io.hydrosphere.mist.master.data.FsStorage._
 import io.hydrosphere.mist.utils.{Logger, fs}
 
 import scala.util._
 
-trait ConfigRepr[A] {
-
-  def name(a: A): String
-
-  def toConfig(a: A): Config
-
-  def fromConfig(name: String, config: Config): A
-}
-
-import FsStorage._
-
-class FsStorage[A : ConfigRepr](
+class FsStorage[A <: NamedConfig : ConfigRepr](
   dir: Path,
   renderOptions: ConfigRenderOptions = DefaultRenderOptions
 ) extends Logger with RwLock {
@@ -53,11 +42,13 @@ class FsStorage[A : ConfigRepr](
 
   private def parseFile(f: File): Try[A] = {
     val name = f.getName.replace(".conf", "")
-    Try(ConfigFactory.parseFile(f)).map(c => repr.fromConfig(name, c))
+    Try(ConfigFactory.parseFile(f)).map(c => {
+      val withName = c.withValue("name", ConfigValueFactory.fromAnyRef(name))
+      repr.fromConfig(withName)
+    })
   }
 
-  def write(entry: A): A = {
-    val name = repr.name(entry)
+  def write(name: String, entry: A): A = {
     val config = repr.toConfig(entry)
 
     val data = config.root().render(renderOptions)
@@ -70,15 +61,6 @@ class FsStorage[A : ConfigRepr](
     }
   }
 
-  def withDefaults(defaults: Seq[A]): self.type =
-    new FsStorage[A](dir, renderOptions) {
-      override def entries: Seq[A] = defaults ++ self.entries
-
-      override def entry(name: String): Option[A] = {
-        defaults.find(a => repr.name(a) == name).orElse(self.entry(name))
-      }
-    }
-
 }
 
 object FsStorage {
@@ -90,6 +72,6 @@ object FsStorage {
       .setJson(false)
       .setFormatted(true)
 
-  def create[A: ConfigRepr](path: String): FsStorage[A] = new FsStorage[A](checkDirectory(path))
+  def create[A <: NamedConfig : ConfigRepr](path: String): FsStorage[A] = new FsStorage[A](checkDirectory(path))
 
 }

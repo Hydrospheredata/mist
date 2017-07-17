@@ -1,9 +1,12 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.jobs.JobDetails.Source
@@ -14,6 +17,8 @@ import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.Constants
+import io.hydrosphere.mist.master.data.contexts.ContextsStorage
+import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
 //import io.hydrosphere.mist.master.data.contexts.DirectoryContextStore
 import io.hydrosphere.mist.master.security.KInitLauncher
 
@@ -45,12 +50,16 @@ object Master extends App with Logger {
       })
     }
 
+    //TODO !!!
     val jobEndpoints = JobEndpoints.fromConfigFile(appArguments.routerConfigPath)
+    val configuredEndpoints = ConfigFactory.parseFile(new File(appArguments.routerConfigPath))
+    val endpointsStorage = EndpointsStorage.create("endpoints", configuredEndpoints)
+    val contextStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
 
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
 
-    val workerRunner = WorkerRunner.create(config)
+    val workerRunner = WorkerRunner.create(config, contextStorage)
 
     val store = H2JobsRepository(config.dbPath)
 
@@ -75,18 +84,14 @@ object Master extends App with Logger {
     val workerManager = system.actorOf(
       WorkersManager.props(statusService, workerRunner, logsService.getLogger), "workers-manager")
 
-//    val contextStore = DirectoryContextStore.create(
-//      config.contextsPath,
-//      config.contextsSettings.default
-//    )
     val masterService = new MasterService(
       workerManager,
       statusService,
       jobEndpoints,
-      config.contextsSettings
+      contextStorage
     )
 
-    config.contextsSettings.precreated.foreach(context => {
+    contextStorage.precreated.foreach(context => {
       val name = context.name
       logger.info(s"Precreate context for $name namespace")
       workerManager ! CreateContext(name)
@@ -102,7 +107,7 @@ object Master extends App with Logger {
     val http = {
       val api = new HttpApi(masterService)
       val apiv2 = {
-        val api = new HttpApiV2(masterService, logsMappings)
+        val api = new HttpApiV2(masterService, logsMappings, endpointsStorage)
         val ws = new WSApi(streamer)
         CorsDirective.cors() { api.route ~ ws.route }
       }

@@ -108,3 +108,10 @@ object HttpEndpointInfoV2 {
       )
   }
 }
+
+case class EndpointCreateRequest(
+  name: String,
+  path: String,
+  className: String,
+  nameSpace: String
+)
