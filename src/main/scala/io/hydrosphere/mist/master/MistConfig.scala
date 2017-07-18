@@ -142,7 +142,7 @@ object ContextsSettings {
     val default = ContextConfig("default", defaultCfg)
 
     val contextsCfg = config.getConfig("context")
-    val contexts = contextsCfg.entrySet().filter(entry => {
+    val contexts = contextsCfg.root().entrySet().filter(entry => {
       entry.getValue.valueType() == ConfigValueType.OBJECT
     }).map(entry => {
       val name = entry.getKey
