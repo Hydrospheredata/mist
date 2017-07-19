@@ -216,7 +216,7 @@ object HttpApiV2 {
   ) {
 
     def buildRunSettings(): RunSettings = {
-      val runMode = mode.flatMap(RunMode.fromString).getOrElse(RunMode.Default) match {
+      val runMode = mode.flatMap(RunMode.fromString).getOrElse(RunMode.Shared) match {
         case u: RunMode.ExclusiveContext => u.copy(workerId)
         case x => x
       }

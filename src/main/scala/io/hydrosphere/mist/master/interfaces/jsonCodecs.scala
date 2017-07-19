@@ -125,7 +125,7 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val runModeF = new JsonFormat[RunMode] {
     override def write(obj: RunMode): JsValue = {
       obj match {
-        case RunMode.Default => JsObject(("type", JsString("default")))
+        case RunMode.Shared => JsObject(("type", JsString("shared")))
         case RunMode.ExclusiveContext(id) =>
           JsObject(
             ("type", JsString("uniqueContext")),
@@ -141,8 +141,8 @@ trait JsonCodecs extends SprayJsonSupport
         case _ => throw new IllegalArgumentException(s"Can not extract RunMode from $json")
       }
       modeType match {
-        case "default" => RunMode.Default
-        case "uniqueContext" =>
+        case "shared" => RunMode.Shared
+        case "exclusive" =>
           val id = obj.fields.get("id") match {
             case Some(JsString(i)) => Some(i)
             case _ => None

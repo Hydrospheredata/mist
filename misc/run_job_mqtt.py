@@ -5,6 +5,7 @@ import json
 import uuid
 
 class MqttJobRunner:
+
     def __init__(self, host, port, topic_in, topic_out):
         self.topic_in = topic_in
         self.topic_out = topic_out
@@ -54,12 +55,13 @@ class MqttJobRunner:
 
 
 
-    def runJob(self, endpoint, params):
+    def runJob(self, endpoint, params, runSettings = { "mode": { "type": "shared" }}):
         self.externalId = str(uuid.uuid4())
         req = {
           "endpointId": endpoint,
           "parameters": params,
-          "externalId": self.externalId
+          "externalId": self.externalId,
+          "runSettings": runSettings
         }
         self.mqttc.publish(self.topic_in, json.dumps(req)) 
         self.status = "unknown"
@@ -81,5 +83,8 @@ class MqttJobRunner:
 
 
 runner = MqttJobRunner("localhost", 1883, "in", "out")
-result= runner.runJob("simple-context", {"numbers": [1,2,3,4,5]})
+runSettings = { "mode": { "type": "shared" }} 
+#runSettings = { "mode": { "type": "exclusive", "id": "yoyoyoyo" }} 
+
+result = runner.runJob("simple-context", { "numbers": [1,2,3,4,5] }, runSettings)
 print("Job result is:" + json.dumps(result))
