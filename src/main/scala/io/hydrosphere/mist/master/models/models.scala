@@ -6,7 +6,7 @@ import java.util.UUID
 sealed trait RunMode {
 
   def name: String = this match {
-    case RunMode.Default => "shared"
+    case RunMode.Shared => "shared"
     case e:RunMode.ExclusiveContext => "exclusive"
   }
 }
@@ -14,12 +14,12 @@ sealed trait RunMode {
 object RunMode {
 
   /** Job will share one worker with jobs that are running on the same namespace */
-  case object Default extends RunMode
+  case object Shared extends RunMode
   /** There will be created unique worker for job execution */
   case class ExclusiveContext(id: Option[String]) extends RunMode
 
   def fromString(s: String): Option[RunMode] = s match {
-    case "shared" => Some(Default)
+    case "shared" => Some(Shared)
     case "exclusive" => Some(ExclusiveContext(None))
   }
 
@@ -32,7 +32,7 @@ case class RunSettings(
 
 object RunSettings {
 
-  val Default = RunSettings(None, RunMode.Default)
+  val Default = RunSettings(None, RunMode.Shared)
 
 }
 

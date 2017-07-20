@@ -138,7 +138,7 @@ class WorkersManager(
       })
 
     case CreateContext(contextId) =>
-      startWorker(contextId, RunMode.Default)
+      startWorker(contextId, RunMode.Shared)
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -155,7 +155,7 @@ class WorkersManager(
 
   private def startWorker(contextId: String, mode: RunMode): WorkerState = {
     val workerId = mode match {
-      case RunMode.Default => contextId
+      case RunMode.Shared => contextId
       case RunMode.ExclusiveContext(id) =>
         val uuid = UUID.randomUUID().toString
         val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)

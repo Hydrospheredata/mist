@@ -88,14 +88,14 @@ object Messages {
       val id: String
     }
 
-    case class InitializedEvent(id: String, params: JobParams) extends UpdateStatusEvent
+    case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
     case class QueuedEvent(id: String, workerId: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
-    case class ReceivedLogs(jobId: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
+    case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
 
     // return full job details
     case object RunningJobs

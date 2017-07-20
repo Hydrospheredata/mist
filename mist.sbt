@@ -226,6 +226,9 @@ lazy val mistMiscTasks = Seq(
 
   buildUi := {
     val dir = baseDirectory.value / "ui"
+    if (dir.listFiles().isEmpty) {
+      "git submodule update --init --recursive".!
+    }
     if (!(dir / "node_modules").exists()) {
       Process("npm i", dir).!
     }

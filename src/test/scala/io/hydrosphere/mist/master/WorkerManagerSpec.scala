@@ -41,7 +41,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
     val manager = testManager()
 
     val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
-    manager ! RunJobCommand("test", RunMode.Default, RunJobRequest("id", params))
+    manager ! RunJobCommand("test", RunMode.Shared, RunJobRequest("id", params))
 
     val info = receiveOne(1.second).asInstanceOf[ExecutionInfo]
     info.request.id shouldBe "id"

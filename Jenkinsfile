@@ -41,7 +41,6 @@ def test_mist(slaveName, sparkVersion) {
                     checkout scm
                     sh "cd ${env.WORKSPACE}"
 
-                    sh "sed -i 's#git@github.com:#https://github.com/#' .gitmodules"
                     sh "git submodule update --init --recursive"
                 }
 
