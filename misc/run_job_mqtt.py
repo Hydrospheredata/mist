@@ -76,7 +76,7 @@ class MqttJobRunner:
         if self.success:
             return self.result
         else:
-            raise Execption("Job "+ endpoint + " jobId:" + self.jobId + "failed. Reason:" + self.result)
+            raise Exception("Job "+ endpoint + " jobId:" + self.jobId + "failed. Reason:" + self.result)
 
 
 
