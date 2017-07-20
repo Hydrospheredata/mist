@@ -35,7 +35,7 @@ class WSApi(streamer: EventsStreamer) {
     val source = streamer.eventsSource()
       .filter({
         case e: UpdateStatusEvent => e.id == id
-        case e: ReceivedLogs => e.jobId == id
+        case e: ReceivedLogs => e.id == id
         case _ => false
       })
       .map(e => {

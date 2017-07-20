@@ -27,7 +27,7 @@ class StatusService(
       val s = sender()
       store.update(details).map(_ => {
         s ! akka.actor.Status.Success(())
-        val event = InitializedEvent(req.id, req.params)
+        val event = InitializedEvent(req.id, req.params, externalId)
         callNotifiers(event)
       })
 
@@ -77,7 +77,7 @@ object StatusService {
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {
-      case InitializedEvent(_, _) => d
+      case InitializedEvent(_, _, _) => d
       case QueuedEvent(_, id) => d.copy(workerId = Some(id)).withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Started)
       case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Canceled)
