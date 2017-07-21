@@ -129,6 +129,9 @@ class HttpApiV2(
     path ( root / "contexts" ) {
       get { complete(master.contexts.entries) }
     } ~
+    path ( root / "contexts" / Segment ) { id =>
+      get { complete(master.contexts.entry(id)) }
+    } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>
         complete { master.contexts.write(context.name, context) }

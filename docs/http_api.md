@@ -37,6 +37,21 @@ Glosssary:
     </tr>
     <tr>
       <td>POST</td>
+      <td>/v2/api/endpoints</td>
+      <td>
+        <p>Post body - json: endpoint configuration:
+          <ul>
+            <li>name</li>
+            <li>path</li>
+            <li>className</li>
+            <li>defaultContext</li>
+          </ul>
+        </p>
+      </td>
+      <td>Create endpoint</td>
+    </tr>
+    <tr>
+      <td>POST</td>
       <td>/v2/api/endpoints/{id}/jobs</td>
       <td>
         <p>Post body: endpoint (MistJob) arguments </p>
@@ -135,6 +150,52 @@ Glosssary:
     </tr>
   </tbody>
 </table>
+
+**Contexts**:
+<table>
+  <thead>
+    <tr>
+      <td>Method</td>
+      <td>Path</td>
+      <td>Params</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/contexts</td>
+      <td>None</td>
+      <td>List of all contexts</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/contexts/{id}</td>
+      <td>None</td>
+      <td>Get context by id</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td>/v2/api/contexts</td>
+      <td>Json body:
+        <ul>
+          <li>name</li>
+          <li>sparkConf - Key-value string->string object</li>
+          <li>downtime - Idle timeout before worker shut self down - Duration</li>
+          <li>maxJobs - max parallel jobs - Int</li>
+          <li>precreated - Boolean</li>
+          <li>runOptions - String</li>
+          <li>streamingDuration - Duration</li>
+        </ul>
+      </td>
+      <td>Get context by id</td>
+    </tr>
+  </tbody>
+</table>
+
+Note: Mist always has default context settings, you can obtain it by "default" id.
+
+
 
 ### Next 
 - [Reactive API](/docs/reactive_api.md)
