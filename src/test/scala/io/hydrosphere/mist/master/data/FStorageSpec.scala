@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.data
 import java.nio.file.Paths
 
 import com.typesafe.config.{Config, ConfigValueFactory}
+import io.hydrosphere.mist.master.models.NamedConfig
 import org.apache.commons.io.FileUtils
 import org.scalatest._
 

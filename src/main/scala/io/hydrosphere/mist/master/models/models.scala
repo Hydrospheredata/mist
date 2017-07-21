@@ -9,6 +9,7 @@ sealed trait RunMode {
     case RunMode.Shared => "shared"
     case e:RunMode.ExclusiveContext => "exclusive"
   }
+
 }
 
 object RunMode {

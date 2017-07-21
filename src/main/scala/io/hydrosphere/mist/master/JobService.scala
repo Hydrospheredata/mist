@@ -68,14 +68,16 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
 
     val namespace = runSettings.contextId.getOrElse(endpoint.defaultContext)
 
+    val startCmd = RunJobCommand(namespace, runSettings.mode, internalRequest)
+
     val registrationCommand = Register(
       request = internalRequest,
       endpoint = endpoint.name,
       context = namespace,
       source = source,
-      externalId = externalId
+      externalId = externalId,
+      workerId = startCmd.computeWorkerId()
     )
-    val startCmd = RunJobCommand(namespace, runSettings.mode, internalRequest)
 
     for {
       _ <- statusService.ask(registrationCommand).mapTo[Unit]
@@ -87,12 +89,13 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
     import cats.data._
     import cats.implicits._
 
-    def tryCancel(d: JobDetails): Future[Unit] = d.workerId match {
-      case Some(id) if d.isCancellable =>
-        val f = workerManager ? CancelJobCommand(id, CancelJobRequest(jobId))
+    def tryCancel(d: JobDetails): Future[Unit] = {
+      if (d.isCancellable ) {
+        val f = workerManager ? CancelJobCommand(d.workerId, CancelJobRequest(jobId))
         f.map(_ => ())
-      case _ => Future.successful(())
+      } else Future.successful(())
     }
+
     val out = for {
       details <- OptionT(jobStatusById(jobId))
       _ <- OptionT.liftF(tryCancel(details))

@@ -109,7 +109,7 @@ object ContextsSettings {
 
   def apply(config: Config): ContextsSettings = {
     val defaultCfg = config.getConfig("context-defaults")
-    val default = ConfigRepr.ContextsConfig.fromConfig(Default, defaultCfg)
+    val default = ConfigRepr.ContextConfigRepr.fromConfig(Default, defaultCfg)
 
     val contextsCfg = config.getConfig("context")
     val contexts = contextsCfg.root().entrySet().filter(entry => {
@@ -117,7 +117,7 @@ object ContextsSettings {
     }).map(entry => {
       val name = entry.getKey
       val cfg = contextsCfg.getConfig(name).withFallback(defaultCfg)
-      name -> ConfigRepr.ContextsConfig.fromConfig(name, cfg)
+      name -> ConfigRepr.ContextConfigRepr.fromConfig(name, cfg)
     }).toMap
 
     ContextsSettings(default, contexts)

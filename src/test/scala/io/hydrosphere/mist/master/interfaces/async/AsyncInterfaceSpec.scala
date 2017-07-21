@@ -28,7 +28,7 @@ class AsyncInterfaceSpec extends FunSpec {
        """.stripMargin
 
     input.putMessage(message)
-    verify(master).runJob(any[JobStartRequest], any[Source], any[Action])
+    verify(master).runJob(any[JobStartRequest], any[Source])
   }
 
 

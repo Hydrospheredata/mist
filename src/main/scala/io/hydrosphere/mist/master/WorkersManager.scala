@@ -1,8 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-import java.util.UUID
-
 import akka.actor._
 import akka.cluster.ClusterEvent._
 import akka.cluster._
@@ -63,15 +60,16 @@ class WorkersManager(
   val workerStates = mutable.Map[String, WorkerState]()
 
   override def receive: Receive = {
-    case RunJobCommand(contextId, mode, jobRequest) =>
-      workerStates.get(contextId) match {
-        case Some(s) =>
-          s.forward(jobRequest)
+    case r: RunJobCommand =>
+      val workerId = r.computeWorkerId()
+      workerStates.get(workerId) match {
+        case Some(s) => s.forward(r.request)
         case None =>
-          jobsLogger.info(jobRequest.id, s"Starting worker $contextId")
-          val state = startWorker(contextId, mode)
-          state.forward(jobRequest)
+          jobsLogger.info(r.request.id, s"Starting worker $workerId")
+          val state = startWorker(workerId, r.context, r.mode)
+          state.forward(r.request)
       }
+
     case c @ CancelJobCommand(name, req) =>
       workerStates.get(name) match {
         case Some(s) => s.forward(req)
@@ -138,7 +136,7 @@ class WorkersManager(
       })
 
     case CreateContext(contextId) =>
-      startWorker(contextId, RunMode.Shared)
+      startWorker(contextId, contextId, RunMode.Shared)
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -153,15 +151,7 @@ class WorkersManager(
       .map(_.replace("worker-", ""))
   }
 
-  private def startWorker(contextId: String, mode: RunMode): WorkerState = {
-    val workerId = mode match {
-      case RunMode.Shared => contextId
-      case RunMode.ExclusiveContext(id) =>
-        val uuid = UUID.randomUUID().toString
-        val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
-        s"$contextId-$postfix"
-    }
-
+  private def startWorker(workerId: String, contextId: String, mode: RunMode): WorkerState = {
     workerRunner.runWorker(workerId, contextId, mode)
     val defaultState = defaultWorkerState(workerId)
     val state = Initializing(defaultState.frontend)

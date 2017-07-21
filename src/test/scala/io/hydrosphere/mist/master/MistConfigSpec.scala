@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.master.models.ContextConfig
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -30,7 +31,7 @@ class MistConfigSpec extends FunSpec with Matchers {
       """.stripMargin)
 
     val settings = ContextsSettings(cfg)
-    settings.configFor("foo") shouldBe ContextConfig(
+    settings.contexts.get("foo") shouldBe Some(ContextConfig(
       name = "foo",
       sparkConf = Map("spark.master" -> "local[2]"),
       downtime = Duration.Inf,
@@ -38,7 +39,7 @@ class MistConfigSpec extends FunSpec with Matchers {
       precreated = false,
       runOptions = "--opt",
       streamingDuration = 1.seconds
-    )
+    ))
 
   }
 }

@@ -41,7 +41,7 @@ object ConfigRepr {
     }
   }
 
-  implicit val ContextsConfig = new ConfigRepr[ContextConfig] {
+  implicit val ContextConfigRepr = new ConfigRepr[ContextConfig] {
 
     val allowedTypes = Set(
       ConfigValueType.STRING,

@@ -35,7 +35,8 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
       "endpoint",
       "context",
        Source.Async("Kafka"),
-       None
+       None,
+      "workerId"
     )
 
     eventually(timeout(Span(3, Seconds))) {
@@ -52,7 +53,8 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
         source = Source.Http,
         endpoint = "endpoint",
         context = "context",
-        externalId = None
+        externalId = None,
+        workerId = "workerId"
       )
       Future.successful(Some(jobDetails))
     })
@@ -81,12 +83,13 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
         source = Source.Http,
         endpoint = "endpoint",
         context = "context",
-        externalId = None
+        externalId = None,
+        workerId = "workerId"
       )
 
     val expected = Table(
       ("event", "details"),
-      (QueuedEvent("id", "yoyo"), baseDetails.copy(status = Status.Queued, workerId = Some("yoyo"))),
+      (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled, endTime = Some(1))),
       (FinishedEvent("id", 1, Map("1" -> 2)),

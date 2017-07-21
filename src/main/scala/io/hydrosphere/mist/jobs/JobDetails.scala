@@ -98,7 +98,7 @@ case class JobDetails(
   endTime: Option[Long] = None,
   jobResult: Option[Either[String, Map[String, Any]]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  workerId: Option[String] = None,
+  workerId: String,
   createTime: Long = System.currentTimeMillis()
 ) {
 
@@ -119,6 +119,6 @@ case class JobDetails(
   def withStatus(status: JobDetails.Status): JobDetails =
     copy(status = status)
 
-  def isCancellable: Boolean = workerId.isDefined && !status.isFinished
+  def isCancellable: Boolean = !status.isFinished
 }
 

@@ -12,7 +12,18 @@ object Messages {
   object WorkerMessages {
 
     case class WorkerRegistration(name: String, address: Address)
-    case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest)
+
+    case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest) {
+
+      def computeWorkerId(): String = {
+        mode match {
+          case RunMode.Shared => context
+          case RunMode.ExclusiveContext(id) =>
+            val postfix = id.map(s => s"$s-${request.id}").getOrElse(request.id)
+            s"$context-$postfix"
+        }
+      }
+    }
     case class CancelJobCommand(workerId: String, request: CancelJobRequest)
 
     case class CreateContext(contextId: String)
@@ -81,7 +92,9 @@ object Messages {
       endpoint: String,
       context: String,
       source: Source,
-      externalId: Option[String])
+      externalId: Option[String],
+      workerId: String
+    )
 
     sealed trait SystemEvent
     sealed trait UpdateStatusEvent extends SystemEvent {
@@ -89,7 +102,7 @@ object Messages {
     }
 
     case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
-    case class QueuedEvent(id: String, workerId: String) extends UpdateStatusEvent
+    case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent

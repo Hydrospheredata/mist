@@ -13,6 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
 
+//TODO don't use public status struct
 case class ExecutionInfo(
   request: RunJobRequest,
   promise: Promise[Map[String, Any]],
@@ -30,6 +31,8 @@ object ExecutionInfo {
   def apply(req: RunJobRequest, status: JobDetails.Status): ExecutionInfo =
     ExecutionInfo(req, Promise[Map[String, Any]], status)
 
+  def apply(req: RunJobRequest): ExecutionInfo =
+    ExecutionInfo(req, Promise[Map[String, Any]], JobDetails.Status.Queued)
 }
 
 //TODO: if worker crashed - jobs that is in running status should be marked as Failure
@@ -149,7 +152,7 @@ class FrontendJobExecutor(
     queue += info
     jobs += req.id -> info
 
-    statusService ! QueuedEvent(req.id, name)
+    statusService ! QueuedEvent(req.id)
 
     info
   }

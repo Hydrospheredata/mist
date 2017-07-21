@@ -42,7 +42,7 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
 
       status.expectMsgType[QueuedEvent]
       status.expectMsgType[CanceledEvent]
-      status.reply(JobDetails("endp", "id", params, "context", None, JobDetails.Source.Http))
+      status.reply(JobDetails("endp", "id", params, "context", None, JobDetails.Source.Http, workerId = "workerId"))
 
       probe.expectMsgType[JobIsCancelled]
     }
