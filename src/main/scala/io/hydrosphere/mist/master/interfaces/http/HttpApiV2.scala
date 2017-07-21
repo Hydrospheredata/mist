@@ -5,17 +5,17 @@ import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
-import io.hydrosphere.mist.master.MasterService
-import io.hydrosphere.mist.master.data.contexts.ContextConfig
-import io.hydrosphere.mist.master.data.endpoints.{EndpointConfig, EndpointsStorage}
+import io.hydrosphere.mist.master.{JobService, MasterService}
+import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse, RunMode, RunSettings}
+import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, JobStartRequest, JobStartResponse, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
+
 
 class HttpApiV2(
   master: MasterService,
@@ -52,12 +52,12 @@ class HttpApiV2(
   val route: Route = {
     path( root / "endpoints" ) {
       get { complete {
-        master.listEndpoints().map(HttpEndpointInfoV2.convert)
+        master.endpointsInfo.map(HttpEndpointInfoV2.convert)
       }}
     } ~
     path( root / "endpoints" ) {
       post { entity(as[EndpointConfig]) { req =>
-        complete { endpoints.write(req.name, req) }
+        complete { master.endpoints.write(req.name, req) }
       }}
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
@@ -74,7 +74,7 @@ class HttpApiV2(
             }
           case Right(statuses) =>
             complete {
-              master.endpointHistory(endpointId, limits.limit, limits.offset, statuses)
+              master.jobService.endpointHistory(endpointId, limits.limit, limits.offset, statuses)
             }
         }
       }}
@@ -82,10 +82,11 @@ class HttpApiV2(
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
+          val jobReq = buildStartRequest(endpointId, query, params)
           if (query.force) {
-            completeOpt { runJobForce(endpointId, query, params) }
+            completeOpt { master.forceJobRun(jobReq, Source.Http) }
           } else {
-            completeOpt { runJob(endpointId, query, params) }
+            completeOpt { master.runJob(jobReq, Source.Http) }
           }
         }
       })
@@ -99,14 +100,14 @@ class HttpApiV2(
             }
           case Right(statuses) =>
             complete {
-              master.getHistory(limits.limit, limits.offset, statuses)
+              master.jobService.getHistory(limits.limit, limits.offset, statuses)
             }
         }
       }}
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       get { completeOpt {
-        master.jobStatusById(jobId)
+        master.jobService.jobStatusById(jobId)
       }}
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
@@ -116,14 +117,14 @@ class HttpApiV2(
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       delete { completeOpt {
-        master.stopJob(jobId)
+        master.jobService.stopJob(jobId)
       }}
     } ~
     path( root / "workers" ) {
-      get { complete(master.workers()) }
+      get { complete(master.jobService.workers()) }
     } ~
     path( root / "workers" / Segment ) { workerId =>
-      delete { completeU(master.stopWorker(workerId).map(_ => ())) }
+      delete { completeU(master.jobService.stopWorker(workerId)) }
     } ~
     path ( root / "contexts" ) {
       get { complete(master.contexts.entries) }
@@ -151,39 +152,6 @@ class HttpApiV2(
     }
   }
 
-  private def runJob(
-    endpointId: String,
-    queryParams: JobRunQueryParams,
-    params: JobParameters): Future[Option[JobStartResponse]] = {
-
-    import cats.data._
-    import cats.implicits._
-
-    val out = for {
-      ep <- OptionT.fromOption[Future](master.endpointInfo(endpointId))
-      request = buildStartRequest(ep.definition.name, queryParams, params)
-      resp <- OptionT.liftF(master.runJob(request, Source.Http))
-    } yield resp
-
-    out.value
-  }
-
-  private def runJobForce(
-    endpointId: String,
-    queryParams: JobRunQueryParams,
-    params: JobParameters
-  ): Future[Option[JobResult]] = {
-
-    import cats.data._
-    import cats.implicits._
-    val out = for {
-      ep <- OptionT.fromOption[Future](master.endpointInfo(endpointId))
-      request = buildStartRequest(ep.definition.name, queryParams, params)
-      resp <- OptionT.liftF(master.forceJobRun(request, Source.Http, Action.Execute))
-    } yield resp
-
-    out.value
-  }
 
   private def buildStartRequest(
     routeId: String,
@@ -223,5 +191,6 @@ object HttpApiV2 {
     limit: Int,
     offset: Int
   )
+
 
 }

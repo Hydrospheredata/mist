@@ -23,12 +23,12 @@ object HttpJobInfo {
   def forPython(name: String) = HttpJobInfo(name = name, isPython = true)
 
   def convert(info: JobInfo): HttpJobInfo = info match {
-    case py: PyJobInfo => HttpJobInfo.forPython(info.definition.name)
+    case py: PyJobInfo => HttpJobInfo.forPython(info.name)
     case jvm: JvmJobInfo =>
       val inst = jvm.jobClass
       val classes = inst.supportedClasses()
       HttpJobInfo(
-        name = info.definition.name,
+        name = info.name,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
@@ -93,13 +93,13 @@ object HttpEndpointInfoV2 {
   )
 
   def convert(info: JobInfo): HttpEndpointInfoV2 = info match {
-    case py: PyJobInfo => HttpEndpointInfoV2(name = py.definition.name, lang = PyLang)
+    case py: PyJobInfo => HttpEndpointInfoV2(name = py.name, lang = PyLang)
     case jvm: JvmJobInfo =>
       val inst = jvm.jobClass
       val classes = inst.supportedClasses()
       val tags = AllTags.filter(tag => classes.contains(tag.clazz)).map(_.name)
       HttpEndpointInfoV2(
-        name = jvm.definition.name,
+        name = jvm.name,
         lang = ScalaLang,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),

@@ -2,12 +2,14 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory, ConfigValueType}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
+import io.hydrosphere.mist.master.ConfigUtils._
+import io.hydrosphere.mist.master.data.ConfigRepr
+import io.hydrosphere.mist.master.data.contexts.ContextsStorage
+import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration.{Duration, FiniteDuration}
-import ConfigUtils._
-import io.hydrosphere.mist.master.data.contexts.ContextConfig
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -107,7 +109,7 @@ object ContextsSettings {
 
   def apply(config: Config): ContextsSettings = {
     val defaultCfg = config.getConfig("context-defaults")
-    val default = ContextConfig.Repr.fromConfig(defaultCfg.withValue("name", ConfigValueFactory.fromAnyRef(Default)))
+    val default = ConfigRepr.ContextsConfig.fromConfig(Default, defaultCfg)
 
     val contextsCfg = config.getConfig("context")
     val contexts = contextsCfg.root().entrySet().filter(entry => {
@@ -115,7 +117,7 @@ object ContextsSettings {
     }).map(entry => {
       val name = entry.getKey
       val cfg = contextsCfg.getConfig(name).withFallback(defaultCfg)
-      name -> ContextConfig.Repr.fromConfig(cfg.withValue("name", ConfigValueFactory.fromAnyRef(name)))
+      name -> ConfigRepr.ContextsConfig.fromConfig(name, cfg)
     }).toMap
 
     ContextsSettings(default, contexts)

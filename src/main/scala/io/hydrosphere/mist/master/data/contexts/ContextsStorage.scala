@@ -4,8 +4,13 @@ import java.nio.file.Path
 
 import io.hydrosphere.mist.master.ContextsSettings
 import io.hydrosphere.mist.master.data._
+import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
+import io.hydrosphere.mist.master.models.ContextConfig
 
-import ContextConfig._
+import scala.collection.JavaConverters._
+import scala.concurrent.duration.{Duration, FiniteDuration}
+
+import ContextsStorage._
 
 class ContextsStorage(dir: Path, default: ContextConfig)
   extends FsStorage[ContextConfig](dir) { self =>

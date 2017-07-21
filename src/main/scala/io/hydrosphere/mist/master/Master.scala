@@ -51,8 +51,7 @@ object Master extends App with Logger {
     }
 
     //TODO !!!
-    val jobEndpoints = JobEndpoints.fromConfigFile(appArguments.routerConfigPath)
-    val configuredEndpoints = ConfigFactory.parseFile(new File(appArguments.routerConfigPath))
+    val configuredEndpoints = ConfigFactory.parseFile(new File(appArguments.routerConfigPath)).resolve()
     val endpointsStorage = EndpointsStorage.create("endpoints", configuredEndpoints)
     val contextStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
 
@@ -84,10 +83,10 @@ object Master extends App with Logger {
     val workerManager = system.actorOf(
       WorkersManager.props(statusService, workerRunner, logsService.getLogger), "workers-manager")
 
+    val jobService = new JobService(workerManager, statusService)
     val masterService = new MasterService(
-      workerManager,
-      statusService,
-      jobEndpoints,
+      jobService,
+      endpointsStorage,
       contextStorage
     )
 

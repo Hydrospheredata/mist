@@ -23,33 +23,33 @@ class HttpApi(master: MasterService) extends Logger {
 
   val route: Route = {
     path("internal" / "jobs") {
-      get { complete (master.activeJobs())}
+      get { complete (master.jobService.activeJobs())}
     } ~
     path("internal" / "jobs" / Segment / Segment) { (namespace, jobId) =>
       delete {
-        completeU { master.stopJob(jobId).map(_ => ()) }
+        completeU { master.jobService.stopJob(jobId).map(_ => ()) }
       }
     } ~
     path("internal" / "workers" ) {
-      get { complete(master.workers()) }
+      get { complete(master.jobService.workers()) }
     } ~
     path("internal" / "workers") {
       delete { completeU {
-        master.stopAllWorkers()
+        master.jobService.stopAllWorkers()
       }}
     } ~
     path("internal" / "workers" / Segment) { workerId =>
       delete {
         complete {
-          master.stopWorker(workerId).map(_ => Map("id" -> workerId ))
+          master.jobService.stopWorker(workerId).map(_ => Map("id" -> workerId ))
         }
       }
     } ~
     path("internal" / "routers") {
       get {
         complete {
-          val result = master.listEndpoints()
-           .map(i => i.definition.name -> HttpJobInfo.convert(i))
+          val result = master.endpointsInfo
+           .map(i => i.name -> HttpJobInfo.convert(i))
            .toMap
           result
         }
@@ -60,20 +60,13 @@ class HttpApi(master: MasterService) extends Logger {
         entity(as[JobParameters]) { jobParams =>
 
           complete {
-            val action = if (train.isDefined)
-              Action.Train
-            else if (serve.isDefined)
-              Action.Serve
-            else
-              Action.Execute
-
             val request = JobStartRequest(
               endpointId = routeId,
               parameters = jobParams,
               externalId = None,
               runSettings = RunSettings.Default
             )
-            master.forceJobRun(request, Source.Http, action)
+            master.forceJobRun(request, Source.Http)
           }
         }
       }}

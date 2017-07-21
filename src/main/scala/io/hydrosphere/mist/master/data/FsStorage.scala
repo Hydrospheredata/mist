@@ -3,8 +3,9 @@ package io.hydrosphere.mist.master.data
 import java.io.File
 import java.nio.file.{Files, Path}
 
-import com.typesafe.config.{ConfigFactory, ConfigRenderOptions, ConfigValueFactory}
+import com.typesafe.config.{ConfigFactory, ConfigRenderOptions}
 import io.hydrosphere.mist.master.data.FsStorage._
+import io.hydrosphere.mist.master.models.NamedConfig
 import io.hydrosphere.mist.utils.{Logger, fs}
 
 import scala.util._
@@ -42,10 +43,7 @@ class FsStorage[A <: NamedConfig : ConfigRepr](
 
   private def parseFile(f: File): Try[A] = {
     val name = f.getName.replace(".conf", "")
-    Try(ConfigFactory.parseFile(f)).map(c => {
-      val withName = c.withValue("name", ConfigValueFactory.fromAnyRef(name))
-      repr.fromConfig(withName)
-    })
+    Try(ConfigFactory.parseFile(f)).map(c => repr.fromConfig(name, c))
   }
 
   def write(name: String, entry: A): A = {

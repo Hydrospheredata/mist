@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import io.hydrosphere.mist.master.data.contexts.{ContextConfig, ContextsStorage}
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.data.contexts.ContextsStorage
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.duration._

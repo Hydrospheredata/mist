@@ -4,10 +4,13 @@ import java.nio.file.Path
 
 import com.typesafe.config.{Config, ConfigValueType}
 import io.hydrosphere.mist.master.data._
+import io.hydrosphere.mist.master.models.EndpointConfig
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.JavaConverters._
 import scala.util._
+
+import ConfigRepr._
 
 class EndpointsStorage(dir: Path) extends FsStorage[EndpointConfig](dir) {
   self =>
@@ -31,7 +34,7 @@ object EndpointsStorage extends Logger {
   def parseConfig(config: Config): Seq[EndpointConfig] = {
     def parse(name: String): Try[EndpointConfig] = Try {
       val part = config.getConfig(name)
-      EndpointConfig.Repr.fromConfig(name, part)
+      ConfigRepr.EndpointsRepr.fromConfig(name, part)
     }
 
     config.root().keySet().asScala
