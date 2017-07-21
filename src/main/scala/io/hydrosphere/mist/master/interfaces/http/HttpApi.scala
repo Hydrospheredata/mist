@@ -49,7 +49,7 @@ class HttpApi(master: MasterService) extends Logger {
       get {
         complete {
           val result = master.endpointsInfo
-           .map(i => i.name -> HttpJobInfo.convert(i))
+           .map(i => i.config.name -> HttpJobInfo.convert(i))
            .toMap
           result
         }

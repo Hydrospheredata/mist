@@ -2,17 +2,15 @@ package io.hydrosphere.mist.master
 
 import cats.data._
 import cats.implicits._
-
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.contexts.ContextsStorage
 import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
-import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
-
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MasterService(
@@ -83,22 +81,19 @@ class MasterService(
     out.value
   }
 
+  private def toFullInfo(e: EndpointConfig): Option[FullEndpointInfo] = {
+    import e._
 
-  def endpointsInfo: Seq[JobInfo] = {
-    val infos = endpoints.entries.map(c => JobInfo.load(c.name, c.path, c.className))
-    infos.collect({case Failure(e) => logger.error("Invalid route configuration", e)})
-
-    infos.collect({case Success(i) => i})
-  }
-
-  def endpointInfo(id: String): Option[JobInfo] = {
-    val info = endpoints.entry(id).map(c => JobInfo.load(c.name, c.path, c.className))
-    info match {
-      case Some(Success(i)) => Some(i)
-      case Some(Failure(e)) =>
+    JobInfo.load(name, path, className) match {
+      case Success(i) => Some(FullEndpointInfo(e, i))
+      case Failure(e) =>
         logger.error("Invalid route configuration", e)
         None
-      case None => None
     }
   }
+
+  def endpointsInfo: Seq[FullEndpointInfo] = endpoints.entries.flatMap(toFullInfo)
+
+  def endpointInfo(id: String): Option[FullEndpointInfo] = endpoints.entry(id).flatMap(toFullInfo)
+
 }
