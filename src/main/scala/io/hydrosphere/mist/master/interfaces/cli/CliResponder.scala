@@ -23,8 +23,8 @@ class CliResponder(
   implicit val timeout = Timeout.durationToTimeout(10.seconds)
 
   override def receive: Receive = {
-//    case ListRoutes =>
-//      sender ! masterService.routeDefinitions()
+    case ListRoutes =>
+      sender ! masterService.endpointsInfo
 
     case r: RunJobCli =>
       val req = JobStartRequest(r.endpointId, r.params, r.extId)

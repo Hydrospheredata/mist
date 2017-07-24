@@ -116,7 +116,6 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
     }
   }
 
-
   describe("jobs") {
 
     val jobDetails = JobDetails(

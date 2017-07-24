@@ -173,9 +173,7 @@ object Command {
   }
 
   private def parseStartCommand(s: String): Either[String, StartJobCmd] = {
-    import cats._
     import cats.implicits._
-    import cats.data._
     import spray.json._
     import JsonCodecs._
 

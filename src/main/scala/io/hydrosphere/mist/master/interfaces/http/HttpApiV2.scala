@@ -4,6 +4,7 @@ import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
+
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.master.data.contexts.ContextsStorage
@@ -12,6 +13,7 @@ import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, JobStartRequest, RunMode, RunSettings}
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
 
@@ -43,6 +45,7 @@ case class LimitOffsetQuery(
 object HttpV2Base {
 
   import Directives._
+  import JsonCodecs._
   import akka.http.scaladsl.model.StatusCodes
   import ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.server._
