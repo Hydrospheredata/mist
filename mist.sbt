@@ -1,6 +1,6 @@
 import sbt.Keys._
-import sbtassembly.Plugin.AssemblyKeys._
 import StageDist._
+import sbtassembly.AssemblyPlugin.autoImport._
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -51,7 +51,6 @@ lazy val libraryAdditionalDependencies = currentSparkVersion match {
 }
 
 lazy val mistLib = project.in(file("mist-lib"))
-  .settings(assemblySettings)
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
@@ -76,7 +75,6 @@ lazy val currentExamples = currentSparkVersion match {
 lazy val mist = project.in(file("."))
   .dependsOn(mistLib)
   .enablePlugins(DockerPlugin)
-  .settings(assemblySettings)
   .settings(commonSettings: _*)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings: _*)
@@ -334,5 +332,8 @@ lazy val commonAssemblySettings = Seq(
     case _ => MergeStrategy.first
   }
   },
+  assemblyShadeRules in assembly := Seq(
+      ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
+  ),
   test in assembly := {}
 )
