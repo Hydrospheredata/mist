@@ -6,6 +6,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.contexts.ContextsStorage
 import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
+import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
 
@@ -16,7 +17,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class MasterService(
   val jobService: JobService,
   val endpoints: EndpointsStorage,
-  val contexts: ContextsStorage
+  val contexts: ContextsStorage,
+  val logStorageMappings: LogStorageMappings
 ) extends Logger {
 
   def runJob(req: JobStartRequest, source: JobDetails.Source): Future[Option[JobStartResponse]] = {

@@ -87,7 +87,8 @@ object Master extends App with Logger {
     val masterService = new MasterService(
       jobService,
       endpointsStorage,
-      contextStorage
+      contextStorage,
+      logsMappings
     )
 
     contextStorage.precreated.foreach(context => {
@@ -106,9 +107,9 @@ object Master extends App with Logger {
     val http = {
       val api = new HttpApi(masterService)
       val apiv2 = {
-        val api = new HttpApiV2(masterService, logsMappings, endpointsStorage)
+        val api = HttpV2Routes.apiWithCORS(masterService)
         val ws = new WSApi(streamer)
-        CorsDirective.cors() { api.route ~ ws.route }
+        api ~ ws.route
       }
       val http = new HttpUi(config.http.uiPath).route ~ api.route ~ apiv2
       Http().bindAndHandle(http, config.http.host, config.http.port)
