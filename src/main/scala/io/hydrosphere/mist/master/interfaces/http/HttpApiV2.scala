@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.marshalling.ToResponseMarshallable
-import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.{StatusCodes, StatusCode, HttpResponse}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 
@@ -132,7 +132,26 @@ object HttpV2Routes {
     } ~
     path( root / "endpoints" ) {
       post { entity(as[EndpointConfig]) { req =>
-        complete { master.endpoints.write(req.name, req) }
+        if (master.endpoints.entry(req.name).isDefined) {
+          complete(HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists"))
+        } else {
+          complete {
+            val cfg = master.endpoints.write(req.name, req)
+            master.endpointInfo(cfg.name).map(HttpEndpointInfoV2.convert)
+          }
+        }
+      }}
+    } ~
+    path( root / "endpoints" ) {
+      put { entity(as[EndpointConfig]) { req =>
+        if (master.endpoints.entry(req.name).isEmpty) {
+          complete(HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists"))
+        } else {
+          complete {
+            val cfg = master.endpoints.write(req.name, req)
+            master.endpointInfo(cfg.name).map(HttpEndpointInfoV2.convert)
+          }
+        }
       }}
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
@@ -197,7 +216,20 @@ object HttpV2Routes {
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>
-        complete { contexts.write(context.name, context) }
+        if (contexts.entry(context.name).isDefined) {
+          complete(HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists"))
+        } else {
+          complete { contexts.write(context.name, context) }
+        }
+      }}
+    } ~
+    path( root / "contexts" / Segment) { id =>
+      put { entity(as[ContextConfig]) { context =>
+        if (contexts.entry(context.name).isEmpty) {
+          complete(HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found"))
+        } else {
+          complete { contexts.write(context.name, context) }
+        }
       }}
     }
   }

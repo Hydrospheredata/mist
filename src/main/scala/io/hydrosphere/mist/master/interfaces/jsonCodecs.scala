@@ -156,7 +156,8 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val jobStartRequestF = jsonFormat5(JobStartRequest)
   implicit val asynJobStartRequestF = jsonFormat4(AsyncJobStartRequest)
-  implicit val endpointConfig = jsonFormat4(EndpointConfig.apply)
+
+  implicit val endpointConfigF = jsonFormat4(EndpointConfig.apply)
 
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
 
