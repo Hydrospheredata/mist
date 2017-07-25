@@ -58,7 +58,7 @@ Glosssary:
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
-            <li>mode - Not required, values: [exlusive|shared]</li>
+            <li>mode - Not required, values: [exclusive|shared]</li>
             <li>workerId - Not required</li>
           </ul>
         </p>

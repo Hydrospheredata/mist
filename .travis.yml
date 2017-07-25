@@ -9,7 +9,6 @@ git:
 
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
-  - git submodule update --init --recursive
 
 
 script:
