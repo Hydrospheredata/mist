@@ -14,7 +14,7 @@ object Ui {
   lazy val ui: TaskKey[File] = taskKey[File]("Download ui or return cached")
 
   lazy val settings = Seq(
-    uiUrl := { (s: String) => s"https://github.com/Hydrospheredata/mist-ui/releases/download/v1.0.0/mist-ui-$s.tar.gz" },
+    uiUrl := { (s: String) => s"https://github.com/Hydrospheredata/mist-ui/releases/download/v$s/mist-ui-$s.tar.gz" },
     uiVersion := "1.0.0",
     uiCheckoutDir := "ui_local",
     ui := {
