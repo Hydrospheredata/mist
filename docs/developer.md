@@ -8,6 +8,9 @@ Example `sbt -DsparkVersion=2.1.0 mist/compile`
 
 `sbt mist/mistRun`
 
+Run with another ui directory (for ui development):
+`sbt 'mist/mistRun --ui-dir ${path to dist in mist-ui}'`
+
 ##### Run all tests
 
 `sbt testAll`
