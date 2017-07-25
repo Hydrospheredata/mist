@@ -21,6 +21,7 @@ import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 
 import scala.concurrent.Future
+import scala.util._
 
 class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
@@ -39,7 +40,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.workerRoutes(jobService)
 
       Get("/v2/api/workers") ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
         val rsp = responseAs[Seq[WorkerLink]]
         rsp.size shouldBe 1
       }
@@ -52,16 +53,16 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.workerRoutes(jobService)
 
       Delete("/v2/api/workers/id") ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
       }
     }
 
   }
 
-  describe("endpoint") {
+  val scalaJobClass = io.hydrosphere.mist.jobs.jar.MultiplyJob.getClass
+  val testScalaJob = JvmJobInfo(JobsLoader.Common.loadJobClass(scalaJobClass.getName).get)
 
-    val scalaJobClass = io.hydrosphere.mist.jobs.jar.MultiplyJob.getClass
-    val testScalaJob = JvmJobInfo(JobsLoader.Common.loadJobClass(scalaJobClass.getName).get)
+  describe("endpoints") {
 
     it("should run job") {
       val master = mock(classOf[MasterService])
@@ -71,7 +72,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
       }
     }
 
@@ -85,7 +86,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Get("/v2/api/endpoints") ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
 
         val endpoints = responseAs[Seq[HttpEndpointInfoV2]]
         endpoints.size shouldBe 2
@@ -110,14 +111,41 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Get("/v2/api/endpoints/id/jobs?status=started") ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
 
         val jobs = responseAs[Seq[JobDetails]]
         jobs.size shouldBe 1
       }
     }
 
+  }
+
+  describe("endpoint creation") {
+
+    val endpointConfig = EndpointConfig("name", "path", "className", "context")
+
     it("should create endpoint") {
+      val endpointsStorage = mock(classOf[EndpointsStorage])
+      val master = mock(classOf[MasterService])
+      when(master.endpoints).thenReturn(endpointsStorage)
+
+      when(endpointsStorage.entry(any(classOf[String]))).thenReturn(None)
+      when(endpointsStorage.write(any(classOf[String]), any(classOf[EndpointConfig])))
+        .thenReturn(endpointConfig)
+      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Success(
+        FullEndpointInfo(endpointConfig, testScalaJob)
+      ))
+
+      val route = HttpV2Routes.endpointsRoutes(master)
+
+      Post("/v2/api/endpoints", endpointConfig.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val info = responseAs[HttpEndpointInfoV2]
+        info.name shouldBe "name"
+      }
+    }
+
+    it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock(classOf[EndpointsStorage])
       val master = mock(classOf[MasterService])
       when(master.endpoints).thenReturn(endpointsStorage)
@@ -127,17 +155,14 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       when(endpointsStorage.entry(any(classOf[String]))).thenReturn(None)
       when(endpointsStorage.write(any(classOf[String]), any(classOf[EndpointConfig])))
         .thenReturn(endpointConfig)
-      when(master.endpointInfo(any(classOf[String]))).thenReturn(Some(
-        FullEndpointInfo(endpointConfig, testScalaJob)
-      ))
+      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Failure(new Exception("test failure")))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Post("/v2/api/endpoints", endpointConfig.toEntity) ~> route ~> check {
-        status === StatusCodes.OK
-        val info = responseAs[HttpEndpointInfoV2]
-        info.name shouldBe "name"
+        status shouldBe StatusCodes.BadRequest
       }
+
     }
   }
 
@@ -172,7 +197,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val route = HttpV2Routes.jobsRoutes(master)
 
       Get(s"/v2/api/jobs/id") ~> route ~> check {
-        status === StatusCodes.OK
+        status shouldBe StatusCodes.OK
         val rsp = responseAs[Option[JobDetails]]
         rsp.isDefined shouldBe true
       }

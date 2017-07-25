@@ -11,7 +11,7 @@ import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobS
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
+import scala.util.{Try, Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MasterService(
@@ -83,11 +83,14 @@ class MasterService(
     out.value
   }
 
-  private def toFullInfo(e: EndpointConfig): Option[FullEndpointInfo] = {
+  def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = {
     import e._
+    JobInfo.load(name, path, className).map(i => FullEndpointInfo(e, i))
+  }
 
-    JobInfo.load(name, path, className) match {
-      case Success(i) => Some(FullEndpointInfo(e, i))
+  private def toFullInfo(e: EndpointConfig): Option[FullEndpointInfo] = {
+    loadEndpointInfo(e) match {
+      case Success(fullInfo) => Some(fullInfo)
       case Failure(e) =>
         logger.error("Invalid route configuration", e)
         None

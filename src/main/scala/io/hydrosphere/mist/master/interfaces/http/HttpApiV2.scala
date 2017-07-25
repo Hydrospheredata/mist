@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.http
 
-import akka.http.scaladsl.marshalling.ToResponseMarshallable
+import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
 import akka.http.scaladsl.model.{StatusCodes, StatusCode, HttpResponse}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
@@ -16,6 +16,7 @@ import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.{Failure, Success, Try}
 
 case class JobRunQueryParams(
   force: Boolean,
@@ -72,6 +73,13 @@ object HttpV2Base {
   }
 
   val completeOpt = rejectEmptyResponse & complete _
+
+  def completeTry[A : ToEntityMarshaller](f: => Try[A], errorCode: StatusCode): StandardRoute = {
+    f match {
+      case Success(a) => complete(a)
+      case Failure(e) => complete(HttpResponse(errorCode, entity = e.getMessage))
+    }
+  }
 
   def withValidatedStatuses(s: Iterable[String])
       (m: Seq[JobDetails.Status]=> ToResponseMarshallable): StandardRoute = {
@@ -135,10 +143,13 @@ object HttpV2Routes {
         if (master.endpoints.entry(req.name).isDefined) {
           complete(HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists"))
         } else {
-          complete {
-            val cfg = master.endpoints.write(req.name, req)
-            master.endpointInfo(cfg.name).map(HttpEndpointInfoV2.convert)
-          }
+          completeTry({
+            master.loadEndpointInfo(req).map(fullInfo => {
+              master.endpoints.write(req.name, req)
+              fullInfo
+            }).map(HttpEndpointInfoV2.convert)
+
+          }, StatusCodes.BadRequest)
         }
       }}
     } ~
