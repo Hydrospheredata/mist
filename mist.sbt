@@ -1,5 +1,6 @@
 import sbt.Keys._
 import StageDist._
+import complete.DefaultParsers._
 import sbtassembly.AssemblyPlugin.autoImport._
 
 resolvers ++= Seq(
@@ -13,8 +14,7 @@ resolvers ++= Seq(
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
-lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
-lazy val buildUi: TaskKey[File] = taskKey[File]("Build UI")
+lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
@@ -82,6 +82,7 @@ lazy val mist = project.in(file("."))
   .settings(mistMiscTasks: _*)
   .settings(StageDist.settings: _*)
   .settings(dockerSettings: _*)
+  .settings(Ui.settings: _*)
   .settings(
     name := "mist",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
@@ -171,7 +172,7 @@ lazy val mist = project.in(file("."))
         CpFile(assembly.value).as("mist.jar"),
         CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
           .as(s"mist-examples-spark$sparkMajor.jar"),
-        CpFile(buildUi.value).as("ui")
+        CpFile(Ui.ui.value).as("ui")
       )
     },
     stageActions in basicStage +=
@@ -222,24 +223,20 @@ lazy val mistMiscTasks = Seq(
     sparkDir
   },
 
-  buildUi := {
-    val dir = baseDirectory.value / "ui"
-    if (dir.listFiles().isEmpty) {
-      "git submodule update --init --recursive".!
-    }
-    if (!(dir / "node_modules").exists()) {
-      Process("npm i", dir).!
-    }
-    val cmd = Seq("node", "node_modules/@angular/cli/bin/ng", "build", "--prod", "--aot", "--base-href", "/ui/" )
-    Process(cmd, dir).!
-
-    dir / "dist"
-  },
-
   mistRun := {
     val log = streams.value.log
     val sparkHome = sparkLocal.value.getAbsolutePath
-    val extraEnv = Seq("SPARK_HOME" -> sparkHome)
+
+    val taskArgs = spaceDelimited("<arg>").parsed
+    val uiEnvs = {
+      val uiPath =
+        taskArgs.grouped(2)
+          .find(parts => parts.size > 1 && parts.head == "--ui-dir")
+          .map(_.last)
+
+      uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+    }
+    val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
     val home = basicStage.value
 
     val args = Seq("bin/mist-master", "start", "--debug", "true")

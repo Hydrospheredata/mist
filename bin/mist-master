@@ -96,7 +96,7 @@ case $CMD in
     stopMist
     ;;
   *)
-   echo "Unsupported command: $1"
+   echo "Unsupported command: $1 {use [start|stop] }"
    exit 1
    ;;
 esac
