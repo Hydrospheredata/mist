@@ -91,8 +91,8 @@ class MasterService(
   private def toFullInfo(e: EndpointConfig): Option[FullEndpointInfo] = {
     loadEndpointInfo(e) match {
       case Success(fullInfo) => Some(fullInfo)
-      case Failure(e) =>
-        logger.error("Invalid route configuration", e)
+      case Failure(err) =>
+        logger.error("Invalid route configuration", err)
         None
     }
   }
