@@ -236,7 +236,6 @@ lazy val mistMiscTasks = Seq(
 
       uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
     }
-    println(uiEnvs)
     val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
     val home = basicStage.value
 
