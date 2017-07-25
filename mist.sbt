@@ -14,7 +14,7 @@ resolvers ++= Seq(
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
-lazy val mistRun: TaskKey[Unit] = taskKey[Unit]("Run mist locally")
+lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
@@ -226,7 +226,18 @@ lazy val mistMiscTasks = Seq(
   mistRun := {
     val log = streams.value.log
     val sparkHome = sparkLocal.value.getAbsolutePath
-    val extraEnv = Seq("SPARK_HOME" -> sparkHome)
+
+    val taskArgs = spaceDelimited("<arg>").parsed
+    val uiEnvs = {
+      val uiPath =
+        taskArgs.grouped(2)
+          .find(parts => parts.size > 1 && parts.head == "--ui-dir")
+          .map(_.last)
+
+      uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+    }
+    println(uiEnvs)
+    val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
     val home = basicStage.value
 
     val args = Seq("bin/mist-master", "start", "--debug", "true")
