@@ -32,7 +32,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 ![Mist Local Serving](http://dv9c7babquml0.cloudfront.net/docs-images/mist-model-serving.jpg)
 - Clear end-user REST API
 ```javascript
-    POST /weather-forecast
+    POST v2/api/endpoints/weather-forecast?force=true
     {
         lat: “37.777114”,
         long: “-122.419631”
