@@ -40,6 +40,30 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       }
     }
 
+    it("should return bad request on futures failed illegal argument exception") {
+      val master = mock(classOf[MasterService])
+      val api = new HttpApiV2(master, mappings).route
+
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
+        .thenReturn(Future.failed(new IllegalArgumentException("argument missing")))
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
+        status === StatusCodes.BadRequest
+      }
+    }
+
+    it("should return 500 on future`s any exception except iae") {
+      val master = mock(classOf[MasterService])
+      val api = new HttpApiV2(master, mappings).route
+
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
+        .thenReturn(Future.failed(new IllegalStateException("some exception")))
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
+        status === StatusCodes.InternalServerError
+      }
+    }
+
     it("should return endpoints") {
       val master = mock(classOf[MasterService])
       val api = new HttpApiV2(master, mappings).route

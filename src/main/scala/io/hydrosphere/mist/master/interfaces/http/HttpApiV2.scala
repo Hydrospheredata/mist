@@ -14,6 +14,7 @@ import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 /**
   * New http api
@@ -95,7 +96,18 @@ class HttpApiV2(
           if (query.force) {
             completeOpt { runJobForce(endpointId, query, params) }
           } else {
-            completeOpt { runJob(endpointId, query, params) }
+            onComplete(runJob(endpointId, query, params)) {
+              case Success(resp) =>
+                completeOpt { resp }
+              case Failure(ex: IllegalArgumentException) =>
+                complete {
+                  HttpResponse(StatusCodes.BadRequest, entity = s"Bad Request: ${ex.getMessage}")
+                }
+              case Failure(ex) =>
+                complete {
+                  HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}")
+                }
+            }
           }
         }
       })
