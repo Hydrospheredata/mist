@@ -28,6 +28,7 @@ class LogWriterSpec extends TestKit(ActorSystem("log-writer-test", ConfigFactory
 
   override def afterAll(): Unit = {
     FileUtils.deleteDirectory(dir.toFile)
+    TestKit.shutdownActorSystem(system)
   }
 
   implicit val timeout = Timeout(5 second)

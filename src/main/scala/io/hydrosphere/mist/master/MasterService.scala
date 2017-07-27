@@ -11,6 +11,7 @@ import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
+import io.hydrosphere.mist.jobs.Action.{Execute, Serve, Train}
 import io.hydrosphere.mist.jobs.{JobInfo, _}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs.jar.JobClass
@@ -99,16 +100,31 @@ class MasterService(
     val id = req.endpointId
     jobEndpoints.getInfo(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
-      case Some(jvmJobInfo @ JvmJobInfo(_, JobClass(_, execute, _, _))) =>
-        val validationResult = execute match {
-          case None => Left(new IllegalStateException(s"Job $id without execution"))
-          case Some(exec) => exec.validateParams(req.parameters).map(_ => jvmJobInfo)
-        }
-        validationResult match {
-          case Left(ex) => Future.failed(ex)
-          case Right(JvmJobInfo(definition, _)) => doStartJob(req, source, action, definition)
+      case Some(jvmJobInfo: JvmJobInfo)=>
+        validateJobAction(req.parameters, action, jvmJobInfo) match {
+          case Left(ex) =>
+            Future.failed(ex)
+          case Right(JvmJobInfo(definition, _)) =>
+            doStartJob(req, source, action, definition)
         }
       case Some(info) => doStartJob(req, source, action, info.definition)
+    }
+  }
+
+  private def validateJobAction(
+    params: Map[String, Any],
+    action: Action,
+    jobInfo: JvmJobInfo
+  ): Either[Throwable, JvmJobInfo] = {
+    val jobClass = jobInfo.jobClass
+    val inst = action match {
+      case Execute => jobClass.execute
+      case Train => jobClass.train
+      case Serve => jobClass.serve
+    }
+    inst match {
+      case None => Left(new IllegalStateException(s"Job without $action job instance"))
+      case Some(exec) => exec.validateParams(params).map(_ => jobInfo)
     }
   }
 
