@@ -65,7 +65,15 @@ class HttpApiV2(
 
   private val completeOpt = rejectEmptyResponse & complete _
 
-  val route: Route = {
+  private val exceptionHandler =
+    ExceptionHandler {
+      case iae: IllegalArgumentException =>
+        complete((StatusCodes.BadRequest, s"Bad request: ${iae.getMessage}"))
+      case ex =>
+        complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+    }
+
+  val route: Route =  {
     path( root / "endpoints" ) {
       get { complete {
         master.listEndpoints().map(HttpEndpointInfoV2.convert)
@@ -93,20 +101,11 @@ class HttpApiV2(
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
-          if (query.force) {
-            completeOpt { runJobForce(endpointId, query, params) }
-          } else {
-            onComplete(runJob(endpointId, query, params)) {
-              case Success(resp) =>
-                completeOpt { resp }
-              case Failure(ex: IllegalArgumentException) =>
-                complete {
-                  HttpResponse(StatusCodes.BadRequest, entity = s"Bad Request: ${ex.getMessage}")
-                }
-              case Failure(ex) =>
-                complete {
-                  HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}")
-                }
+          handleExceptions(exceptionHandler) {
+            if (query.force) {
+              completeOpt { runJobForce(endpointId, query, params) }
+            } else {
+              completeOpt { runJob(endpointId, query, params) }
             }
           }
         }
