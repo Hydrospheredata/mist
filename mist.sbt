@@ -64,6 +64,8 @@ lazy val mistLib = project.in(file("mist-lib"))
       "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
       "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
     )
+  ).settings(
+    sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue
   )
 
 lazy val currentExamples = currentSparkVersion match {

@@ -27,6 +27,9 @@ object hlist {
       case _: ::[_, _] => "(" + head + ") :: " + tail.toString
       case _ => head + " :: " + tail.toString
     }
+
+    def ::[H](h: H) = hlist.::(h, this)
+
   }
 
 
