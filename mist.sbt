@@ -6,7 +6,7 @@ import sbtassembly.AssemblyPlugin.autoImport._
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
   Resolver.sonatypeRepo("snapshots"),
-  Resolver.url("artifactory", url("https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns),
+  Resolver.url("artifactory", url("http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases"))(Resolver.ivyStylePatterns),
   "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
   "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
