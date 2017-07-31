@@ -73,19 +73,19 @@ object Boilerplate {
          -    type RunArg = ${`A::N`}
          -    val args = ${`a::n`}
          -
-         -    override def run(map: Map[String, Any], sc: SparkContext): Unit = {
+         -    override def run(map: Map[String, Any], sc: SparkContext): JobResult[Out] = {
          -      val asList = args.toList
          -      val z = asList.map(arg => arg.extract(map))
          -      val hasMissing = z.exists({case opt:Option[_] => opt.isEmpty})
          -      if (hasMissing) {
-         -         throw new RuntimeException("Missing Arg!")
+         -         JobResult.failure(new RuntimeException("Missing Arg!"))
          -      } else {
-         -         val plain = z.map(_.get) match {
+         -         z.map(_.get) match {
          -           case List(${`a..n`}) =>
          -             val tuplez: ${`withSc(A..N)`}= ${`withSc(a..n)`}.asInstanceOf[${`withSc(A..N)`}]
-         -             val r = func.tupled(tuplez)
-         -             println("Result Is:" + r)
-         -           case x => throw new RuntimeException("WTF??")
+         -             func.tupled(tuplez)
+         -           case x =>
+         -             JobResult.failure(new RuntimeException("Wtf??"))
          -         }
          -      }
          -    }

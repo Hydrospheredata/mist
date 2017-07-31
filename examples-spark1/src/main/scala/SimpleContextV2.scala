@@ -11,3 +11,4 @@ object SimpleContextV2 extends MistJob {
      JobSuccess(x)
    })
 }
+

@@ -10,7 +10,7 @@ trait JobP[+A] {
   def args: HList
 
 
-  def run(map: Map[String, Any], sc: SparkContext): Unit
+  def run(map: Map[String, Any], sc: SparkContext): JobResult[A]
 
 }
 
