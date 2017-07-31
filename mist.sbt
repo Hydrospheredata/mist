@@ -11,6 +11,7 @@ resolvers ++= Seq(
   "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
 
+lazy val is2_10: SettingKey[Boolean] = settingKey[Boolean]("Scala version")
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
@@ -36,6 +37,8 @@ lazy val commonSettings = Seq(
       case _ => "2.11.8"
     }),
 
+  is2_10 := scalaVersion.value.startsWith("2.10"),
+
   crossScalaVersions := mistScalaCrossCompile,
   version := "0.12.3"
 )
@@ -57,6 +60,16 @@ lazy val mistLib = project.in(file("mist-lib"))
     name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
     libraryDependencies ++= libraryAdditionalDependencies,
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+      }
+    },
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
 
@@ -67,6 +80,7 @@ lazy val mistLib = project.in(file("mist-lib"))
   ).settings(
     sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue
   )
+
 
 lazy val currentExamples = currentSparkVersion match {
   case versionRegex("1", minor) => examplesSpark1

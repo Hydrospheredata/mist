@@ -46,16 +46,20 @@ object Boilerplate {
 
   object GenJobInstances extends Template {
     val filename = "jobs.scala"
-    override val range = 1 to 21
+    override val range = 1 to 17
     def content(tv: TemplateVals) = {
       import tv._
       block"""
          |package io.hydrosphere.mist.api.v2
          |
-         |import io.hydrosphere.mist.api.v2.hlist._
+         |
+         |import shapeless._
+         |import shapeless.{HList, ::, HNil}
+         |import shapeless.syntax.std.traversable._
+         |import shapeless.syntax.std.tuple._
          |import org.apache.spark.SparkContext
          |
-         |trait Jobs {
+         |trait JobInstances {
          |
          -  class JobArgs${arity}[${`A..N`}]
          -        (${`a:Arg[A]..n:Arg[N]`}) {
@@ -63,19 +67,62 @@ object Boilerplate {
          -      new Job${arity}(${`a..n`}, func)
          -  }
          -  class Job${arity}[${`A..N`}, Out]
-         -        (${`a:Arg[A]..n:Arg[N]`}, val func: (${`A..N`}, SparkContext) => JobResult[Out])
+         -        (${`a:Arg[A]..n:Arg[N]`}, func: (${`A..N`}, SparkContext) => JobResult[Out])
          -    extends JobP[Out] {
          -
          -    type RunArg = ${`A::N`}
          -    val args = ${`a::n`}
+         -
+         -    override def run(map: Map[String, Any], sc: SparkContext): Unit = {
+         -      val asList = args.toList
+         -      val z = asList.map(arg => arg.extract(map))
+         -      val hasMissing = z.exists({case opt:Option[_] => opt.isEmpty})
+         -      if (hasMissing) {
+         -         throw new RuntimeException("Missing Arg!")
+         -      } else {
+         -         val plain = z.map(_.get) match {
+         -           case List(${`a..n`}) =>
+         -             val tuplez: ${`withSc(A..N)`}= ${`withSc(a..n)`}.asInstanceOf[${`withSc(A..N)`}]
+         -             val r = func.tupled(tuplez)
+         -             println("Result Is:" + r)
+         -           case x => throw new RuntimeException("WTF??")
+         -         }
+         -      }
+         -    }
          -  }
          -
          -  def withArgs[${`A..N`}](${`a:Arg[A]..n:Arg[N]`}): JobArgs${arity}[${`A..N`}] =
          -    new JobArgs${arity}(${`a..n`})
          |}
+         |
+         |object JobInstances extends JobInstances
       """
     }
   }
+
+//  object GenTuplers extends Template {
+//    val filename = "tuplers.scala"
+//    def content(tv: TemplateVals) = {
+//      import tv._
+//      block"""
+//         |package io.hydrosphere.mist.api.v2
+//         |
+//         |import io.hydrosphere.mist.api.v2.hlist._
+//         |
+//         |trait TupleInstances {
+//         |  type Aux[L <: HList, Out0] = Tupler[L] { type Out = Out0 }
+//         -  implicit def hlistTupler${arity}[${`A..N`}]: Aux[${`A::N`}, ${`(A..N)`}] =
+//         -      new Tupler[${`A::N`}] {
+//         -        type Out = ${`(A..N)`}
+//         -        def apply(l: ${`A::N`}): Out = l match {case ${`a::n`} => ${`(a..n)`} }
+//         -      }
+//         }
+//         |}
+//         |
+//         |object TupleInstances extends TupleInstances
+//      """
+//    }
+//  }
 
   trait Template {
     def filename: String
@@ -107,6 +154,8 @@ object Boilerplate {
     val `(a..n)`     = if (arity == 1) "Tuple1(a)" else synVals.mkString("(", ", ", ")")
     val `a:A..n:N`   = synTypedVals mkString ", "
 
+    val `withSc(a..n)` = (synVals :+ "sc").mkString("(", ", ", ")")
+    val `withSc(A..N)` = (synTypes :+ "SparkContext").mkString("(", ", ", ")")
     val synArgTypes = synTypes.map(t => s"Arg[$t]")
     val `Arg[A]..Arg[N]` = synArgTypes.mkString(", ")
     val `a:Arg[A]..n:Arg[N]` = (synVals zip synArgTypes) map { case (v, t) => v + ":" + t} mkString ", "
