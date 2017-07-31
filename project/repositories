@@ -1,4 +1,4 @@
 [repositories]
   local
+  sbt-plugins: https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/
   my-maven-proxy-releases: http://repo.hydrosphere.io/repository/maven-public/
-  sbt-plugins: http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases
