@@ -8,20 +8,21 @@ import io.hydrosphere.mist.api.v2.{JobSuccess, JobInstances, Arg}
 object Tests extends App {
 
   val map = Map(
-   "n" -> 4,
+   "n" -> List(4, 3, 4),
    "name" -> "namename"
   )
 
  import JobInstances._
 
   val job = withArgs(
-    Arg[Int]("n"),
+    Arg[Int]("n").seq,
     Arg[String]("name")
   ).withContext((n, name, context) => {
     JobSuccess(s"call $n + $name")
   })
 
 
-  job.run(map, null)
+  val x = job.run(map, null)
+  println(x)
 
 }

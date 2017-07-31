@@ -43,7 +43,6 @@ class JobsLoader(val classLoader: ClassLoader) {
     loadClass(className).map(clz => {
       val inst = new JobInstance(clz, null) {
         override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, JobResponse] = {
-          println("YOYOYO")
           val i = clz.getField("MODULE$").get(null).asInstanceOf[io.hydrosphere.mist.api.v2.MistJob]
           i.run.run(params, conf.context) match {
             case io.hydrosphere.mist.api.v2.JobSuccess(v) => Right(Map("result" -> v))
@@ -53,7 +52,6 @@ class JobsLoader(val classLoader: ClassLoader) {
 
       }
 
-      println("YOYOYO112")
       inst
     })
   }

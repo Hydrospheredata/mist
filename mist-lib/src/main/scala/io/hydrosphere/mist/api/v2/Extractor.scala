@@ -20,4 +20,15 @@ object Extractor {
     }
   }
 
+  implicit def seqExt[T](implicit low: Extractor[T]): Extractor[Seq[T]] = new Extractor[Seq[T]] {
+    override def fromAny(a: Any): Option[Seq[T]] = {
+      a match {
+        case s: Seq[_] =>
+          val checked = s.map(s => low.fromAny(s))
+          if (checked.exists(_.isEmpty)) None else Some(checked.collect({case Some(v) => v}))
+        case x => None
+      }
+    }
+  }
+
 }

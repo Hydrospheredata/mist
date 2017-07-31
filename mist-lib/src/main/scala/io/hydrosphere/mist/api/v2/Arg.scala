@@ -5,6 +5,8 @@ case class Arg[T](val name: String)(implicit extrc: Extractor[T]) {
   def extract(map: Map[String, Any]): Option[T] = {
     map.get(name).flatMap(extrc.fromAny)
   }
+
+  def seq: Arg[Seq[T]] = new Arg[Seq[T]](name)
 }
 
 //sealed trait ArgRes[+T]
