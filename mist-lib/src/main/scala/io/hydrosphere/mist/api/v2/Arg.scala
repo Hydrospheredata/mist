@@ -7,6 +7,21 @@ case class Arg[T](val name: String)(implicit extrc: Extractor[T]) {
   }
 
   def seq: Arg[Seq[T]] = new Arg[Seq[T]](name)
+
+  def map[B](f: T=> B): Arg[B] = {
+    implicit val extr2 = new Extractor[B] {
+      override def fromAny(a: Any): Option[B] =
+        extrc.fromAny(a).map(f)
+    }
+    new Arg[B](name)
+  }
+}
+
+object Arg {
+
+  def intArg(name: String): Arg[Int] = Arg(name)
+  def jIntArg(name: String): Arg[java.lang.Integer] = intArg(name).map(java.lang.Integer.valueOf)
+  def strArg(name: String): Arg[String] = Arg[String](name)
 }
 
 //sealed trait ArgRes[+T]

@@ -53,7 +53,7 @@ class HttpApiV2(
       'context ?,
       'mode ?,
       'workerId ?
-    ).as(JobRunQueryParams)
+      ).as(JobRunQueryParams)
 
   private val jobsQuery = {
     parameters(

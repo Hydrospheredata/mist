@@ -38,6 +38,7 @@ lazy val commonSettings = Seq(
     }),
 
   is2_10 := scalaVersion.value.startsWith("2.10"),
+  scalacOptions += "-feature",
 
   crossScalaVersions := mistScalaCrossCompile,
   version := "0.12.3"
