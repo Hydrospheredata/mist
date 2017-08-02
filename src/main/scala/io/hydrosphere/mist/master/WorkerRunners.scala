@@ -35,12 +35,20 @@ trait ShellWorkerScript {
       "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
       "--log-service", s"${config.logs.host}:${config.logs.port}",
       "--mode", mode.name
-    ) ++ mkSparkConf(contextConfig)
+    ) ++ mkSparkConf(contextConfig) ++ mkRunOptions(contextConfig)
   }
 
   def mkSparkConf(ctxConfig: ContextConfig): Seq[String] = {
     ctxConfig.sparkConf.toList.map({case (k, v) => s"$k=$v"})
       .flatMap(p=> Seq("--spark-conf", p))
+  }
+
+  def mkRunOptions(ctxConfig: ContextConfig): Seq[String] = {
+    val opts = ctxConfig.runOptions
+    if (opts.isEmpty)
+      Seq.empty
+    else
+      Seq("--run-options", opts)
   }
 
   def durationToArg(d: Duration): String = d match {
@@ -49,6 +57,8 @@ trait ShellWorkerScript {
   }
 
 }
+
+object ShellWorkerScript extends ShellWorkerScript
 
 /**
   * Spawn workers on the same host
