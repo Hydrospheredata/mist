@@ -5,7 +5,7 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration._
 
 import ConfigUtils._
 
@@ -69,6 +69,8 @@ object AsyncInterfaceConfig {
       subscribeTopic = config.getString("subscribe-topic")
     )
   }
+
+  val disabled: AsyncInterfaceConfig = AsyncInterfaceConfig(isOn = false, "", 0, "", "")
 }
 
 case class WorkersSettingsConfig(
@@ -171,6 +173,8 @@ object SecurityConfig {
       interval = c.getFiniteDuration("interval")
     )
   }
+
+  val disabled = SecurityConfig(enabled = false, "", "", 1.second)
 }
 
 case class MasterConfig(
