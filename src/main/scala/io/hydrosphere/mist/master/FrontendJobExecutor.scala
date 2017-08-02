@@ -5,6 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.Messages.JobMessages._
+import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 
@@ -52,6 +53,10 @@ class FrontendJobExecutor(
   val common: Receive = {
     case GetActiveJobs =>
       sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
+    case FailRemainingJobs =>
+      jobs.foreach { case (id, info) =>
+        statusService ! StatusMessages.FailedEvent(id, System.currentTimeMillis(), "worker down (e.g. timeout, jvm crash)")
+      }
   }
 
   private def noWorker: Receive = common orElse {
