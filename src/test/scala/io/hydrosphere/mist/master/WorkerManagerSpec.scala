@@ -31,7 +31,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
   def testManager(): ActorRef = {
     system.actorOf(
-      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger))
+      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger, 20 seconds))
   }
 
   implicit override val patienceConfig =
