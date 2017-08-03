@@ -7,7 +7,6 @@ import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
 import io.hydrosphere.mist.master.models.JobStartRequest
 import org.mockito.Matchers._
 import org.mockito.Mockito._

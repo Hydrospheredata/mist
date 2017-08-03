@@ -2,22 +2,22 @@ package io.hydrosphere.mist.master.data
 
 import java.io.File
 import java.nio.file.{Files, Path}
+import java.util.concurrent.Executors
 
 import com.typesafe.config.{ConfigFactory, ConfigRenderOptions}
+import io.hydrosphere.mist.master.ContextsSettings
 import io.hydrosphere.mist.master.data.FsStorage._
-import io.hydrosphere.mist.master.models.NamedConfig
+import io.hydrosphere.mist.master.models.{ContextConfig, NamedConfig}
 import io.hydrosphere.mist.utils.{Logger, fs}
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
-class FsStorage[A <: NamedConfig : ConfigRepr](
+class FsStorage[A <: NamedConfig](
   dir: Path,
+  repr: ConfigRepr[A],
   renderOptions: ConfigRenderOptions = DefaultRenderOptions
-) extends Logger with RwLock {
-
-  self =>
-
-  private val repr = implicitly[ConfigRepr[A]]
+) extends Logger with RwLock { self =>
 
   def entries: Seq[A] = {
     def files = dir.toFile.listFiles(fs.mkFilter(_.endsWith(".conf")))
@@ -70,6 +70,8 @@ object FsStorage {
       .setJson(false)
       .setFormatted(true)
 
-  def create[A <: NamedConfig : ConfigRepr](path: String): FsStorage[A] = new FsStorage[A](checkDirectory(path))
+  def create[A <: NamedConfig](path: String, repr: ConfigRepr[A]): FsStorage[A] =
+    new FsStorage[A](checkDirectory(path), repr)
 
 }
+

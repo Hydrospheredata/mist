@@ -4,8 +4,8 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
-import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
+import io.hydrosphere.mist.master.data.ContextsStorage
+import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
@@ -69,7 +69,7 @@ class MasterService(
 
   private def runJobRaw(req: JobStartRequest, source: JobDetails.Source): Future[Option[ExecutionInfo]] = {
     val out = for {
-      endpoint <- OptionT.fromOption[Future](endpoints.entry(req.endpointId))
+      endpoint <- OptionT(endpoints.get(req.endpointId))
       executionInfo <- OptionT.liftF(jobService.startJob(
         req.id,
         endpoint,
@@ -97,8 +97,12 @@ class MasterService(
     }
   }
 
-  def endpointsInfo: Seq[FullEndpointInfo] = endpoints.entries.flatMap(toFullInfo)
+  def endpointsInfo: Future[Seq[FullEndpointInfo]] = {
+    endpoints.all.map(_.flatMap(toFullInfo))
+  }
 
-  def endpointInfo(id: String): Option[FullEndpointInfo] = endpoints.entry(id).flatMap(toFullInfo)
+  def endpointInfo(id: String): Future[Option[FullEndpointInfo]] = {
+    endpoints.get(id).map(_.flatMap(toFullInfo))
+  }
 
 }

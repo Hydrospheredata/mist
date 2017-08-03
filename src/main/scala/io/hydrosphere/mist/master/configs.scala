@@ -5,7 +5,6 @@ import java.io.File
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
 import io.hydrosphere.mist.master.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.collection.JavaConversions._
@@ -153,6 +152,7 @@ case class MasterConfig(
   contextsSettings: ContextsSettings,
   dbPath: String,
   contextsPath: String,
+  endpointsPath: String,
   security: SecurityConfig,
   raw: Config
 )
@@ -178,6 +178,7 @@ object MasterConfig {
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
       contextsPath = mist.getString("contexts-store.path"),
+      endpointsPath = mist.getString("endpoints-store.path"),
       security = SecurityConfig(mist.getConfig("security")),
       raw = config
     )

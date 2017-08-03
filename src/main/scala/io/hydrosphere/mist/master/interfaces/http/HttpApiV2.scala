@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.directives.ParameterDirectives
 
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.JobDetails
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
+import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobService, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, JobStartRequest, RunMode, RunSettings}
@@ -135,39 +135,45 @@ object HttpV2Routes {
   def endpointsRoutes(master: MasterService): Route = {
     path( root / "endpoints" ) {
       get { complete {
-        master.endpointsInfo.map(HttpEndpointInfoV2.convert)
+        master.endpointsInfo.map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" ) {
       post { entity(as[EndpointConfig]) { req =>
-        if (master.endpoints.entry(req.name).isDefined) {
-          complete(HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists"))
-        } else {
-          completeTry({
-            master.loadEndpointInfo(req).map(fullInfo => {
-              master.endpoints.write(req.name, req)
-              fullInfo
-            }).map(HttpEndpointInfoV2.convert)
-
-          }, StatusCodes.BadRequest)
+        onSuccess(master.endpoints.get(req.name)) {
+          case Some(_) =>
+            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
+            complete(resp)
+          case None =>
+            completeTry({
+              master.loadEndpointInfo(req).map(fullInfo => {
+                master.endpoints.update(req)
+                fullInfo
+              }).map(HttpEndpointInfoV2.convert)
+            }, StatusCodes.BadRequest)
         }
       }}
     } ~
     path( root / "endpoints" ) {
       put { entity(as[EndpointConfig]) { req =>
-        if (master.endpoints.entry(req.name).isEmpty) {
-          complete(HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists"))
-        } else {
-          complete {
-            val cfg = master.endpoints.write(req.name, req)
-            master.endpointInfo(cfg.name).map(HttpEndpointInfoV2.convert)
-          }
+
+        onSuccess(master.endpoints.get(req.name)) {
+          case None =>
+            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
+            complete(resp)
+          case Some(_) =>
+            completeTry({
+              master.loadEndpointInfo(req).map(fullInfo => {
+                master.endpoints.update(req)
+                fullInfo
+              }).map(HttpEndpointInfoV2.convert)
+            }, StatusCodes.BadRequest)
         }
       }}
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
       get { completeOpt {
-        master.endpointInfo(endpointId).map(HttpEndpointInfoV2.convert)
+        master.endpointInfo(endpointId).map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
@@ -220,26 +226,28 @@ object HttpV2Routes {
 
   def contextsRoutes(contexts: ContextsStorage): Route = {
     path ( root / "contexts" ) {
-      get { complete(contexts.entries) }
+      get { complete(contexts.all) }
     } ~
     path ( root / "contexts" / Segment ) { id =>
-      get { complete(contexts.entry(id)) }
+      get { complete(contexts.get(id)) }
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>
-        if (contexts.entry(context.name).isDefined) {
-          complete(HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists"))
-        } else {
-          complete { contexts.write(context.name, context) }
+        onSuccess(contexts.get(context.name)) {
+          case None => complete { contexts.update(context) }
+          case Some(_) =>
+            val rsp = HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists")
+            complete(rsp)
         }
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
       put { entity(as[ContextConfig]) { context =>
-        if (contexts.entry(context.name).isEmpty) {
-          complete(HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found"))
-        } else {
-          complete { contexts.write(context.name, context) }
+        onSuccess(contexts.get(context.name)) {
+          case Some(_) => complete { contexts.update(context) }
+          case None =>
+            val rsp = HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found")
+            complete(rsp)
         }
       }}
     }

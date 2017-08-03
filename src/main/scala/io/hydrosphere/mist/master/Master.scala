@@ -10,6 +10,7 @@ import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.master.data.{EndpointsStorage, ContextsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
@@ -17,12 +18,11 @@ import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.Constants
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
-import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
-//import io.hydrosphere.mist.master.data.contexts.DirectoryContextStore
 import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.language.reflectiveCalls
 
 
@@ -50,9 +50,7 @@ object Master extends App with Logger {
       })
     }
 
-    //TODO !!!
-    val configuredEndpoints = ConfigFactory.parseFile(new File(appArguments.routerConfigPath)).resolve()
-    val endpointsStorage = EndpointsStorage.create("endpoints", configuredEndpoints)
+    val endpointsStorage = EndpointsStorage.create("endpoints", appArguments.routerConfigPath)
     val contextStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
 
     implicit val system = ActorSystem("mist", config.raw)
@@ -91,7 +89,8 @@ object Master extends App with Logger {
       logsMappings
     )
 
-    contextStorage.precreated.foreach(context => {
+    val precreated = Await.result(contextStorage.precreated, Duration.Inf)
+    precreated.foreach(context => {
       val name = context.name
       logger.info(s"Precreate context for $name namespace")
       workerManager ! CreateContext(name)

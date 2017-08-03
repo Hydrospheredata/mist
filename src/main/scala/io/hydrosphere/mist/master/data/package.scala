@@ -1,6 +1,8 @@
 package io.hydrosphere.mist.master
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
+
+import org.apache.commons.io.FileUtils
 
 package object data {
 
@@ -9,7 +11,7 @@ package object data {
     val dir = p.toFile
 
     if (!dir.exists())
-      dir.mkdir()
+      Files.createDirectories(p)
     else if (dir.isFile)
       throw new IllegalArgumentException(s"Path $path already exists as file")
 

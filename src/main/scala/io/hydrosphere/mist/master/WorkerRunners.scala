@@ -1,11 +1,11 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
-
-import io.hydrosphere.mist.master.data.contexts.ContextsStorage
+import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.Logger
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.sys.process._
@@ -27,7 +27,8 @@ trait ShellWorkerScript {
     contextsStorage: ContextsStorage
   ): Seq[String] = {
 
-    val contextConfig = contextsStorage.getOrDefault(context)
+    // TODO!!!!!
+    val contextConfig = Await.result(contextsStorage.getOrDefault(context), 10 second)
 
     Seq[String](
       "--master", s"${config.cluster.host}:${config.cluster.port}",
@@ -92,7 +93,7 @@ class ManualWorkerRunner(
   jarPath: String) extends WorkerRunner {
 
   override def runWorker(name: String, context: String, mode: RunMode): Unit = {
-    val contextConfig = contextsStorage.getOrDefault(context)
+    val contextConfig = Await.result(contextsStorage.getOrDefault(context), 10 second)
     Process(
       Seq("bash", "-c", config.workers.cmd),
       None,
