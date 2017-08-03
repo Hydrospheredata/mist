@@ -14,6 +14,7 @@ import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 /**
   * New http api
@@ -64,7 +65,15 @@ class HttpApiV2(
 
   private val completeOpt = rejectEmptyResponse & complete _
 
-  val route: Route = {
+  private val exceptionHandler =
+    ExceptionHandler {
+      case iae: IllegalArgumentException =>
+        complete((StatusCodes.BadRequest, s"Bad request: ${iae.getMessage}"))
+      case ex =>
+        complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+    }
+
+  val route: Route =  {
     path( root / "endpoints" ) {
       get { complete {
         master.listEndpoints().map(HttpEndpointInfoV2.convert)
@@ -92,10 +101,12 @@ class HttpApiV2(
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
-          if (query.force) {
-            completeOpt { runJobForce(endpointId, query, params) }
-          } else {
-            completeOpt { runJob(endpointId, query, params) }
+          handleExceptions(exceptionHandler) {
+            if (query.force) {
+              completeOpt { runJobForce(endpointId, query, params) }
+            } else {
+              completeOpt { runJob(endpointId, query, params) }
+            }
           }
         }
       })
