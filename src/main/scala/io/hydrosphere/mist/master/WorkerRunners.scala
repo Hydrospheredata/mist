@@ -103,6 +103,8 @@ class ManualWorkerRunner(
       Seq("bash", "-c", config.workers.cmd),
       None,
       "MIST_WORKER_NAMESPACE" -> name,
+      "MIST_WORKER_CONTEXT" -> context,
+      "MIST_WORKER_MODE" -> mode.name,
       "MIST_WORKER_JAR_PATH" -> jarPath,
       "MIST_WORKER_RUN_OPTIONS" -> contextConfig.runOptions
     ).run(false)
