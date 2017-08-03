@@ -68,7 +68,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         downtime = 10.minutes,
         maxJobs = 10,
         precreated = false,
-        runOptions = "--key",
+        runOptions = "",
         streamingDuration = 1.minutes
       )
       val raw = ConfigRepr.ContextConfigRepr.toConfig(context)

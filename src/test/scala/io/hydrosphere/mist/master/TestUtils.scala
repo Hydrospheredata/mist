@@ -2,7 +2,10 @@ package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
 
-object TestData {
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+
+object TestUtils {
 
 
   val contextSettings = {
@@ -28,5 +31,10 @@ object TestData {
       """.stripMargin)
     
     ContextsSettings(cfg)
+  }
+
+
+  implicit class AwaitSyntax[A](f: => Future[A]) {
+    def await: A = Await.result(f, Duration.Inf)
   }
 }

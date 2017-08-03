@@ -23,7 +23,7 @@ class ContextsStorage(
   }
 
   def getOrDefault(name: String): Future[ContextConfig] =
-    get(name).map(_.getOrElse(defaultSettings.default))
+    get(name).map(_.getOrElse(defaultSettings.default.copy(name = name)))
 
   def all: Future[Seq[ContextConfig]] =
     Future { fsStorage.entries } map (stored => stored ++ allFromSettings)
