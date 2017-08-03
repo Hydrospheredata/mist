@@ -141,8 +141,9 @@ class WorkersManager(
           case (name, state: Initializing) =>
             val timeout = runnerInitTimeout.toSeconds.toInt
             if (state.timestamp.minusSeconds(timeout).isBeforeNow) {
-              log.warning(s"Worker $name initialization timeout: not being responsive for ${timeout}s")
-              state.frontend ! FailRemainingJobs
+              val reason = s"Worker $name initialization timeout: not being responsive for ${timeout}s"
+              log.warning(reason)
+              state.frontend ! FailRemainingJobs(reason)
               setWorkerDown(name)
             }
           case _ => // ignore Started and Down states

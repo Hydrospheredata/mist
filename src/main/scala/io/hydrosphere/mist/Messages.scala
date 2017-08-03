@@ -19,7 +19,7 @@ object Messages {
 
     case object GetWorkers
     case object GetActiveJobs
-    case object FailRemainingJobs
+    case class FailRemainingJobs(reason: String)
 
     case class StopWorker(name: String)
     case object StopAllWorkers

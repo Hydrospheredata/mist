@@ -52,9 +52,9 @@ class FrontendJobExecutor(
   val common: Receive = {
     case GetActiveJobs =>
       sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
-    case FailRemainingJobs =>
+    case FailRemainingJobs(reason) =>
       jobs.keySet
-        .map(JobFailure(_, "worker down (e.g. timeout, jvm crash)"))
+        .map(JobFailure(_, reason))
         .foreach(onJobDone)
   }
 
