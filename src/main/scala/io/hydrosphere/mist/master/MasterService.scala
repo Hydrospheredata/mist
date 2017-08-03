@@ -11,8 +11,10 @@ import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
+import io.hydrosphere.mist.jobs.Action.{Execute, Serve, Train}
+import io.hydrosphere.mist.jobs.{JobInfo, _}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
-import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.jar.JobClass
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
 import io.hydrosphere.mist.utils.Logger
 
@@ -96,35 +98,67 @@ class MasterService(
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
     val id = req.endpointId
-    jobEndpoints.getDefinition(id) match {
+    jobEndpoints.getInfo(id) match {
       case None => Future.failed(new IllegalStateException(s"Job with route $id not defined"))
-      case Some(d) =>
-        val internalRequest = RunJobRequest(
-          id = req.id,
-          JobParams(
-            filePath = d.path,
-            className = d.className,
-            arguments = req.parameters,
-            action = action
-          )
-        )
-
-        val namespace = req.runSettings.contextId.getOrElse(d.nameSpace)
-
-        val registrationCommand = Register(
-          request = internalRequest,
-          endpoint = req.endpointId,
-          context = namespace,
-          source = source,
-          req.externalId
-        )
-        val startCmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
-
-        for {
-          _ <- statusService.ask(registrationCommand).mapTo[Unit]
-          info <- workerManager.ask(startCmd).mapTo[ExecutionInfo]
-        } yield info
+      case Some(jvmJobInfo: JvmJobInfo)=>
+        validateJobAction(req.parameters, action, jvmJobInfo) match {
+          case Left(ex) =>
+            Future.failed(ex)
+          case Right(JvmJobInfo(definition, _)) =>
+            doStartJob(req, source, action, definition)
+        }
+      case Some(info) => doStartJob(req, source, action, info.definition)
     }
+  }
+
+  private def validateJobAction(
+    params: Map[String, Any],
+    action: Action,
+    jobInfo: JvmJobInfo
+  ): Either[Throwable, JvmJobInfo] = {
+    val jobClass = jobInfo.jobClass
+    val inst = action match {
+      case Execute => jobClass.execute
+      case Train => jobClass.train
+      case Serve => jobClass.serve
+    }
+    inst match {
+      case None => Left(new IllegalStateException(s"Job without $action job instance"))
+      case Some(exec) => exec.validateParams(params).map(_ => jobInfo)
+    }
+  }
+
+  private def doStartJob(
+    req: JobStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute,
+    definition: JobDefinition
+  ): Future[ExecutionInfo] = {
+    val internalRequest = RunJobRequest(
+      id = req.id,
+      JobParams(
+        filePath = definition.path,
+        className = definition.className,
+        arguments = req.parameters,
+        action = action
+      )
+    )
+
+    val namespace = req.runSettings.contextId.getOrElse(definition.nameSpace)
+
+    val registrationCommand = Register(
+      request = internalRequest,
+      endpoint = req.endpointId,
+      context = namespace,
+      source = source,
+      req.externalId
+    )
+    val startCmd = RunJobCommand(namespace, req.runSettings.mode, internalRequest)
+
+    for {
+      _ <- statusService.ask(registrationCommand).mapTo[Unit]
+      info <- workerManager.ask(startCmd).mapTo[ExecutionInfo]
+    } yield info
   }
 
   def runJob(

@@ -6,11 +6,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.jobs.{Action, JobDefinition, JobDetails, PyJobInfo}
+import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import io.hydrosphere.mist.master.models.{JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.{MasterService, WorkerLink}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}
@@ -37,6 +37,31 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
       Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
         status === StatusCodes.OK
+      }
+    }
+
+    it("should return bad request on futures failed illegal argument exception") {
+      val master = mock(classOf[MasterService])
+      val api = new HttpApiV2(master, mappings).route
+      when(master.endpointInfo(any(classOf[String]))).thenReturn(Some(pyInfo))
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
+        .thenReturn(Future.failed(new IllegalArgumentException("argument missing")))
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
+        responseAs[String] shouldBe "Bad request: argument missing"
+        status shouldBe StatusCodes.BadRequest
+      }
+    }
+
+    it("should return 500 on future`s any exception except iae") {
+      val master = mock(classOf[MasterService])
+      val api = new HttpApiV2(master, mappings).route
+      when(master.endpointInfo(any(classOf[String]))).thenReturn(Some(pyInfo))
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source]), any[Action]))
+        .thenReturn(Future.failed(new IllegalStateException("some exception")))
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> api ~> check {
+        status shouldBe StatusCodes.InternalServerError
       }
     }
 
