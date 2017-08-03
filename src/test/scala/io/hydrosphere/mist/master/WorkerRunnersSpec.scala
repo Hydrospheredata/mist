@@ -2,7 +2,9 @@ package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.master.models.RunMode
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{FunSpec, Matchers}
+
+import scala.concurrent.duration.DurationDouble
 
 class WorkerRunnersSpec extends FunSpec with Matchers{
 
@@ -15,7 +17,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         mqtt = AsyncInterfaceConfig.disabled,
         kafka = AsyncInterfaceConfig.disabled,
         logs = LogServiceConfig("logsHost", 5000, ""),
-        workers = WorkersSettingsConfig("local", "", 0, "", ""),
+        workers = WorkersSettingsConfig("local", 20 seconds, "", 0, "", ""),
         contextsSettings = ContextsSettings(contextConfig),
         dbPath = "",
         security = SecurityConfig.disabled,

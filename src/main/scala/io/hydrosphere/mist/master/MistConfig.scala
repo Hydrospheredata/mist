@@ -75,6 +75,7 @@ object AsyncInterfaceConfig {
 
 case class WorkersSettingsConfig(
   runner: String,
+  runnerInitTimeout: Duration,
   dockerHost: String,
   dockerPort: Int,
   cmd: String,
@@ -86,6 +87,7 @@ object WorkersSettingsConfig {
   def apply(config: Config): WorkersSettingsConfig = {
     WorkersSettingsConfig(
       runner = config.getString("runner"),
+      runnerInitTimeout = Duration(config.getString("runner-init-timeout")),
       dockerHost = config.getString("docker-host"),
       dockerPort = config.getInt("docker-port"),
       cmd = config.getString("cmd"),

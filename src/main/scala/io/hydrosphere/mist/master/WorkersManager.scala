@@ -1,6 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
 import java.util.UUID
 
 import akka.actor._
@@ -12,6 +11,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.RunMode
+import org.joda.time.DateTime
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -25,6 +25,7 @@ import scala.util.{Failure, Success}
   */
 sealed trait WorkerState {
   val frontend: ActorRef
+  val timestamp: DateTime = DateTime.now
   def forward(msg: Any)(implicit context: ActorContext): Unit = frontend forward msg
 }
 
@@ -55,12 +56,15 @@ case class Started(
 class WorkersManager(
   statusService: ActorRef,
   workerRunner: WorkerRunner,
-  jobsLogger: JobsLogger
+  jobsLogger: JobsLogger,
+  runnerInitTimeout: Duration
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
 
   val workerStates = mutable.Map[String, WorkerState]()
+
+  cluster.system.scheduler.schedule(20 seconds, 20 seconds, self, CheckInitWorkers)
 
   override def receive: Receive = {
     case RunJobCommand(contextId, mode, jobRequest) =>
@@ -125,7 +129,24 @@ class WorkersManager(
           log.info(s"Worker with $name is registered on $address")
 
         case None =>
+          // this is possible when worker starting is too slow and we mark it as down (gg CheckInitWorkers)
+          // and we already sent to frontend that jobs failed and removed default state of worker
+          // so we here and we need to shutdown worker so actor does not leak
+          cluster down address
           log.warning("Received memberResolve from unknown worker {}", name)
+      }
+
+    case CheckInitWorkers =>
+      workerStates.foreach {
+          case (name, state: Initializing) =>
+            val timeout = runnerInitTimeout.toSeconds.toInt
+            if (state.timestamp.minusSeconds(timeout).isBeforeNow) {
+              val reason = s"Worker $name initialization timeout: not being responsive for ${timeout}s"
+              log.warning(reason)
+              state.frontend ! FailRemainingJobs(reason)
+              setWorkerDown(name)
+            }
+          case _ => // ignore Started and Down states
       }
 
     case UnreachableMember(m) =>
@@ -210,9 +231,10 @@ object WorkersManager {
   def props(
     statusService: ActorRef,
     workerRunner: WorkerRunner,
-    jobsLogger: JobsLogger
+    jobsLogger: JobsLogger,
+    runnerInitTimeout: Duration
   ): Props = {
-    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger)
+    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)

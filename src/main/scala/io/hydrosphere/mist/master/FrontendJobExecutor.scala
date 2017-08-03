@@ -52,6 +52,10 @@ class FrontendJobExecutor(
   val common: Receive = {
     case GetActiveJobs =>
       sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
+    case FailRemainingJobs(reason) =>
+      jobs.keySet
+        .map(JobFailure(_, reason))
+        .foreach(onJobDone)
   }
 
   private def noWorker: Receive = common orElse {
