@@ -99,10 +99,11 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
     val testJobClass = io.hydrosphere.mist.jobs.jar.MultiplyJob
     val jvmInfo = JvmJobInfo(JobsLoader.Common.loadJobClass(testJobClass.getClass.getCanonicalName).get)
 
-    when(master.endpointsInfo).thenReturn(Seq(
+    when(master.endpointsInfo).thenReturn(Future.successful(
+      Seq(
       FullEndpointInfo(EndpointConfig("pyjob", "", "", ""), PyJobInfo),
       FullEndpointInfo(EndpointConfig("scalajob", "", "", ""), jvmInfo)
-    ))
+    )))
 
     Get("/internal/routers") ~> api ~> check {
       status shouldBe StatusCodes.OK

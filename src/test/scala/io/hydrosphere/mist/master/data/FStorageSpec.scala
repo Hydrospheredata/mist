@@ -14,7 +14,7 @@ class FStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     value: Int
   ) extends NamedConfig
 
-  implicit val testEntryConfigRepr = new ConfigRepr[TestEntry] {
+  val testEntryConfigRepr = new ConfigRepr[TestEntry] {
     import scala.collection.JavaConverters._
 
     override def fromConfig(config: Config): TestEntry = {
@@ -35,7 +35,7 @@ class FStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   }
 
   it("should store files") {
-    val storage = FsStorage.create[TestEntry](path)
+    val storage = FsStorage.create(path, testEntryConfigRepr)
 
     storage.write("one", TestEntry("one", 1))
     storage.write("two", TestEntry("two", 2))

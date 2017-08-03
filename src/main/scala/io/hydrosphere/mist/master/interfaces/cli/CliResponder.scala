@@ -24,7 +24,7 @@ class CliResponder(
 
   override def receive: Receive = {
     case ListRoutes =>
-      sender ! masterService.endpointsInfo
+      masterService.endpointsInfo.pipeTo(sender())
 
     case r: RunJobCli =>
       val req = JobStartRequest(r.endpointId, r.params, r.extId)

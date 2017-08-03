@@ -2,19 +2,17 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import java.nio.file.Paths
 
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
-import akka.http.scaladsl.model.{RequestEntity, ContentTypes, HttpEntity, StatusCodes}
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity, RequestEntity, StatusCodes}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
-import io.hydrosphere.mist.api.MistJob
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
-import io.hydrosphere.mist.master.data.endpoints.EndpointsStorage
+import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
 import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}
@@ -81,7 +79,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
 
       val master = mock(classOf[MasterService])
-      when(master.endpointsInfo).thenReturn(infos)
+      when(master.endpointsInfo).thenReturn(Future.successful(infos))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
@@ -129,9 +127,9 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       val master = mock(classOf[MasterService])
       when(master.endpoints).thenReturn(endpointsStorage)
 
-      when(endpointsStorage.entry(any(classOf[String]))).thenReturn(None)
-      when(endpointsStorage.write(any(classOf[String]), any(classOf[EndpointConfig])))
-        .thenReturn(endpointConfig)
+      when(endpointsStorage.get(any(classOf[String]))).thenReturn(Future.successful(None))
+      when(endpointsStorage.update(any(classOf[EndpointConfig])))
+        .thenReturn(Future.successful(endpointConfig))
       when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Success(
         FullEndpointInfo(endpointConfig, testScalaJob)
       ))
@@ -152,9 +150,9 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
       val endpointConfig = EndpointConfig("name", "path", "className", "context")
 
-      when(endpointsStorage.entry(any(classOf[String]))).thenReturn(None)
-      when(endpointsStorage.write(any(classOf[String]), any(classOf[EndpointConfig])))
-        .thenReturn(endpointConfig)
+      when(endpointsStorage.get(any(classOf[String]))).thenReturn(Future.successful(None))
+      when(endpointsStorage.update(any(classOf[EndpointConfig])))
+        .thenReturn(Future.successful(endpointConfig))
       when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Failure(new Exception("test failure")))
 
       val route = HttpV2Routes.endpointsRoutes(master)

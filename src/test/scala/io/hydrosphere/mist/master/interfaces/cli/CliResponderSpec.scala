@@ -30,7 +30,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
     ).map(i => FullEndpointInfo(epConfig, i))
 
     val master = mock(classOf[MasterService])
-    when(master.endpointsInfo).thenReturn(infos)
+    when(master.endpointsInfo).thenReturn(Future.successful(infos))
 
     val responder = system.actorOf(CliResponder.props(master, TestProbe().ref))
 

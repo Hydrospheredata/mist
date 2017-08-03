@@ -6,7 +6,10 @@ import io.hydrosphere.mist.master.{TestData, ContextsSettings}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfter, Matchers, FunSpec}
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
+
 
   val path = "./target/data/ctx_store_test"
 
