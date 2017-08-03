@@ -109,7 +109,7 @@ object Master extends App with Logger {
         val api = HttpV2Routes.apiWithCORS(masterService)
         val ws = new WSApi(streamer)
         // order is important!
-        // api router can't chanin unhandlled calls, because it's wrapeed in cors directive
+        // api router can't chain unhandled calls, because it's wrapped in cors directive
         ws.route ~ api
       }
       val http = new HttpUi(config.http.uiPath).route ~ api.route ~ apiv2
