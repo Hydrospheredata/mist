@@ -31,7 +31,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
         parameters = Map("1" -> 2),
         runSettings = RunSettings.Default,
         source = JobDetails.Source.Http,
-        None
+        externalId = None
       )
 
       statusService.expectMsgType[Register]

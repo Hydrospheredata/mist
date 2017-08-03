@@ -123,7 +123,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
   it("should start job") {
     val master = mock[MasterService]
     val api = new HttpApi(master).route
-    when(master.forceJobRun(any[JobStartRequest], any[Source]))
+    when(master.forceJobRun(any[JobStartRequest], any[Source], any[Action]))
       .thenReturn(Future.successful(Some(
         JobResult.success(
           Map("yoyo" -> "hello"),

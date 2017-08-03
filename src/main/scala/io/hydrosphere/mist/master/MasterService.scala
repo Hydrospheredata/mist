@@ -28,9 +28,9 @@ class MasterService(
     out.value
   }
 
-  def forceJobRun(req: JobStartRequest, source: JobDetails.Source): Future[Option[JobResult]] = {
+  def forceJobRun(req: JobStartRequest, source: JobDetails.Source, action: Action = Action.Execute): Future[Option[JobResult]] = {
     val promise = Promise[Option[JobResult]]
-    runJobRaw(req, source).map({
+    runJobRaw(req, source, action).map({
       case Some(info) => info.promise.future.onComplete {
         case Success(r) =>
           promise.success(Some(JobResult.success(r, req)))
@@ -67,7 +67,10 @@ class MasterService(
     }).map(_ => ())
   }
 
-  private def runJobRaw(req: JobStartRequest, source: JobDetails.Source): Future[Option[ExecutionInfo]] = {
+  private def runJobRaw(
+    req: JobStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
       endpoint <- OptionT(endpoints.get(req.endpointId))
       executionInfo <- OptionT.liftF(jobService.startJob(
@@ -76,7 +79,8 @@ class MasterService(
         req.parameters,
         req.runSettings,
         source,
-        req.externalId
+        req.externalId,
+        action
       ))
     } yield executionInfo
 

@@ -53,7 +53,8 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
     parameters: Map[String, Any],
     runSettings: RunSettings,
     source: JobDetails.Source,
-    externalId: Option[String]
+    externalId: Option[String],
+    action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
 
     val internalRequest = RunJobRequest(
@@ -62,7 +63,7 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
         filePath = endpoint.path,
         className = endpoint.className,
         arguments = parameters,
-        action = Action.Execute
+        action = action
       )
     )
 

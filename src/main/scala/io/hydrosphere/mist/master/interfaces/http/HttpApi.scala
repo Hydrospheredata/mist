@@ -59,13 +59,19 @@ class HttpApi(master: MasterService) extends Logger {
         entity(as[JobParameters]) { jobParams =>
 
           complete {
+            val action = if (train.isDefined)
+              Action.Train
+            else if (serve.isDefined)
+              Action.Serve
+            else Action.Execute
+
             val request = JobStartRequest(
               endpointId = routeId,
               parameters = jobParams,
               externalId = None,
               runSettings = RunSettings.Default
             )
-            master.forceJobRun(request, Source.Http)
+            master.forceJobRun(request, Source.Http, action)
           }
         }
       }}
