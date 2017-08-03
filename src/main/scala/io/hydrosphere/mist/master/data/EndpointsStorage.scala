@@ -1,9 +1,10 @@
 package io.hydrosphere.mist.master.data
 
 import java.io.File
+import java.nio.file.Paths
 import java.util.concurrent.Executors
 
-import com.typesafe.config.{ConfigFactory, ConfigValueType, Config}
+import com.typesafe.config.{ConfigValueFactory, ConfigFactory, ConfigValueType, Config}
 import io.hydrosphere.mist.master.models.EndpointConfig
 import io.hydrosphere.mist.utils.Logger
 
@@ -45,7 +46,10 @@ object EndpointsStorage extends Logger {
   }
 
   def fromDefaultsConfig(path: String): Seq[EndpointConfig] = {
-    val config = ConfigFactory.parseFile(new File(path)).resolve()
+    val directory = Paths.get(path).getParent
+    val config = ConfigFactory.parseFile(new File(path))
+      .withValue("location", ConfigValueFactory.fromAnyRef(directory.toString))
+      .resolve()
     parseConfig(config)
   }
 
