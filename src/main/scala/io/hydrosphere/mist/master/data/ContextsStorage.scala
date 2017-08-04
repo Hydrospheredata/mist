@@ -19,7 +19,6 @@ class ContextsStorage(
       case None => Future { fsStorage.entry(name) }
       case s @ Some(_) => Future.successful(s)
     }
-    Future { fsStorage.entry(name) }
   }
 
   def getOrDefault(name: String): Future[ContextConfig] =

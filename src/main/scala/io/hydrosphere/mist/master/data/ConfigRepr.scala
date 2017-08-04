@@ -78,7 +78,7 @@ object ConfigRepr {
         "downtime" -> fromDuration(a.downtime),
         "max-parallel-jobs" -> fromAnyRef(a.maxJobs),
         "precreated" -> fromAnyRef(a.precreated),
-        "run-options" -> a.runOptions,
+        "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration)
       )
       fromMap(map.asJava).toConfig
