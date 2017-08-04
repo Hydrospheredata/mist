@@ -5,7 +5,8 @@ import java.nio.file.Paths
 import java.util.concurrent.Executors
 
 import com.typesafe.config.{ConfigValueFactory, ConfigFactory, ConfigValueType, Config}
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.jobs.JobInfo
+import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.JavaConverters._
@@ -31,6 +32,22 @@ class EndpointsStorage(
 
   def update(ec: EndpointConfig): Future[EndpointConfig] =
     Future { fsStorage.write(ec.name, ec) }
+
+  def getFullInfo(name: String): Future[Option[FullEndpointInfo]] = {
+
+    def load(e: EndpointConfig): Try[FullEndpointInfo] = {
+      import e._
+      JobInfo.load(e.name, path, className).map(i => FullEndpointInfo(e, i))
+    }
+
+    get(name).flatMap({
+      case Some(e) => load(e) match {
+        case Success(fullInfo) => Future.successful(Some(fullInfo))
+        case Failure(e) => Future.failed(e)
+      }
+      case None => Future.successful(None)
+    })
+  }
 }
 
 object EndpointsStorage extends Logger {

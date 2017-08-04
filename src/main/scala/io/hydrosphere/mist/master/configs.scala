@@ -8,7 +8,7 @@ import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.collection.JavaConversions._
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -70,10 +70,13 @@ object AsyncInterfaceConfig {
       subscribeTopic = config.getString("subscribe-topic")
     )
   }
+
+  val disabled: AsyncInterfaceConfig = AsyncInterfaceConfig(isOn = false, "", 0, "", "")
 }
 
 case class WorkersSettingsConfig(
   runner: String,
+  runnerInitTimeout: Duration,
   dockerHost: String,
   dockerPort: Int,
   cmd: String,
@@ -85,6 +88,7 @@ object WorkersSettingsConfig {
   def apply(config: Config): WorkersSettingsConfig = {
     WorkersSettingsConfig(
       runner = config.getString("runner"),
+      runnerInitTimeout = Duration(config.getString("runner-init-timeout")),
       dockerHost = config.getString("docker-host"),
       dockerPort = config.getInt("docker-port"),
       cmd = config.getString("cmd"),
@@ -140,6 +144,8 @@ object SecurityConfig {
       interval = c.getFiniteDuration("interval")
     )
   }
+
+  val disabled = SecurityConfig(enabled = false, "", "", 1.second)
 }
 
 case class MasterConfig(

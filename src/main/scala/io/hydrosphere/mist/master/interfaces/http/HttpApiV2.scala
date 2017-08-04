@@ -5,8 +5,8 @@ import akka.http.scaladsl.model.{StatusCodes, StatusCode, HttpResponse}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 
-import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobService, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
@@ -16,7 +16,7 @@ import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
+import scala.util._
 
 case class JobRunQueryParams(
   force: Boolean,
@@ -133,6 +133,14 @@ object HttpV2Routes {
   }
 
   def endpointsRoutes(master: MasterService): Route = {
+    val exceptionHandler =
+      ExceptionHandler {
+        case iae: IllegalArgumentException =>
+          complete((StatusCodes.BadRequest, s"Bad request: ${iae.getMessage}"))
+        case ex =>
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+      }
+
     path( root / "endpoints" ) {
       get { complete {
         master.endpointsInfo.map(_.map(HttpEndpointInfoV2.convert))
@@ -188,11 +196,13 @@ object HttpV2Routes {
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[JobParameters]) { params =>
-          val jobReq = buildStartRequest(endpointId, query, params)
-          if (query.force) {
-            completeOpt { master.forceJobRun(jobReq, Source.Http) }
-          } else {
-            completeOpt { master.runJob(jobReq, Source.Http) }
+          handleExceptions(exceptionHandler) {
+            val jobReq = buildStartRequest(endpointId, query, params)
+            if (query.force) {
+              completeOpt { master.forceJobRun(jobReq, Source.Http) }
+            } else {
+              completeOpt { master.runJob(jobReq, Source.Http) }
+            }
           }
         }
       })

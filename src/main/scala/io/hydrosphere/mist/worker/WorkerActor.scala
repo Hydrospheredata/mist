@@ -84,7 +84,7 @@ class SharedWorkerActor(
       }
 
     case x: JobResponse =>
-      log.info(s"Jon execution done. Result $x")
+      log.info(s"Job execution done. Result $x")
       activeJobs.get(x.id) match {
         case Some(unit) =>
           unit.requester forward x
@@ -133,7 +133,7 @@ class ExclusiveWorker(
       context.stop(self)
 
     case x: JobResponse =>
-      log.info(s"Jon execution done. Result $x")
+      log.info(s"Job execution done. Result $x")
       executionUnit.requester forward x
       context.stop(self)
   }

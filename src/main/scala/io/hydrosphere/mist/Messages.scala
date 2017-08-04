@@ -30,12 +30,15 @@ object Messages {
 
     case object GetWorkers
     case object GetActiveJobs
+    case class FailRemainingJobs(reason: String)
 
     case class StopWorker(name: String)
     case object StopAllWorkers
 
     case class WorkerUp(ref: ActorRef)
     case object WorkerDown
+
+    case object CheckInitWorkers
 
   }
 

@@ -74,6 +74,32 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       }
     }
 
+    it("should return bad request on futures failed illegal argument exception") {
+      val master = mock(classOf[MasterService])
+
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source])))
+        .thenReturn(Future.failed(new IllegalArgumentException("argument missing")))
+
+      val route = HttpV2Routes.endpointsRoutes(master)
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+        responseAs[String] shouldBe "Bad request: argument missing"
+        status shouldBe StatusCodes.BadRequest
+      }
+    }
+
+    it("should return 500 on future`s any exception except iae") {
+      val master = mock(classOf[MasterService])
+
+      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source])))
+        .thenReturn(Future.failed(new IllegalStateException("some exception")))
+
+      val route = HttpV2Routes.endpointsRoutes(master)
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+        status shouldBe StatusCodes.InternalServerError
+      }
+    }
+
     it("should return endpoints") {
       val epConfig = EndpointConfig("name", "path", "className", "context")
       val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))

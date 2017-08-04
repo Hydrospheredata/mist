@@ -72,10 +72,11 @@ class MasterService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      endpoint <- OptionT(endpoints.get(req.endpointId))
+      fullInfo <- OptionT(endpoints.getFullInfo(req.endpointId))
+      _ <- OptionT.liftF(validate(fullInfo, req.parameters, action))
       executionInfo <- OptionT.liftF(jobService.startJob(
         req.id,
-        endpoint,
+        fullInfo.config,
         req.parameters,
         req.runSettings,
         source,
@@ -85,6 +86,13 @@ class MasterService(
     } yield executionInfo
 
     out.value
+  }
+
+  def validate(fullInfo: FullEndpointInfo, params: Map[String, Any], action: Action): Future[Unit] = {
+    fullInfo.validateAction(params, action) match {
+      case Left(e) => Future.failed(e)
+      case Right(_) => Future.successful(())
+    }
   }
 
   def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = {

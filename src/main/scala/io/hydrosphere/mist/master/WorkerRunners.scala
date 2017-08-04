@@ -24,11 +24,8 @@ trait ShellWorkerScript {
     context: String,
     mode: RunMode,
     config: MasterConfig,
-    contextsStorage: ContextsStorage
+    contextConfig: ContextConfig
   ): Seq[String] = {
-
-    // TODO!!!!!
-    val contextConfig = Await.result(contextsStorage.getOrDefault(context), 10 second)
 
     Seq[String](
       "--master", s"${config.cluster.host}:${config.cluster.port}",
@@ -39,12 +36,20 @@ trait ShellWorkerScript {
       "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
       "--log-service", s"${config.logs.host}:${config.logs.port}",
       "--mode", mode.name
-    ) ++ mkSparkConf(contextConfig)
+    ) ++ mkSparkConf(contextConfig) ++ mkRunOptions(contextConfig)
   }
 
   def mkSparkConf(ctxConfig: ContextConfig): Seq[String] = {
     ctxConfig.sparkConf.toList.map({case (k, v) => s"$k=$v"})
       .flatMap(p=> Seq("--spark-conf", p))
+  }
+
+  def mkRunOptions(ctxConfig: ContextConfig): Seq[String] = {
+    val opts = ctxConfig.runOptions
+    if (opts.isEmpty)
+      Seq.empty
+    else
+      Seq("--run-options", opts)
   }
 
   def durationToArg(d: Duration): String = d match {
@@ -54,6 +59,8 @@ trait ShellWorkerScript {
 
 }
 
+object ShellWorkerScript extends ShellWorkerScript
+
 /**
   * Spawn workers on the same host
   */
@@ -61,9 +68,11 @@ class LocalWorkerRunner(config: MasterConfig, contextsStorage: ContextsStorage)
   extends WorkerRunner with ShellWorkerScript with Logger {
 
   override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    //TODO!!!
+    val ctxConfig = Await.result(contextsStorage.getOrDefault(context), Duration.Inf)
     val cmd =
       Seq[String](s"${sys.env("MIST_HOME")}/bin/mist-worker", "--runner", "local") ++
-      workerArgs(name, context, mode, config, contextsStorage)
+      workerArgs(name, context, mode, config, ctxConfig)
 
     val builder = Process(cmd)
     builder.run(false)
@@ -75,12 +84,14 @@ class DockerWorkerRunner(config: MasterConfig, contextsStorage: ContextsStorage)
   extends WorkerRunner with ShellWorkerScript {
 
   override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    //TODO!!!
+    val ctxConfig = Await.result(contextsStorage.getOrDefault(context), Duration.Inf)
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-worker",
           "--runner", "docker",
           "--docker-host", config.workers.dockerHost,
           "--docker-port", config.workers.dockerPort.toString) ++
-      workerArgs(name, context, mode, config, contextsStorage)
+      workerArgs(name, context, mode, config, ctxConfig)
     val builder = Process(cmd)
     builder.run(false)
   }
@@ -93,6 +104,7 @@ class ManualWorkerRunner(
   jarPath: String) extends WorkerRunner {
 
   override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+    //TODO!!!
     val contextConfig = Await.result(contextsStorage.getOrDefault(context), 10 second)
     Process(
       Seq("bash", "-c", config.workers.cmd),

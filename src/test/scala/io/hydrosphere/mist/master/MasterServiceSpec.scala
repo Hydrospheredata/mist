@@ -1,50 +1,88 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestKit, TestProbe}
+import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
+import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.models.JobStartRequest
-import org.mockito.Matchers._
-import org.mockito.Mockito._
+import io.hydrosphere.mist.jobs.jar.JobsLoader
+import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.models.{RunSettings, EndpointConfig, FullEndpointInfo, JobStartRequest}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
-  with Matchers {
+  with Matchers
+  with MockitoSugar {
 
-//  it("should run job") {
-//    val workerManager = TestProbe()
-//    val statusService = TestProbe()
-//
-//    val endpoints = mock(classOf[JobEndpoints])
-//    val contexts = mock(classOf[ContextsStorage])
-//
-//    when(endpoints.getDefinition(any[String]))
-//      .thenReturn(Some(JobDefinition("name", "path.py", "MyJob", "namespace")))
-//
-//    val service = new MasterService(workerManager.ref, statusService.ref, endpoints, contexts)
-//
-//    val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
-//    val f = service.runJob(req, Source.Http)
-//
-//    val executionInfo = ExecutionInfo(
-//      req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
-//      status = JobDetails.Status.Queued
-//    )
-//
-//    statusService.expectMsgClass(classOf[Register])
-//    statusService.reply(akka.actor.Status.Success(()))
-//    workerManager.expectMsgClass(classOf[RunJobCommand])
-//    workerManager.reply(executionInfo)
-//
-//    Await.result(f, 10 seconds)
-//  }
+  import TestUtils._
+
+  it("should run job") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStorageMappings]
+
+    val fullInfo = FullEndpointInfo(
+      EndpointConfig("name", "path", "MyJob", "namespace"),
+      PyJobInfo
+    )
+
+    when(endpoints.getFullInfo(any[String]))
+      .thenReturn(Future.successful(Some(fullInfo)))
+
+    when(jobService.startJob(
+      any[String],
+      any[EndpointConfig],
+      any[Map[String, Any]],
+      any[RunSettings],
+      any[JobDetails.Source],
+      any[Option[String]],
+      any[Action]
+    )).thenReturn(Future.successful(
+      ExecutionInfo(
+        req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
+        status = JobDetails.Status.Queued
+      )
+    ))
+
+    val service = new MasterService(jobService, endpoints, contexts, logs)
+
+    val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val runInfo = service.runJob(req, Source.Http).await
+    runInfo.isDefined shouldBe true
+  }
+
+  it("should return failed future on validating params") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStorageMappings]
+
+    val info = mock[FullEndpointInfo]
+    when(info.validateAction(any[Map[String, Any]], any[Action]))
+      .thenReturn(Left(new IllegalArgumentException("INVALID")))
+
+    when(endpoints.getFullInfo(any[String]))
+      .thenReturn(Future.successful(Some(info)))
+
+    val service = new MasterService(jobService, endpoints, contexts, logs)
+
+    val req = JobStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
+    val f = service.runJob(req, Source.Http)
+
+    ScalaFutures.whenReady(f.failed) { ex =>
+      ex shouldBe a[IllegalArgumentException]
+    }
+
+  }
 
 }
