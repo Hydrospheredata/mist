@@ -8,10 +8,10 @@ import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobIsCancelle
 import io.hydrosphere.mist.Messages.{ListRoutes, RunJobCli}
 import io.hydrosphere.mist.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.Messages.WorkerMessages._
-import io.hydrosphere.mist.jobs.{JobDefinition, JobDetails}
+import io.hydrosphere.mist.jobs.{JobDetails, JobInfo}
 import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.JobStartResponse
+import io.hydrosphere.mist.master.models.{FullEndpointInfo, JobStartResponse}
 import org.joda.time.DateTime
 
 import scala.concurrent.Await
@@ -107,14 +107,14 @@ object StopAllWorkersCmd extends RemoteUnitCliCommand {
   override val request = StopAllWorkers
 }
 
-object ListRoutesCmd extends RemoteCliCommand[Seq[JobDefinition]] {
+object ListRoutesCmd extends RemoteCliCommand[Seq[FullEndpointInfo]] {
 
   override val request = ListRoutes
 
-  override def convert(resp: Seq[JobDefinition]): Seq[Row] =
-    resp.map(d => Row.create(d.name, d.nameSpace, d.path, d.className))
+  override def convert(resp: Seq[FullEndpointInfo]): Seq[Row] =
+    resp.map(i => Row.create(i.config.name, i.config.defaultContext, i.config.path, i.config.className))
 
-  override val headers: List[String] = List("ROUTE", "NAMESPACE", "PATH", "CLASS NAME")
+  override val headers: List[String] = List("ROUTE", "DEFAULT CONTEXT", "PATH", "CLASS NAME")
 }
 
 case class StartJobCmd(
@@ -173,9 +173,7 @@ object Command {
   }
 
   private def parseStartCommand(s: String): Either[String, StartJobCmd] = {
-    import cats._
     import cats.implicits._
-    import cats.data._
     import spray.json._
     import JsonCodecs._
 

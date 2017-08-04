@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.ContextConfig
-import org.scalatest.{FunSpec, Matchers}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
-class MistConfigSpec extends FunSpec with Matchers {
-  it("parse context settings") {
+object TestUtils {
 
+
+  val contextSettings = {
     val cfg = ConfigFactory.parseString(
       """
         |context-defaults {
@@ -29,17 +29,12 @@ class MistConfigSpec extends FunSpec with Matchers {
         |  }
         |}
       """.stripMargin)
+    
+    ContextsSettings(cfg)
+  }
 
-    val settings = ContextsSettings(cfg)
-    settings.contexts.get("foo") shouldBe Some(ContextConfig(
-      name = "foo",
-      sparkConf = Map("spark.master" -> "local[2]"),
-      downtime = Duration.Inf,
-      maxJobs = 20,
-      precreated = false,
-      runOptions = "--opt",
-      streamingDuration = 1.seconds
-    ))
 
+  implicit class AwaitSyntax[A](f: => Future[A]) {
+    def await: A = Await.result(f, Duration.Inf)
   }
 }

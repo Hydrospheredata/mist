@@ -1,12 +1,12 @@
 package io.hydrosphere.mist.master.interfaces
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import io.hydrosphere.mist.Messages.JobMessages.{JobParams, JobResponse}
+import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
-import io.hydrosphere.mist.master.{ContextConfig, WorkerLink}
+import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.master.interfaces.http.{HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
@@ -116,7 +116,7 @@ trait JsonCodecs extends SprayJsonSupport
       "isHiveJob", "isSqlJob","isStreamingJob", "isMLJob", "isPython")))
 
   implicit val httpJobInfoV2F = rootFormat(lazyFormat(jsonFormat(HttpEndpointInfoV2.apply,
-    "name", "lang", "execute", "train", "serve", "tags")))
+    "name", "lang", "execute", "tags", "path", "className", "defaultContext")))
 
   implicit val workerLinkF = jsonFormat2(WorkerLink)
 
@@ -157,6 +157,8 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val jobStartRequestF = jsonFormat5(JobStartRequest)
   implicit val asynJobStartRequestF = jsonFormat4(AsyncJobStartRequest)
 
+  implicit val endpointConfigF = jsonFormat4(EndpointConfig.apply)
+
   implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
 
   implicit val logEventF = jsonFormat5(LogEvent.apply)
@@ -188,7 +190,7 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 
     implicit val iniF = jsonFormat3(InitializedEvent)
-    implicit val queueF = jsonFormat2(QueuedEvent)
+    implicit val queueF = jsonFormat1(QueuedEvent)
     implicit val startedF = jsonFormat2(StartedEvent)
     implicit val canceledF = jsonFormat2(CanceledEvent)
     implicit val finishedF = jsonFormat3(FinishedEvent)

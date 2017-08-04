@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
+import io.hydrosphere.mist.master.models.FullEndpointInfo
 
 case class HttpJobInfo(
   name: String,
@@ -22,13 +23,13 @@ object HttpJobInfo {
 
   def forPython(name: String) = HttpJobInfo(name = name, isPython = true)
 
-  def convert(info: JobInfo): HttpJobInfo = info match {
-    case py: PyJobInfo => HttpJobInfo.forPython(info.definition.name)
+  def convert(fullInfo: FullEndpointInfo): HttpJobInfo = fullInfo.info match {
+    case PyJobInfo => HttpJobInfo.forPython(fullInfo.config.name)
     case jvm: JvmJobInfo =>
       val inst = jvm.jobClass
       val classes = inst.supportedClasses()
       HttpJobInfo(
-        name = info.definition.name,
+        name = fullInfo.config.name,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
@@ -65,10 +66,13 @@ case class HttpEndpointInfoV2(
   name: String,
   lang: String,
   execute: Option[Map[String, HttpJobArg]] = None,
-  train:   Option[Map[String, HttpJobArg]] = None,
-  serve:   Option[Map[String, HttpJobArg]] = None,
 
-  tags: Seq[String] = Seq.empty
+  tags: Seq[String] = Seq.empty,
+
+  path: String,
+  className: String,
+  defaultContext: String
+
 )
 
 object HttpEndpointInfoV2 {
@@ -92,19 +96,37 @@ object HttpEndpointInfoV2 {
     TagTrait(classOf[MLMistJob], "ml")
   )
 
-  def convert(info: JobInfo): HttpEndpointInfoV2 = info match {
-    case py: PyJobInfo => HttpEndpointInfoV2(name = py.definition.name, lang = PyLang)
-    case jvm: JvmJobInfo =>
-      val inst = jvm.jobClass
-      val classes = inst.supportedClasses()
-      val tags = AllTags.filter(tag => classes.contains(tag.clazz)).map(_.name)
-      HttpEndpointInfoV2(
-        name = jvm.definition.name,
-        lang = ScalaLang,
-        execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        tags = tags
+  def convert(fullInfo: FullEndpointInfo): HttpEndpointInfoV2 = {
+    import fullInfo.config._
+
+    fullInfo.info match {
+      case PyJobInfo => HttpEndpointInfoV2(
+        name = name, lang = PyLang,
+        path = path,
+        className = className,
+        defaultContext = defaultContext
       )
+      case jvm: JvmJobInfo =>
+        val inst = jvm.jobClass
+        val classes = inst.supportedClasses()
+        val tags = AllTags.filter(tag => classes.contains(tag.clazz)).map(_.name)
+        HttpEndpointInfoV2(
+          name = name,
+          lang = ScalaLang,
+          execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+          tags = tags,
+
+          path = path,
+          className = className,
+          defaultContext = defaultContext
+        )
+    }
   }
 }
+
+case class EndpointCreateRequest(
+  name: String,
+  path: String,
+  className: String,
+  nameSpace: String
+)

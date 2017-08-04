@@ -3,11 +3,12 @@ package io.hydrosphere.mist.master
 import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
+import io.hydrosphere.mist.master.ConfigUtils._
+import io.hydrosphere.mist.master.data.ConfigRepr
+import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
-
-import ConfigUtils._
 
 case class AsyncInterfaceConfig(
   isOn: Boolean,
@@ -17,15 +18,15 @@ case class AsyncInterfaceConfig(
   subscribeTopic: String
 )
 
-case class EndpointConfig(
+case class HostPortConfig(
   host: String,
   port: Int
 )
 
-object EndpointConfig {
+object HostPortConfig {
 
-  def apply(config: Config): EndpointConfig =
-    EndpointConfig(config.getString("host"), config.getInt("port"))
+  def apply(config: Config): HostPortConfig =
+    HostPortConfig(config.getString("host"), config.getInt("port"))
 }
 
 case class HttpConfig(
@@ -97,45 +98,13 @@ object WorkersSettingsConfig {
 
 }
 
-case class ContextConfig(
-  name: String,
-  sparkConf: Map[String, String],
-  downtime: Duration,
-  maxJobs: Int,
-  precreated: Boolean,
-  runOptions: String,
-  streamingDuration: Duration
-)
-
-object ContextConfig {
-
-  def apply(name: String, config: Config): ContextConfig = {
-    ContextConfig(
-      name = name,
-      sparkConf = config.getConfig("spark-conf").entrySet()
-        .filter(entry => entry.getValue.valueType() == ConfigValueType.STRING)
-        .map(entry => entry.getKey -> entry.getValue.unwrapped().asInstanceOf[String])
-        .toMap,
-      downtime = Duration(config.getString("downtime")),
-      maxJobs = config.getInt("max-parallel-jobs"),
-      precreated = config.getBoolean("precreated"),
-      runOptions = config.getString("run-options"),
-      streamingDuration = Duration(config.getString("streaming-duration"))
-    )
-  }
-}
-
+/**
+  * Context settings that are preconfigured in main config
+  */
 case class ContextsSettings(
   default: ContextConfig,
   contexts: Map[String, ContextConfig]
-) {
-
-  def precreated: Seq[ContextConfig] = contexts.values.filter(_.precreated).toSeq
-
-  def configFor(name: String): ContextConfig = contexts.getOrElse(name, default)
-
-  def getAll: Seq[ContextConfig] = default +: contexts.values.toList
-}
+)
 
 object ContextsSettings {
 
@@ -143,7 +112,7 @@ object ContextsSettings {
 
   def apply(config: Config): ContextsSettings = {
     val defaultCfg = config.getConfig("context-defaults")
-    val default = ContextConfig("default", defaultCfg)
+    val default = ConfigRepr.ContextConfigRepr.fromConfig(Default, defaultCfg)
 
     val contextsCfg = config.getConfig("context")
     val contexts = contextsCfg.root().entrySet().filter(entry => {
@@ -151,7 +120,7 @@ object ContextsSettings {
     }).map(entry => {
       val name = entry.getKey
       val cfg = contextsCfg.getConfig(name).withFallback(defaultCfg)
-      name -> ContextConfig(name, cfg)
+      name -> ConfigRepr.ContextConfigRepr.fromConfig(name, cfg)
     }).toMap
 
     ContextsSettings(default, contexts)
@@ -180,7 +149,7 @@ object SecurityConfig {
 }
 
 case class MasterConfig(
-  cluster: EndpointConfig,
+  cluster: HostPortConfig,
   http: HttpConfig,
   mqtt: AsyncInterfaceConfig,
   kafka: AsyncInterfaceConfig,
@@ -188,6 +157,8 @@ case class MasterConfig(
   workers: WorkersSettingsConfig,
   contextsSettings: ContextsSettings,
   dbPath: String,
+  contextsPath: String,
+  endpointsPath: String,
   security: SecurityConfig,
   raw: Config
 )
@@ -204,7 +175,7 @@ object MasterConfig {
   def parse(config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
     MasterConfig(
-      cluster = EndpointConfig(mist.getConfig("cluster")),
+      cluster = HostPortConfig(mist.getConfig("cluster")),
       http = HttpConfig(mist.getConfig("http")),
       mqtt = AsyncInterfaceConfig(mist.getConfig("mqtt")),
       kafka = AsyncInterfaceConfig(mist.getConfig("kafka")),
@@ -212,6 +183,8 @@ object MasterConfig {
       workers = WorkersSettingsConfig(mist.getConfig("workers")),
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
+      contextsPath = mist.getString("contexts-store.path"),
+      endpointsPath = mist.getString("endpoints-store.path"),
       security = SecurityConfig(mist.getConfig("security")),
       raw = config
     )

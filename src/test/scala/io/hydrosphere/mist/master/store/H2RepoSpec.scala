@@ -18,6 +18,8 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
 
   val repo: JobRepository = H2JobsRepository(path.toString)
 
+  import io.hydrosphere.mist.master.TestUtils._
+
   after {
     repo.clear().await
   }
@@ -61,13 +63,11 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
       endpoint = "endpoint",
       context = "context",
       externalId = None,
-      status = status
+      status = status,
+      workerId = "workerId"
     )
   }
 
-  implicit class AwaitSyntax[A](f: => Future[A]) {
-    def await: A = Await.result(f, Duration.Inf)
-  }
 }
 
 

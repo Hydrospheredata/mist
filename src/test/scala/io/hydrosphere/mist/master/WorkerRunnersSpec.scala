@@ -1,10 +1,10 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
-import scala.concurrent.duration.DurationDouble
+import scala.concurrent.duration._
 
 class WorkerRunnersSpec extends FunSpec with Matchers{
 
@@ -12,7 +12,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
 
     it("should build arguments for worker") {
       val cfg = MasterConfig(
-        cluster = EndpointConfig("0.0.0.0", 2345),
+        cluster = HostPortConfig("0.0.0.0", 2345),
         http = HttpConfig("0.0.0.0", 2004, "path"),
         mqtt = AsyncInterfaceConfig.disabled,
         kafka = AsyncInterfaceConfig.disabled,
@@ -21,12 +21,15 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         contextsSettings = ContextsSettings(contextConfig),
         dbPath = "",
         security = SecurityConfig.disabled,
-        raw = ConfigFactory.empty()
+        raw = ConfigFactory.empty(),
+        contextsPath = "",
+        endpointsPath = ""
       )
 
       val name = "worker-name"
-      val context = "foo"
+      val context = cfg.contextsSettings.contexts.get("foo").get
       val mode = RunMode.Shared
+
 
       val result = ShellWorkerScript.workerArgs(name, context, mode, cfg)
         val x = Seq(
