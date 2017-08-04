@@ -239,7 +239,7 @@ object HttpV2Routes {
       get { complete(contexts.all) }
     } ~
     path ( root / "contexts" / Segment ) { id =>
-      get { complete(contexts.get(id)) }
+      get { completeOpt(contexts.get(id)) }
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextConfig]) { context =>

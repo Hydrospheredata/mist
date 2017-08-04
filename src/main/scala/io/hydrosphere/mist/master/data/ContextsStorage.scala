@@ -12,10 +12,14 @@ class ContextsStorage(
   defaultSettings: ContextsSettings
 )(implicit ex: ExecutionContext) {
 
+  private val defaultsMap = {
+    import defaultSettings._
+    contexts + (default.name -> default)
+  }
   private val allFromSettings = defaultSettings.contexts.values.toSeq :+ defaultSettings.default
 
   def get(name: String): Future[Option[ContextConfig]] = {
-    defaultSettings.contexts.get(name) match {
+    defaultsMap.get(name) match {
       case None => Future { fsStorage.entry(name) }
       case s @ Some(_) => Future.successful(s)
     }

@@ -45,13 +45,19 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     contexts.getOrDefault("new").await shouldBe expected
   }
 
-  it("should return preccreated") {
+  it("should return precreated") {
     val contexts = testStorage()
     val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, true, "weq", 10 second)
 
     contexts.update(ctx).await
     contexts.precreated.await should contain only(ctx)
   }
+
+  it("should return default") {
+    val contexts = testStorage()
+    contexts.get("default").await.isDefined shouldBe true
+  }
+
 
   def testStorage(): ContextsStorage = {
     new ContextsStorage(
