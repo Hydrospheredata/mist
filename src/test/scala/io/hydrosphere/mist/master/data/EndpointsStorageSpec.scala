@@ -37,12 +37,20 @@ class EndpointsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     endpoints.get("second").await.isDefined shouldBe true
   }
 
-  def testStorage(): EndpointsStorage = {
+  it("should override defaults") {
+    val endpoints = testStorage()
+
+    endpoints.get("first").await.get.className shouldBe "className"
+
+    endpoints.update(EndpointConfig("first", "path", "anotherClassName", "foo")).await
+    endpoints.get("first").await.get.className shouldBe "anotherClassName"
+  }
+
+  def testStorage(
+    defaults: Seq[EndpointConfig] = Seq(EndpointConfig("first", "path", "className", "foo"))): EndpointsStorage = {
     new EndpointsStorage(
       FsStorage.create(path, ConfigRepr.EndpointsRepr),
-      Seq(
-        EndpointConfig("first", "path", "className", "foo")
-      )
+      defaults
     )
   }
 }

@@ -16,29 +16,36 @@ class ContextsStorage(
     import defaultSettings._
     contexts + (default.name -> default)
   }
-  private val allFromSettings = defaultSettings.contexts.values.toSeq :+ defaultSettings.default
-
   def get(name: String): Future[Option[ContextConfig]] = {
-    defaultsMap.get(name) match {
-      case None => Future { fsStorage.entry(name) }
-      case s @ Some(_) => Future.successful(s)
-    }
+    Future { fsStorage.entry(name) }.flatMap({
+      case v @ Some(_) => Future.successful(v)
+      case None => Future.successful(defaultsMap.get(name))
+    })
   }
 
   def getOrDefault(name: String): Future[ContextConfig] =
     get(name).map(_.getOrElse(defaultSettings.default.copy(name = name)))
 
-  def all: Future[Seq[ContextConfig]] =
-    Future { fsStorage.entries } map (stored => stored ++ allFromSettings)
+  def all: Future[Seq[ContextConfig]] = {
+    Future { fsStorage.entries } map (stored => {
+      val merged = defaultsMap ++ stored.map(a => a.name -> a).toMap
+      merged.values.toSeq
+    })
+  }
 
   def precreated: Future[Seq[ContextConfig]] = all.map(_.filter(_.precreated))
 
   def update(config: ContextConfig): Future[ContextConfig] = {
-    Future { fsStorage.write(config.name, config) }
+    if (config.name == ContextsStorage.DefaultKey)
+      Future.failed(new IllegalArgumentException("Can not create context with name:\"default\""))
+    else
+      Future { fsStorage.write(config.name, config) }
   }
 }
 
 object ContextsStorage {
+
+  val DefaultKey = "default"
 
   def create(path:String, settings: ContextsSettings): ContextsStorage = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))

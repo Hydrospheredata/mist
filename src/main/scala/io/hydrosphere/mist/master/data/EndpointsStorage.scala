@@ -21,12 +21,15 @@ class EndpointsStorage(
   private val defaultMap = defaults.map(e => e.name -> e).toMap
 
   def all: Future[Seq[EndpointConfig]] =
-    Future { fsStorage.entries } map (seq => seq ++ defaults)
+    Future { fsStorage.entries } map (seq => {
+      val merged = defaultMap ++ seq.map(a => a.name -> a).toMap
+      merged.values.toSeq
+    })
 
   def get(name: String): Future[Option[EndpointConfig]] = {
-    defaultMap.get(name) match  {
-      case None => Future { fsStorage.entry(name) }
+    Future { fsStorage.entry(name) } flatMap {
       case s @ Some(_) => Future.successful(s)
+      case None => Future.successful(defaultMap.get(name))
     }
   }
 
@@ -43,7 +46,7 @@ class EndpointsStorage(
     get(name).flatMap({
       case Some(e) => load(e) match {
         case Success(fullInfo) => Future.successful(Some(fullInfo))
-        case Failure(e) => Future.failed(e)
+        case Failure(ex) => Future.failed(ex)
       }
       case None => Future.successful(None)
     })
