@@ -9,7 +9,6 @@ import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
-import org.joda.time.DateTime
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -23,7 +22,6 @@ import scala.util.{Failure, Success}
   */
 sealed trait WorkerState {
   val frontend: ActorRef
-  val timestamp: DateTime = DateTime.now
   def forward(msg: Any)(implicit context: ActorContext): Unit = frontend forward msg
 }
 
@@ -61,8 +59,6 @@ class WorkersManager(
   val cluster = Cluster(context.system)
 
   val workerStates = mutable.Map[String, WorkerState]()
-
-  cluster.system.scheduler.schedule(20 seconds, 20 seconds, self, CheckInitWorkers)
 
   override def receive: Receive = {
     case r: RunJobCommand =>
@@ -135,18 +131,8 @@ class WorkersManager(
           log.warning("Received memberResolve from unknown worker {}", name)
       }
 
-    case CheckInitWorkers =>
-      workerStates.foreach {
-          case (name, state: Initializing) =>
-            val timeout = runnerInitTimeout.toSeconds.toInt
-            if (state.timestamp.minusSeconds(timeout).isBeforeNow) {
-              val reason = s"Worker $name initialization timeout: not being responsive for ${timeout}s"
-              log.warning(reason)
-              state.frontend ! FailRemainingJobs(reason)
-              setWorkerDown(name)
-            }
-          case _ => // ignore Started and Down states
-      }
+    case CheckWorkerUp(id) =>
+      checkWorkerUp(id)
 
     case UnreachableMember(m) =>
       aliveWorkers.find(_.address == m.address.toString)
@@ -161,6 +147,17 @@ class WorkersManager(
       startWorker(ctx.name, ctx, RunMode.Shared)
   }
 
+  private def checkWorkerUp(id: String): Unit = {
+    workerStates.get(id).foreach({
+      case state: Initializing =>
+        val reason = s"Worker $id initialization timeout: not being responsive for $runnerInitTimeout"
+        log.warning(reason)
+        setWorkerDown(id)
+        state.frontend ! FailRemainingJobs(reason)
+      case _ =>
+    })
+  }
+
   private def aliveWorkers: List[WorkerLink] = {
     workerStates.collect({
       case (name, x:Started) => WorkerLink(name, x.address.toString)
@@ -173,8 +170,15 @@ class WorkersManager(
       .map(_.replace("worker-", ""))
   }
 
-  private def startWorker(workerId: String, context: ContextConfig, mode: RunMode): WorkerState = {
-    workerRunner.runWorker(workerId, context, mode)
+  private def startWorker(workerId: String, contextCfg: ContextConfig, mode: RunMode): WorkerState = {
+    workerRunner.runWorker(workerId, contextCfg, mode)
+    log.info("Trying to start worker {}, for context: {}", workerId, contextCfg.name)
+    runnerInitTimeout match {
+      case f: FiniteDuration =>
+        context.system.scheduler.scheduleOnce(f, self, CheckWorkerUp(workerId))
+      case _ =>
+    }
+
     val defaultState = defaultWorkerState(workerId)
     val state = Initializing(defaultState.frontend)
     workerStates += workerId -> state

@@ -39,7 +39,7 @@ object Messages {
     case class WorkerUp(ref: ActorRef)
     case object WorkerDown
 
-    case object CheckInitWorkers
+    case class CheckWorkerUp(id: String)
 
   }
 
