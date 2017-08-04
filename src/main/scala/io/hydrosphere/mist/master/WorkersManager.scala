@@ -8,7 +8,7 @@ import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.joda.time.DateTime
 
 import scala.collection.JavaConversions._
@@ -157,8 +157,8 @@ class WorkersManager(
         setWorkerDown(name)
       })
 
-    case CreateContext(contextId) =>
-      startWorker(contextId, contextId, RunMode.Shared)
+    case CreateContext(ctx) =>
+      startWorker(ctx.name, ctx, RunMode.Shared)
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -173,8 +173,8 @@ class WorkersManager(
       .map(_.replace("worker-", ""))
   }
 
-  private def startWorker(workerId: String, contextId: String, mode: RunMode): WorkerState = {
-    workerRunner.runWorker(workerId, contextId, mode)
+  private def startWorker(workerId: String, context: ContextConfig, mode: RunMode): WorkerState = {
+    workerRunner.runWorker(workerId, context, mode)
     val defaultState = defaultWorkerState(workerId)
     val state = Initializing(defaultState.frontend)
     workerStates += workerId -> state

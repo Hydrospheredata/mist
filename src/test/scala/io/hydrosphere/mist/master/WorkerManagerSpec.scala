@@ -15,7 +15,7 @@ import scala.util.Success
 import WorkerManagerSpec._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
 class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with ImplicitSender
@@ -24,7 +24,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with Eventually {
 
   val NothingRunner = new WorkerRunner {
-    override def runWorker(name: String, context: String, mode: RunMode): Unit = {}
+    override def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit = {}
   }
 
   val StatusService = TestProbe().ref
@@ -37,11 +37,13 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   implicit override val patienceConfig =
     PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(5, Millis)))
 
+
   it("should connect frond and back") {
     val manager = testManager()
 
     val params = JobParams("path", "MyClass", Map.empty, Action.Execute)
-    manager ! RunJobCommand("test", RunMode.Shared, RunJobRequest("id", params))
+    val context = TestUtils.contextSettings.default.copy(name = "test")
+    manager ! RunJobCommand(context, RunMode.Shared, RunJobRequest("id", params))
 
     val info = receiveOne(1.second).asInstanceOf[ExecutionInfo]
     info.request.id shouldBe "id"

@@ -5,7 +5,7 @@ import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, Ru
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
 object Messages {
 
@@ -13,20 +13,21 @@ object Messages {
 
     case class WorkerRegistration(name: String, address: Address)
 
-    case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest) {
+    case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest) {
 
       def computeWorkerId(): String = {
+        val name = context.name
         mode match {
-          case RunMode.Shared => context
+          case RunMode.Shared => name
           case RunMode.ExclusiveContext(id) =>
             val postfix = id.map(s => s"$s-${request.id}").getOrElse(request.id)
-            s"$context-$postfix"
+            s"$name-$postfix"
         }
       }
     }
     case class CancelJobCommand(workerId: String, request: CancelJobRequest)
 
-    case class CreateContext(contextId: String)
+    case class CreateContext(context: ContextConfig)
 
     case object GetWorkers
     case object GetActiveJobs

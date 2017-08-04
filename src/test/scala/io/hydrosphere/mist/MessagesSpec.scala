@@ -3,7 +3,8 @@ package io.hydrosphere.mist
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
 import io.hydrosphere.mist.jobs.Action
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.TestUtils
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
 class MessagesSpec extends FunSpec with Matchers {
@@ -11,8 +12,9 @@ class MessagesSpec extends FunSpec with Matchers {
   describe("RunJobCommand") {
 
     it("should compute workerId") {
+      val context = TestUtils.contextSettings.default.copy(name = "my-context")
       def mk(mode: RunMode): RunJobCommand = RunJobCommand(
-        context = "my-context",
+        context = context,
         mode = mode,
         RunJobRequest("id-1", JobParams("path", "class", Map.empty, Action.Execute))
       )

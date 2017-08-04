@@ -27,10 +27,11 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
       )
 
       val name = "worker-name"
-      val context = "foo"
+      val context = cfg.contextsSettings.contexts.get("foo").get
       val mode = RunMode.Shared
 
-      val result = ShellWorkerScript.workerArgs(name, context, mode, cfg, cfg.contextsSettings.contexts.get("foo").get)
+
+      val result = ShellWorkerScript.workerArgs(name, context, mode, cfg)
         val x = Seq(
         "--master", "0.0.0.0:2345",
         "--name", "worker-name",

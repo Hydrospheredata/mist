@@ -8,7 +8,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, RunSettings}
+import io.hydrosphere.mist.master.models._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
@@ -35,11 +35,15 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(endpoints.getFullInfo(any[String]))
       .thenReturn(Future.successful(Some(fullInfo)))
 
+    when(contexts.getOrDefault(any[String]))
+      .thenReturn(Future.successful(TestUtils.contextSettings.default))
+
     when(jobService.startJob(
       any[String],
       any[EndpointConfig],
+      any[ContextConfig],
       any[Map[String, Any]],
-      any[RunSettings],
+      any[RunMode],
       any[JobDetails.Source],
       any[Option[String]],
       any[Action]

@@ -7,7 +7,7 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.{Future, Promise}
@@ -72,13 +72,17 @@ class MasterService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      fullInfo <- OptionT(endpoints.getFullInfo(req.endpointId))
-      _ <- OptionT.liftF(validate(fullInfo, req.parameters, action))
-      executionInfo <- OptionT.liftF(jobService.startJob(
+      fullInfo       <- OptionT(endpoints.getFullInfo(req.endpointId))
+      endpoint       = fullInfo.config
+      jobInfo        = fullInfo.info
+      _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
+      context        <- OptionT.liftF(selectContext(req, endpoint))
+      executionInfo  <- OptionT.liftF(jobService.startJob(
         req.id,
-        fullInfo.config,
+        endpoint,
+        context,
         req.parameters,
-        req.runSettings,
+        req.runSettings.mode,
         source,
         req.externalId,
         action
@@ -88,8 +92,13 @@ class MasterService(
     out.value
   }
 
-  def validate(fullInfo: FullEndpointInfo, params: Map[String, Any], action: Action): Future[Unit] = {
-    fullInfo.info.validateAction(params, action) match {
+  private def selectContext(req: JobStartRequest, endpoint: EndpointConfig): Future[ContextConfig] = {
+    val name = req.runSettings.contextId.getOrElse(endpoint.defaultContext)
+    contexts.getOrDefault(name)
+  }
+
+  def validate(jobInfo: JobInfo, params: Map[String, Any], action: Action): Future[Unit] = {
+    jobInfo.validateAction(params, action) match {
       case Left(e) => Future.failed(e)
       case Right(_) => Future.successful(())
     }

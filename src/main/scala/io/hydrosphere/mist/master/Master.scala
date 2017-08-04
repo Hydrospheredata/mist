@@ -56,7 +56,7 @@ object Master extends App with Logger {
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
 
-    val workerRunner = WorkerRunner.create(config, contextStorage)
+    val workerRunner = WorkerRunner.create(config)
 
     val store = H2JobsRepository(config.dbPath)
 
@@ -91,9 +91,8 @@ object Master extends App with Logger {
 
     val precreated = Await.result(contextStorage.precreated, Duration.Inf)
     precreated.foreach(context => {
-      val name = context.name
-      logger.info(s"Precreate context for $name namespace")
-      workerManager ! CreateContext(name)
+      logger.info(s"Precreate context for $context.name")
+      workerManager ! CreateContext(context)
     })
 
     // Start CLI

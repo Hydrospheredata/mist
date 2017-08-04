@@ -8,7 +8,7 @@ import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.models.{EndpointConfig, RunSettings}
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode, EndpointConfig, RunSettings}
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag
@@ -50,8 +50,9 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
   def startJob(
     id: String,
     endpoint: EndpointConfig,
+    context: ContextConfig,
     parameters: Map[String, Any],
-    runSettings: RunSettings,
+    runMode: RunMode,
     source: JobDetails.Source,
     externalId: Option[String],
     action: Action = Action.Execute
@@ -67,14 +68,12 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
       )
     )
 
-    val namespace = runSettings.contextId.getOrElse(endpoint.defaultContext)
-
-    val startCmd = RunJobCommand(namespace, runSettings.mode, internalRequest)
+    val startCmd = RunJobCommand(context, runMode, internalRequest)
 
     val registrationCommand = Register(
       request = internalRequest,
       endpoint = endpoint.name,
-      context = namespace,
+      context = context.name,
       source = source,
       externalId = externalId,
       workerId = startCmd.computeWorkerId()
