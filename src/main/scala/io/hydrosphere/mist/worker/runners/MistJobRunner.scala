@@ -14,12 +14,12 @@ object MistJobRunner extends JobRunner {
     if (!file.exists()) {
       Left(s"Can not found file locally: $file")
     } else {
-      val specificRunner = selectRunner(filePath)
+      val specificRunner = selectRunner(file.getAbsolutePath)
       specificRunner.run(req, context)
     }
   }
 
-  def selectRunner(filePath: String): JobRunner = {
+  private def selectRunner(filePath: String): JobRunner = {
     if (filePath.endsWith(".py"))
       new PythonRunner
     else if (filePath.endsWith(".jar"))
