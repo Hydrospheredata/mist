@@ -62,8 +62,6 @@ class WorkersManager(
 
   val workerStates = mutable.Map[String, WorkerState]()
 
-  //cluster.system.scheduler.schedule(20 seconds, 20 seconds, self, CheckInitWorkers)
-
   override def receive: Receive = {
     case RunJobCommand(contextId, mode, jobRequest) =>
       workerStates.get(contextId) match {
@@ -187,7 +185,6 @@ class WorkersManager(
 
     runnerInitTimeout match {
       case f: FiniteDuration =>
-        log.info("???? ")
         context.system.scheduler.scheduleOnce(f, self, CheckWorkerUp(workerId))
       case _ =>
     }
