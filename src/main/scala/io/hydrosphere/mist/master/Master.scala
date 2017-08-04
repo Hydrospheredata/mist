@@ -91,7 +91,7 @@ object Master extends App with Logger {
 
     val precreated = Await.result(contextStorage.precreated, Duration.Inf)
     precreated.foreach(context => {
-      logger.info(s"Precreate context for $context.name")
+      logger.info(s"Precreate context for ${context.name}")
       workerManager ! CreateContext(context)
     })
 
