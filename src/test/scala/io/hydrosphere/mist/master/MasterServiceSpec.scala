@@ -3,20 +3,16 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
-import io.hydrosphere.mist.Messages.StatusMessages.Register
-import io.hydrosphere.mist.Messages.WorkerMessages.RunJobCommand
 import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{RunSettings, EndpointConfig, FullEndpointInfo, JobStartRequest}
+import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, RunSettings}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
@@ -67,8 +63,12 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
 
-    val info = mock[FullEndpointInfo]
-    when(info.validateAction(any[Map[String, Any]], any[Action]))
+    val jvmMock = mock[JvmJobInfo]
+    val info = FullEndpointInfo(
+      EndpointConfig("name", "path", "MyJob", "namespace"),
+      jvmMock
+    )
+    when(jvmMock.validateAction(any[Map[String, Any]], any[Action]))
       .thenReturn(Left(new IllegalArgumentException("INVALID")))
 
     when(endpoints.getFullInfo(any[String]))

@@ -89,7 +89,7 @@ class MasterService(
   }
 
   def validate(fullInfo: FullEndpointInfo, params: Map[String, Any], action: Action): Future[Unit] = {
-    fullInfo.validateAction(params, action) match {
+    fullInfo.info.validateAction(params, action) match {
       case Left(e) => Future.failed(e)
       case Right(_) => Future.successful(())
     }

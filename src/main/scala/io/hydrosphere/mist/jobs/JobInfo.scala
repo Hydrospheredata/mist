@@ -3,12 +3,40 @@ package io.hydrosphere.mist.jobs
 import io.hydrosphere.mist.jobs.resolvers.JobResolver
 import io.hydrosphere.mist.jobs.jar.{JobsLoader, JobClass}
 
+import cats.implicits._
+
 import scala.util.{Failure, Success, Try}
 
-sealed trait JobInfo
+sealed trait JobInfo {
 
-case object PyJobInfo extends JobInfo
-case class JvmJobInfo(jobClass: JobClass) extends JobInfo
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, this.type]
+}
+
+case object PyJobInfo extends JobInfo {
+
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, PyJobInfo.this.type] = Right(this)
+}
+case class JvmJobInfo(jobClass: JobClass) extends JobInfo {
+
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, JvmJobInfo.this.type] = {
+
+    val inst = action match {
+      case Action.Execute => jobClass.execute
+      case Action.Train => jobClass.train
+      case Action.Serve => jobClass.serve
+    }
+    inst match {
+      case None => Left(new IllegalStateException(s"Job without $action job instance"))
+      case Some(exec) => exec.validateParams(params).map(_ => this)
+    }
+  }
+}
 
 object JobInfo {
 
