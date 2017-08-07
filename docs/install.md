@@ -7,7 +7,7 @@ Docker image also has Apache Spark binaries for a quick start.
 
 Releases:
 
-- tar <http://repo.hydrosphere.io/static/> 
+- tar <http://repo.hydrosphere.io/hydrosphere/static/> 
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
