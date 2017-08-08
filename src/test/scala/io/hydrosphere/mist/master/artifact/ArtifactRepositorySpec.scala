@@ -66,11 +66,9 @@ class ArtifactRepositorySpec extends FunSpecLike
       val source = Source.single(ByteString.fromString("some content"))
 
       val testFilename = "someFile.jar"
-      artifactRepo.store(source, testFilename).await
+      val file = artifactRepo.store(source, testFilename).await
 
-      val file = artifactRepo.get(testFilename).await
-      file shouldBe defined
-      FileUtils.readFileToString(file.get, Charset.defaultCharset()) shouldBe "some content"
+      FileUtils.readFileToString(file, Charset.defaultCharset()) shouldBe "some content"
 
     }
   }

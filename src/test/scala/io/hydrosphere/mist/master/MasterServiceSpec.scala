@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.MockitoSugar
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
@@ -26,6 +27,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
+    val artifactRepo = mock[ArtifactRepository]
 
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -54,7 +56,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
       )
     ))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http).await
@@ -66,6 +68,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
+    val artifactRepo = mock[ArtifactRepository]
 
     val jvmMock = mock[JvmJobInfo]
     val info = FullEndpointInfo(
@@ -78,7 +81,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(endpoints.getFullInfo(any[String]))
       .thenReturn(Future.successful(Some(info)))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val req = JobStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
     val f = service.runJob(req, Source.Http)

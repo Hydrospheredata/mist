@@ -1,12 +1,17 @@
 package io.hydrosphere.mist.master.interfaces.http
 
-import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
-import akka.http.scaladsl.model.{StatusCodes, StatusCode, HttpResponse}
-import akka.http.scaladsl.server.Directives
-import akka.http.scaladsl.server.directives.ParameterDirectives
+import java.io.File
 
+import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
+import akka.http.scaladsl.model.{HttpResponse, StatusCode, StatusCodes}
+import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.directives.{FileInfo, ParameterDirectives}
+import akka.stream.scaladsl
+import akka.util.ByteString
+import cats.data.OptionT
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobService, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
@@ -167,7 +172,7 @@ object HttpV2Routes {
 
         onSuccess(master.endpoints.get(req.name)) {
           case None =>
-            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
+            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
             completeTry({
@@ -206,6 +211,40 @@ object HttpV2Routes {
           }
         }
       })
+    }
+  }
+
+  def artifactRoutes(artifactRepo: ArtifactRepository): Route = {
+    path(root / "artifacts") {
+      get {
+        complete {
+          for {
+            files <- artifactRepo.loadAll()
+          } yield files.map(_.getAbsolutePath)
+        }
+      }
+    } ~
+    path(root / "artifacts" / Segment) { filename =>
+      // download
+      get {
+        onSuccess(artifactRepo.get(filename)) {
+          case Some(file) => getFromFile(file)
+          case None => complete {
+            HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
+          }
+        }
+      }
+    } ~
+    path(root / "artifacts") {
+      post {
+        fileUpload("file") {
+          case (metadata, byteSource) =>
+            complete {
+              artifactRepo.store(byteSource, metadata.fileName)
+                .map(_.getName)
+            }
+        }
+      }
     }
   }
 
@@ -267,7 +306,8 @@ object HttpV2Routes {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
-    contextsRoutes(masterService.contexts)
+    contextsRoutes(masterService.contexts) ~
+    artifactRoutes(masterService.artifactRepository)
   }
 
   def apiWithCORS(masterService: MasterService): Route =

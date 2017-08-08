@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master
 
 import cats.data._
 import cats.implicits._
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.ContextsStorage
@@ -11,14 +12,15 @@ import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.{Future, Promise}
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MasterService(
   val jobService: JobService,
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
-  val logStorageMappings: LogStorageMappings
+  val logStorageMappings: LogStorageMappings,
+  val artifactRepository: ArtifactRepository
 ) extends Logger {
 
   def runJob(req: JobStartRequest, source: JobDetails.Source): Future[Option[JobStartResponse]] = {

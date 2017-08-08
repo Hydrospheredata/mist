@@ -13,7 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait ArtifactRepository {
   def loadAll(): Future[Seq[File]]
   def get(filename: String): Future[Option[File]]
-  def store(src: Source[ByteString, Any], fileName: String): Future[Unit]
+  def store(src: Source[ByteString, Any], fileName: String): Future[File]
 }
 
 class FsArtifactRepository(rootDir: String) extends ArtifactRepository {
@@ -22,7 +22,7 @@ class FsArtifactRepository(rootDir: String) extends ArtifactRepository {
 
   override def get(filename: String): Future[Option[File]] = ???
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[Unit] = ???
+  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = ???
 
 }
 
@@ -32,7 +32,7 @@ class DefaultArtifactRepository(endpointsStorage: EndpointsStorage) extends Arti
 
   override def get(filename: String): Future[Option[File]] = ???
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[Unit] = ???
+  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = ???
 
 }
 
@@ -55,7 +55,7 @@ class SimpleArtifactRepository(
     } yield f orElse fallback
   }
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[Unit] = {
+  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = {
     mainRepo.store(src, fileName)
   }
 }
