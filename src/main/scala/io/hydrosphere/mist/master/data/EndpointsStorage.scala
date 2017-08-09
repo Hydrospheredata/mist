@@ -52,9 +52,6 @@ class EndpointsStorage(
     })
   }
 
-  def validatePath(jobFilename: String): Either[Throwable, EndpointConfig] = {
-    ???
-  }
 }
 
 object EndpointsStorage extends Logger {

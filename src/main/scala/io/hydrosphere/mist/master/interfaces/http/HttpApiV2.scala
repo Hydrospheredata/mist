@@ -218,14 +218,11 @@ object HttpV2Routes {
     path(root / "artifacts") {
       get {
         complete {
-          for {
-            files <- artifactRepo.loadAll()
-          } yield files.map(_.getAbsolutePath)
+          artifactRepo.listPaths()
         }
       }
     } ~
     path(root / "artifacts" / Segment) { filename =>
-      // download
       get {
         onSuccess(artifactRepo.get(filename)) {
           case Some(file) => getFromFile(file)
@@ -237,11 +234,11 @@ object HttpV2Routes {
     } ~
     path(root / "artifacts") {
       post {
-        fileUpload("file") {
-          case (metadata, byteSource) =>
-            complete {
-              artifactRepo.store(byteSource, metadata.fileName)
-                .map(_.getName)
+        uploadedFile("file") {
+          case (metadata, tempFile) =>
+            onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
+              tempFile.delete
+              complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
             }
         }
       }

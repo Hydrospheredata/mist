@@ -1,38 +1,80 @@
 package io.hydrosphere.mist.master.artifact
 
 import java.io.File
+import java.nio.file.Paths
 import java.util.concurrent.Executors
 
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
 import io.hydrosphere.mist.master.data.EndpointsStorage
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
 trait ArtifactRepository {
-  def loadAll(): Future[Seq[File]]
+  def listPaths(): Future[Set[String]]
+
   def get(filename: String): Future[Option[File]]
-  def store(src: Source[ByteString, Any], fileName: String): Future[File]
+
+  def store(src: File, fileName: String): Future[File]
 }
 
-class FsArtifactRepository(rootDir: String) extends ArtifactRepository {
+class FsArtifactRepository(
+  rootDir: String)(implicit val ec: ExecutionContext)
+  extends ArtifactRepository {
 
-  override def loadAll(): Future[Seq[File]] = ???
+  override def listPaths(): Future[Set[String]] = {
+    val artifactDir = Paths.get(rootDir).toFile
+    if (artifactDir.isDirectory) {
+      Future.successful(artifactDir.listFiles().map(_.getName).toSet)
+    } else Future.failed(new IllegalStateException(s"$rootDir is not directory"))
+  }
 
-  override def get(filename: String): Future[Option[File]] = ???
+  override def get(filename: String): Future[Option[File]] = {
+    Future.successful(
+      Paths.get(rootDir, filename).toFile match {
+        case f if f.exists => Some(f)
+        case f if !f.exists => None
+      }
+    )
+  }
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = ???
+  override def store(src: File, fileName: String): Future[File] = {
+    Future {
+      val dst = Paths.get(rootDir, fileName).toFile
+      FileUtils.copyFile(src, dst)
+      dst
+    }
+  }
 
 }
 
-class DefaultArtifactRepository(endpointsStorage: EndpointsStorage) extends ArtifactRepository {
+class DefaultArtifactRepository(
+  endpointsStorage: EndpointsStorage)(implicit val ec: ExecutionContext)
+  extends ArtifactRepository {
 
-  override def loadAll(): Future[Seq[File]] = ???
+  override def listPaths(): Future[Set[String]] = endpointsStorage.all.map(files => {
+    files.map(_.path)
+      .map {
+        case p if p.startsWith("hdfs") || p.startsWith("mvn") => p
+        case p => FilenameUtils.getName(p)
+      }
+      .toSet
+  })
 
-  override def get(filename: String): Future[Option[File]] = ???
+  override def get(filename: String): Future[Option[File]] = {
+    endpointsStorage.all.map(configs => {
+      configs.map(_.path)
+        .map(str => (str, str.substring(str.lastIndexOf('/') + 1, str.length)))
+        .find {
+          _._2 == filename
+        }
+        .map(_._1)
+        .map(new File(_))
+    })
+  }
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = ???
+  override def store(src: File, fileName: String): Future[File] =
+    Future.failed(new UnsupportedOperationException("do not implement this"))
 
 }
 
@@ -41,12 +83,10 @@ class SimpleArtifactRepository(
   fallbackRepo: ArtifactRepository)(implicit ec: ExecutionContext)
   extends ArtifactRepository {
 
-  override def loadAll(): Future[Seq[File]] = {
-    for {
-      mainRepoFiles <- mainRepo.loadAll()
-      fallbackRepoFiles <- fallbackRepo.loadAll()
-    } yield mainRepoFiles ++ fallbackRepoFiles
-  }
+  override def listPaths(): Future[Set[String]] = for {
+    mainRepoFiles <- mainRepo.listPaths()
+    fallbackRepoFiles <- fallbackRepo.listPaths()
+  } yield mainRepoFiles ++ fallbackRepoFiles
 
   override def get(filename: String): Future[Option[File]] = {
     for {
@@ -55,7 +95,7 @@ class SimpleArtifactRepository(
     } yield f orElse fallback
   }
 
-  override def store(src: Source[ByteString, Any], fileName: String): Future[File] = {
+  override def store(src: File, fileName: String): Future[File] = {
     mainRepo.store(src, fileName)
   }
 }
@@ -63,9 +103,9 @@ class SimpleArtifactRepository(
 object ArtifactRepository {
 
   def create(storagePath: String, endpointsStorage: EndpointsStorage): ArtifactRepository = {
-    val defaultArtifactRepo = new DefaultArtifactRepository(endpointsStorage)
-    val fsArtifactRepo = new FsArtifactRepository(storagePath)
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+    val defaultArtifactRepo = new DefaultArtifactRepository(endpointsStorage)(ec)
+    val fsArtifactRepo = new FsArtifactRepository(storagePath)(ec)
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 }
