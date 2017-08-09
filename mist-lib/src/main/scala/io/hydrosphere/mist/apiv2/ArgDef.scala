@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.apiv2
 
-import io.hydrosphere.mist.apiv2.internal.Combiner
 import org.apache.spark.SparkContext
+import shapeless.ops.adjoin.Adjoin
+import shapeless.{::, HNil}
 
 trait ArgExtraction[+A]
 case class Extracted[+A](value: A) extends ArgExtraction[A]
@@ -11,35 +12,24 @@ trait ArgDef[A] { self =>
 
   def extract(ctx: JobContext): ArgExtraction[A]
 
-  def combine[B](other: ArgDef[B])(implicit combiner: Combiner[B, A]): ArgDef[combiner.Out] = {
-    new ArgDef[combiner.Out] {
-      override def extract(ctx: JobContext): ArgExtraction[combiner.Out] = {
-        val x = other.extract(ctx)
-        val y = self.extract(ctx)
-        (x, y) match {
-          case (Extracted(b), Extracted(a)) => Extracted(combiner(b, a))
-          case (Missing(err1), Missing(err2)) => Missing(err1 + "," + err2)
-          case (x @ Missing(err1), _ ) => x.asInstanceOf[Missing[combiner.Out]]
-          case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[combiner.Out]]
-        }
-      }
-    }
+  def combine[B](other: ArgDef[B])(implicit adj: Adjoin[A :: B :: HNil]): ArgDef[adj.Out] = {
+    cmb0(other, adj)
   }
 
-  def &[B, Out](other: ArgDef[B])(implicit combiner: Combiner.Aux[B, A, Out]): ArgDef[Out] = {
-    cmb0(other, combiner)
+  def &[B](other: ArgDef[B])(implicit adj: Adjoin[A :: B :: HNil]): ArgDef[adj.Out] = {
+    cmb0(other, adj)
   }
 
-  private def cmb0[B, Out](o: ArgDef[B], combiner: Combiner.Aux[B, A, Out]): ArgDef[Out] = {
-    new ArgDef[Out] {
-      override def extract(ctx: JobContext): ArgExtraction[Out] = {
-        val x = o.extract(ctx)
-        val y = self.extract(ctx)
-        (x, y) match {
-          case (Extracted(b), Extracted(a)) => Extracted(combiner(b, a))
-          case (Missing(err1), Missing(err2)) => Missing(err1 + "," + err2)
-          case (x @ Missing(err1), _ ) => x.asInstanceOf[Missing[Out]]
-          case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[Out]]
+  private def cmb0[B](b: ArgDef[B], adj: Adjoin[A :: B :: HNil]): ArgDef[adj.Out] = {
+    new ArgDef[adj.Out] {
+      override def extract(ctx: JobContext): ArgExtraction[adj.Out] = {
+        (b.extract(ctx), self.extract(ctx)) match {
+          case (Extracted(be), Extracted(ae)) =>
+            val out = adj(ae :: be :: HNil)
+            Extracted(out)
+          case (Missing(errB), Missing(errA)) => Missing(errA + ", " + errB)
+          case (x @ Missing(err1), _ ) => x.asInstanceOf[Missing[adj.Out]]
+          case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[adj.Out]]
         }
       }
     }

@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.apiv2
 
 import org.scalatest.{Matchers, FunSpec}
+import shapeless.HNil
 
 class ArgDefSpec extends FunSpec with Matchers {
 
@@ -18,15 +19,17 @@ class ArgDefSpec extends FunSpec with Matchers {
   describe("combine") {
 
     it("should extract combined") {
-      val combined = ArgDef.const("1") combine ArgDef.const("2")
+      val combined = ArgDef.const("first") &
+        ArgDef.const("second") & ArgDef.const("third") & ArgDef.const(4)
+
       val data = combined.extract(testCtx())
-      println(data)
+      data shouldBe Extracted("first" :: "second" :: "third" :: 4 :: HNil)
     }
 
     it("should fail all") {
       val combined = ArgDef.const("1") combine ArgDef.missing[Int]("msg1") combine ArgDef.missing[Int]("msg2")
       val data = combined.extract(testCtx())
-      println(data)
+      data shouldBe Missing("msg1, msg2")
     }
   }
 
