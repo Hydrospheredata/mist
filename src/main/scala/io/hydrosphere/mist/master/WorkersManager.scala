@@ -7,6 +7,7 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
+import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
@@ -53,7 +54,9 @@ class WorkersManager(
   statusService: ActorRef,
   workerRunner: WorkerRunner,
   jobsLogger: JobsLogger,
-  runnerInitTimeout: Duration
+  runnerInitTimeout: Duration,
+  contextsStorage: ContextsStorage,
+  logServiceConfig: LogServiceConfig
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
@@ -79,6 +82,17 @@ class WorkersManager(
 
     case GetWorkers =>
       sender() ! aliveWorkers
+
+    case WorkerInitInfoReq(ctxName) =>
+      contextsStorage.getOrDefault(ctxName)
+        .map(cfg => WorkerInitInfo(
+          sparkConf = cfg.sparkConf,
+          maxJobs = cfg.maxJobs,
+          downtime = cfg.downtime,
+          streamingDuration = cfg.streamingDuration,
+          logService = s"${logServiceConfig.host}:${logServiceConfig.port}"
+        ))
+        .pipeTo(sender())
 
     case GetActiveJobs =>
       implicit val timeout = Timeout(1.second)
@@ -227,9 +241,11 @@ object WorkersManager {
     statusService: ActorRef,
     workerRunner: WorkerRunner,
     jobsLogger: JobsLogger,
-    runnerInitTimeout: Duration
+    runnerInitTimeout: Duration,
+    contextsStorage: ContextsStorage,
+    logs: LogServiceConfig
   ): Props = {
-    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout)
+    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout, contextsStorage, logs)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)

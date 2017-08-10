@@ -39,7 +39,7 @@ class ClusterWorker(
 
 
   def joined(master: Address): Receive = {
-    case info:WorkerInitInfo =>
+    case info: WorkerInitInfo =>
       val worker = startWorker(info)
       register(master)
       context become initialized(master, worker)
