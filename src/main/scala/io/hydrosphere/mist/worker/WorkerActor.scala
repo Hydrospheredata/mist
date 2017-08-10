@@ -4,7 +4,10 @@ import java.util.concurrent.{Executors, ExecutorService}
 
 import akka.actor._
 import io.hydrosphere.mist.Messages.JobMessages._
+import io.hydrosphere.mist.Messages.WorkerMessages.WorkerInitInfo
+import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.worker.runners.{MistJobRunner, JobRunner}
+import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
 import scala.concurrent._
@@ -146,18 +149,42 @@ class ExclusiveWorker(
 
 object WorkerActor {
 
-  def props(mode: WorkerMode, context: NamedContext): Props = props(mode, context, MistJobRunner)
+//  def props(mode: WorkerMode, context: NamedContext): Props = props(mode, context, MistJobRunner)
 
-  def props(
-    mode: WorkerMode,
-    context: NamedContext,
-    runner: JobRunner): Props = {
+//  def props(
+//    mode: WorkerMode,
+//    context: NamedContext,
+//    runner: JobRunner): Props = {
+//
+//    mode match {
+//      case Shared(maxJobs, idleTimeout) =>
+//        Props(classOf[SharedWorkerActor], context, runner, idleTimeout, maxJobs)
+//      case Exclusive =>
+//        Props(classOf[ExclusiveWorker], context, runner)
+//    }
+//  }
 
-    mode match {
-      case Shared(maxJobs, idleTimeout) =>
-        Props(classOf[SharedWorkerActor], context, runner, idleTimeout, maxJobs)
-      case Exclusive =>
-        Props(classOf[ExclusiveWorker], context, runner)
+  def initInfoToProps(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => Props = {
+    (info: WorkerInitInfo) => {
+      val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
+      val sparkContext = new SparkContext(conf)
+
+      val pair = info.logService.split(":")
+      val centralLoggingConf = CentralLoggingConf(pair(0), pair(1).toInt)
+
+      val namedContext = new NamedContext(
+        sparkContext,
+        contextName,
+        org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
+        Some(centralLoggingConf)
+      )
+
+      mode match {
+        case Shared =>
+          Props(classOf[SharedWorkerActor], namedContext, MistJobRunner, info.downtime, info.maxJobs)
+        case Exclusive =>
+          Props(classOf[ExclusiveWorker], namedContext, MistJobRunner)
+      }
     }
   }
 

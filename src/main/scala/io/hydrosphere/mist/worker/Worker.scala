@@ -31,7 +31,7 @@ case class WorkerArguments(
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
 
   def workerMode: WorkerMode = mode match {
-    case "shared" => Shared(maxJobs, downtime)
+    case "shared" => Shared
     case "exclusive" => Exclusive
     case arg => throw new IllegalArgumentException(s"Unknown worker mode $arg")
   }
@@ -121,11 +121,11 @@ object Worker extends App with Logger {
     val mode = arguments.workerMode
     logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
 
-    val context = try { arguments.createNamedContext }
-    catch {
-      case e: Throwable =>
-        throw new RuntimeException("Spark context initialization failed", e)
-    }
+//    val context = try { arguments.createNamedContext }
+//    catch {
+//      case e: Throwable =>
+//        throw new RuntimeException("Spark context initialization failed", e)
+//    }
 
     val seedNodes = Seq(arguments.masterNode).asJava
     val roles = Seq(s"worker-$name").asJava
@@ -139,7 +139,8 @@ object Worker extends App with Logger {
 
     val props = ClusterWorker.props(
       name = arguments.name,
-      workerProps = WorkerActor.props(mode, context)
+      contextName = arguments.contextName,
+      workerInit = WorkerActor.initInfoToProps(name, arguments.contextName, mode)
     )
     system.actorOf(props, s"worker-$name")
 
@@ -154,7 +155,8 @@ object Worker extends App with Logger {
 
     system.awaitTermination()
     logger.info(s"Shutdown worker application $name ${arguments.contextName}")
-    context.stop()
+    //TODO!!! 
+    //context.stop()
 
   } catch {
     case e: Throwable =>
