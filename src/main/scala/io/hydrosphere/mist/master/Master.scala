@@ -42,6 +42,7 @@ object Master extends App with Logger {
       import scala.concurrent.ExecutionContext.Implicits.global
       import config.security._
 
+      logger.info("Security is enabled - starting Knit loop")
       val ps = KInitLauncher.create(keytab, principal, interval)
       ps.run().onFailure({
         case e: Throwable =>
