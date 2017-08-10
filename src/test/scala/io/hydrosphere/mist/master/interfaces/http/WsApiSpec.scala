@@ -26,7 +26,7 @@ class WsApiSpec extends FunSpec
 
     val client = WSProbe()
 
-    WS("/v2/api/ws", client.flow) ~> route ~> check {
+    WS("/v2/api/ws/all", client.flow) ~> route ~> check {
       isWebsocketUpgrade shouldBe true
 
       client.expectMessage("""{"id":"1","time":1,"event":"started"}""")
@@ -49,7 +49,7 @@ class WsApiSpec extends FunSpec
 
     val client = WSProbe()
 
-    WS("/v2/api/jobs/1/ws", client.flow) ~> route ~> check {
+    WS("/v2/api/ws/jobs/1", client.flow) ~> route ~> check {
       isWebsocketUpgrade shouldBe true
 
       client.expectMessage("""{"id":"1","time":1,"event":"started"}""")
