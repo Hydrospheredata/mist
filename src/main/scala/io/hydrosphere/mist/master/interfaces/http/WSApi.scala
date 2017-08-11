@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.Directives
 import akka.stream.scaladsl.{Flow, Sink}
-import io.hydrosphere.mist.Messages.StatusMessages.{ReceivedLogs, UpdateStatusEvent}
+import io.hydrosphere.mist.Messages.StatusMessages.{SystemEvent, ReceivedLogs, UpdateStatusEvent}
 import io.hydrosphere.mist.master.EventsStreamer
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import spray.json._
@@ -19,12 +19,12 @@ class WSApi(streamer: EventsStreamer) {
   import JsonCodecs._
 
   val route = {
-    path( "v2" / "api" / "ws") {
+    path( "v2" / "api" / "ws" / "all" ) {
       get {
         handleWebsocketMessages(allEventsWsFlow())
       }
     } ~
-    path( "v2" / "api" / "jobs" / Segment / "ws") { jobId =>
+    path( "v2" / "api" / "ws"/ "jobs" / Segment ) { jobId =>
       get {
         handleWebsocketMessages(jobWsFlow(jobId))
       }
@@ -38,22 +38,18 @@ class WSApi(streamer: EventsStreamer) {
         case e: ReceivedLogs => e.id == id
         case _ => false
       })
-      .map(e => {
-        val json = e.toJson.toString()
-        TextMessage.Strict(json)
-      })
+      .map(toWsMessage)
 
     val sink = Sink.ignore
     Flow.fromSinkAndSource(sink, source)
   }
 
   private def allEventsWsFlow(): Flow[Message, Message, Any] = {
-    val source = streamer.eventsSource().map(e => {
-      val json = e.toJson.toString()
-      TextMessage.Strict(json)
-    })
+    val source = streamer.eventsSource().map(toWsMessage)
 
     val sink = Sink.ignore
     Flow.fromSinkAndSource(sink, source)
   }
+
+  private def toWsMessage(e: SystemEvent): Message = TextMessage.Strict(e.toJson.toString())
 }

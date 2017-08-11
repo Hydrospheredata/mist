@@ -102,7 +102,7 @@ docker run \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v $PWD/my_config:/my_config \
    -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.12.2-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
+   hydrosphere/mist:0.13.0-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ````
 
 ### (5/6) Deploying a job

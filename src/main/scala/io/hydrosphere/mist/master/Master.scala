@@ -43,6 +43,7 @@ object Master extends App with Logger {
       import scala.concurrent.ExecutionContext.Implicits.global
       import config.security._
 
+      logger.info("Security is enabled - starting Knit loop")
       val ps = KInitLauncher.create(keytab, principal, interval)
       ps.run().onFailure({
         case e: Throwable =>
@@ -51,8 +52,8 @@ object Master extends App with Logger {
       })
     }
 
-    val endpointsStorage = EndpointsStorage.create("endpoints", appArguments.routerConfigPath)
-    val contextStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
+    val endpointsStorage = EndpointsStorage.create(config.endpointsPath, appArguments.routerConfigPath)
+    val contextsStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
 
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
@@ -79,19 +80,26 @@ object Master extends App with Logger {
     )
 
     val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
-    val workerManager = system.actorOf(
-      WorkersManager.props(statusService, workerRunner, logsService.getLogger, config.workers.runnerInitTimeout), "workers-manager")
+    val infoProvider = new InfoProvider(config.logs, contextsStorage)
     val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage)
+    val workerManager = system.actorOf(
+      WorkersManager.props(
+        statusService, workerRunner,
+        logsService.getLogger,
+        config.workers.runnerInitTimeout,
+        infoProvider
+      ), "workers-manager")
+
     val jobService = new JobService(workerManager, statusService)
     val masterService = new MasterService(
       jobService,
       endpointsStorage,
-      contextStorage,
+      contextsStorage,
       logsMappings,
       artifactRepository
     )
 
-    val precreated = Await.result(contextStorage.precreated, Duration.Inf)
+    val precreated = Await.result(contextsStorage.precreated, Duration.Inf)
     precreated.foreach(context => {
       logger.info(s"Precreate context for ${context.name}")
       workerManager ! CreateContext(context)

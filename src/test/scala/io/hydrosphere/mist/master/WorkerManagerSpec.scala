@@ -5,6 +5,7 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages._
+import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.Action
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -21,17 +22,21 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with ImplicitSender
   with FunSpecLike
   with Matchers
-  with Eventually {
+  with Eventually
+  with MockitoSugar
+{
 
   val NothingRunner = new WorkerRunner {
     override def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit = {}
   }
 
+
   val StatusService = TestProbe().ref
 
   def testManager(): ActorRef = {
+    val infoProvider = mock[InfoProvider]
     system.actorOf(
-      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger, 20 seconds))
+      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger, 20 seconds, infoProvider))
   }
 
   implicit override val patienceConfig =
@@ -57,6 +62,27 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
       info.promise.future.isCompleted shouldBe true
       info.promise.future.value shouldBe Some(Success(Map("r" -> "ok")))
     }
+  }
+
+  it("should return info for worker") {
+    val infoProvider = mock[InfoProvider]
+    when(infoProvider.workerInitInfo(any[String]))
+      .thenSuccess(WorkerInitInfo(
+        sparkConf = Map("as" -> "sd"),
+        maxJobs = 10,
+        downtime = Duration.Inf,
+        streamingDuration = 30 seconds,
+        logService = "yoyo:9090"
+      ))
+
+
+    val manager = system.actorOf(
+      WorkersManager.props(StatusService, NothingRunner, JobsLogger.NOOPLogger, 20 seconds, infoProvider))
+
+    val probe = TestProbe()
+    probe.send(manager, WorkerInitInfoReq("foo"))
+    
+    probe.expectMsgType[WorkerInitInfo]
   }
 
   ignore("fix later") {

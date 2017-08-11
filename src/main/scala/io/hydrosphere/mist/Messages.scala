@@ -7,6 +7,8 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
+import scala.concurrent.duration.Duration
+
 object Messages {
 
   object WorkerMessages {
@@ -40,6 +42,15 @@ object Messages {
     case object WorkerDown
 
     case class CheckWorkerUp(id: String)
+
+    case class WorkerInitInfoReq(contextName: String)
+    case class WorkerInitInfo(
+      sparkConf: Map[String, String],
+      maxJobs: Int,
+      downtime: Duration,
+      streamingDuration: Duration,
+      logService: String
+    )
 
   }
 

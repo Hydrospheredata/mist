@@ -29,6 +29,6 @@ Since we support multiple spark versions docker image tags has format "${MIST-VE
 Note: Inside docker mist spawn worker by cloning self container and running it in docker-daemon
 For that purpose `docker.sock` should be mounted to container.
 ```sh
-sbt -DsparkVersion=2.1.0 mist/docker # will create hydrosphere/mist:0.12.2-2.1.0
-docker run -p 2004:2004 -v /var/run/docker.sock:/var/run/docker.sock hydrosphere/mist:0.12.2-2.1.0 mist
+sbt -DsparkVersion=2.1.0 mist/docker # will create hydrosphere/mist:0.13.0-2.1.0
+docker run -p 2004:2004 -v /var/run/docker.sock:/var/run/docker.sock hydrosphere/mist:0.13.0-2.1.0 mist
 ```
