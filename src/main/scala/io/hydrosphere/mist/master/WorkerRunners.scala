@@ -83,6 +83,21 @@ class DockerWorkerRunner(config: MasterConfig)
 
 }
 
+/**
+  * Run worker via user-provided shell script
+  * For example use in case when we need to do something before actually starting worker
+  * <pre>
+  * <code>
+  *   #!/bin/bash
+  *   # do smth and then run worker
+  *   bin/mist-worker --runner local\
+  *         --master \u0024MIST_MASTER_ADDRESS\
+  *         --name \u0024MIST_WORKER_NAME\
+  *         --context-name \u0024MIST_WORKER_CONTEXT\
+  *         --mode \u0024MIST_WORKER_MODE
+  * </code>
+  * </pre>
+  */
 class ManualWorkerRunner(
   config: MasterConfig,
   jarPath: String) extends WorkerRunner {
@@ -91,9 +106,13 @@ class ManualWorkerRunner(
     Process(
       Seq("bash", "-c", config.workers.cmd),
       None,
-      "MIST_WORKER_NAMESPACE" -> name,
-      "MIST_WORKER_JAR_PATH" -> jarPath,
-      "MIST_WORKER_RUN_OPTIONS" -> context.runOptions
+      "MIST_MASTER_ADDRESS" -> s"${config.cluster.host}:${config.cluster.port}",
+      "MIST_WORKER_NAME" -> name,
+      "MIST_WORKER_CONTEXT" -> context.name,
+      "MIST_WORKER_MODE" -> mode.name,
+      "MIST_WORKER_RUN_OPTIONS" -> context.runOptions,
+
+      "MIST_WORKER_JAR_PATH" -> jarPath
     ).run(false)
   }
 
@@ -101,7 +120,7 @@ class ManualWorkerRunner(
     Process(
       Seq("bash", "-c", cmd),
       None,
-      "MIST_WORKER_NAMESPACE" -> name
+      "MIST_WORKER_NAME" -> name
     ).run(false)
   }
 
