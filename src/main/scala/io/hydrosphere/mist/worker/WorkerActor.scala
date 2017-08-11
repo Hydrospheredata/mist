@@ -104,7 +104,20 @@ class SharedWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    namedContext.stop()
   }
+
+}
+
+object SharedWorkerActor {
+
+  def props(
+    context: NamedContext,
+    jobRunner: JobRunner,
+    idleTimeout: Duration,
+    maxJobs: Int
+  ): Props =
+    Props(classOf[SharedWorkerActor], context, jobRunner, idleTimeout, maxJobs)
 
 }
 
@@ -143,50 +156,47 @@ class ExclusiveWorker(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    namedContext.stop()
   }
 
 }
 
+object ExclusiveWorker {
+
+  def props(context: NamedContext, jobRunner: JobRunner): Props =
+    Props(classOf[ExclusiveWorker], context, jobRunner)
+}
+
 object WorkerActor {
 
-//  def props(mode: WorkerMode, context: NamedContext): Props = props(mode, context, MistJobRunner)
+  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => Props = {
 
-//  def props(
-//    mode: WorkerMode,
-//    context: NamedContext,
-//    runner: JobRunner): Props = {
-//
-//    mode match {
-//      case Shared(maxJobs, idleTimeout) =>
-//        Props(classOf[SharedWorkerActor], context, runner, idleTimeout, maxJobs)
-//      case Exclusive =>
-//        Props(classOf[ExclusiveWorker], context, runner)
-//    }
-//  }
+    def mkNamedContext(info: WorkerInitInfo): NamedContext = {
+      import info._
 
-  def initInfoToProps(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => Props = {
-    (info: WorkerInitInfo) => {
       val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
       val sparkContext = new SparkContext(conf)
 
-      val pair = info.logService.split(":")
-      val centralLoggingConf = CentralLoggingConf(pair(0), pair(1).toInt)
+      val centralLoggingConf = {
+        val hostPort = logService.split(":")
+        CentralLoggingConf(hostPort(0), hostPort(1).toInt)
+      }
 
-      val namedContext = new NamedContext(
+      new NamedContext(
         sparkContext,
         contextName,
         org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
-        Some(centralLoggingConf)
+        Option(centralLoggingConf)
       )
+    }
 
+    (info: WorkerInitInfo) => {
+      val namedContext = mkNamedContext(info)
       mode match {
-        case Shared =>
-          Props(classOf[SharedWorkerActor], namedContext, MistJobRunner, info.downtime, info.maxJobs)
-        case Exclusive =>
-          Props(classOf[ExclusiveWorker], namedContext, MistJobRunner)
+        case Shared => SharedWorkerActor.props(namedContext, MistJobRunner, info.downtime, info.maxJobs)
+        case Exclusive => ExclusiveWorker.props(namedContext, MistJobRunner)
       }
     }
   }
-
 
 }

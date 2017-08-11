@@ -2,7 +2,6 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.Logger
 
@@ -30,17 +29,8 @@ trait ShellWorkerScript {
       "--master", s"${config.cluster.host}:${config.cluster.port}",
       "--name", name,
       "--context-name", context.name,
-      "--max-jobs", context.maxJobs.toString,
-      "--downtime", durationToArg(context.downtime),
-      "--spark-streaming-duration", durationToArg(context.streamingDuration),
-      "--log-service", s"${config.logs.host}:${config.logs.port}",
       "--mode", mode.name
-    ) ++ mkSparkConf(context) ++ mkRunOptions(context)
-  }
-
-  def mkSparkConf(ctxConfig: ContextConfig): Seq[String] = {
-    ctxConfig.sparkConf.toList.map({case (k, v) => s"$k=$v"})
-      .flatMap(p=> Seq("--spark-conf", p))
+    ) ++ mkRunOptions(context)
   }
 
   def mkRunOptions(ctxConfig: ContextConfig): Seq[String] = {

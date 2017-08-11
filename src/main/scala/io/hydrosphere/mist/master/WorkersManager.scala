@@ -55,8 +55,7 @@ class WorkersManager(
   workerRunner: WorkerRunner,
   jobsLogger: JobsLogger,
   runnerInitTimeout: Duration,
-  contextsStorage: ContextsStorage,
-  logServiceConfig: LogServiceConfig
+  infoProvider: InfoProvider
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
@@ -84,15 +83,7 @@ class WorkersManager(
       sender() ! aliveWorkers
 
     case WorkerInitInfoReq(ctxName) =>
-      contextsStorage.getOrDefault(ctxName)
-        .map(cfg => WorkerInitInfo(
-          sparkConf = cfg.sparkConf,
-          maxJobs = cfg.maxJobs,
-          downtime = cfg.downtime,
-          streamingDuration = cfg.streamingDuration,
-          logService = s"${logServiceConfig.host}:${logServiceConfig.port}"
-        ))
-        .pipeTo(sender())
+      infoProvider.workerInitInfo(ctxName).pipeTo(sender())
 
     case GetActiveJobs =>
       implicit val timeout = Timeout(1.second)
@@ -242,10 +233,9 @@ object WorkersManager {
     workerRunner: WorkerRunner,
     jobsLogger: JobsLogger,
     runnerInitTimeout: Duration,
-    contextsStorage: ContextsStorage,
-    logs: LogServiceConfig
+    infoProvider: InfoProvider
   ): Props = {
-    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout, contextsStorage, logs)
+    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout, infoProvider)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)
