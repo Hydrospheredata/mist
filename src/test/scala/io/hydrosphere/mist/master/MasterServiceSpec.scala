@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
+
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
@@ -10,6 +12,7 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
+import org.mockito.Mockito.{spy, doReturn}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
@@ -29,16 +32,14 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val logs = mock[LogStorageMappings]
     val artifactRepo = mock[ArtifactRepository]
 
-    val fullInfo = FullEndpointInfo(
-      EndpointConfig("name", "path", "MyJob", "namespace"),
-      PyJobInfo
-    )
-
-    when(endpoints.getFullInfo(any[String]))
-      .thenReturn(Future.successful(Some(fullInfo)))
+    when(endpoints.get(any[String]))
+      .thenReturn(Future.successful(Some(EndpointConfig("name", "path.py", "MyJob", "namespace"))))
 
     when(contexts.getOrDefault(any[String]))
       .thenReturn(Future.successful(TestUtils.contextSettings.default))
+
+    when(artifactRepo.get(any[String]))
+      .thenReturn(Future.successful(Some(new File("path.py"))))
 
     when(jobService.startJob(
       any[String],
@@ -60,7 +61,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http).await
-    runInfo.isDefined shouldBe true
+    runInfo shouldBe defined
   }
 
   it("should return failed future on validating params") {
@@ -69,8 +70,8 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
     val artifactRepo = mock[ArtifactRepository]
-
     val jvmMock = mock[JvmJobInfo]
+
     val info = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
       jvmMock
@@ -78,13 +79,14 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jvmMock.validateAction(any[Map[String, Any]], any[Action]))
       .thenReturn(Left(new IllegalArgumentException("INVALID")))
 
-    when(endpoints.getFullInfo(any[String]))
-      .thenReturn(Future.successful(Some(info)))
-
     val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
+    val spiedMasterService = spy(service)
+    doReturn(Future.successful(Some(info)))
+      .when(spiedMasterService).endpointInfo(any[String])
+
     val req = JobStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
-    val f = service.runJob(req, Source.Http)
+    val f = spiedMasterService.runJob(req, Source.Http)
 
     ScalaFutures.whenReady(f.failed) { ex =>
       ex shouldBe a[IllegalArgumentException]

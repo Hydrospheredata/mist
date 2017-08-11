@@ -156,9 +156,9 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       when(endpointsStorage.get(any(classOf[String]))).thenReturn(Future.successful(None))
       when(endpointsStorage.update(any(classOf[EndpointConfig])))
         .thenReturn(Future.successful(endpointConfig))
-      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Success(
+      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Future.successful(Some(
         FullEndpointInfo(endpointConfig, testScalaJob)
-      ))
+      )))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
@@ -179,7 +179,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
       when(endpointsStorage.get(any(classOf[String]))).thenReturn(Future.successful(None))
       when(endpointsStorage.update(any(classOf[EndpointConfig])))
         .thenReturn(Future.successful(endpointConfig))
-      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Failure(new Exception("test failure")))
+      when(master.loadEndpointInfo(any(classOf[EndpointConfig]))).thenReturn(Future.failed(new Exception("test failure")))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 

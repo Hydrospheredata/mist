@@ -36,22 +36,6 @@ class EndpointsStorage(
   def update(ec: EndpointConfig): Future[EndpointConfig] =
     Future { fsStorage.write(ec.name, ec) }
 
-  def getFullInfo(name: String): Future[Option[FullEndpointInfo]] = {
-
-    def load(e: EndpointConfig): Try[FullEndpointInfo] = {
-      import e._
-      JobInfo.load(e.name, path, className).map(i => FullEndpointInfo(e, i))
-    }
-
-    get(name).flatMap({
-      case Some(e) => load(e) match {
-        case Success(fullInfo) => Future.successful(Some(fullInfo))
-        case Failure(ex) => Future.failed(ex)
-      }
-      case None => Future.successful(None)
-    })
-  }
-
 }
 
 object EndpointsStorage extends Logger {

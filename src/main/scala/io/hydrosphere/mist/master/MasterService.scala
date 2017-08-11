@@ -1,15 +1,19 @@
 package io.hydrosphere.mist.master
 
+import java.io.File
+
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
+import org.apache.commons.io.FilenameUtils
 
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
@@ -74,7 +78,7 @@ class MasterService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      fullInfo       <- OptionT(endpoints.getFullInfo(req.endpointId))
+      fullInfo       <- OptionT(endpointInfo(req.endpointId))
       endpoint       = fullInfo.config
       jobInfo        = fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
@@ -106,26 +110,42 @@ class MasterService(
     }
   }
 
-  def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = {
+  def loadEndpointInfo(e: EndpointConfig): Future[Option[FullEndpointInfo]] = {
     import e._
-    JobInfo.load(name, path, className).map(i => FullEndpointInfo(e, i))
+
+    val fileF = JobResolver.fromPath(path) match {
+      case _: LocalResolver => artifactRepository.get(FilenameUtils.getName(path))
+      case p => Future.successful(if (p.exists) Some(p.resolve()) else None)
+    }
+
+    val res = for {
+      file <- OptionT(fileF)
+      job <- OptionT.liftF(loadInfo(name, file, className))
+      info = FullEndpointInfo(e, job)
+    } yield info
+
+    res.value
   }
 
-  private def toFullInfo(e: EndpointConfig): Option[FullEndpointInfo] = {
-    loadEndpointInfo(e) match {
-      case Success(fullInfo) => Some(fullInfo)
-      case Failure(err) =>
-        logger.error("Invalid route configuration", err)
-        None
+  private def loadInfo(name: String, file: File, className: String): Future[JobInfo] = {
+    JobInfo.load(name, file, className) match {
+      case Success(f) => Future.successful(f)
+      case Failure(ex) => Future.failed(ex)
     }
   }
 
-  def endpointsInfo: Future[Seq[FullEndpointInfo]] = {
-    endpoints.all.map(_.flatMap(toFullInfo))
-  }
+  def endpointsInfo: Future[Seq[FullEndpointInfo]] = for {
+    configs <- endpoints.all
+    fullInfos <- Future.sequence(configs.map(loadEndpointInfo))
+    infos = fullInfos.flatten
+  } yield infos
 
   def endpointInfo(id: String): Future[Option[FullEndpointInfo]] = {
-    endpoints.get(id).map(_.flatMap(toFullInfo))
+    val res = for {
+      e <- OptionT(endpoints.get(id))
+      fullInfo <- OptionT(loadEndpointInfo(e))
+    } yield fullInfo
+    res.value
   }
 
 }

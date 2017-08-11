@@ -9,6 +9,8 @@ import akka.http.scaladsl.server.directives.{FileInfo, ParameterDirectives}
 import akka.stream.scaladsl
 import akka.util.ByteString
 import cats.data.OptionT
+import cats.implicits._
+
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -86,6 +88,13 @@ object HttpV2Base {
     }
   }
 
+  def completeF[A: ToEntityMarshaller](f: => Future[A], errorCode: StatusCode): Route = {
+    onComplete(f) {
+      case Success(a) => complete(a)
+      case Failure(ex) => complete(HttpResponse(errorCode, entity=ex.getMessage))
+    }
+  }
+
   def withValidatedStatuses(s: Iterable[String])
       (m: Seq[JobDetails.Status]=> ToResponseMarshallable): StandardRoute = {
     toStatuses(s) match {
@@ -158,11 +167,14 @@ object HttpV2Routes {
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
             complete(resp)
           case None =>
-            completeTry({
-              master.loadEndpointInfo(req).map(fullInfo => {
-                master.endpoints.update(req)
-                fullInfo
-              }).map(HttpEndpointInfoV2.convert)
+            val res = for {
+              fullInfo <- OptionT(master.loadEndpointInfo(req))
+              _ <- OptionT.liftF(master.endpoints.update(req))
+              endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
+            } yield endpointInfo
+            completeF(res.value.flatMap {
+              case Some(e) => Future.successful(e)
+              case None => Future.failed(new IllegalArgumentException("No info found during processing"))
             }, StatusCodes.BadRequest)
         }
       }}
@@ -175,11 +187,14 @@ object HttpV2Routes {
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
-            completeTry({
-              master.loadEndpointInfo(req).map(fullInfo => {
-                master.endpoints.update(req)
-                fullInfo
-              }).map(HttpEndpointInfoV2.convert)
+            val res = for {
+              fullInfo <- OptionT(master.loadEndpointInfo(req))
+              _ <- OptionT.liftF(master.endpoints.update(req))
+              endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
+            } yield endpointInfo
+            completeF(res.value.flatMap {
+              case Some(e) => Future.successful(e)
+              case None => Future.failed(new IllegalArgumentException("No info found during processing"))
             }, StatusCodes.BadRequest)
         }
       }}

@@ -114,6 +114,7 @@ lazy val mist = project.in(file("."))
 
       "org.scalaj" %% "scalaj-http" % "2.3.0",
       "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+      "commons-io" % "commons-io" % "2.5",
       "com.h2database" % "h2" % "1.4.194",
       "org.flywaydb" % "flyway-core" % "4.1.1",
       "org.typelevel" %% "cats" % "0.9.0"
