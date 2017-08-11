@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.testkit.{TestActor, TestActorRef, TestKit, TestProbe}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.worker.runners.JobRunner
@@ -42,7 +42,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val workers = Table[String, WorkerProps](
       ("name", "f"),
       ("shared", (r: JobRunner) => SharedWorkerActor.props(context, r, Duration.Inf, 10)),
-      ("exclusive", (r: JobRunner) => ExclusiveWorker.props(context, r))
+      ("exclusive", (r: JobRunner) => ExclusiveWorkerActor.props(context, r))
     )
 
     forAll(workers) { (name, makeProps) =>

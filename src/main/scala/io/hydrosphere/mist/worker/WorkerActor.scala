@@ -1,12 +1,12 @@
 package io.hydrosphere.mist.worker
 
-import java.util.concurrent.{Executors, ExecutorService}
+import java.util.concurrent.Executors
 
 import akka.actor._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages.WorkerInitInfo
 import io.hydrosphere.mist.api.CentralLoggingConf
-import io.hydrosphere.mist.worker.runners.{MistJobRunner, JobRunner}
+import io.hydrosphere.mist.worker.runners.{JobRunner, MistJobRunner}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
@@ -121,7 +121,7 @@ object SharedWorkerActor {
 
 }
 
-class ExclusiveWorker(
+class ExclusiveWorkerActor(
   val namedContext: NamedContext,
   val runner: JobRunner
 ) extends Actor with JobStarting with ActorLogging {
@@ -161,10 +161,10 @@ class ExclusiveWorker(
 
 }
 
-object ExclusiveWorker {
+object ExclusiveWorkerActor {
 
   def props(context: NamedContext, jobRunner: JobRunner): Props =
-    Props(classOf[ExclusiveWorker], context, jobRunner)
+    Props(classOf[ExclusiveWorkerActor], context, jobRunner)
 }
 
 object WorkerActor {
@@ -194,7 +194,7 @@ object WorkerActor {
       val namedContext = mkNamedContext(info)
       mode match {
         case Shared => SharedWorkerActor.props(namedContext, MistJobRunner, info.downtime, info.maxJobs)
-        case Exclusive => ExclusiveWorker.props(namedContext, MistJobRunner)
+        case Exclusive => ExclusiveWorkerActor.props(namedContext, MistJobRunner)
       }
     }
   }
