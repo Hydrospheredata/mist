@@ -3,42 +3,60 @@ package io.hydrosphere.mist.jobs
 import io.hydrosphere.mist.jobs.resolvers.JobResolver
 import io.hydrosphere.mist.jobs.jar.{JobsLoader, JobClass}
 
+import cats.implicits._
+
 import scala.util.{Failure, Success, Try}
 
 sealed trait JobInfo {
-  val definition: JobDefinition
+
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, this.type]
 }
 
-/**
-  * For python we can only provide info about configuration
-  */
-case class PyJobInfo(definition: JobDefinition) extends JobInfo
+case object PyJobInfo extends JobInfo {
 
-case class JvmJobInfo(
-  definition: JobDefinition,
-  jobClass: JobClass
-) extends JobInfo
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, PyJobInfo.this.type] = Right(this)
+}
+case class JvmJobInfo(jobClass: JobClass) extends JobInfo {
 
+  def validateAction(
+    params: Map[String, Any],
+    action: Action): Either[Throwable, JvmJobInfo.this.type] = {
+
+    val inst = action match {
+      case Action.Execute => jobClass.execute
+      case Action.Train => jobClass.train
+      case Action.Serve => jobClass.serve
+    }
+    inst match {
+      case None => Left(new IllegalStateException(s"Job without $action job instance"))
+      case Some(exec) => exec.validateParams(params).map(_ => this)
+    }
+  }
+}
 
 object JobInfo {
 
-  def load(definition: JobDefinition): Try[JobInfo] = {
-    val resolver = JobResolver.fromPath(definition.path)
-    load(definition, resolver)
+  def load(name: String, path: String, className: String): Try[JobInfo] = {
+    val resolver = JobResolver.fromPath(path)
+    load(name, path, className, resolver)
   }
 
-  def load(definition: JobDefinition, resolver: JobResolver): Try[JobInfo] = {
+  def load(name: String, path: String, className: String, resolver: JobResolver): Try[JobInfo] = {
     val resolveFile = Try { resolver.resolve() }
     resolveFile.flatMap(file => {
       file.getName match {
         case p if p.endsWith(".py") =>
-          val info = new PyJobInfo(definition)
+          val info = PyJobInfo
           Success(info)
         case p if p.endsWith(".jar") =>
-          val inst = JobsLoader.fromJar(file).loadJobClass(definition.className)
-          inst.map(i => new JvmJobInfo(definition, i))
+          val inst = JobsLoader.fromJar(file).loadJobClass(className)
+          inst.map(i => JvmJobInfo(i))
         case p =>
-          val msg = s"Unknown file format $p for $definition"
+          val msg = s"Unknown file format $p for $path"
           Failure(new IllegalArgumentException(msg))
       }
     })

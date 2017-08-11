@@ -37,7 +37,7 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.12.3"
+  version := "0.13.1"
 )
 
 lazy val libraryAdditionalDependencies = currentSparkVersion match {
@@ -168,7 +168,7 @@ lazy val mist = project.in(file("."))
         CpFile("configs/default.conf").to("configs"),
         CpFile("configs/logging").to("configs"),
         routes,
-        CpFile("examples-python"),
+        CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.value).as("mist.jar"),
         CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
           .as(s"mist-examples-spark$sparkMajor.jar"),
@@ -188,7 +188,7 @@ lazy val commandAlias = currentSparkVersion match {
 }
 addCommandAlias("testAll", commandAlias)
 
-lazy val examplesSpark1 = project.in(file("examples-spark1"))
+lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
@@ -197,7 +197,7 @@ lazy val examplesSpark1 = project.in(file("examples-spark1"))
     autoScalaLibrary := false
   )
 
-lazy val examplesSpark2 = project.in(file("examples-spark2"))
+lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(

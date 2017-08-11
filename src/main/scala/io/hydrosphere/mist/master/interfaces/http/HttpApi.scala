@@ -23,34 +23,33 @@ class HttpApi(master: MasterService) extends Logger {
 
   val route: Route = {
     path("internal" / "jobs") {
-      get { complete (master.activeJobs())}
+      get { complete (master.jobService.activeJobs())}
     } ~
     path("internal" / "jobs" / Segment / Segment) { (namespace, jobId) =>
       delete {
-        completeU { master.stopJob(jobId).map(_ => ()) }
+        completeU { master.jobService.stopJob(jobId).map(_ => ()) }
       }
     } ~
     path("internal" / "workers" ) {
-      get { complete(master.workers()) }
+      get { complete(master.jobService.workers()) }
     } ~
     path("internal" / "workers") {
       delete { completeU {
-        master.stopAllWorkers()
+        master.jobService.stopAllWorkers()
       }}
     } ~
     path("internal" / "workers" / Segment) { workerId =>
       delete {
         complete {
-          master.stopWorker(workerId).map(_ => Map("id" -> workerId ))
+          master.jobService.stopWorker(workerId).map(_ => Map("id" -> workerId ))
         }
       }
     } ~
     path("internal" / "routers") {
       get {
         complete {
-          val result = master.listEndpoints()
-           .map(i => i.definition.name -> HttpJobInfo.convert(i))
-           .toMap
+          val result = master.endpointsInfo
+           .map(seq => seq.map(i => i.config.name -> HttpJobInfo.convert(i)).toMap)
           result
         }
       }
@@ -64,8 +63,7 @@ class HttpApi(master: MasterService) extends Logger {
               Action.Train
             else if (serve.isDefined)
               Action.Serve
-            else
-              Action.Execute
+            else Action.Execute
 
             val request = JobStartRequest(
               endpointId = routeId,

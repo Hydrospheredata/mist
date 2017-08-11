@@ -5,17 +5,31 @@ import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, Ru
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+
+import scala.concurrent.duration.Duration
 
 object Messages {
 
   object WorkerMessages {
 
     case class WorkerRegistration(name: String, address: Address)
-    case class RunJobCommand(context: String, mode: RunMode, request: RunJobRequest)
+
+    case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest) {
+
+      def computeWorkerId(): String = {
+        val name = context.name
+        mode match {
+          case RunMode.Shared => name
+          case RunMode.ExclusiveContext(id) =>
+            val postfix = id.map(s => s"$s-${request.id}").getOrElse(request.id)
+            s"$name-$postfix"
+        }
+      }
+    }
     case class CancelJobCommand(workerId: String, request: CancelJobRequest)
 
-    case class CreateContext(contextId: String)
+    case class CreateContext(context: ContextConfig)
 
     case object GetWorkers
     case object GetActiveJobs
@@ -27,7 +41,16 @@ object Messages {
     case class WorkerUp(ref: ActorRef)
     case object WorkerDown
 
-    case object CheckInitWorkers
+    case class CheckWorkerUp(id: String)
+
+    case class WorkerInitInfoReq(contextName: String)
+    case class WorkerInitInfo(
+      sparkConf: Map[String, String],
+      maxJobs: Int,
+      downtime: Duration,
+      streamingDuration: Duration,
+      logService: String
+    )
 
   }
 
@@ -84,7 +107,9 @@ object Messages {
       endpoint: String,
       context: String,
       source: Source,
-      externalId: Option[String])
+      externalId: Option[String],
+      workerId: String
+    )
 
     sealed trait SystemEvent
     sealed trait UpdateStatusEvent extends SystemEvent {
@@ -92,7 +117,7 @@ object Messages {
     }
 
     case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
-    case class QueuedEvent(id: String, workerId: String) extends UpdateStatusEvent
+    case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent

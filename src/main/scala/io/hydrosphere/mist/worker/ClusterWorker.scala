@@ -3,11 +3,12 @@ package io.hydrosphere.mist.worker
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.WorkerMessages.WorkerRegistration
+import io.hydrosphere.mist.Messages.WorkerMessages.{WorkerInitInfoReq, WorkerInitInfo, WorkerRegistration}
 
 class ClusterWorker(
   name: String,
-  underlying: Props
+  contextName: String,
+  workerInit: WorkerInitInfo => Props
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
@@ -20,8 +21,9 @@ class ClusterWorker(
     cluster.unsubscribe(self)
   }
 
-  def startWorker(): ActorRef = {
-    val ref = context.actorOf(underlying)
+  def startWorker(initInfo: WorkerInitInfo): ActorRef = {
+    val props = workerInit(initInfo)
+    val ref = context.actorOf(props)
     context.watch(ref)
     ref
   }
@@ -31,13 +33,19 @@ class ClusterWorker(
   def initial: Receive = {
     case MemberUp(m) if m.hasRole("master") =>
       log.info(s"Joined to cluster. Master ${m.address}")
-      val worker = startWorker()
-      register(m.address)
-      context become joined(m.address, worker)
+      requestInfo(m.address)
+      context become joined(m.address)
   }
 
 
-  def joined(master: Address, worker: ActorRef): Receive = {
+  def joined(master: Address): Receive = {
+    case info: WorkerInitInfo =>
+      val worker = startWorker(info)
+      register(master)
+      context become initialized(master, worker)
+  }
+
+  def initialized(master: Address, worker: ActorRef): Receive = {
     case Terminated(ref) if ref == worker =>
       log.info(s"Worker reference for $name is terminated, leave cluster")
       cluster.leave(cluster.selfAddress)
@@ -57,6 +65,7 @@ class ClusterWorker(
 
     case x =>
       log.debug(s"Worker interface received $x")
+
   }
 
   private def toManagerSelection(address: Address): ActorSelection =
@@ -66,13 +75,17 @@ class ClusterWorker(
     toManagerSelection(address) ! WorkerRegistration(name, cluster.selfAddress)
   }
 
+  private def requestInfo(address: Address): Unit = {
+    toManagerSelection(address) ! WorkerInitInfoReq(contextName)
+  }
+
 
 }
 
 object ClusterWorker {
 
-  def props(name: String, workerProps: Props): Props = {
-    Props(classOf[ClusterWorker], name, workerProps)
+  def props(name: String, contextName: String, workerInit: WorkerInitInfo => Props): Props = {
+    Props(classOf[ClusterWorker], name, contextName, workerInit)
   }
 
 }

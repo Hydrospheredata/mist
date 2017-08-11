@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.util.UUID
-
 import akka.actor._
 import akka.cluster.ClusterEvent._
 import akka.cluster._
@@ -9,9 +7,9 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
+import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.logging.JobsLogger
-import io.hydrosphere.mist.master.models.RunMode
-import org.joda.time.DateTime
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -25,7 +23,6 @@ import scala.util.{Failure, Success}
   */
 sealed trait WorkerState {
   val frontend: ActorRef
-  val timestamp: DateTime = DateTime.now
   def forward(msg: Any)(implicit context: ActorContext): Unit = frontend forward msg
 }
 
@@ -57,25 +54,25 @@ class WorkersManager(
   statusService: ActorRef,
   workerRunner: WorkerRunner,
   jobsLogger: JobsLogger,
-  runnerInitTimeout: Duration
+  runnerInitTimeout: Duration,
+  infoProvider: InfoProvider
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
 
   val workerStates = mutable.Map[String, WorkerState]()
 
-  cluster.system.scheduler.schedule(20 seconds, 20 seconds, self, CheckInitWorkers)
-
   override def receive: Receive = {
-    case RunJobCommand(contextId, mode, jobRequest) =>
-      workerStates.get(contextId) match {
-        case Some(s) =>
-          s.forward(jobRequest)
+    case r: RunJobCommand =>
+      val workerId = r.computeWorkerId()
+      workerStates.get(workerId) match {
+        case Some(s) => s.forward(r.request)
         case None =>
-          jobsLogger.info(jobRequest.id, s"Starting worker $contextId")
-          val state = startWorker(contextId, mode)
-          state.forward(jobRequest)
+          jobsLogger.info(r.request.id, s"Starting worker $workerId")
+          val state = startWorker(workerId, r.context, r.mode)
+          state.forward(r.request)
       }
+
     case c @ CancelJobCommand(name, req) =>
       workerStates.get(name) match {
         case Some(s) => s.forward(req)
@@ -84,6 +81,9 @@ class WorkersManager(
 
     case GetWorkers =>
       sender() ! aliveWorkers
+
+    case WorkerInitInfoReq(ctxName) =>
+      infoProvider.workerInitInfo(ctxName).pipeTo(sender())
 
     case GetActiveJobs =>
       implicit val timeout = Timeout(1.second)
@@ -136,18 +136,8 @@ class WorkersManager(
           log.warning("Received memberResolve from unknown worker {}", name)
       }
 
-    case CheckInitWorkers =>
-      workerStates.foreach {
-          case (name, state: Initializing) =>
-            val timeout = runnerInitTimeout.toSeconds.toInt
-            if (state.timestamp.minusSeconds(timeout).isBeforeNow) {
-              val reason = s"Worker $name initialization timeout: not being responsive for ${timeout}s"
-              log.warning(reason)
-              state.frontend ! FailRemainingJobs(reason)
-              setWorkerDown(name)
-            }
-          case _ => // ignore Started and Down states
-      }
+    case CheckWorkerUp(id) =>
+      checkWorkerUp(id)
 
     case UnreachableMember(m) =>
       aliveWorkers.find(_.address == m.address.toString)
@@ -158,8 +148,19 @@ class WorkersManager(
         setWorkerDown(name)
       })
 
-    case CreateContext(contextId) =>
-      startWorker(contextId, RunMode.Shared)
+    case CreateContext(ctx) =>
+      startWorker(ctx.name, ctx, RunMode.Shared)
+  }
+
+  private def checkWorkerUp(id: String): Unit = {
+    workerStates.get(id).foreach({
+      case state: Initializing =>
+        val reason = s"Worker $id initialization timeout: not being responsive for $runnerInitTimeout"
+        log.warning(reason)
+        setWorkerDown(id)
+        state.frontend ! FailRemainingJobs(reason)
+      case _ =>
+    })
   }
 
   private def aliveWorkers: List[WorkerLink] = {
@@ -174,16 +175,15 @@ class WorkersManager(
       .map(_.replace("worker-", ""))
   }
 
-  private def startWorker(contextId: String, mode: RunMode): WorkerState = {
-    val workerId = mode match {
-      case RunMode.Shared => contextId
-      case RunMode.ExclusiveContext(id) =>
-        val uuid = UUID.randomUUID().toString
-        val postfix = id.map(s => s"$s-$uuid").getOrElse(uuid)
-        s"$contextId-$postfix"
+  private def startWorker(workerId: String, contextCfg: ContextConfig, mode: RunMode): WorkerState = {
+    workerRunner.runWorker(workerId, contextCfg, mode)
+    log.info("Trying to start worker {}, for context: {}", workerId, contextCfg.name)
+    runnerInitTimeout match {
+      case f: FiniteDuration =>
+        context.system.scheduler.scheduleOnce(f, self, CheckWorkerUp(workerId))
+      case _ =>
     }
 
-    workerRunner.runWorker(workerId, contextId, mode)
     val defaultState = defaultWorkerState(workerId)
     val state = Initializing(defaultState.frontend)
     workerStates += workerId -> state
@@ -232,9 +232,10 @@ object WorkersManager {
     statusService: ActorRef,
     workerRunner: WorkerRunner,
     jobsLogger: JobsLogger,
-    runnerInitTimeout: Duration
+    runnerInitTimeout: Duration,
+    infoProvider: InfoProvider
   ): Props = {
-    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout)
+    Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout, infoProvider)
   }
 
   case class WorkerResolved(name: String, address: Address, ref: ActorRef)

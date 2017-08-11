@@ -10,9 +10,9 @@ Our examples:
 Add Mist as dependency in your `build.sbt`:
 
 ```scala
-libraryDependencies += "io.hydrosphere" %% "mist-lib-spark1" % "0.11.0"
+libraryDependencies += "io.hydrosphere" %% "mist-lib-spark1" % "0.13.0"
 // or if you use spark >= 2.0
-libraryDependencies += "io.hydrosphere" %% "mist-lib-spark2" % "0.11.0"
+libraryDependencies += "io.hydrosphere" %% "mist-lib-spark2" % "0.13.0"
 ```
 
 Maven dependency:
@@ -21,13 +21,13 @@ Maven dependency:
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist-lib-spark1_2.10</artifactId>
-    <version>0.11.0</version>
+    <version>0.13.0</version>
 </dependency>
 // or if you use spark >= 2.0
 <dependency>
     <groupId>io.hydrosphere</groupId>
     <artifactId>mist-lib-spark2_2.11</artifactId>
-    <version>0.11.0</version>
+    <version>0.13.0</version>
 </dependency>
 ```
     

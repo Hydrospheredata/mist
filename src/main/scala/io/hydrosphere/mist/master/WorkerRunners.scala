@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.duration._
@@ -11,7 +11,7 @@ import scala.sys.process._
 
 trait WorkerRunner {
 
-  def runWorker(name: String, context: String, mode: RunMode): Unit
+  def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit
 
   def onStop(name: String): Unit = {}
 }
@@ -20,27 +20,17 @@ trait ShellWorkerScript {
 
   def workerArgs(
     name: String,
-    context: String,
+    context: ContextConfig,
     mode: RunMode,
-    config: MasterConfig): Seq[String] = {
-
-    val contextConfig = config.contextsSettings.configFor(context)
+    config: MasterConfig
+  ): Seq[String] = {
 
     Seq[String](
       "--master", s"${config.cluster.host}:${config.cluster.port}",
       "--name", name,
-      "--context-name", context,
-      "--max-jobs", contextConfig.maxJobs.toString,
-      "--downtime", durationToArg(contextConfig.downtime),
-      "--spark-streaming-duration", durationToArg(contextConfig.streamingDuration),
-      "--log-service", s"${config.logs.host}:${config.logs.port}",
+      "--context-name", context.name,
       "--mode", mode.name
-    ) ++ mkSparkConf(contextConfig) ++ mkRunOptions(contextConfig)
-  }
-
-  def mkSparkConf(ctxConfig: ContextConfig): Seq[String] = {
-    ctxConfig.sparkConf.toList.map({case (k, v) => s"$k=$v"})
-      .flatMap(p=> Seq("--spark-conf", p))
+    ) ++ mkRunOptions(context)
   }
 
   def mkRunOptions(ctxConfig: ContextConfig): Seq[String] = {
@@ -66,7 +56,7 @@ object ShellWorkerScript extends ShellWorkerScript
 class LocalWorkerRunner(config: MasterConfig)
   extends WorkerRunner with ShellWorkerScript with Logger {
 
-  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+  override def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit = {
     val cmd =
       Seq[String](s"${sys.env("MIST_HOME")}/bin/mist-worker", "--runner", "local") ++
       workerArgs(name, context, mode, config)
@@ -80,7 +70,7 @@ class LocalWorkerRunner(config: MasterConfig)
 class DockerWorkerRunner(config: MasterConfig)
   extends WorkerRunner with ShellWorkerScript {
 
-  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
+  override def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit = {
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-worker",
           "--runner", "docker",
@@ -97,8 +87,7 @@ class ManualWorkerRunner(
   config: MasterConfig,
   jarPath: String) extends WorkerRunner {
 
-  override def runWorker(name: String, context: String, mode: RunMode): Unit = {
-    val contextConfig = config.contextsSettings.configFor(context)
+  override def runWorker(name: String, context: ContextConfig, mode: RunMode): Unit = {
     Process(
       Seq("bash", "-c", config.workers.cmd),
       None,
@@ -106,7 +95,7 @@ class ManualWorkerRunner(
       "MIST_WORKER_CONTEXT" -> context,
       "MIST_WORKER_MODE" -> mode.name,
       "MIST_WORKER_JAR_PATH" -> jarPath,
-      "MIST_WORKER_RUN_OPTIONS" -> contextConfig.runOptions
+      "MIST_WORKER_RUN_OPTIONS" -> context.runOptions
     ).run(false)
   }
 

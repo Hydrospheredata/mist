@@ -57,7 +57,7 @@ trait JobsTable {
     def endTime = column[Option[Long]]("end_time")
     def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
     def status = column[JobDetails.Status]("status")
-    def workerId = column[Option[String]]("worker_id")
+    def workerId = column[String]("worker_id")
     def createTime = column[Long]("create_time")
 
     override def * : ProvenShape[JobDetails] = {
