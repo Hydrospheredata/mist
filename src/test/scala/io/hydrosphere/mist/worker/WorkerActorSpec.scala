@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.testkit.{TestActor, TestActorRef, TestKit, TestProbe}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.worker.runners.JobRunner
@@ -30,7 +30,9 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   override def beforeAll {
     val spContext = new SparkContext(conf)
-    context = new NamedContext(spContext, "test")
+    context = new NamedContext(spContext, "test") {
+      override def stop(): Unit = {} //do not close ctx during tests
+    }
   }
 
   describe("common behavior") {
@@ -39,8 +41,8 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val workers = Table[String, WorkerProps](
       ("name", "f"),
-      ("shared", (r: JobRunner) => WorkerActor.props(Shared(10, Duration.Inf), context, r)),
-      ("exclusive", (r: JobRunner) => WorkerActor.props(Exclusive, context, r))
+      ("shared", (r: JobRunner) => SharedWorkerActor.props(context, r, Duration.Inf, 10)),
+      ("exclusive", (r: JobRunner) => ExclusiveWorkerActor.props(context, r))
     )
 
     forAll(workers) { (name, makeProps) =>
@@ -107,7 +109,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val probe = TestProbe()
 
-    val props = WorkerActor.props(Shared(2, Duration.Inf), context, runner)
+    val props = SharedWorkerActor.props(context, runner, Duration.Inf, 2)
     val worker = TestActorRef[SharedWorkerActor](props)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))

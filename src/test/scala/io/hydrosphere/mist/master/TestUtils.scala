@@ -7,7 +7,6 @@ import scala.concurrent.{Await, Future}
 
 object TestUtils {
 
-
   val contextSettings = {
     val cfg = ConfigFactory.parseString(
       """
@@ -32,6 +31,8 @@ object TestUtils {
     
     ContextsSettings(cfg)
   }
+
+  val FooContext = contextSettings.contexts.get("foo").get
 
 
   implicit class AwaitSyntax[A](f: => Future[A]) {

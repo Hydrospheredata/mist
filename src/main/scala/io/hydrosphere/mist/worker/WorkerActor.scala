@@ -1,10 +1,13 @@
 package io.hydrosphere.mist.worker
 
-import java.util.concurrent.{Executors, ExecutorService}
+import java.util.concurrent.Executors
 
 import akka.actor._
 import io.hydrosphere.mist.Messages.JobMessages._
-import io.hydrosphere.mist.worker.runners.{MistJobRunner, JobRunner}
+import io.hydrosphere.mist.Messages.WorkerMessages.WorkerInitInfo
+import io.hydrosphere.mist.api.CentralLoggingConf
+import io.hydrosphere.mist.worker.runners.{JobRunner, MistJobRunner}
+import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
 import scala.concurrent._
@@ -101,11 +104,24 @@ class SharedWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    namedContext.stop()
   }
 
 }
 
-class ExclusiveWorker(
+object SharedWorkerActor {
+
+  def props(
+    context: NamedContext,
+    jobRunner: JobRunner,
+    idleTimeout: Duration,
+    maxJobs: Int
+  ): Props =
+    Props(classOf[SharedWorkerActor], context, jobRunner, idleTimeout, maxJobs)
+
+}
+
+class ExclusiveWorkerActor(
   val namedContext: NamedContext,
   val runner: JobRunner
 ) extends Actor with JobStarting with ActorLogging {
@@ -140,26 +156,47 @@ class ExclusiveWorker(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    namedContext.stop()
   }
 
 }
 
+object ExclusiveWorkerActor {
+
+  def props(context: NamedContext, jobRunner: JobRunner): Props =
+    Props(classOf[ExclusiveWorkerActor], context, jobRunner)
+}
+
 object WorkerActor {
 
-  def props(mode: WorkerMode, context: NamedContext): Props = props(mode, context, MistJobRunner)
+  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => Props = {
 
-  def props(
-    mode: WorkerMode,
-    context: NamedContext,
-    runner: JobRunner): Props = {
+    def mkNamedContext(info: WorkerInitInfo): NamedContext = {
+      import info._
 
-    mode match {
-      case Shared(maxJobs, idleTimeout) =>
-        Props(classOf[SharedWorkerActor], context, runner, idleTimeout, maxJobs)
-      case Exclusive =>
-        Props(classOf[ExclusiveWorker], context, runner)
+      val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
+      val sparkContext = new SparkContext(conf)
+
+      val centralLoggingConf = {
+        val hostPort = logService.split(":")
+        CentralLoggingConf(hostPort(0), hostPort(1).toInt)
+      }
+
+      new NamedContext(
+        sparkContext,
+        contextName,
+        org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
+        Option(centralLoggingConf)
+      )
+    }
+
+    (info: WorkerInitInfo) => {
+      val namedContext = mkNamedContext(info)
+      mode match {
+        case Shared => SharedWorkerActor.props(namedContext, MistJobRunner, info.downtime, info.maxJobs)
+        case Exclusive => ExclusiveWorkerActor.props(namedContext, MistJobRunner)
+      }
     }
   }
-
 
 }

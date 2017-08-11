@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.{RunMode}
+import io.hydrosphere.mist.master.models.RunMode
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -36,13 +36,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         "--master", "0.0.0.0:2345",
         "--name", "worker-name",
         "--context-name", "foo",
-        "--max-jobs", "20",
-        "--downtime", "Inf",
-        "--spark-streaming-duration", "1s",
-        "--log-service", "logsHost:5000",
         "--mode", "shared",
-        "--spark-conf", "spark.master=local[2]",
-        "--spark-conf", "key=value",
         "--run-options", "--opt"
       )
       result should contain theSameElementsAs x
