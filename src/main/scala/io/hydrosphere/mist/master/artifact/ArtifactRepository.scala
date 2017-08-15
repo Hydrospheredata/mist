@@ -83,7 +83,11 @@ class SimpleArtifactRepository(
 
 object ArtifactRepository {
 
-  def create(storagePath: String, defaultEndpoints: Seq[EndpointConfig], artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]): ArtifactRepository = {
+  def create(
+    storagePath: String,
+    defaultEndpoints: Seq[EndpointConfig],
+    artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]
+  ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
     val defaultJobsPath = defaultEndpoints
       .map(e => artifactKeyProvider.provideKey(e) -> e)
