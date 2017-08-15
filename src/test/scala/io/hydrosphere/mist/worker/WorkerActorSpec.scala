@@ -22,14 +22,16 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     .set("spark.driver.allowMultipleContexts", "true")
 
   var context: NamedContext = _
+  var spContext: SparkContext = _
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
     context.stop()
+    spContext.stop()
   }
 
   override def beforeAll {
-    val spContext = new SparkContext(conf)
+    spContext = new SparkContext(conf)
     context = new NamedContext(spContext, "test") {
       override def stop(): Unit = {} //do not close ctx during tests
     }
