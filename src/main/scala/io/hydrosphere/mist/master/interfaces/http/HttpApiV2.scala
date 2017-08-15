@@ -1,10 +1,10 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
-import akka.http.scaladsl.model.{StatusCodes, StatusCode, HttpResponse}
+import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCode, StatusCodes}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
-
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.data.ContextsStorage
@@ -224,7 +224,10 @@ object HttpV2Routes {
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
-        getFromFile(master.logStorageMappings.pathFor(jobId).toFile)
+        master.logStorageMappings.pathFor(jobId).toFile match {
+          case file if file.exists => getFromFile(file)
+          case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
+        }
       }
     } ~
     path( root / "jobs" / Segment ) { jobId =>
