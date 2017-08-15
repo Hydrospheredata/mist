@@ -42,7 +42,13 @@ class ArtifactRepositorySpec extends FunSpecLike
         _ shouldBe testArtifactName
       }
     }
-
+    it("should not fail when calling with hdfs or mvn path keys") {
+      val artifactRepo = new FsArtifactRepository(dir.toString)
+      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
+      val hdfsPath = "hdfs://localhost:0/test.jar"
+      artifactRepo.get(hdfsPath) should not be defined
+      artifactRepo.get(mvnPath) should not be defined
+    }
     it("should get file by name") {
       val artifactRepo = new FsArtifactRepository(dir.toString)
 
