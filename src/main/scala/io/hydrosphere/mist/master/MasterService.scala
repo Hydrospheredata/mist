@@ -51,27 +51,29 @@ class MasterService(
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
 
-    val eC = EndpointConfig(
+    val endpoint = EndpointConfig(
       name = req.fakeName,
       path = req.path,
       className = req.className,
       defaultContext = req.context
     )
 
-    val f = loadEndpointInfo(eC) match {
-      case Success(fullInfo) => validate(fullInfo.info, req.parameters, action)
-      case Failure(e) => Future.failed(e)
+    def checkSettings(endpoint: EndpointConfig): Future[Unit] = {
+      loadEndpointInfo(endpoint) match {
+        case Success(fullInfo) => validate(fullInfo.info, req.parameters, action)
+        case Failure(e) => Future.failed(e)
+      }
     }
 
     for {
-      _             <- f
+      _             <- checkSettings(endpoint)
       context       <- contexts.getOrDefault(req.context)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
-        endpoint = eC,
+        endpoint = endpoint,
         context = context,
         parameters = req.parameters,
-        runMode = RunMode.Shared,
+        runMode = req.runMode,
         source = source,
         externalId = req.externalId,
         action = action

@@ -128,7 +128,7 @@ trait JsonCodecs extends SprayJsonSupport
         case RunMode.Shared => JsObject(("type", JsString("shared")))
         case RunMode.ExclusiveContext(id) =>
           JsObject(
-            ("type", JsString("uniqueContext")),
+            ("type", JsString("exclusive")),
             ("id", id.map(JsString(_)).getOrElse(JsNull))
           )
       }

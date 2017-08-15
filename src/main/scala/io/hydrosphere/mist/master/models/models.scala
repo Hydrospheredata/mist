@@ -91,7 +91,7 @@ case class DevJobStartRequest(
   parameters: Map[String, Any],
   externalId: Option[String],
 
-  runSettings: RunSettings = RunSettings.Default,
+  runMode: RunMode,
   context: String
 )
 
@@ -101,7 +101,7 @@ case class DevJobStartRequestModel(
   className: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],
-  runSettings: Option[RunSettings],
+  runMode: Option[RunMode],
   context: String
 ) {
 
@@ -112,7 +112,7 @@ case class DevJobStartRequestModel(
       className = className,
       parameters = parameters.getOrElse(Map.empty),
       externalId = externalId,
-      runSettings = runSettings.getOrElse(RunSettings.Default),
+      runMode = runMode.getOrElse(RunMode.Shared),
       context = context
     )
   }
