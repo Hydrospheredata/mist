@@ -24,6 +24,9 @@ case class MavenArtifactResolver(
   }
 
   override def resolve(): File = {
+    if (!exists) {
+      throw new JobFile.NotFoundException(s"maven file not exists at $repoUrl")
+    }
     val content = download(jarUlr)
     if (validateContent(content)) {
       val localPath = Paths.get(targetDirectory, artifact.jarName)
