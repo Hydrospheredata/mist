@@ -7,7 +7,7 @@ import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.Register
 import io.hydrosphere.mist.Messages.WorkerMessages.{CancelJobCommand, RunJobCommand}
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
-import io.hydrosphere.mist.master.models.{RunMode, EndpointConfig, RunSettings}
+import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, EndpointConfig, RunSettings}
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -26,14 +26,15 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val service = new JobService(workerManager.ref, statusService.ref)
 
       val future = service.startJob(
-        id = "id",
-        endpoint = EndpointConfig("name", "path", "className", "context"),
-        context = TestUtils.contextSettings.default,
-        parameters = Map("1" -> 2),
-        runMode = RunMode.Shared,
-        source = JobDetails.Source.Http,
-        externalId = None
-      )
+        JobStartRequest(
+          id = "id",
+          endpoint = EndpointConfig("name", "path", "className", "context"),
+          context = TestUtils.contextSettings.default,
+          parameters = Map("1" -> 2),
+          runMode = RunMode.Shared,
+          source = JobDetails.Source.Http,
+          externalId = None
+      ))
 
       statusService.expectMsgType[Register]
       statusService.reply(())

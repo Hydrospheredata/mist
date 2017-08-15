@@ -8,7 +8,7 @@ import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.jobs._
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode, EndpointConfig, RunSettings}
+import io.hydrosphere.mist.master.models._
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag
@@ -47,16 +47,8 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
 
   def stopWorker(workerId: String): Future[Unit] = workerManager.ask(StopWorker(workerId)).map(_ => ())
 
-  def startJob(
-    id: String,
-    endpoint: EndpointConfig,
-    context: ContextConfig,
-    parameters: Map[String, Any],
-    runMode: RunMode,
-    source: JobDetails.Source,
-    externalId: Option[String],
-    action: Action = Action.Execute
-  ): Future[ExecutionInfo] = {
+  def startJob(req: JobStartRequest): Future[ExecutionInfo] = {
+    import req._
 
     val internalRequest = RunJobRequest(
       id = id,

@@ -22,7 +22,7 @@ class AsyncInterface(
   private def process(message: String): Unit = {
     try {
       val json = message.parseJson
-      val request = json.convertTo[AsyncJobStartRequest]
+      val request = json.convertTo[AsyncEndpointStartRequest]
       masterService.runJob(request.toCommon, source)
     } catch {
       case e: DeserializationException =>

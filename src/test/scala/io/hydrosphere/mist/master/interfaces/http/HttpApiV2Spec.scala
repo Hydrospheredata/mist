@@ -11,7 +11,7 @@ import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, EndpointStartRequest, JobStartResponse}
 import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -64,7 +64,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
 
     it("should run job") {
       val master = mock(classOf[MasterService])
-      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source])))
+      when(master.runJob(any(classOf[EndpointStartRequest]), any(classOf[Source])))
         .thenReturn(Future.successful(Some(JobStartResponse("1"))))
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -77,7 +77,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
     it("should return bad request on futures failed illegal argument exception") {
       val master = mock(classOf[MasterService])
 
-      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source])))
+      when(master.runJob(any(classOf[EndpointStartRequest]), any(classOf[Source])))
         .thenReturn(Future.failed(new IllegalArgumentException("argument missing")))
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -90,7 +90,7 @@ class HttpApiV2Spec extends FunSpec with Matchers with ScalatestRouteTest {
     it("should return 500 on future`s any exception except iae") {
       val master = mock(classOf[MasterService])
 
-      when(master.runJob(any(classOf[JobStartRequest]), any(classOf[Source])))
+      when(master.runJob(any(classOf[EndpointStartRequest]), any(classOf[Source])))
         .thenReturn(Future.failed(new IllegalStateException("some exception")))
 
       val route = HttpV2Routes.endpointsRoutes(master)

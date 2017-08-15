@@ -38,16 +38,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(contexts.getOrDefault(any[String]))
       .thenReturn(Future.successful(TestUtils.contextSettings.default))
 
-    when(jobService.startJob(
-      any[String],
-      any[EndpointConfig],
-      any[ContextConfig],
-      any[Map[String, Any]],
-      any[RunMode],
-      any[JobDetails.Source],
-      any[Option[String]],
-      any[Action]
-    )).thenReturn(Future.successful(
+    when(jobService.startJob(any[JobStartRequest])).thenReturn(Future.successful(
       ExecutionInfo(
         req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
         status = JobDetails.Status.Queued
@@ -56,7 +47,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MasterService(jobService, endpoints, contexts, logs)
 
-    val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http).await
     runInfo.isDefined shouldBe true
   }
@@ -80,7 +71,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MasterService(jobService, endpoints, contexts, logs)
 
-    val req = JobStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
+    val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
     val f = service.runJob(req, Source.Http)
 
     ScalaFutures.whenReady(f.failed) { ex =>
