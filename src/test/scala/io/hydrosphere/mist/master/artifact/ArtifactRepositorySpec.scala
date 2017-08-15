@@ -46,7 +46,7 @@ class ArtifactRepositorySpec extends FunSpecLike
     it("should get file by name") {
       val artifactRepo = new FsArtifactRepository(dir.toString)
 
-      val file = artifactRepo.get(testArtifactName).await
+      val file = artifactRepo.get(testArtifactName)
       file shouldBe defined
       file.get.getName shouldBe testArtifactName
     }
@@ -54,7 +54,7 @@ class ArtifactRepositorySpec extends FunSpecLike
     it("should not find not existing file") {
       val artifactRepo = new FsArtifactRepository(dir.toString)
 
-      artifactRepo.get("not_existing_file.jar").await should not be defined
+      artifactRepo.get("not_existing_file.jar") should not be defined
     }
 
     it("should store file") {
@@ -75,42 +75,27 @@ class ArtifactRepositorySpec extends FunSpecLike
   describe("DefaultArtifactRepositorySpec") {
 
     it("should get existing default endpoint job file path") {
-      val endpointStorage = mock[EndpointsStorage]
-      val artifactRepo = new DefaultArtifactRepository(endpointStorage)
       val testFilePath = Paths.get(dir.toString, testArtifactName)
-      val str = testFilePath.toString
-      println(str.substring(str.lastIndexOf('/') + 1, str.length))
-      when(endpointStorage.all)
-        .thenReturn(Future.successful(Seq(EndpointConfig("test", testFilePath.toString, "Test", "test"))))
-
-      val localStorageFile = artifactRepo.get(testArtifactName).await
+      val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
+      val localStorageFile = artifactRepo.get(testArtifactName)
 
       localStorageFile shouldBe defined
       localStorageFile.get.getName shouldBe testArtifactName
     }
 
     it("should not get missing default endpoint job file path") {
-      val endpointStorage = mock[EndpointsStorage]
-      val artifactRepo = new DefaultArtifactRepository(endpointStorage)
+      val artifactRepo = new DefaultArtifactRepository(Map())
       val testFilePath = Paths.get(dir.toString, testArtifactName)
 
-      when(endpointStorage.all)
-        .thenReturn(Future.successful(Seq()))
-
-      val localStorageFile = artifactRepo.get("not existing file").await
+      val localStorageFile = artifactRepo.get("not existing file")
 
       localStorageFile should not be defined
     }
 
     it("should list all files in endpoint default storage") {
       val endpointStorage = mock[EndpointsStorage]
-      val artifactRepo = new DefaultArtifactRepository(endpointStorage)
       val testFilePath = Paths.get(dir.toString, testArtifactName)
-
-      when(endpointStorage.all)
-        .thenReturn(Future.successful(Seq(
-          EndpointConfig("test", testFilePath.toString, "Test", "test")
-        )))
+      val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
 
       val files = artifactRepo.listPaths().await
 
@@ -118,19 +103,15 @@ class ArtifactRepositorySpec extends FunSpecLike
 
     }
     it("should get full path of hdfs or mvn artifact") {
-      val endpointStorage = mock[EndpointsStorage]
-      val artifactRepo = new DefaultArtifactRepository(endpointStorage)
       val testFilePath = Paths.get(dir.toString, testArtifactName)
-
+      val testFile = testFilePath.toFile
       val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
       val hdfsPath = "hdfs://localhost:0/test.jar"
-
-      when(endpointStorage.all)
-        .thenReturn(Future.successful(Seq(
-          EndpointConfig("test", testFilePath.toString, "Test", "test"),
-          EndpointConfig("mvn", mvnPath, "test", "test"),
-          EndpointConfig("hdfs", hdfsPath, "Test", "Test")
-        )))
+      val artifactRepo = new DefaultArtifactRepository(Map(
+        mvnPath -> testFile,
+        hdfsPath -> testFile,
+        testArtifactName -> testFile
+      ))
 
       val paths = artifactRepo.listPaths().await
 
@@ -139,9 +120,7 @@ class ArtifactRepositorySpec extends FunSpecLike
     }
 
     it("should return exception when storing file") {
-      val endpointStorage = mock[EndpointsStorage]
-      val artifactRepo = new DefaultArtifactRepository(endpointStorage)
-
+      val artifactRepo = new DefaultArtifactRepository(Map())
       val source = Files.createFile(Paths.get(dir.toString, "temp_file")).toFile
 
 
@@ -154,19 +133,19 @@ class ArtifactRepositorySpec extends FunSpecLike
   }
   describe("SimpleArtifactRepository") {
     it("should call get on main repo") {
-      val mainRepo = mock[FsArtifactRepository]
+      val mainRepo = mock[ArtifactRepository]
       val defaultRepo = mock[ArtifactRepository]
 
       when(mainRepo.get(any[String]))
-        .thenReturn(Future.successful(Some(new File("test"))))
+        .thenReturn(Some(new File("test")))
       when(defaultRepo.get(any[String]))
-        .thenReturn(Future.successful(None))
+        .thenReturn(None)
 
       val artifactRepo = new SimpleArtifactRepository(mainRepo, defaultRepo)
+      val file = artifactRepo.get("test")
 
-      val file = artifactRepo.get("test").await
       verify(mainRepo, times(1)).get(any[String])
-      verify(defaultRepo, times(1)).get(any[String])
+      verify(defaultRepo, never).get(any[String])
       file shouldBe defined
     }
     it("should fallback on None get main repo") {
@@ -175,11 +154,11 @@ class ArtifactRepositorySpec extends FunSpecLike
       val artifactRepo = new SimpleArtifactRepository(mainRepo, defaultRepo)
 
       when(mainRepo.get(any[String]))
-        .thenReturn(Future.successful(None))
+        .thenReturn(None)
       when(defaultRepo.get(any[String]))
-        .thenReturn(Future.successful(Some(new File("test"))))
+        .thenReturn(Some(new File("test")))
 
-      val file = artifactRepo.get("test").await
+      val file = artifactRepo.get("test")
       verify(mainRepo, times(1)).get(any[String])
       verify(defaultRepo, times(1)).get(any[String])
       file shouldBe defined

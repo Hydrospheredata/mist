@@ -13,6 +13,7 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   val conf = new SparkConf()
     .setMaster("local[2]")
     .setAppName("test")
+    .set("spark.driver.allowMultipleContexts", "true")
 
   var sc: SparkContext = _
 

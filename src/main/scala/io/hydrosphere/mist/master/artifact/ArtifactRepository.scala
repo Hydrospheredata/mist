@@ -4,16 +4,20 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.Executors
 
+import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
 import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.models.EndpointConfig
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.{Success, Try}
 
 
 trait ArtifactRepository {
   def listPaths(): Future[Set[String]]
 
-  def get(filename: String): Future[Option[File]]
+  def get(filename: String): Option[File]
 
   def store(src: File, fileName: String): Future[File]
 }
@@ -29,13 +33,11 @@ class FsArtifactRepository(
     } else Future.failed(new IllegalStateException(s"$rootDir is not directory"))
   }
 
-  override def get(filename: String): Future[Option[File]] = {
-    Future.successful(
-      Paths.get(rootDir, filename).toFile match {
-        case f if f.exists => Some(f)
-        case f if !f.exists => None
-      }
-    )
+  override def get(key: String): Option[File] = {
+    Paths.get(rootDir, key).toFile match {
+      case f if f.exists => Some(f)
+      case f if !f.exists => None
+    }
   }
 
   override def store(src: File, fileName: String): Future[File] = {
@@ -48,34 +50,17 @@ class FsArtifactRepository(
 
 }
 
-class DefaultArtifactRepository(
-  endpointsStorage: EndpointsStorage)(implicit val ec: ExecutionContext)
+class DefaultArtifactRepository(val default: Map[String, File])(implicit val ec: ExecutionContext)
   extends ArtifactRepository {
 
-  override def listPaths(): Future[Set[String]] = endpointsStorage.all.map(files => {
-    files.map(_.path)
-      .map {
-        case p if p.startsWith("hdfs") || p.startsWith("mvn") => p
-        case p => FilenameUtils.getName(p)
-      }
-      .toSet
-  })
+  override def listPaths(): Future[Set[String]] = Future.successful(default.keys.toSet)
 
-  override def get(filename: String): Future[Option[File]] = {
-    endpointsStorage.all.map(configs => {
-      configs.map(_.path)
-        .map(str => (str, str.substring(str.lastIndexOf('/') + 1, str.length)))
-        .find {
-          _._2 == filename
-        }
-        .map(_._1)
-        .map(new File(_))
-    })
-  }
+  override def get(key: String): Option[File] =
+    default.values
+      .find { _.getName == key }
 
   override def store(src: File, fileName: String): Future[File] =
     Future.failed(new UnsupportedOperationException("do not implement this"))
-
 }
 
 class SimpleArtifactRepository(
@@ -88,12 +73,8 @@ class SimpleArtifactRepository(
     fallbackRepoFiles <- fallbackRepo.listPaths()
   } yield mainRepoFiles ++ fallbackRepoFiles
 
-  override def get(filename: String): Future[Option[File]] = {
-    for {
-      f <- mainRepo.get(filename)
-      fallback <- fallbackRepo.get(filename)
-    } yield f orElse fallback
-  }
+  override def get(filename: String): Option[File] =
+    mainRepo.get(filename) orElse fallbackRepo.get(filename)
 
   override def store(src: File, fileName: String): Future[File] = {
     mainRepo.store(src, fileName)
@@ -102,10 +83,20 @@ class SimpleArtifactRepository(
 
 object ArtifactRepository {
 
-  def create(storagePath: String, endpointsStorage: EndpointsStorage): ArtifactRepository = {
+  def create(storagePath: String, defaultEndpoints: Seq[EndpointConfig], artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-    val defaultArtifactRepo = new DefaultArtifactRepository(endpointsStorage)(ec)
+    val defaultJobsPath = defaultEndpoints
+      .map(e => artifactKeyProvider.provideKey(e) -> e)
+      .toMap
+      .mapValues(toFile)
+      .collect { case (key, Success(file)) => key -> file }
+
+    val defaultArtifactRepo = new DefaultArtifactRepository(defaultJobsPath)(ec)
     val fsArtifactRepo = new FsArtifactRepository(storagePath)(ec)
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
+
+  private def toFile(endpointConfig: EndpointConfig): Try[File] =
+    Try { JobResolver.fromPath(endpointConfig.path).resolve() }
+
 }
