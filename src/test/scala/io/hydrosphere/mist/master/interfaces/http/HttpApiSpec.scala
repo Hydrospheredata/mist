@@ -8,7 +8,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig, JobStartRequest, RunSettings}
+import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig, EndpointStartRequest, RunSettings}
 import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
 import org.scalatest.{FunSpec, Matchers}
 
@@ -123,11 +123,9 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
   it("should start job") {
     val master = mock[MasterService]
     val api = new HttpApi(master).route
-    when(master.forceJobRun(any[JobStartRequest], any[Source], any[Action]))
+    when(master.forceJobRun(any[EndpointStartRequest], any[Source], any[Action]))
       .thenReturn(Future.successful(Some(
-        JobResult.success(
-          Map("yoyo" -> "hello"),
-          JobStartRequest("my-job", Map.empty, None, RunSettings.Default))
+        JobResult.success(Map("yoyo" -> "hello"))
       )))
 
     Post("/api/my-job", Map("Hello" -> "123")) ~> api ~> check {

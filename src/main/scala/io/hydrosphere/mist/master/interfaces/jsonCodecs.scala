@@ -128,7 +128,7 @@ trait JsonCodecs extends SprayJsonSupport
         case RunMode.Shared => JsObject(("type", JsString("shared")))
         case RunMode.ExclusiveContext(id) =>
           JsObject(
-            ("type", JsString("uniqueContext")),
+            ("type", JsString("exclusive")),
             ("id", id.map(JsString(_)).getOrElse(JsNull))
           )
       }
@@ -154,14 +154,16 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val runSettingsF = jsonFormat2(RunSettings.apply)
 
-  implicit val jobStartRequestF = jsonFormat5(JobStartRequest)
-  implicit val asynJobStartRequestF = jsonFormat4(AsyncJobStartRequest)
+  implicit val jobStartRequestF = jsonFormat5(EndpointStartRequest)
+  implicit val asynJobStartRequestF = jsonFormat4(AsyncEndpointStartRequest)
 
   implicit val endpointConfigF = jsonFormat4(EndpointConfig.apply)
 
-  implicit val jobResultFormatF = jsonFormat4(JobResult.apply)
+  implicit val jobResultFormatF = jsonFormat3(JobResult.apply)
 
   implicit val logEventF = jsonFormat5(LogEvent.apply)
+
+  implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
   implicit val durationF = new JsonFormat[Duration] {
 

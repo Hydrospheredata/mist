@@ -13,7 +13,7 @@ import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, JobStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, EndpointStartRequest, JobStartResponse}
 import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
 import org.mockito.Matchers.anyInt
 import org.scalatest.{FunSpec, Matchers}
@@ -68,7 +68,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should run job") {
       val master = mock[MasterService]
-      when(master.runJob(any[JobStartRequest], any[Source]))
+      when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenSuccess(Some(JobStartResponse("1")))
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -81,7 +81,7 @@ class HttpApiV2Spec extends FunSpec
     it("should return bad request on futures failed illegal argument exception") {
       val master = mock[MasterService]
 
-      when(master.runJob(any[JobStartRequest], any[Source]))
+      when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenFailure(new IllegalArgumentException("argument missing"))
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -94,7 +94,7 @@ class HttpApiV2Spec extends FunSpec
     it("should return 500 on future`s any exception except iae") {
       val master = mock[MasterService]
 
-      when(master.runJob(any[JobStartRequest], any[Source]))
+      when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenFailure(new IllegalStateException("some exception"))
 
       val route = HttpV2Routes.endpointsRoutes(master)

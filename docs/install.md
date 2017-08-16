@@ -82,15 +82,15 @@ Mist has built-in UI where you could check running workers and jobs as well as e
 By default it's available by `/ui` path.
 Link on it for local installation <http://localhost:2004/ui>.
 Also Mist has prebuilt examples for: 
-- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples-spark1/src/main/scala)
-- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples-spark2/src/main/scala)
-- [python](https://github.com/Hydrospheredata/mist/tree/master/examples-python)
+- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark1/src/main/scala)
+- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark2/src/main/scala)
+- [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
 You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SimpleContext](https://github.com/Hydrospheredata/mist/blob/master/examples-spark1/src/main/scala/SimpleContext.scala)
 from examples looks like that:
 ```sh
-curl --header "Content-Type: application/json" \
-     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"
+curl --header "Content-Type: application/json"\
+     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
 
 ```
