@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{HttpHeader, HttpRequest, StatusCodes}
+import akka.http.scaladsl.server.Directives.handleRejections
 import akka.http.scaladsl.server._
 
 import scala.collection.immutable._
@@ -12,6 +13,7 @@ trait CorsDirective {
   import Directives._
   import StatusCodes._
   import scala.concurrent.ExecutionContext.Implicits.global
+
 
   private val defaultHeaders = Seq(
     `Access-Control-Allow-Origin`.*,
@@ -38,7 +40,12 @@ trait CorsDirective {
     if (request.method == OPTIONS) {
       respondWithHeaders(headers) & complete(OK, "Preflight response")
     } else {
-      handleRejections(rejectionsHandler) & respondWithHeaders(headers) & pass
+      extractSettings.flatMap(routeSettings => {
+        handleRejections(rejectionsHandler) &
+        respondWithHeaders(headers) &
+        handleExceptions(ExceptionHandler.default(routeSettings)) &
+        pass
+      })
     }
   })
 
