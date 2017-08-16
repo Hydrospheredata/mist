@@ -224,9 +224,14 @@ object HttpV2Routes {
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
-        master.logStorageMappings.pathFor(jobId).toFile match {
-          case file if file.exists => getFromFile(file)
-          case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
+        onSuccess(master.jobService.jobStatusById(jobId)) {
+          case Some(_) =>
+            master.logStorageMappings.pathFor(jobId).toFile match {
+              case file if file.exists => getFromFile(file)
+              case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
+            }
+          case None =>
+            complete { HttpResponse(StatusCodes.NotFound, entity=s"Job $jobId not found")}
         }
       }
     } ~
