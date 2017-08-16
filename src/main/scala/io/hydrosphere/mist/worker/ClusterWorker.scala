@@ -40,7 +40,9 @@ class ClusterWorker(
 
   def joined(master: Address): Receive = {
     case info: WorkerInitInfo =>
+      log.info("Received init info {}", info)
       val worker = startWorker(info)
+      log.info("Worker actor started")
       register(master)
       context become initialized(master, worker)
   }

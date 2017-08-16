@@ -113,6 +113,7 @@ class WorkersManager(
       sender() ! akka.actor.Status.Success(())
 
     case r @ WorkerRegistration(name, address) =>
+      log.info("Received worker registration - name: {}, address: {} ", name, address)
       val selection = cluster.system.actorSelection(RootActorPath(address) / "user" / s"worker-$name")
       selection.resolveOne(5.second).onComplete({
         case Success(ref) => self ! WorkerResolved(name, address, ref)
@@ -121,6 +122,7 @@ class WorkersManager(
       })
 
     case r @ WorkerResolved(name, address, ref) =>
+      log.info("Worker resolved - name: {}, address: {} ", name, address)
       workerStates.get(name) match {
         case Some(state) =>
           val next = Started(state.frontend, address, ref)
