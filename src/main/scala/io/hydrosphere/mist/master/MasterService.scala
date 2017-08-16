@@ -40,6 +40,8 @@ class MasterService(
           promise.success(Some(JobResult.failure(e.getMessage)))
       }
       case None => promise.success(None)
+    }).onFailure({
+      case e: Throwable => promise.failure(e)
     })
 
     promise.future
