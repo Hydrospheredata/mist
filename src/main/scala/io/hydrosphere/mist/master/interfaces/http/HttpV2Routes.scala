@@ -10,7 +10,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobService, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, JobStartRequest, RunMode, RunSettings}
+import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -108,9 +108,9 @@ object HttpV2Base {
     routeId: String,
     queryParams: JobRunQueryParams,
     parameters: JobParameters
-  ): JobStartRequest = {
+  ): EndpointStartRequest = {
     val runSettings = queryParams.buildRunSettings()
-    JobStartRequest(routeId, parameters, queryParams.externalId, runSettings)
+    EndpointStartRequest(routeId, parameters, queryParams.externalId, runSettings)
   }
 }
 

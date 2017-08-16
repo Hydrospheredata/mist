@@ -3,15 +3,17 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
-import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.jobs.{JobResult, JobDetails}
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.Messages.WorkerMessages._
+import io.hydrosphere.mist.master.models.JobStartResponse
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.util._
 
 //TODO don't use public status struct
 case class ExecutionInfo(
@@ -23,6 +25,19 @@ case class ExecutionInfo(
   def updateStatus(s: JobDetails.Status): ExecutionInfo = {
     this.status = s
     this
+  }
+
+  def toJobStartResponse: JobStartResponse = JobStartResponse(request.id)
+
+  def toJobResult: Future[JobResult] = {
+    val result = Promise[JobResult]
+    promise.future.onComplete {
+      case Success(r) =>
+        result.success(JobResult.success(r))
+      case Failure(e) =>
+        result.success(JobResult.failure(e.getMessage))
+    }
+    result.future
   }
 }
 

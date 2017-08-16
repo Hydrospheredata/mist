@@ -118,7 +118,7 @@ object Master extends App with Logger {
         // api router can't chain unhandled calls, because it's wrapped in cors directive
         ws.route ~ api
       }
-      val http = new HttpUi(config.http.uiPath).route ~ api.route ~ apiv2
+      val http = new HttpUi(config.http.uiPath).route ~ api.route ~ DevApi.devRoutes(masterService) ~ apiv2
       Http().bindAndHandle(http, config.http.host, config.http.port)
     }
 
