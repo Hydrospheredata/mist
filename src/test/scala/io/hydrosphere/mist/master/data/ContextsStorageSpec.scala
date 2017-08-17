@@ -69,6 +69,19 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     contexts.get("foo").await.get shouldBe ctx
   }
 
+  it("should return default setting") {
+    val contexts = testStorage()
+    val default = contexts.defaultConfig
+
+    default.name shouldBe "default"
+    default.sparkConf shouldBe Map()
+    default.downtime shouldBe Duration.Inf
+    default.streamingDuration shouldBe (1 seconds)
+    default.runOptions shouldBe "--opt"
+    default.precreated shouldBe false
+
+  }
+
   def testStorage(): ContextsStorage = {
     new ContextsStorage(
       FsStorage.create(path, ConfigRepr.ContextConfigRepr),

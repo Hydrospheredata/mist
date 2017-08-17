@@ -5,7 +5,7 @@ import java.util.concurrent.Executors
 import io.hydrosphere.mist.master.ContextsSettings
 import io.hydrosphere.mist.master.models.ContextConfig
 
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
 class ContextsStorage(
   fsStorage: FsStorage[ContextConfig],
@@ -41,6 +41,8 @@ class ContextsStorage(
     else
       Future { fsStorage.write(config.name, config) }
   }
+
+  def defaultConfig: ContextConfig = defaultSettings.default
 }
 
 object ContextsStorage {

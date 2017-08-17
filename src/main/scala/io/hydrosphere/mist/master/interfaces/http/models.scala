@@ -3,7 +3,9 @@ package io.hydrosphere.mist.master.interfaces.http
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
-import io.hydrosphere.mist.master.models.FullEndpointInfo
+import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo}
+
+import scala.concurrent.duration.Duration
 
 case class HttpJobInfo(
   name: String,
@@ -130,3 +132,26 @@ case class EndpointCreateRequest(
   className: String,
   nameSpace: String
 )
+
+case class ContextCreateRequest(
+  name: String,
+  sparkConf: Option[Map[String, String]],
+  downtime: Option[Duration],
+  maxJobs: Option[Int],
+  precreated: Option[Boolean],
+  runOptions: Option[String] = None,
+  streamingDuration: Option[Duration]
+) {
+
+  def toContextWithFallback(other: ContextConfig): ContextConfig =
+    ContextConfig(
+      name,
+      sparkConf.getOrElse(other.sparkConf),
+      downtime.getOrElse(other.downtime),
+      maxJobs.getOrElse(other.maxJobs),
+      precreated.getOrElse(other.precreated),
+      runOptions.getOrElse(other.runOptions),
+      streamingDuration.getOrElse(other.streamingDuration)
+    )
+}
+

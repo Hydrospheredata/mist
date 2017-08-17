@@ -10,17 +10,19 @@ import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo, EndpointStartRequest, JobStartResponse}
+import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
-import org.mockito.Matchers.anyInt
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util._
+import org.mockito.Matchers.{eq => mockitoEq, anyInt}
+import org.mockito.Mockito.{verify, times}
 
 class HttpApiV2Spec extends FunSpec
   with Matchers
@@ -258,6 +260,33 @@ class HttpApiV2Spec extends FunSpec
 
     }
 
+
+  }
+  describe("contexts") {
+
+    it("should create jobs with optional parameters") {
+      val contextStorage = mock[ContextsStorage]
+      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", 1 seconds)
+      val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None)
+
+      when(contextStorage.defaultConfig)
+        .thenReturn(defaultValue)
+
+      when(contextStorage.get(any[String]))
+          .thenSuccess(None)
+
+      when(contextStorage.update(any[ContextConfig]))
+        .thenReturn(Future.successful(defaultValue))
+
+      val route = HttpV2Routes.contextsRoutes(contextStorage)
+
+      Post(s"/v2/api/contexts", contextToCreate.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
+          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", 1 seconds
+        )))
+      }
+    }
 
   }
 
