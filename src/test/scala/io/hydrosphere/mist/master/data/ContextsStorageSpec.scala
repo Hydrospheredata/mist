@@ -76,7 +76,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     default.name shouldBe "default"
     default.sparkConf shouldBe Map()
     default.downtime shouldBe Duration.Inf
-    default.streamingDuration shouldBe (10 seconds)
+    default.streamingDuration shouldBe (1 seconds)
     default.runOptions shouldBe "--opt"
     default.precreated shouldBe false
 
