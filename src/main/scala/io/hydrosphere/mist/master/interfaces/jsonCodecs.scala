@@ -7,7 +7,7 @@ import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.WorkerLink
-import io.hydrosphere.mist.master.interfaces.http.{HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
+import io.hydrosphere.mist.master.interfaces.http.{ContextCreateRequest, HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import spray.json._
@@ -188,6 +188,8 @@ trait JsonCodecs extends SprayJsonSupport
   }
 
   implicit val contextConfigF = jsonFormat7(ContextConfig.apply)
+
+  implicit val contextCreateRequestF = jsonFormat7(ContextCreateRequest.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 

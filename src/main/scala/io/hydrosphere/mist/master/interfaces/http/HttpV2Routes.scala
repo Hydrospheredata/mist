@@ -250,9 +250,12 @@ object HttpV2Routes {
       get { completeOpt(contexts.get(id)) }
     } ~
     path ( root / "contexts" ) {
-      post { entity(as[ContextConfig]) { context =>
+      post { entity(as[ContextCreateRequest]) { context =>
         onSuccess(contexts.get(context.name)) {
-          case None => complete { contexts.update(context) }
+          case None => complete {
+            val config = context.toContextWithFallback(contexts.defaultConfig)
+            contexts.update(config)
+          }
           case Some(_) =>
             val rsp = HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists")
             complete(rsp)
