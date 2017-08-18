@@ -25,7 +25,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
-    context.stop()
+    context.sparkContext.stop()
   }
 
   override def beforeAll {
