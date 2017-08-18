@@ -58,7 +58,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
   it("should serve workers") {
     val jobService = mock[JobService]
     when(jobService.workers()).thenReturn(
-      Future.successful( List(WorkerLink("name", "address")) ))
+      Future.successful( List(WorkerLink("name", "address", None)) ))
 
     val api = new HttpApi(masterMock(jobService)).route
 
@@ -66,7 +66,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
       status shouldBe StatusCodes.OK
 
       val r = responseAs[List[WorkerLink]]
-      r shouldBe List(WorkerLink("name", "address"))
+      r shouldBe List(WorkerLink("name", "address", None))
     }
   }
 

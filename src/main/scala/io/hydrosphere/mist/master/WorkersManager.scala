@@ -7,7 +7,6 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
-import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
@@ -42,7 +41,8 @@ case class Initializing(frontend: ActorRef) extends WorkerState
 case class Started(
   frontend: ActorRef,
   address: Address,
-  backend: ActorRef
+  backend: ActorRef,
+  sparkUi: Option[String]
 ) extends WorkerState
 
 /**
@@ -112,20 +112,20 @@ class WorkersManager(
       })
       sender() ! akka.actor.Status.Success(())
 
-    case r @ WorkerRegistration(name, address) =>
-      log.info("Received worker registration - name: {}, address: {} ", name, address)
-      val selection = cluster.system.actorSelection(RootActorPath(address) / "user" / s"worker-$name")
+    case r @ WorkerRegistration(name, address, sparkUi) =>
+      log.info("Received worker registration - {}", r)
+      val selection = cluster.system.actorSelection(RootActorPath(address) / "user" / s"worker-${name}")
       selection.resolveOne(5.second).onComplete({
-        case Success(ref) => self ! WorkerResolved(name, address, ref)
+        case Success(ref) => self ! WorkerResolved(name, address, ref, sparkUi)
         case Failure(e) =>
           log.error(e, s"Worker reference resolution failed for $name")
       })
 
-    case r @ WorkerResolved(name, address, ref) =>
-      log.info("Worker resolved - name: {}, address: {} ", name, address)
+    case r @ WorkerResolved(name, address, ref, sparkUi) =>
+      log.info("Worker resolved - {}", r)
       workerStates.get(name) match {
         case Some(state) =>
-          val next = Started(state.frontend, address, ref)
+          val next = Started(state.frontend, address, ref, sparkUi)
           workerStates += name ->next
           state.frontend ! WorkerUp(ref)
           log.info(s"Worker with $name is registered on $address")
@@ -167,7 +167,7 @@ class WorkersManager(
 
   private def aliveWorkers: List[WorkerLink] = {
     workerStates.collect({
-      case (name, x:Started) => WorkerLink(name, x.address.toString)
+      case (name, x:Started) => WorkerLink(name, x.address.toString, x.sparkUi)
     }).toList
   }
 
@@ -240,5 +240,5 @@ object WorkersManager {
     Props(classOf[WorkersManager], statusService, workerRunner, jobsLogger, runnerInitTimeout, infoProvider)
   }
 
-  case class WorkerResolved(name: String, address: Address, ref: ActorRef)
+  case class WorkerResolved(name: String, address: Address, ref: ActorRef, sparkUi: Option[String])
 }

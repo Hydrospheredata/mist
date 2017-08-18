@@ -169,7 +169,7 @@ object ExclusiveWorkerActor {
 
 object WorkerActor {
 
-  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => Props = {
+  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => (NamedContext, Props) = {
 
     def mkNamedContext(info: WorkerInitInfo): NamedContext = {
       import info._
@@ -192,10 +192,11 @@ object WorkerActor {
 
     (info: WorkerInitInfo) => {
       val namedContext = mkNamedContext(info)
-      mode match {
+      val props = mode match {
         case Shared => SharedWorkerActor.props(namedContext, MistJobRunner, info.downtime, info.maxJobs)
         case Exclusive => ExclusiveWorkerActor.props(namedContext, MistJobRunner)
       }
+      (namedContext, props)
     }
   }
 
