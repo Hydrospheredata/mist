@@ -13,7 +13,7 @@ object MLClassification extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
     val training = session.createDataFrame(Seq(
       (0L, "a b c d e spark", 1.0),
       (1L, "b d", 0.0),

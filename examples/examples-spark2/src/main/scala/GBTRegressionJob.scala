@@ -22,7 +22,7 @@ object GBTRegressionJob extends MLMistJob {
     )
   }
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val data = session.read.format("libsvm").load("examples/resources/sample_libsvm_data.txt")
 
     val gbt = new GBTRegressor()

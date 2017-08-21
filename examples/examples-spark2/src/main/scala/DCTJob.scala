@@ -13,7 +13,7 @@ object DCTJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val data = Seq(
       LVectors.dense(0.0, 1.0, -2.0, 3.0),
       LVectors.dense(-1.0, 2.0, 4.0, -7.0),

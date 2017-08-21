@@ -12,7 +12,7 @@ object DTreeRegressionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(datasetPath: String, savePath: String): Map[String, Any] = {
+  def execute(datasetPath: String, savePath: String): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load(datasetPath)
 
     val featureIndexer = new VectorIndexer()

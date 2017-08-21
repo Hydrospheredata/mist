@@ -14,7 +14,7 @@ object Word2VecJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val documentDF = session.createDataFrame(Seq(
       "Hi I heard about Spark".split(" "),
       "I wish Java could use case classes".split(" "),

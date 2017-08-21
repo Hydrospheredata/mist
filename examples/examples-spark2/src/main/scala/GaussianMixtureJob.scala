@@ -14,7 +14,7 @@ object GaussianMixtureJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load("jobs/data/mllib/sample_kmeans_data.txt")
 
     val gmm = new GaussianMixture().setK(2)

@@ -13,7 +13,7 @@ object KMeansJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     // Loads data.
     val dataset = session.read.format("libsvm").load(datasetPath)
 

@@ -13,7 +13,7 @@ object NormalizerJob extends MLMistJob{
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, Vectors.dense(1.0, 0.5, -1.0)),
       (1, Vectors.dense(2.0, 1.0, 1.0)),

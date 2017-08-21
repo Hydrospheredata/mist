@@ -16,7 +16,7 @@ object VectorSlicerJob extends MLMistJob{
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val data = util.Arrays.asList(
       Row(Vectors.sparse(3, Seq((0, -2.0), (1, 2.3)))),
       Row(Vectors.dense(-2.0, 2.3, 0.0))

@@ -13,7 +13,7 @@ object RandomForestClassificationJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     // Load and parse the data file, converting it to a DataFrame.
     val data = session.read.format("libsvm").load(datasetPath)
 

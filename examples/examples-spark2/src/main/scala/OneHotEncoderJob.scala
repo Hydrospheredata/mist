@@ -12,7 +12,7 @@ object OneHotEncoderJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, "a"), (1, "b"), (2, "c"),
       (3, "a"), (4, "a"), (5, "c")

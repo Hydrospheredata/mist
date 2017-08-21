@@ -13,7 +13,7 @@ object LinearRegressionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     val df = session.read.format("libsvm").load(datasetPath)
 
     val lr = new LinearRegression()

@@ -12,7 +12,7 @@ object PolynomialExpansionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val data = Array(
       Vectors.dense(2.0, 1.0),
       Vectors.dense(0.0, 0.0),

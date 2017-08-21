@@ -12,7 +12,7 @@ object DTreeClassificationJob extends MLMistJob{
     .config(context.getConf)
     .getOrCreate()
 
-  def train(datasetPath: String, savePath: String): Map[String, Any] = {
+  def execute(datasetPath: String, savePath: String): Map[String, Any] = {
     val data = session.read.format("libsvm").load(datasetPath)
     val Array(training, _) = data.randomSplit(Array(0.7, 0.3))
     val labelIndexer = new StringIndexer()
