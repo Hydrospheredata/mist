@@ -28,7 +28,6 @@ case class JvmJobInfo(jobClass: JobClass) extends JobInfo {
 
     val inst = action match {
       case Action.Execute => jobClass.execute
-      case Action.Train => jobClass.train
       case Action.Serve => jobClass.serve
     }
     inst match {

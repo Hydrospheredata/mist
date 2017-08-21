@@ -15,7 +15,6 @@ class JobsLoader(val classLoader: ClassLoader) {
       val instance = new JobClass(
         clazz = clz,
         execute = loadJobInstance(clz, Action.Execute),
-        train = loadJobInstance(clz, Action.Train),
         serve = loadJobInstance(clz, Action.Serve)
       )
       instance
@@ -48,7 +47,6 @@ class JobsLoader(val classLoader: ClassLoader) {
   private def methodNameByAction(action: Action): String = action match {
     case Action.Execute => "execute"
     case Action.Serve => "serve"
-    case Action.Train => "train"
   }
 
   private def loadClass(name: String): Try[Class[_]] = {

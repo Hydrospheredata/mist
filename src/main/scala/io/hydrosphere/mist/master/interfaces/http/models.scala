@@ -10,7 +10,6 @@ import scala.concurrent.duration.Duration
 case class HttpJobInfo(
   name: String,
   execute: Option[Map[String, HttpJobArg]] = None,
-  train:   Option[Map[String, HttpJobArg]] = None,
   serve:   Option[Map[String, HttpJobArg]] = None,
 
   isHiveJob: Boolean = false,
@@ -33,7 +32,6 @@ object HttpJobInfo {
       HttpJobInfo(
         name = fullInfo.config.name,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
 
         isHiveJob = classes.contains(classOf[HiveSupport]),

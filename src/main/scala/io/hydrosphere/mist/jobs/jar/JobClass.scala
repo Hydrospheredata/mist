@@ -7,11 +7,10 @@ import JobClass._
 case class JobClass(
   clazz: Class[_],
   execute: Option[JobInstance],
-  train: Option[JobInstance],
   serve: Option[JobInstance]
 ) {
 
-  def isValid: Boolean = execute.nonEmpty || train.nonEmpty || serve.nonEmpty
+  def isValid: Boolean = execute.nonEmpty || serve.nonEmpty
 
   def supportedClasses(): Seq[Class[_]] = {
     val interfaces = clazz.getInterfaces
