@@ -20,6 +20,7 @@ cache:
     - $HOME/.sbt
     - $HOME/.coursier
     - spark_local
+    - ui_local
 
 env:
   global:
