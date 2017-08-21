@@ -77,13 +77,13 @@ object Master extends App with Logger {
       config.logs.host, config.logs.port,
       logsMappings, eventPublishers
     )
-
-    val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
+    val jobsLogger = logsService.getLogger
+    val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
     val infoProvider = new InfoProvider(config.logs, contextsStorage)
     val workerManager = system.actorOf(
       WorkersManager.props(
         statusService, workerRunner,
-        logsService.getLogger,
+        jobsLogger,
         config.workers.runnerInitTimeout,
         infoProvider
       ), "workers-manager")

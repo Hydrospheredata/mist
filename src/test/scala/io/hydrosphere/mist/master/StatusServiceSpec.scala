@@ -6,6 +6,7 @@ import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
+import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.store.JobRepository
 import org.mockito.Matchers._
 import org.mockito.Mockito._
@@ -25,10 +26,11 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
   it("should register jobs") {
     val store = mock(classOf[JobRepository])
+    val jobsLogger = mock(classOf[JobsLogger])
     when(store.update(any[JobDetails]))
       .thenReturn(Future.successful(()))
 
-    val status = system.actorOf(StatusService.props(store, Seq.empty))
+    val status = system.actorOf(StatusService.props(store, Seq.empty, jobsLogger))
 
     status ! Register(
       RunJobRequest("id", params),
@@ -46,6 +48,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
   it("should update status in storage and call publisher") {
     val store = mock(classOf[JobRepository])
+    val jobsLogger = mock(classOf[JobsLogger])
     when(store.get(any[String])).thenReturn({
       val jobDetails = JobDetails(
         params = params,
@@ -62,7 +65,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
     val publisher = mock(classOf[JobEventPublisher])
 
-    val status = system.actorOf(StatusService.props(store, Seq(publisher)))
+    val status = system.actorOf(StatusService.props(store, Seq(publisher), jobsLogger))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 

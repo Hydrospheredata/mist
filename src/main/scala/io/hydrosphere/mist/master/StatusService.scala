@@ -8,6 +8,7 @@ import io.hydrosphere.mist.Messages.StatusMessages._
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.master.StatusService._
+import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.store.JobRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,7 +17,8 @@ import scala.util.{Failure, Success}
 
 class StatusService(
   store: JobRepository,
-  notifiers: Seq[JobEventPublisher]
+  notifiers: Seq[JobEventPublisher],
+  jobsLogger: JobsLogger
 ) extends Actor with ActorLogging {
 
   val activeStatuses = List(Status.Queued, Status.Started, Status.Initialized)
@@ -25,6 +27,7 @@ class StatusService(
     case Register(req, endpoint, ctx, source, externalId, workerId) =>
       val details = JobDetails(endpoint, req.id, req.params, ctx, externalId, source, workerId = workerId)
       val s = sender()
+      jobsLogger.info(req.id, s"Register $details")
       store.update(details).map(_ => {
         s ! akka.actor.Status.Success(())
         val event = InitializedEvent(req.id, req.params, externalId)
@@ -35,11 +38,17 @@ class StatusService(
       val origin = sender()
       updateDetails(e).onComplete({
         case Success(Some(details)) =>
+          jobsLogger.info(e.id, s"$e for job $details")
           origin ! details
           callNotifiers(e)
 
-        case Success(None) => log.warning(s"Received $e for unknown job")
-        case Failure(err) => log.error(err, "Update job details with {} failed", e)
+        case Success(None) =>
+          val message = s"Received $e for unknown job"
+          log.warning(message)
+          jobsLogger.warn(e.id, message)
+        case Failure(err) =>
+          jobsLogger.error(e.id, s"Update job $e failed", err)
+          log.error(err, "Update job details with {} failed", e)
       })
 
     case RunningJobs =>
@@ -72,8 +81,8 @@ class StatusService(
 
 object StatusService {
 
-  def props(store: JobRepository, notifiers: Seq[JobEventPublisher]): Props =
-    Props(classOf[StatusService], store, notifiers)
+  def props(store: JobRepository, notifiers: Seq[JobEventPublisher], jobsLogger: JobsLogger): Props =
+    Props(classOf[StatusService], store, notifiers, jobsLogger)
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {

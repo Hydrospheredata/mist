@@ -75,7 +75,9 @@ class WorkersManager(
 
     case c @ CancelJobCommand(name, req) =>
       workerStates.get(name) match {
-        case Some(s) => s.forward(req)
+        case Some(s) =>
+          jobsLogger.info(req.id, "Cancel job manually")
+          s.forward(req)
         case None => log.warning("Handled message {} for unknown worker", c)
       }
 
