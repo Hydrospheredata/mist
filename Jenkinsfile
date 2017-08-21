@@ -19,6 +19,11 @@ parallel branches
 
 //some commit
 node("JenkinsOnDemand") {
+    stage('Final stage - scm checkout') {
+        checkout scm
+        sh "cd ${env.WORKSPACE}"
+    }
+
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
 
     if (tag.startsWith("v")) {
@@ -48,8 +53,6 @@ def test_mist(slaveName, sparkVersion) {
                     echo 'Testing Mist with Spark version: ' + sparkVersion
                     sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean assembly testAll"
                 }
-
-                //stash name: "artifact${sparkVersion}", includes: "target/**/mist-assembly-*.jar"
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
                 if (tag.startsWith("v")) {
