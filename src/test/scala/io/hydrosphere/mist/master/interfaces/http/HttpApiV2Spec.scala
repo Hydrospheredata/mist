@@ -38,7 +38,7 @@ class HttpApiV2Spec extends FunSpec
     it("should return workers") {
       val jobService = mock[JobService]
       when(jobService.workers()).thenReturn(Future.successful(Seq(
-        WorkerLink("worker", "address")
+        WorkerLink("worker", "address", None)
       )))
 
       val route = HttpV2Routes.workerRoutes(jobService)
