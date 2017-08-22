@@ -182,6 +182,7 @@ Glosssary:
           <li>sparkConf - Key-value string->string object</li>
           <li>downtime - Idle timeout before worker shut self down - Duration</li>
           <li>maxJobs - max parallel jobs - Int</li>
+          <li>workerMode - worker mode (shared | exclusive) - String</li>
           <li>precreated - Boolean</li>
           <li>runOptions - String</li>
           <li>streamingDuration - Duration</li>
