@@ -3,7 +3,7 @@ import java.util
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.{Vector => LVector}
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.SparkSession
 

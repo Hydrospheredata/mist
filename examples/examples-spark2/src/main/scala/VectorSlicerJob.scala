@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import java.util
 
 import org.apache.spark.ml.Pipeline
