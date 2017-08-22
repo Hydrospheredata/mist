@@ -117,12 +117,14 @@ class MasterService(
       jobInfo        =  fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
       context        <- OptionT.liftF(selectContext(req, endpoint))
-      jobStartReq    = JobStartRequest(
+      // we do not care about parameter passed through http and only care about context settings
+      runMode        =  RunMode.fromString(context.workerMode)
+      jobStartReq    =  JobStartRequest(
         id = req.id,
         endpoint = endpoint,
         context = context,
         parameters = req.parameters,
-        runMode = req.runSettings.mode,
+        runMode = runMode,
         source = source,
         externalId = req.externalId,
         action = action

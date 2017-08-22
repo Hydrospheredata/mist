@@ -1,8 +1,9 @@
 package io.hydrosphere.mist.master.models
 
 import io.hydrosphere.mist.jobs.jar.JobClass
-import io.hydrosphere.mist.jobs.{JvmJobInfo, PyJobInfo, Action, JobInfo}
+import io.hydrosphere.mist.jobs.{Action, JobInfo, JvmJobInfo, PyJobInfo}
 import cats.implicits._
+import io.hydrosphere.mist.worker.{Shared, WorkerMode}
 
 import scala.concurrent.duration.Duration
 
@@ -17,6 +18,7 @@ case class ContextConfig(
   maxJobs: Int,
   precreated: Boolean,
   runOptions: String,
+  workerMode: String,
   streamingDuration: Duration
 ) extends NamedConfig
 

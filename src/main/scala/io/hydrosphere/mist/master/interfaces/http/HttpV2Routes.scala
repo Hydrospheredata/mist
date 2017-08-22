@@ -27,7 +27,7 @@ case class JobRunQueryParams(
 ) {
 
   def buildRunSettings(): RunSettings = {
-    val runMode = mode.flatMap(RunMode.fromString).getOrElse(RunMode.Shared) match {
+    val runMode = mode.map(RunMode.fromString).getOrElse(RunMode.Shared) match {
       case u: RunMode.ExclusiveContext => u.copy(workerId)
       case x => x
     }

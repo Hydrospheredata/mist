@@ -187,9 +187,9 @@ trait JsonCodecs extends SprayJsonSupport
     }
   }
 
-  implicit val contextConfigF = jsonFormat7(ContextConfig.apply)
+  implicit val contextConfigF = jsonFormat8(ContextConfig.apply)
 
-  implicit val contextCreateRequestF = jsonFormat7(ContextCreateRequest.apply)
+  implicit val contextCreateRequestF = jsonFormat8(ContextCreateRequest.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 

@@ -16,6 +16,7 @@ object TestUtils {
         | max-parallel-jobs = 20
         | precreated = false
         | spark-conf = { }
+        | worker-mode = "shared"
         | run-options = "--opt"
         |}
         |

@@ -18,6 +18,7 @@ class MistConfigSpec extends FunSpec with Matchers {
         | precreated = false
         | spark-conf = { }
         | run-options = "--opt"
+        | worker-mode = "shared"
         |}
         |
         |context {
@@ -38,6 +39,7 @@ class MistConfigSpec extends FunSpec with Matchers {
       maxJobs = 20,
       precreated = false,
       runOptions = "--opt",
+      workerMode = "shared",
       streamingDuration = 1.seconds
     ))
 

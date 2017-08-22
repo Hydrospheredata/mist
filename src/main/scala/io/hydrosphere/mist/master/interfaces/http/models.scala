@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
-import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo}
+import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo, RunMode}
 
 import scala.concurrent.duration.Duration
 
@@ -139,9 +139,17 @@ case class ContextCreateRequest(
   downtime: Option[Duration],
   maxJobs: Option[Int],
   precreated: Option[Boolean],
+  workerMode: Option[String],
   runOptions: Option[String] = None,
   streamingDuration: Option[Duration]
 ) {
+
+  workerMode match {
+    case Some(m) =>
+      require(ContextCreateRequest.AvailableRunMode.contains(m),
+        s"Worker mode should be in ${ContextCreateRequest.AvailableRunMode}")
+    case _ =>
+  }
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =
     ContextConfig(
@@ -151,7 +159,11 @@ case class ContextCreateRequest(
       maxJobs.getOrElse(other.maxJobs),
       precreated.getOrElse(other.precreated),
       runOptions.getOrElse(other.runOptions),
+      workerMode.getOrElse(other.workerMode),
       streamingDuration.getOrElse(other.streamingDuration)
     )
+}
+object ContextCreateRequest {
+  val AvailableRunMode = Set("shared", "exclusive")
 }
 

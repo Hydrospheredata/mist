@@ -21,9 +21,9 @@ object RunMode {
   /** There will be created unique worker for job execution */
   case class ExclusiveContext(id: Option[String]) extends RunMode
 
-  def fromString(s: String): Option[RunMode] = s match {
-    case "shared" => Some(Shared)
-    case "exclusive" => Some(ExclusiveContext(None))
+  def fromString(s: String): RunMode = s match {
+    case "shared" => Shared
+    case "exclusive" => ExclusiveContext(None)
   }
 
 }
