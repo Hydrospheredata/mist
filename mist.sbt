@@ -136,9 +136,7 @@ lazy val mist = project.in(file("."))
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    },
-    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
-    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
+    }
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
