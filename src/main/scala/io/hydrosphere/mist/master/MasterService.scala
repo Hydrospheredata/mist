@@ -9,11 +9,12 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.{Future, Promise}
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class MasterService(
@@ -23,14 +24,21 @@ class MasterService(
   val logStorageMappings: LogStorageMappings
 ) extends Logger {
 
-  def runJob(req: EndpointStartRequest, source: JobDetails.Source): Future[Option[JobStartResponse]] = {
+  def runJob(
+    req: EndpointStartRequest,
+    source: JobDetails.Source
+  ): Future[Option[JobStartResponse]] = {
     val out = for {
       executionInfo <- OptionT(runJobRaw(req, source))
     } yield JobStartResponse(executionInfo.request.id)
     out.value
   }
 
-  def forceJobRun(req: EndpointStartRequest, source: JobDetails.Source, action: Action = Action.Execute): Future[Option[JobResult]] = {
+  def forceJobRun(
+    req: EndpointStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute
+  ): Future[Option[JobResult]] = {
     val promise = Promise[Option[JobResult]]
     runJobRaw(req, source, action).map({
       case Some(info) => info.promise.future.onComplete {
@@ -70,17 +78,27 @@ class MasterService(
     for {
       _             <- checkSettings(endpoint)
       context       <- contexts.getOrDefault(req.context)
+      runMode       <- selectRunMode(context, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
         endpoint = endpoint,
         context = context,
         parameters = req.parameters,
-        runMode = req.runMode,
+        runMode = runMode,
         source = source,
         externalId = req.externalId,
         action = action
       ))
     } yield executionInfo
+  }
+
+  private def selectRunMode(config: ContextConfig, workerId: Option[String]): Future[RunMode] = {
+    config.workerMode match {
+      case "exclusive" => Future.successful(ExclusiveContext(workerId))
+      case "shared" => Future.successful(Shared)
+      case _ => Future.failed(
+          new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}"))
+    }
   }
 
   def recoverJobs(): Future[Unit] = {
@@ -117,8 +135,7 @@ class MasterService(
       jobInfo        =  fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
       context        <- OptionT.liftF(selectContext(req, endpoint))
-      // we do not care about parameter passed through http and only care about context settings
-      runMode        =  RunMode.fromString(context.workerMode)
+      runMode        <- OptionT.liftF(selectRunMode(context, req.runSettings.workerId))
       jobStartReq    =  JobStartRequest(
         id = req.id,
         endpoint = endpoint,

@@ -21,21 +21,16 @@ object RunMode {
   /** There will be created unique worker for job execution */
   case class ExclusiveContext(id: Option[String]) extends RunMode
 
-  def fromString(s: String): RunMode = s match {
-    case "shared" => Shared
-    case "exclusive" => ExclusiveContext(None)
-  }
-
 }
 
 case class RunSettings(
   contextId: Option[String],
-  mode: RunMode
+  workerId: Option[String]
 )
 
 object RunSettings {
 
-  val Default = RunSettings(None, RunMode.Shared)
+  val Default = RunSettings(None, None)
 
 }
 
@@ -90,8 +85,7 @@ case class DevJobStartRequest(
   className: String,
   parameters: Map[String, Any],
   externalId: Option[String],
-
-  runMode: RunMode,
+  workerId: Option[String],
   context: String
 )
 
@@ -101,7 +95,7 @@ case class DevJobStartRequestModel(
   className: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],
-  runMode: Option[RunMode],
+  workerId: Option[String],
   context: String
 ) {
 
@@ -112,7 +106,7 @@ case class DevJobStartRequestModel(
       className = className,
       parameters = parameters.getOrElse(Map.empty),
       externalId = externalId,
-      runMode = runMode.getOrElse(RunMode.Shared),
+      workerId = workerId,
       context = context
     )
   }
