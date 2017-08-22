@@ -78,7 +78,7 @@ class MasterService(
     for {
       _             <- checkSettings(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      runMode       <- selectRunMode(context, req.workerId)
+      runMode       =  selectRunMode(context, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
         endpoint = endpoint,
@@ -92,12 +92,12 @@ class MasterService(
     } yield executionInfo
   }
 
-  private def selectRunMode(config: ContextConfig, workerId: Option[String]): Future[RunMode] = {
+  private def selectRunMode(config: ContextConfig, workerId: Option[String]): RunMode = {
     config.workerMode match {
-      case "exclusive" => Future.successful(ExclusiveContext(workerId))
-      case "shared" => Future.successful(Shared)
-      case _ => Future.failed(
-          new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}"))
+      case "exclusive" => ExclusiveContext(workerId)
+      case "shared" => Shared
+      case _ =>
+          throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
     }
   }
 
@@ -135,7 +135,7 @@ class MasterService(
       jobInfo        =  fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
       context        <- OptionT.liftF(selectContext(req, endpoint))
-      runMode        <- OptionT.liftF(selectRunMode(context, req.runSettings.workerId))
+      runMode        =  selectRunMode(context, req.runSettings.workerId)
       jobStartReq    =  JobStartRequest(
         id = req.id,
         endpoint = endpoint,

@@ -6,7 +6,7 @@ Glosssary:
 - Job - fact of endpoint invocation
 - Namespace - SparkContext configs and Mist configs for given SparkContext 
 - Worker - Mist slave instance that holds Spark Driver application
-- Mode - job can be run in two worker modes: `shared` or `exclusive`
+- Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](configuration.md))
     - Shared - all jobs from same context are using one spark driver application
     - Exclusive - fresh driver application will be created for one job invocation
 

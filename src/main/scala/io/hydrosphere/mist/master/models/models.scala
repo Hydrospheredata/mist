@@ -24,7 +24,9 @@ object RunMode {
 }
 
 case class RunSettings(
+  /** Context name that overrides endpoint context */
   contextId: Option[String],
+  /** Worker name postfix */
   workerId: Option[String]
 )
 

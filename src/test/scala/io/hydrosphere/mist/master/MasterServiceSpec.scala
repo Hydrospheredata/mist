@@ -13,6 +13,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
@@ -33,17 +34,17 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     )
 
     when(endpoints.getFullInfo(any[String]))
-      .thenReturn(Future.successful(Some(fullInfo)))
+      .thenSuccess(Some(fullInfo))
 
     when(contexts.getOrDefault(any[String]))
-      .thenReturn(Future.successful(TestUtils.contextSettings.default))
+      .thenSuccess(TestUtils.contextSettings.default)
 
-    when(jobService.startJob(any[JobStartRequest])).thenReturn(Future.successful(
+    when(jobService.startJob(any[JobStartRequest])).thenSuccess(
       ExecutionInfo(
         req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
         status = JobDetails.Status.Queued
       )
-    ))
+    )
 
     val service = new MasterService(jobService, endpoints, contexts, logs)
 
@@ -67,7 +68,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenReturn(Left(new IllegalArgumentException("INVALID")))
 
     when(endpoints.getFullInfo(any[String]))
-      .thenReturn(Future.successful(Some(info)))
+      .thenSuccess(Some(info))
 
     val service = new MasterService(jobService, endpoints, contexts, logs)
 
@@ -76,6 +77,42 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     ScalaFutures.whenReady(f.failed) { ex =>
       ex shouldBe a[IllegalArgumentException]
+    }
+
+  }
+  it("should fail job execution when context config filled with incorrect worker mode") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStorageMappings]
+
+    val fullInfo = FullEndpointInfo(
+      EndpointConfig("name", "path", "MyJob", "namespace"),
+      PyJobInfo
+    )
+
+    when(endpoints.getFullInfo(any[String]))
+      .thenSuccess(Some(fullInfo))
+
+    when(contexts.getOrDefault(any[String]))
+      .thenSuccess(ContextConfig(
+        "default",
+        Map.empty,
+        Duration.Inf,
+        20,
+        precreated = false,
+        "",
+        "wrong_mode",
+        1 seconds
+      ))
+
+    val service = new MasterService(jobService, endpoints, contexts, logs)
+
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val runInfo = service.runJob(req, Source.Http)
+
+    ScalaFutures.whenReady(runInfo.failed) {ex =>
+      ex shouldBe an[IllegalArgumentException]
     }
 
   }
