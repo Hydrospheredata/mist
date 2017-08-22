@@ -194,8 +194,12 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
     libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.1",
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
     assembledMappings in assembly := {
-
-      def isServingLib(f: File): Boolean = f.getName == "spark-ml-serving_2.11.jar"
+      // hack - there is no options how to exclude all dependecies that comes
+      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
+      def isServingLib(f: File): Boolean = {
+        val name = f.getName
+        name.startsWith("spark-ml-serving_2.11")
+      }
       def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.11/classes")
 
       val x = (fullClasspath in assembly).value
