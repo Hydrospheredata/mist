@@ -191,7 +191,7 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .settings(
     name := "mist-examples-spark2",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.1",
+    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.2",
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
     assembledMappings in assembly := {
       // hack - there is no options how to exclude all dependecies that comes
