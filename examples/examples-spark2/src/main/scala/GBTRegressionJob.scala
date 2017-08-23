@@ -1,6 +1,6 @@
 import GaussianMixtureJob.context
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.linalg.{Vector, Vectors}
@@ -22,7 +22,7 @@ object GBTRegressionJob extends MLMistJob {
     )
   }
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val data = session.read.format("libsvm").load("examples/resources/sample_libsvm_data.txt")
 
     val gbt = new GBTRegressor()

@@ -55,15 +55,11 @@ class HttpApi(master: MasterService) extends Logger {
       }
     } ~
     path("api" / Segment) { routeId =>
-      post { parameters('train.?, 'serve.?) { (train, serve) =>
+      post { parameters('serve.?) { (serve) =>
         entity(as[JobParameters]) { jobParams =>
 
           complete {
-            val action = if (train.isDefined)
-              Action.Train
-            else if (serve.isDefined)
-              Action.Serve
-            else Action.Execute
+            val action = if (serve.isDefined) Action.Serve else Action.Execute
 
             val request = EndpointStartRequest(
               endpointId = routeId,

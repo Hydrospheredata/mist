@@ -1,6 +1,6 @@
 
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.regression.LinearRegression
@@ -13,7 +13,7 @@ object LinearRegressionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     val df = session.read.format("libsvm").load(datasetPath)
 
     val lr = new LinearRegression()

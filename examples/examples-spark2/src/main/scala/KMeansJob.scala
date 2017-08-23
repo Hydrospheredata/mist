@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
@@ -13,7 +13,7 @@ object KMeansJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     // Loads data.
     val dataset = session.read.format("libsvm").load(datasetPath)
 

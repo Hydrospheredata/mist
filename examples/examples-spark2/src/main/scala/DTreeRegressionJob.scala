@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.regression.DecisionTreeRegressor
@@ -12,7 +12,7 @@ object DTreeRegressionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(datasetPath: String, savePath: String): Map[String, Any] = {
+  def execute(datasetPath: String, savePath: String): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load(datasetPath)
 
     val featureIndexer = new VectorIndexer()

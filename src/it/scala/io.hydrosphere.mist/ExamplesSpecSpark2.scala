@@ -22,7 +22,7 @@ class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers {
 
     it("run binarizer") {
       val modelPath = savePathForJob("binarizer")
-      val trainR = interface.train(
+      val trainR = interface.runJob(
         "binarizer",
         "savePath" -> modelPath
       )

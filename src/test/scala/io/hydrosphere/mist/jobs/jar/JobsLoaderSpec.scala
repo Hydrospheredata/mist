@@ -14,7 +14,6 @@ class JobsLoaderSpec extends FunSpec with Matchers {
     val jobClass = r.get
 
     jobClass.execute.isDefined shouldBe true
-    jobClass.train.isDefined shouldBe false
     jobClass.serve.isDefined shouldBe false
   }
 

@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorIndexer
 import org.apache.spark.ml.regression.RandomForestRegressor
@@ -12,7 +12,7 @@ object RandomForestRegressionJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String, datasetPath: String): Map[String, Any] = {
+  def execute(savePath: String, datasetPath: String): Map[String, Any] = {
     // Load and parse the data file, converting it to a DataFrame.
     val data = session.read.format("libsvm").load(datasetPath)
 
