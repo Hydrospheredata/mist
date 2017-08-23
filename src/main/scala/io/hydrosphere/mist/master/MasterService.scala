@@ -105,14 +105,11 @@ class MasterService(
         throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
     }
 
-    val streamingWorkerMode =
-      fullInfo.info match {
+    fullInfo.info match {
       case JvmJobInfo(jobClass) if isStreamingJob(jobClass) =>
-        Some(ExclusiveContext(workerId))
-      case _ => None
+        ExclusiveContext(workerId)
+      case _ => workerModeFromContextConfig
     }
-
-    streamingWorkerMode getOrElse workerModeFromContextConfig
   }
 
   def recoverJobs(): Future[Unit] = {
