@@ -47,6 +47,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
           |  precreated = false
           |  run-options = "--key"
           |  streaming-duration = 30 seconds
+          |  worker-mode = "shared"
           |
           |}
         """.stripMargin
@@ -58,6 +59,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       context.maxJobs shouldBe 100
       context.precreated shouldBe false
       context.runOptions shouldBe "--key"
+      context.workerMode shouldBe "shared"
       context.streamingDuration shouldBe 30.seconds
     }
 
@@ -69,6 +71,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         maxJobs = 10,
         precreated = false,
         runOptions = "",
+        workerMode = "shared",
         streamingDuration = 1.minutes
       )
       val raw = ConfigRepr.ContextConfigRepr.toConfig(context)
@@ -77,6 +80,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       raw.getBoolean("precreated") shouldBe false
       raw.getString("spark-conf.x") shouldBe "y"
       raw.getString("spark-conf.z") shouldBe "4"
+      raw.getString("worker-mode") shouldBe "shared"
       Duration(raw.getString("streaming-duration")) shouldBe 1.minutes
     }
   }

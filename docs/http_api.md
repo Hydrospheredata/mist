@@ -6,7 +6,7 @@ Glosssary:
 - Job - fact of endpoint invocation
 - Namespace - SparkContext configs and Mist configs for given SparkContext 
 - Worker - Mist slave instance that holds Spark Driver application
-- Mode - job can be run in two worker modes: `shared` or `exclusive`
+- Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](configuration.md))
     - Shared - all jobs from same context are using one spark driver application
     - Exclusive - fresh driver application will be created for one job invocation
 
@@ -58,7 +58,6 @@ Glosssary:
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
-            <li>mode - Not required, values: [exclusive|shared]</li>
             <li>workerId - Not required</li>
           </ul>
         </p>
@@ -183,6 +182,7 @@ Glosssary:
           <li>sparkConf - Key-value string->string object</li>
           <li>downtime - Idle timeout before worker shut self down - Duration</li>
           <li>maxJobs - max parallel jobs - Int</li>
+          <li>workerMode - worker mode (shared | exclusive) - String</li>
           <li>precreated - Boolean</li>
           <li>runOptions - String</li>
           <li>streamingDuration - Duration</li>

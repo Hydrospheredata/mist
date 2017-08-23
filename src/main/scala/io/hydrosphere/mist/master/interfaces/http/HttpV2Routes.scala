@@ -22,16 +22,11 @@ case class JobRunQueryParams(
   force: Boolean,
   externalId: Option[String],
   context: Option[String],
-  mode: Option[String],
   workerId: Option[String]
 ) {
 
   def buildRunSettings(): RunSettings = {
-    val runMode = mode.flatMap(RunMode.fromString).getOrElse(RunMode.Shared) match {
-      case u: RunMode.ExclusiveContext => u.copy(workerId)
-      case x => x
-    }
-    RunSettings(context, runMode)
+    RunSettings(context, workerId)
   }
 }
 
@@ -48,7 +43,6 @@ object HttpV2Base {
   import Directives._
   import JsonCodecs._
   import akka.http.scaladsl.model.StatusCodes
-  import ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.server._
 
   def completeU(resource: Future[Unit]): Route =
@@ -61,7 +55,6 @@ object HttpV2Base {
       'force ? (false),
       'externalId ?,
       'context ?,
-      'mode ?,
       'workerId ?
     ).as(JobRunQueryParams)
 

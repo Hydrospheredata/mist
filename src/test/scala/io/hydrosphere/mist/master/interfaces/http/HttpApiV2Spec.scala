@@ -4,6 +4,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, RequestEntity, StatusCodes}
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.MockitoSugar
@@ -21,8 +22,8 @@ import spray.json.RootJsonWriter
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util._
-import org.mockito.Matchers.{eq => mockitoEq, anyInt}
-import org.mockito.Mockito.{verify, times}
+import org.mockito.Matchers.{anyInt, eq => mockitoEq}
+import org.mockito.Mockito.{times, verify}
 
 class HttpApiV2Spec extends FunSpec
   with Matchers
@@ -266,8 +267,8 @@ class HttpApiV2Spec extends FunSpec
 
     it("should create jobs with optional parameters") {
       val contextStorage = mock[ContextsStorage]
-      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", 1 seconds)
-      val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None)
+      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt","shared", 1 seconds)
+      val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None, None)
 
       when(contextStorage.defaultConfig)
         .thenReturn(defaultValue)
@@ -283,7 +284,7 @@ class HttpApiV2Spec extends FunSpec
       Post(s"/v2/api/contexts", contextToCreate.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
         verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
-          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", 1 seconds
+          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", "shared", 1 seconds
         )))
       }
     }

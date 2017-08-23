@@ -47,10 +47,6 @@ class AsyncInterfaceSpec extends FunSpec {
          |  "path": "path",
          |  "className": "MyJob",
          |  "parameters": { "x": "y" },
-         |  "runMode": {
-         |    "type": "exclusive",
-         |    "id": "yoyoyo"
-         |  },
          |  "context": "foo",
          |  "externalId": "xxx"
          |}
@@ -63,9 +59,9 @@ class AsyncInterfaceSpec extends FunSpec {
       path = "path",
       className = "MyJob",
       parameters = Map("x" -> "y"),
-      runMode = RunMode.ExclusiveContext(Some("yoyoyo")),
       context = "foo",
-      externalId = Some("xxx")
+      externalId = Some("xxx"),
+      workerId = Some("test_id")
     )
     verify(master).devRun(expected, Source.Async("Test"))
   }
