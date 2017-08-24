@@ -4,8 +4,10 @@ import java.util.UUID
 
 import cats.data._
 import cats.implicits._
+import io.hydrosphere.mist.api.StreamingSupport
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.jar.JobClass
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.logging.LogStorageMappings
@@ -68,17 +70,17 @@ class MasterService(
       defaultContext = req.context
     )
 
-    def checkSettings(endpoint: EndpointConfig): Future[Unit] = {
+    def getInfo(endpoint: EndpointConfig): FullEndpointInfo =
       loadEndpointInfo(endpoint) match {
-        case Success(fullInfo) => validate(fullInfo.info, req.parameters, action)
-        case Failure(e) => Future.failed(e)
+        case Success(fullInfo) => fullInfo
+        case Failure(e) => throw e
       }
-    }
 
     for {
-      _             <- checkSettings(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      runMode       =  selectRunMode(context, req.workerId)
+      fullInfo      =  getInfo(endpoint)
+      _             <- validate(fullInfo.info, req.parameters, action)
+      runMode       =  selectRunMode(context, req.workerId, fullInfo)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
         endpoint = endpoint,
@@ -92,12 +94,21 @@ class MasterService(
     } yield executionInfo
   }
 
-  private def selectRunMode(config: ContextConfig, workerId: Option[String]): RunMode = {
-    config.workerMode match {
+  private def selectRunMode(config: ContextConfig, workerId: Option[String], fullInfo: FullEndpointInfo): RunMode = {
+    def isStreamingJob(jobClass: JobClass) =
+      jobClass.supportedClasses().contains(classOf[StreamingSupport])
+
+    def workerModeFromContextConfig = config.workerMode match {
       case "exclusive" => ExclusiveContext(workerId)
       case "shared" => Shared
       case _ =>
-          throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
+        throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
+    }
+
+    fullInfo.info match {
+      case JvmJobInfo(jobClass) if isStreamingJob(jobClass) =>
+        ExclusiveContext(workerId)
+      case _ => workerModeFromContextConfig
     }
   }
 
@@ -135,7 +146,7 @@ class MasterService(
       jobInfo        =  fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
       context        <- OptionT.liftF(selectContext(req, endpoint))
-      runMode        =  selectRunMode(context, req.runSettings.workerId)
+      runMode        =  selectRunMode(context, req.runSettings.workerId, fullInfo)
       jobStartReq    =  JobStartRequest(
         id = req.id,
         endpoint = endpoint,
