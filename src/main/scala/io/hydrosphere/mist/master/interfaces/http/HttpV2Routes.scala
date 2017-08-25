@@ -161,11 +161,18 @@ object HttpV2Routes {
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
             complete(resp)
           case None =>
+
+            val eventualInfo = master.loadEndpointInfo(req) match {
+              case Success(e) => Future.successful(e)
+              case Failure(ex) => Future.failed(ex)
+            }
+
             val res = for {
-              fullInfo <- OptionT(master.loadEndpointInfo(req))
+              fullInfo <- OptionT.liftF(eventualInfo)
               _ <- OptionT.liftF(master.endpoints.update(req))
               endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
+
             completeF(res.value.flatMap {
               case Some(e) => Future.successful(e)
               case None => Future.failed(new IllegalArgumentException("No info found during processing"))
@@ -181,11 +188,16 @@ object HttpV2Routes {
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
+            val eventualInfo = master.loadEndpointInfo(req) match {
+              case Success(e) => Future.successful(e)
+              case Failure(ex) => Future.failed(ex)
+            }
             val res = for {
-              fullInfo <- OptionT(master.loadEndpointInfo(req))
+              fullInfo <- OptionT.liftF(eventualInfo)
               _ <- OptionT.liftF(master.endpoints.update(req))
               endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
+
             completeF(res.value.flatMap {
               case Some(e) => Future.successful(e)
               case None => Future.failed(new IllegalArgumentException("No info found during processing"))
@@ -233,7 +245,7 @@ object HttpV2Routes {
     } ~
     path(root / "artifacts" / Segment) { filename =>
       get {
-        onSuccess(artifactRepo.get(filename)) {
+        artifactRepo.get(filename) match {
           case Some(file) => getFromFile(file)
           case None => complete {
             HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")

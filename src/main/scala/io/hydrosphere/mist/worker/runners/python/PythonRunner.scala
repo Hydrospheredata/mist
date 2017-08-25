@@ -21,7 +21,7 @@ class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
 
 }
 
-class PythonRunner extends JobRunner with Logger {
+class PythonRunner(jobFile: File) extends JobRunner with Logger {
 
   override def run(
     req: RunJobRequest,

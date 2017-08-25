@@ -6,6 +6,7 @@ import java.util.UUID
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
+import io.hydrosphere.mist.master.artifact.{ArtifactRepository, EndpointArtifactKeyProvider, ArtifactKeyProvider}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar.JobClass
@@ -27,7 +28,8 @@ class MasterService(
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logStorageMappings: LogStorageMappings,
-  val artifactRepository: ArtifactRepository
+  val artifactRepository: ArtifactRepository,
+  val artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]
 ) extends Logger {
 
   def runJob(
@@ -179,42 +181,41 @@ class MasterService(
     }
   }
 
-  def loadEndpointInfo(e: EndpointConfig): Future[Option[FullEndpointInfo]] = {
-    import e._
+  def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = for {
+    file <- artifactByKey(artifactKeyProvider.provideKey(e))
+    jobInfo <- JobInfo.load(e.name, file, e.className)
+    fullInfo = FullEndpointInfo(e, jobInfo)
+  } yield fullInfo
 
-    val fileF = JobResolver.fromPath(path) match {
-      case _: LocalResolver => artifactRepository.get(FilenameUtils.getName(path))
-      case p => Future.successful(if (p.exists) Some(p.resolve()) else None)
-    }
-
-    val res = for {
-      file <- OptionT(fileF)
-      job <- OptionT.liftF(loadInfo(name, file, className))
-      info = FullEndpointInfo(e, job)
-    } yield info
-
-    res.value
-  }
-
-  private def loadInfo(name: String, file: File, className: String): Future[JobInfo] = {
-    JobInfo.load(name, file, className) match {
-      case Success(f) => Future.successful(f)
-      case Failure(ex) => Future.failed(ex)
+  private def artifactByKey(artifactKey: String): Try[File] = {
+    artifactRepository.get(artifactKey) match {
+      case Some(file) => Success(file)
+      case None => Failure(new IllegalArgumentException(s"file not found by key $artifactKey"))
     }
   }
 
   def endpointsInfo: Future[Seq[FullEndpointInfo]] = for {
     configs <- endpoints.all
-    fullInfos <- Future.sequence(configs.map(loadEndpointInfo))
-    infos = fullInfos.flatten
-  } yield infos
+    fullInfo = configs.map(loadEndpointInfo)
+      .foldLeft(List.empty[FullEndpointInfo]) {
+        case (list, Success(x)) => list :+ x
+        case (list, Failure(ex)) => list
+      }
+  } yield fullInfo
 
   def endpointInfo(id: String): Future[Option[FullEndpointInfo]] = {
     val res = for {
-      e <- OptionT(endpoints.get(id))
-      fullInfo <- OptionT(loadEndpointInfo(e))
+      endpoint <- OptionT(endpoints.get(id))
+      fullInfo <- OptionT.liftF(loadInfoByEndpoint(endpoint))
     } yield fullInfo
+
     res.value
   }
+
+  private def loadInfoByEndpoint(endpoint: EndpointConfig): Future[FullEndpointInfo] =
+    loadEndpointInfo(endpoint) match {
+      case Success(i) => Future.successful(i)
+      case Failure(ex) => Future.failed(ex)
+    }
 
 }

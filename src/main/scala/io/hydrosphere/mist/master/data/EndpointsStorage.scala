@@ -15,7 +15,7 @@ import scala.util._
 
 class EndpointsStorage(
   fsStorage: FsStorage[EndpointConfig],
-  defaults: Seq[EndpointConfig]
+  val defaults: Seq[EndpointConfig]
 )(implicit ex: ExecutionContext) {
 
   private val defaultMap = defaults.map(e => e.name -> e).toMap

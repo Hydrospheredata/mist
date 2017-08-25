@@ -9,7 +9,7 @@ import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import org.apache.spark.util.SparkClassLoader
 
-class ScalaRunner extends JobRunner {
+class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
@@ -18,12 +18,11 @@ class ScalaRunner extends JobRunner {
     val params = request.params
     import params._
 
-    val file = new File(filePath)
-    if (!file.exists()) {
+    if (!jobFile.exists()) {
       Left(s"Can not found file: $filePath")
     } else {
       context.addJar(params.filePath)
-      val loader = prepareClassloader(file)
+      val loader = prepareClassloader(jobFile)
       val jobsLoader = new JobsLoader(loader)
 
       val load = jobsLoader.loadJobInstance(className, action)

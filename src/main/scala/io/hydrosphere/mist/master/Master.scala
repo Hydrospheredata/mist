@@ -18,7 +18,7 @@ import io.hydrosphere.mist.master.logging.{LogStorageMappings, LogStreams}
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.Constants
-import io.hydrosphere.mist.master.artifact.{ArtifactRepository, DefaultArtifactRepository, FsArtifactRepository, SimpleArtifactRepository}
+import io.hydrosphere.mist.master.artifact._
 import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
@@ -81,7 +81,9 @@ object Master extends App with Logger {
     val jobsLogger = logsService.getLogger
     val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
     val infoProvider = new InfoProvider(config.logs, contextsStorage)
-    val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage)
+    val artifactKeyProvider = new EndpointArtifactKeyProvider
+
+    val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage.defaults, artifactKeyProvider)
     val workerManager = system.actorOf(
       WorkersManager.props(
         statusService, workerRunner,
@@ -96,7 +98,8 @@ object Master extends App with Logger {
       endpointsStorage,
       contextsStorage,
       logsMappings,
-      artifactRepository
+      artifactRepository,
+      artifactKeyProvider
     )
 
     val precreated = Await.result(contextsStorage.precreated, Duration.Inf)
