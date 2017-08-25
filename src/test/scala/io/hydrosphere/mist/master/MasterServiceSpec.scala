@@ -93,7 +93,8 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
     val artifactRepository = mock[ArtifactRepository]
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
+    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository, artifactKeyProvider)
     val spiedService = spy(service)
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),

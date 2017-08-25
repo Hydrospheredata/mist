@@ -53,7 +53,8 @@ object Messages {
       maxJobs: Int,
       downtime: Duration,
       streamingDuration: Duration,
-      logService: String
+      logService: String,
+      masterHttpConf: String
     )
 
   }

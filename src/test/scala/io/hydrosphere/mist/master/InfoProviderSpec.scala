@@ -17,6 +17,7 @@ class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
 
     val provider = new InfoProvider(
       LogServiceConfig("logHost", 999, ""),
+      HttpConfig("localhost", 2004, "ui"),
       contexts
     )
 
@@ -27,6 +28,7 @@ class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
     info.maxJobs shouldBe FooContext.maxJobs
     info.sparkConf shouldBe FooContext.sparkConf
     info.logService shouldBe "logHost:999"
+    info.masterHttpConf shouldBe "localhost:2004"
   }
 
 }

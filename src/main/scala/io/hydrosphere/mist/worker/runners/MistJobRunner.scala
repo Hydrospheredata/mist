@@ -13,7 +13,10 @@ import org.apache.commons.io.FilenameUtils
 import _root_.scala.util.{Failure, Success, Try}
 import scalaj.http.Http
 
-class MistJobRunner(masterHttpHost: String, masterHttpPort: Int) extends JobRunner {
+class MistJobRunner(
+  masterHttpHost: String,
+  masterHttpPort: Int
+) extends JobRunner {
 
   override def run(req: RunJobRequest, context: NamedContext): Either[String, Map[String, Any]] = {
     val filePath = req.params.filePath
@@ -31,20 +34,21 @@ class MistJobRunner(masterHttpHost: String, masterHttpPort: Int) extends JobRunn
   }
 
   private def loadFromMaster(filename: String): Try[File] = {
-    val jobUrl = s"http://$masterHttpHost:$masterHttpPort/api/v2/artifacts/"
+    val artifactUrl = s"http://$masterHttpHost:$masterHttpPort/api/v2/artifacts/"
     val millis = 120 * 1000 // 120 seconds
-    val req = Http(jobUrl + filename)
+    val req = Http(artifactUrl + filename)
       .timeout(millis, millis)
     Try {
       val resp = req.asBytes
 
       if (resp.code == 200) {
+        //TODO: change path with config
         val filePath = Paths.get("/tmp", filename)
         Files.copy(new ByteArrayInputStream(resp.body), filePath)
         filePath.toFile
       }
       else
-        throw new RuntimeException(s"Job failed body ${resp.body}")
+        throw new RuntimeException(s"failed to load from master: body ${resp.body}")
     }
   }
 

@@ -8,6 +8,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class InfoProvider(
   logServiceConfig: LogServiceConfig,
+  httpConfig: HttpConfig,
   contextsStorage: ContextsStorage
 ) {
 
@@ -18,7 +19,8 @@ class InfoProvider(
         maxJobs = contextConfig.maxJobs,
         downtime = contextConfig.downtime,
         streamingDuration = contextConfig.streamingDuration,
-        logService = s"${logServiceConfig.host}:${logServiceConfig.port}"
+        logService = s"${logServiceConfig.host}:${logServiceConfig.port}",
+        masterHttpConf = s"${httpConfig.host}:${httpConfig.port}"
       ))
   }
 }
