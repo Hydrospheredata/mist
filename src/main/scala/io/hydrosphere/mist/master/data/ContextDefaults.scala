@@ -3,9 +3,6 @@ package io.hydrosphere.mist.master.data
 import io.hydrosphere.mist.master.{ContextsSettings, MasterConfig}
 import io.hydrosphere.mist.master.models.ContextConfig
 
-/**
-  * Created by blvp on 25.08.17.
-  */
 class ContextDefaults(mistConfigPath: String) {
   def defaultConfig: ContextConfig = defaultSettings.default
 
