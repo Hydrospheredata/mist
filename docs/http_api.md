@@ -193,6 +193,27 @@ Glosssary:
   </tbody>
 </table>
 
+**Status**
+<table>
+  <thead>
+    <tr>
+      <td>Method</td>
+      <td>Path</td>
+      <td>Params</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/status</td>
+      <td>None</td>
+      <td>Mist status info (version, start time, spark version)</td>
+    </tr>
+  </tbody>
+</table>
+
+
 Note: Mist always has default context settings, you can obtain it by "default" id.
 
 

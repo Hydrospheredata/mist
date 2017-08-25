@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import java.time.LocalDateTime
+
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
@@ -163,5 +165,27 @@ case class ContextCreateRequest(
 }
 object ContextCreateRequest {
   val AvailableRunMode = Set("shared", "exclusive")
+}
+
+
+case class MistStatus(
+  mistVersion: String,
+  sparkVersion: String,
+  started: LocalDateTime
+)
+
+object MistStatus {
+
+  import io.hydrosphere.mist.BuildInfo
+
+  val Value = {
+    val is1x = BuildInfo.sparkVersion.startsWith("1.")
+    val sparkVersion = if (is1x) "1.x.x" else "2.x.x"
+    MistStatus(
+      BuildInfo.version,
+      sparkVersion,
+      LocalDateTime.now()
+    )
+  }
 }
 
