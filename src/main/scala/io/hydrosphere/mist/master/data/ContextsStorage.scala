@@ -46,10 +46,10 @@ object ContextsStorage {
 
   val DefaultKey = "default"
 
-  def create(path:String, masterConfigPath: String): ContextsStorage = {
+  def create(path:String, mistConfigPath: String): ContextsStorage = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))
     val fsStorage = new FsStorage(checkDirectory(path), ConfigRepr.ContextConfigRepr)
-    new ContextsStorage(fsStorage, new ContextDefaults(masterConfigPath))(ec)
+    new ContextsStorage(fsStorage, new ContextDefaults(mistConfigPath))(ec)
   }
 }
 

@@ -6,11 +6,11 @@ import io.hydrosphere.mist.master.models.ContextConfig
 /**
   * Created by blvp on 25.08.17.
   */
-class ContextDefaults(masterConfigPath: String) {
+class ContextDefaults(mistConfigPath: String) {
   def defaultConfig: ContextConfig = defaultSettings.default
 
   private[data] def defaultSettings: ContextsSettings = {
-    val cfg = MasterConfig.loadConfig(masterConfigPath)
+    val cfg = MasterConfig.loadConfig(mistConfigPath)
     ContextsSettings(cfg.getConfig("mist"))
   }
 
