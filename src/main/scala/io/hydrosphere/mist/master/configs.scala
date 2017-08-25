@@ -166,12 +166,16 @@ case class MasterConfig(
 object MasterConfig {
 
   def load(filePath: String): MasterConfig = {
+    val cfg = loadConfig(filePath)
+    parse(cfg)
+  }
+
+  def loadConfig(filePath: String): Config = {
     val appConfig = ConfigFactory.parseResourcesAnySyntax("master.conf")
     val user = ConfigFactory.parseFile(new File(filePath))
-
     val properties = ConfigFactory.systemProperties()
     val cfg = properties.withFallback(user.withFallback(appConfig)).resolve()
-    parse(cfg)
+    properties.withFallback(user.withFallback(appConfig)).resolve()
   }
 
   def parse(config: Config): MasterConfig = {

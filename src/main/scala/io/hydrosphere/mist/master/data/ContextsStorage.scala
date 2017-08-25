@@ -2,20 +2,17 @@ package io.hydrosphere.mist.master.data
 
 import java.util.concurrent.Executors
 
-import io.hydrosphere.mist.master.ContextsSettings
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class ContextsStorage(
   fsStorage: FsStorage[ContextConfig],
-  defaultSettings: ContextsSettings
+  defaults: ContextDefaults
 )(implicit ex: ExecutionContext) {
 
-  private val defaultsMap = {
-    import defaultSettings._
-    contexts + (default.name -> default)
-  }
+  import defaults._
+
   def get(name: String): Future[Option[ContextConfig]] = {
     Future { fsStorage.entry(name) }.flatMap({
       case v @ Some(_) => Future.successful(v)
@@ -42,17 +39,17 @@ class ContextsStorage(
       Future { fsStorage.write(config.name, config) }
   }
 
-  def defaultConfig: ContextConfig = defaultSettings.default
+  def defaultConfig: ContextConfig = defaults.defaultConfig
 }
 
 object ContextsStorage {
 
   val DefaultKey = "default"
 
-  def create(path:String, settings: ContextsSettings): ContextsStorage = {
+  def create(path:String, mistConfigPath: String): ContextsStorage = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(3))
     val fsStorage = new FsStorage(checkDirectory(path), ConfigRepr.ContextConfigRepr)
-    new ContextsStorage(fsStorage, settings)(ec)
+    new ContextsStorage(fsStorage, new ContextDefaults(mistConfigPath))(ec)
   }
 }
 

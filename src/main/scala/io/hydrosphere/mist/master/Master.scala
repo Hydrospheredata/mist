@@ -52,7 +52,7 @@ object Master extends App with Logger {
     }
 
     val endpointsStorage = EndpointsStorage.create(config.endpointsPath, appArguments.routerConfigPath)
-    val contextsStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
+    val contextsStorage = ContextsStorage.create(config.contextsPath, appArguments.configPath)
 
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
