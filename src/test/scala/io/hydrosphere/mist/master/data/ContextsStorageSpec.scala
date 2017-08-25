@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.data
 
+import java.nio.charset.Charset
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.master
@@ -12,11 +13,23 @@ import scala.concurrent.duration._
 
 class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
-  val path = "./target/data/ctx_store_test"
+  val path = "./target/data/"
+  val configPath: String = s"${path}test_config.conf"
+  var contextsPath: String = _
+  val mistConfig =
+    s"""
+      |mist {
+      | ${TestUtils.cfgStr}
+      |}
+    """.stripMargin
 
   before {
-    val f = Paths.get(path).toFile
+    val f = Paths.get(path, "ctx_store_test").toFile
     if (f.exists()) FileUtils.deleteDirectory(f)
+    contextsPath = f.toString
+    val cfg = Paths.get(configPath).toFile
+    if(cfg.exists()) cfg.delete()
+    FileUtils.write(cfg, mistConfig, Charset.defaultCharset)
   }
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -84,8 +97,8 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   def testStorage(): ContextsStorage = {
     new ContextsStorage(
-      FsStorage.create(path, ConfigRepr.ContextConfigRepr),
-      TestUtils.contextSettings
+      FsStorage.create(contextsPath, ConfigRepr.ContextConfigRepr),
+      new ContextDefaults(configPath)
     )
   }
 }

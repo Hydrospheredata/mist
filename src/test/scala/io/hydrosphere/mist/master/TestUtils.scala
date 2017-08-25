@@ -7,29 +7,30 @@ import scala.concurrent.{Await, Future}
 
 object TestUtils {
 
+  val cfgStr =
+    """
+      |context-defaults {
+      | downtime = Inf
+      | streaming-duration = 1 seconds
+      | max-parallel-jobs = 20
+      | precreated = false
+      | spark-conf = { }
+      | worker-mode = "shared"
+      | run-options = "--opt"
+      |}
+      |
+      |context {
+      |
+      |  foo {
+      |    spark-conf {
+      |       spark.master = "local[2]"
+      |    }
+      |  }
+      |}
+    """.stripMargin
+
   val contextSettings = {
-    val cfg = ConfigFactory.parseString(
-      """
-        |context-defaults {
-        | downtime = Inf
-        | streaming-duration = 1 seconds
-        | max-parallel-jobs = 20
-        | precreated = false
-        | spark-conf = { }
-        | worker-mode = "shared"
-        | run-options = "--opt"
-        |}
-        |
-        |context {
-        |
-        |  foo {
-        |    spark-conf {
-        |       spark.master = "local[2]"
-        |    }
-        |  }
-        |}
-      """.stripMargin)
-    
+    val cfg = ConfigFactory.parseString(cfgStr)
     ContextsSettings(cfg)
   }
 
@@ -39,4 +40,5 @@ object TestUtils {
   implicit class AwaitSyntax[A](f: => Future[A]) {
     def await: A = Await.result(f, Duration.Inf)
   }
+
 }
