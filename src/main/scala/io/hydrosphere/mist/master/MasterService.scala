@@ -6,22 +6,19 @@ import java.util.UUID
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
-import io.hydrosphere.mist.master.artifact.{ArtifactRepository, EndpointArtifactKeyProvider, ArtifactKeyProvider}
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar.JobClass
-import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
-import io.hydrosphere.mist.master.artifact.ArtifactRepository
+import io.hydrosphere.mist.master.artifact.{ArtifactKeyProvider, ArtifactRepository}
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
-import org.apache.commons.io.FilenameUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class MasterService(
   val jobService: JobService,
@@ -76,15 +73,15 @@ class MasterService(
       defaultContext = req.context
     )
 
-    def getInfo(endpoint: EndpointConfig): Future[FullEndpointInfo] =
-      loadEndpointInfo(endpoint) map {
-        case Some(fullInfo) => fullInfo
-        case None => throw new IllegalArgumentException(s"Could not load endpoint info ${endpoint.name}")
+    def getInfo(endpoint: EndpointConfig): FullEndpointInfo =
+      loadEndpointInfo(endpoint) match {
+        case Success(fullInfo) => fullInfo
+        case Failure(e) => throw e
       }
 
     for {
       context       <- contexts.getOrDefault(req.context)
-      fullInfo      <- getInfo(endpoint)
+      fullInfo      =  getInfo(endpoint)
       _             <- validate(fullInfo.info, req.parameters, action)
       runMode       =  selectRunMode(context, req.workerId, fullInfo)
       executionInfo <- jobService.startJob(JobStartRequest(
