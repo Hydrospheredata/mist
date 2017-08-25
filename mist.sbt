@@ -2,6 +2,7 @@ import sbt.Keys._
 import StageDist._
 import complete.DefaultParsers._
 import sbtassembly.AssemblyPlugin.autoImport._
+import sbtassembly.AssemblyOption
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("releases"),
@@ -40,23 +41,12 @@ lazy val commonSettings = Seq(
   version := "0.13.1"
 )
 
-lazy val libraryAdditionalDependencies = currentSparkVersion match {
-  case versionRegex("1", minor) => Seq.empty
-  case _ => Seq(
-    "org.json4s" %% "json4s-native" % "3.2.10",
-    "org.apache.parquet" % "parquet-column" % "1.7.0",
-    "org.apache.parquet" % "parquet-hadoop" % "1.7.0",
-    "org.apache.parquet" % "parquet-avro" % "1.7.0"
-  )
-}
-
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
     name := s"mist-lib-spark${sparkMajorVersion.value}",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies ++= libraryAdditionalDependencies,
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
 
@@ -147,9 +137,7 @@ lazy val mist = project.in(file("."))
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    },
-    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(assembly),
-    test in IntegrationTest <<= (test in IntegrationTest).dependsOn(sbt.Keys.`package`.in(currentExamples, Compile))
+    }
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
@@ -204,7 +192,27 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .settings(
     name := "mist-examples-spark2",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    autoScalaLibrary := false
+    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.1",
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
+    assembledMappings in assembly := {
+      // hack - there is no options how to exclude all dependecies that comes
+      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
+      def isServingLib(f: File): Boolean = {
+        val name = f.getName
+        name.startsWith("spark-ml-serving_2.11")
+      }
+      def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.11/classes")
+
+      val x = (fullClasspath in assembly).value
+      val filtered = x.seq.filter(v => {
+        val file = v.data
+        isServingLib(file) || isProjectClasses(file)
+      })
+      val s = (streams in assembly).value
+      Assembly.assembleMappings(filtered, Nil, (assemblyOption in assembly).value, s.log)
+    },
+    sbt.Keys.`package` in Compile := (assembly in assembly).value
+
   )
 
 lazy val mistMiscTasks = Seq(

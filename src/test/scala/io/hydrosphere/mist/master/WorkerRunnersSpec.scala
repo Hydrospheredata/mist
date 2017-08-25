@@ -50,6 +50,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
       | streaming-duration = 1 seconds
       | max-parallel-jobs = 20
       | precreated = false
+      | worker-mode = "shared"
       | spark-conf = { }
       | run-options = "--opt"
       |}

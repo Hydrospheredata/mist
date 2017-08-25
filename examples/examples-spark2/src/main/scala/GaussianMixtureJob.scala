@@ -1,7 +1,6 @@
 import DTreeClassificationJob.context
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
-import io.hydrosphere.mist.api.ml.{LocalData, LocalDataColumn, PipelineLoader}
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.clustering.GaussianMixture
 import org.apache.spark.sql.SparkSession
@@ -14,7 +13,7 @@ object GaussianMixtureJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(): Map[String, Any] = {
+  def execute(): Map[String, Any] = {
     val dataset = session.read.format("libsvm").load("jobs/data/mllib/sample_kmeans_data.txt")
 
     val gmm = new GaussianMixture().setK(2)

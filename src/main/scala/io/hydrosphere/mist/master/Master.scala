@@ -53,7 +53,7 @@ object Master extends App with Logger {
     }
 
     val endpointsStorage = EndpointsStorage.create(config.endpointsPath, appArguments.routerConfigPath)
-    val contextsStorage = ContextsStorage.create(config.contextsPath, config.contextsSettings)
+    val contextsStorage = ContextsStorage.create(config.contextsPath, appArguments.configPath)
 
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
@@ -78,14 +78,14 @@ object Master extends App with Logger {
       config.logs.host, config.logs.port,
       logsMappings, eventPublishers
     )
-
-    val statusService = system.actorOf(StatusService.props(store, eventPublishers), "status-service")
+    val jobsLogger = logsService.getLogger
+    val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
     val infoProvider = new InfoProvider(config.logs, contextsStorage)
     val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage)
     val workerManager = system.actorOf(
       WorkersManager.props(
         statusService, workerRunner,
-        logsService.getLogger,
+        jobsLogger,
         config.workers.runnerInitTimeout,
         infoProvider
       ), "workers-manager")
@@ -121,7 +121,7 @@ object Master extends App with Logger {
         // api router can't chain unhandled calls, because it's wrapped in cors directive
         ws.route ~ api
       }
-      val http = new HttpUi(config.http.uiPath).route ~ api.route ~ apiv2
+      val http = new HttpUi(config.http.uiPath).route ~ api.route ~ DevApi.devRoutes(masterService) ~ apiv2
       Http().bindAndHandle(http, config.http.host, config.http.port)
     }
 

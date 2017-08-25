@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.feature.{HashingTF, IDF, Tokenizer}
 import org.apache.spark.mllib.linalg.{Vector => LVector}
 import org.apache.spark.ml.Pipeline
@@ -13,7 +13,7 @@ object TFIDFJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
 
     val df = session.createDataFrame(Seq(
       (0, "Provectus rocks!"),

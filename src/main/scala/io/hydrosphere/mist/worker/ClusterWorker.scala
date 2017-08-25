@@ -8,7 +8,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages.{WorkerInitInfoReq, WorkerIni
 class ClusterWorker(
   name: String,
   contextName: String,
-  workerInit: WorkerInitInfo => Props
+  workerInit: WorkerInitInfo => (NamedContext, Props)
 ) extends Actor with ActorLogging {
 
   val cluster = Cluster(context.system)
@@ -21,11 +21,11 @@ class ClusterWorker(
     cluster.unsubscribe(self)
   }
 
-  def startWorker(initInfo: WorkerInitInfo): ActorRef = {
-    val props = workerInit(initInfo)
+  def startWorker(initInfo: WorkerInitInfo): (NamedContext, ActorRef) = {
+    val (nm, props) = workerInit(initInfo)
     val ref = context.actorOf(props)
     context.watch(ref)
-    ref
+    (nm, ref)
   }
 
   def receive = initial
@@ -40,8 +40,11 @@ class ClusterWorker(
 
   def joined(master: Address): Receive = {
     case info: WorkerInitInfo =>
-      val worker = startWorker(info)
-      register(master)
+      log.info("Received init info {}", info)
+      val (nm, worker) = startWorker(info)
+      log.info("Worker actor started")
+      val ui = SparkUtils.getSparkUiAddress(nm.sparkContext)
+      register(master, ui)
       context become initialized(master, worker)
   }
 
@@ -71,8 +74,8 @@ class ClusterWorker(
   private def toManagerSelection(address: Address): ActorSelection =
     cluster.system.actorSelection(RootActorPath(address) / "user" / "workers-manager")
 
-  private def register(address: Address): Unit = {
-    toManagerSelection(address) ! WorkerRegistration(name, cluster.selfAddress)
+  private def register(address: Address, sparkUi: Option[String]): Unit = {
+    toManagerSelection(address) ! WorkerRegistration(name, cluster.selfAddress, sparkUi)
   }
 
   private def requestInfo(address: Address): Unit = {
@@ -84,7 +87,7 @@ class ClusterWorker(
 
 object ClusterWorker {
 
-  def props(name: String, contextName: String, workerInit: WorkerInitInfo => Props): Props = {
+  def props(name: String, contextName: String, workerInit: WorkerInitInfo => (NamedContext, Props)): Props = {
     Props(classOf[ClusterWorker], name, contextName, workerInit)
   }
 

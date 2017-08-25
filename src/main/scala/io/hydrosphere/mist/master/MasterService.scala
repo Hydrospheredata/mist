@@ -1,23 +1,26 @@
 package io.hydrosphere.mist.master
 
 import java.io.File
+import java.util.UUID
 
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.master.artifact.ArtifactRepository
+import io.hydrosphere.mist.api.StreamingSupport
 import io.hydrosphere.mist.jobs.JobDetails.Source.Async
 import io.hydrosphere.mist.jobs._
+import io.hydrosphere.mist.jobs.jar.JobClass
 import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
-import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
+import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 import org.apache.commons.io.FilenameUtils
 
-import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success}
 
 class MasterService(
   val jobService: JobService,
@@ -27,32 +30,96 @@ class MasterService(
   val artifactRepository: ArtifactRepository
 ) extends Logger {
 
-  def runJob(req: JobStartRequest, source: JobDetails.Source): Future[Option[JobStartResponse]] = {
+  def runJob(
+    req: EndpointStartRequest,
+    source: JobDetails.Source
+  ): Future[Option[JobStartResponse]] = {
     val out = for {
       executionInfo <- OptionT(runJobRaw(req, source))
     } yield JobStartResponse(executionInfo.request.id)
     out.value
   }
 
-  def forceJobRun(req: JobStartRequest, source: JobDetails.Source, action: Action = Action.Execute): Future[Option[JobResult]] = {
+  def forceJobRun(
+    req: EndpointStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute
+  ): Future[Option[JobResult]] = {
     val promise = Promise[Option[JobResult]]
     runJobRaw(req, source, action).map({
       case Some(info) => info.promise.future.onComplete {
         case Success(r) =>
-          promise.success(Some(JobResult.success(r, req)))
+          promise.success(Some(JobResult.success(r)))
         case Failure(e) =>
-          promise.success(Some(JobResult.failure(e.getMessage, req)))
+          promise.success(Some(JobResult.failure(e.getMessage)))
       }
       case None => promise.success(None)
+    }).onFailure({
+      case e: Throwable => promise.failure(e)
     })
 
     promise.future
   }
 
+  def devRun(
+    req: DevJobStartRequest,
+    source: JobDetails.Source,
+    action: Action = Action.Execute
+  ): Future[ExecutionInfo] = {
+
+    val endpoint = EndpointConfig(
+      name = req.fakeName,
+      path = req.path,
+      className = req.className,
+      defaultContext = req.context
+    )
+
+    def getInfo(endpoint: EndpointConfig): Future[FullEndpointInfo] =
+      loadEndpointInfo(endpoint) map {
+        case Some(fullInfo) => fullInfo
+        case None => throw new IllegalArgumentException(s"Could not load endpoint info ${endpoint.name}")
+      }
+
+    for {
+      context       <- contexts.getOrDefault(req.context)
+      fullInfo      <- getInfo(endpoint)
+      _             <- validate(fullInfo.info, req.parameters, action)
+      runMode       =  selectRunMode(context, req.workerId, fullInfo)
+      executionInfo <- jobService.startJob(JobStartRequest(
+        id = UUID.randomUUID().toString,
+        endpoint = endpoint,
+        context = context,
+        parameters = req.parameters,
+        runMode = runMode,
+        source = source,
+        externalId = req.externalId,
+        action = action
+      ))
+    } yield executionInfo
+  }
+
+  private def selectRunMode(config: ContextConfig, workerId: Option[String], fullInfo: FullEndpointInfo): RunMode = {
+    def isStreamingJob(jobClass: JobClass) =
+      jobClass.supportedClasses().contains(classOf[StreamingSupport])
+
+    def workerModeFromContextConfig = config.workerMode match {
+      case "exclusive" => ExclusiveContext(workerId)
+      case "shared" => Shared
+      case _ =>
+        throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
+    }
+
+    fullInfo.info match {
+      case JvmJobInfo(jobClass) if isStreamingJob(jobClass) =>
+        ExclusiveContext(workerId)
+      case _ => workerModeFromContextConfig
+    }
+  }
+
   def recoverJobs(): Future[Unit] = {
 
     def restartJob(job: JobDetails): Future[Unit] = {
-      val req = JobStartRequest(job.endpoint, job.params.arguments, job.externalId, id = job.jobId)
+      val req = EndpointStartRequest(job.endpoint, job.params.arguments, job.externalId, id = job.jobId)
       runJob(req, job.source).map(_ => ())
     }
 
@@ -74,31 +141,33 @@ class MasterService(
   }
 
   private def runJobRaw(
-    req: JobStartRequest,
+    req: EndpointStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
       fullInfo       <- OptionT(endpointInfo(req.endpointId))
-      endpoint       = fullInfo.config
-      jobInfo        = fullInfo.info
+      endpoint       =  fullInfo.config
+      jobInfo        =  fullInfo.info
       _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
       context        <- OptionT.liftF(selectContext(req, endpoint))
-      executionInfo  <- OptionT.liftF(jobService.startJob(
-        req.id,
-        endpoint,
-        context,
-        req.parameters,
-        req.runSettings.mode,
-        source,
-        req.externalId,
-        action
-      ))
+      runMode        =  selectRunMode(context, req.runSettings.workerId, fullInfo)
+      jobStartReq    =  JobStartRequest(
+        id = req.id,
+        endpoint = endpoint,
+        context = context,
+        parameters = req.parameters,
+        runMode = runMode,
+        source = source,
+        externalId = req.externalId,
+        action = action
+      )
+      executionInfo  <- OptionT.liftF(jobService.startJob(jobStartReq))
     } yield executionInfo
 
     out.value
   }
 
-  private def selectContext(req: JobStartRequest, endpoint: EndpointConfig): Future[ContextConfig] = {
+  private def selectContext(req: EndpointStartRequest, endpoint: EndpointConfig): Future[ContextConfig] = {
     val name = req.runSettings.contextId.getOrElse(endpoint.defaultContext)
     contexts.getOrDefault(name)
   }

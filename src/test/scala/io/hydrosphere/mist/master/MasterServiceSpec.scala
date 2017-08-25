@@ -17,6 +17,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
@@ -33,33 +34,22 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val artifactRepo = mock[ArtifactRepository]
 
     when(endpoints.get(any[String]))
-      .thenReturn(Future.successful(Some(EndpointConfig("name", "path.py", "MyJob", "namespace"))))
+      .thenSuccess(Some(EndpointConfig("name", "path.py", "MyJob", "namespace")))
 
     when(contexts.getOrDefault(any[String]))
-      .thenReturn(Future.successful(TestUtils.contextSettings.default))
+      .thenSuccess(TestUtils.contextSettings.default)
 
     when(artifactRepo.get(any[String]))
       .thenReturn(Future.successful(Some(new File("path.py"))))
 
-    when(jobService.startJob(
-      any[String],
-      any[EndpointConfig],
-      any[ContextConfig],
-      any[Map[String, Any]],
-      any[RunMode],
-      any[JobDetails.Source],
-      any[Option[String]],
-      any[Action]
-    )).thenReturn(Future.successful(
-      ExecutionInfo(
+    when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
         req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
         status = JobDetails.Status.Queued
-      )
-    ))
+      ))
 
     val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
-    val req = JobStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http).await
     runInfo shouldBe defined
   }
@@ -82,14 +72,53 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val spiedMasterService = spy(service)
-    doReturn(Future.successful(Some(info)))
-      .when(spiedMasterService).endpointInfo(any[String])
 
-    val req = JobStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
+    doReturn(Future.successful(Some(info)))
+      .when(spiedMasterService)
+      .endpointInfo(any[String])
+
+    val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
     val f = spiedMasterService.runJob(req, Source.Http)
 
     ScalaFutures.whenReady(f.failed) { ex =>
       ex shouldBe a[IllegalArgumentException]
+    }
+
+  }
+  it("should fail job execution when context config filled with incorrect worker mode") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStorageMappings]
+    val artifactRepository = mock[ArtifactRepository]
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
+    val spiedService = spy(service)
+    val fullInfo = FullEndpointInfo(
+      EndpointConfig("name", "path", "MyJob", "namespace"),
+      PyJobInfo
+    )
+    doReturn(Future.successful(Some(fullInfo)))
+      .when(spiedService)
+      .endpointInfo(any[String])
+
+    when(contexts.getOrDefault(any[String]))
+      .thenSuccess(ContextConfig(
+        "default",
+        Map.empty,
+        Duration.Inf,
+        20,
+        precreated = false,
+        "",
+        "wrong_mode",
+        1 seconds
+      ))
+
+
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val runInfo = spiedService.runJob(req, Source.Http)
+
+    ScalaFutures.whenReady(runInfo.failed) {ex =>
+      ex shouldBe an[IllegalArgumentException]
     }
 
   }

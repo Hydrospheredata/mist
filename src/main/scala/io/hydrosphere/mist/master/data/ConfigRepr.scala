@@ -59,6 +59,7 @@ object ConfigRepr {
         downtime = Duration(config.getString("downtime")),
         maxJobs = config.getInt("max-parallel-jobs"),
         precreated = config.getBoolean("precreated"),
+        workerMode = config.getString("worker-mode"),
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration"))
       )
@@ -78,6 +79,7 @@ object ConfigRepr {
         "downtime" -> fromDuration(a.downtime),
         "max-parallel-jobs" -> fromAnyRef(a.maxJobs),
         "precreated" -> fromAnyRef(a.precreated),
+        "worker-mode" -> fromAnyRef(a.workerMode),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration)
       )

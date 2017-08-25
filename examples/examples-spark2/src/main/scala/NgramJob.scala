@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.NGram
 import org.apache.spark.sql.SparkSession
@@ -12,7 +12,7 @@ object NgramJob extends MLMistJob{
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, Array("Provectus", "is", "such", "a", "cool", "company")),
       (1, Array("Big", "data", "rules", "the", "world")),

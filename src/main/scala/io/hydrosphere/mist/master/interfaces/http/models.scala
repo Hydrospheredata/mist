@@ -3,12 +3,13 @@ package io.hydrosphere.mist.master.interfaces.http
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
-import io.hydrosphere.mist.master.models.FullEndpointInfo
+import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo, RunMode}
+
+import scala.concurrent.duration.Duration
 
 case class HttpJobInfo(
   name: String,
   execute: Option[Map[String, HttpJobArg]] = None,
-  train:   Option[Map[String, HttpJobArg]] = None,
   serve:   Option[Map[String, HttpJobArg]] = None,
 
   isHiveJob: Boolean = false,
@@ -31,7 +32,6 @@ object HttpJobInfo {
       HttpJobInfo(
         name = fullInfo.config.name,
         execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        train = inst.train.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
         serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
 
         isHiveJob = classes.contains(classOf[HiveSupport]),
@@ -130,3 +130,38 @@ case class EndpointCreateRequest(
   className: String,
   nameSpace: String
 )
+
+case class ContextCreateRequest(
+  name: String,
+  sparkConf: Option[Map[String, String]],
+  downtime: Option[Duration],
+  maxJobs: Option[Int],
+  precreated: Option[Boolean],
+  workerMode: Option[String],
+  runOptions: Option[String] = None,
+  streamingDuration: Option[Duration]
+) {
+
+  workerMode match {
+    case Some(m) =>
+      require(ContextCreateRequest.AvailableRunMode.contains(m),
+        s"Worker mode should be in ${ContextCreateRequest.AvailableRunMode}")
+    case _ =>
+  }
+
+  def toContextWithFallback(other: ContextConfig): ContextConfig =
+    ContextConfig(
+      name,
+      sparkConf.getOrElse(other.sparkConf),
+      downtime.getOrElse(other.downtime),
+      maxJobs.getOrElse(other.maxJobs),
+      precreated.getOrElse(other.precreated),
+      runOptions.getOrElse(other.runOptions),
+      workerMode.getOrElse(other.workerMode),
+      streamingDuration.getOrElse(other.streamingDuration)
+    )
+}
+object ContextCreateRequest {
+  val AvailableRunMode = Set("shared", "exclusive")
+}
+

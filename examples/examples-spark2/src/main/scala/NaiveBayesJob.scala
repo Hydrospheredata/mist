@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.NaiveBayes
 import org.apache.spark.ml.linalg.Vectors
@@ -14,7 +14,7 @@ object NaiveBayesJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (Vectors.dense(4.0, 0.2, 3.0, 4.0, 5.0), 1.0),
       (Vectors.dense(3.0, 0.3, 1.0, 4.1, 5.0), 1.0),

@@ -13,7 +13,11 @@ object Messages {
 
   object WorkerMessages {
 
-    case class WorkerRegistration(name: String, address: Address)
+    case class WorkerRegistration(
+      name: String,
+      address: Address,
+      sparkUi: Option[String]
+    )
 
     case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest) {
 

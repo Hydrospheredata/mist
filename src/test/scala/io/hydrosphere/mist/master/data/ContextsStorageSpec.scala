@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.data
 
+import java.nio.charset.Charset
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.master
@@ -12,11 +13,23 @@ import scala.concurrent.duration._
 
 class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
-  val path = "./target/data/ctx_store_test"
+  val path = "./target/data/"
+  val configPath: String = s"${path}test_config.conf"
+  var contextsPath: String = _
+  val mistConfig =
+    s"""
+      |mist {
+      | ${TestUtils.cfgStr}
+      |}
+    """.stripMargin
 
   before {
-    val f = Paths.get(path).toFile
+    val f = Paths.get(path, "ctx_store_test").toFile
     if (f.exists()) FileUtils.deleteDirectory(f)
+    contextsPath = f.toString
+    val cfg = Paths.get(configPath).toFile
+    if(cfg.exists()) cfg.delete()
+    FileUtils.write(cfg, mistConfig, Charset.defaultCharset)
   }
 
   import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,7 +38,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should update") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", 10 second)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", "shared", 10 second)
     contexts.update(ctx).await
     contexts.get("new").await.isDefined shouldBe true
   }
@@ -33,7 +46,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should return defalts") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", 10 second)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", "shared", 10 second)
     contexts.update(ctx).await
 
     contexts.all.await.map(_.name) should contain allOf ("default", "foo", "new")
@@ -47,7 +60,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   it("should return precreated") {
     val contexts = testStorage()
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, true, "weq", 10 second)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, true, "weq", "shared", 10 second)
 
     contexts.update(ctx).await
     contexts.precreated.await should contain only(ctx)
@@ -61,7 +74,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should override settings") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("foo", Map.empty, Duration.Inf, 50, true, "FOOOOPT", 10 second)
+    val ctx = ContextConfig("foo", Map.empty, Duration.Inf, 50, true, "FOOOOPT", "shared", 10 second)
     contexts.get("foo").await.get.runOptions shouldNot be (ctx.runOptions)
 
     contexts.update(ctx).await
@@ -69,10 +82,23 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     contexts.get("foo").await.get shouldBe ctx
   }
 
+  it("should return default setting") {
+    val contexts = testStorage()
+    val default = contexts.defaultConfig
+
+    default.name shouldBe "default"
+    default.sparkConf shouldBe Map()
+    default.downtime shouldBe Duration.Inf
+    default.streamingDuration shouldBe (1 seconds)
+    default.runOptions shouldBe "--opt"
+    default.precreated shouldBe false
+
+  }
+
   def testStorage(): ContextsStorage = {
     new ContextsStorage(
-      FsStorage.create(path, ConfigRepr.ContextConfigRepr),
-      TestUtils.contextSettings
+      FsStorage.create(contextsPath, ConfigRepr.ContextConfigRepr),
+      new ContextDefaults(configPath)
     )
   }
 }

@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.store
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
+import io.hydrosphere.mist.jobs.Action._
 import io.hydrosphere.mist.jobs.JobDetails.Status
 import io.hydrosphere.mist.jobs.{JobDetails, _}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
@@ -39,7 +40,12 @@ trait JobsTable {
 
   implicit def string2Action = MappedColumnType.base[Action, String](
     action => action.toString,
-    string => Action(string)
+    //TODO: now train is the same as execute
+    string => string match {
+      case "serve" => Serve
+      case "train" => Execute
+      case _ => Execute
+    }
   )
 
   class JobDetailsTable(tag: Tag) extends Table[JobDetails](tag, "job_details") {

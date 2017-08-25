@@ -3,7 +3,7 @@ import java.util
 import org.apache.spark.ml.feature.Word2Vec
 import org.apache.spark.mllib.linalg.{Vector => LVector}
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.sql.SparkSession
 
@@ -14,7 +14,7 @@ object Word2VecJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val documentDF = session.createDataFrame(Seq(
       "Hi I heard about Spark".split(" "),
       "I wish Java could use case classes".split(" "),

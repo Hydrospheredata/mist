@@ -1,5 +1,5 @@
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.api.ml._
+import io.hydrosphere.spark_ml_serving._
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.StopWordsRemover
 import org.apache.spark.sql.SparkSession
@@ -12,7 +12,7 @@ object StopWordsRemoverJob extends MLMistJob {
     .config(context.getConf)
     .getOrCreate()
 
-  def train(savePath: String): Map[String, Any] = {
+  def execute(savePath: String): Map[String, Any] = {
     val df = session.createDataFrame(Seq(
       (0, Seq("I", "saw", "the", "red", "balloon")),
       (1, Seq("Mary", "had", "a", "little", "lamb"))

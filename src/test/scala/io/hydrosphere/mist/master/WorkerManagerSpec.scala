@@ -56,7 +56,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
     // create fixture for backend worker
     system.actorOf(Props(classOf[WorkerFixture]), "worker-test")
-    manager ! WorkerRegistration("test", Address("akka.tcp", systemName, "127.0.0.1", 2554))
+    manager ! WorkerRegistration("test", Address("akka.tcp", systemName, "127.0.0.1", 2554), None)
 
     eventually(timeout(Span(5, Seconds))) {
       info.promise.future.isCompleted shouldBe true
@@ -105,8 +105,8 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
         expectMsgPF() {
           case workers: List[_] =>
             workers should contain allOf(
-              WorkerLink("test1", s"akka.tcp://$systemName@127.0.0.1:2554"),
-              WorkerLink("test2", s"akka.tcp://$systemName@127.0.0.1:2554"))
+              WorkerLink("test1", s"akka.tcp://$systemName@127.0.0.1:2554", None),
+              WorkerLink("test2", s"akka.tcp://$systemName@127.0.0.1:2554", None))
         }
       }
     }

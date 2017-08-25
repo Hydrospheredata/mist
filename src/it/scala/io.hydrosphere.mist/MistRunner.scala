@@ -96,15 +96,12 @@ case class MistHttpInterface(
   import scalaj.http.Http
 
   def runJob(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Execute)
-
-  def train(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Train)
+    callV2Api(routeId, params.toMap)
 
   def serve(routeId: String, params: (String, Any)*): JobResult =
-    callApi(routeId, params.toMap, Serve)
+    callOldApi(routeId, params.toMap, Serve)
 
-  private def callApi(
+  private def callOldApi(
     routeId: String,
     params: Map[String, Any],
     action: ActionType): JobResult = {
@@ -113,7 +110,6 @@ case class MistHttpInterface(
 
     val jobUrl = s"http://$host:$port/api/$routeId"
     val url = action match {
-      case Train => jobUrl + "?train=true"
       case Serve => jobUrl + "?serve=true"
       case Execute => jobUrl
     }
@@ -130,9 +126,28 @@ case class MistHttpInterface(
       throw new RuntimeException(s"Job failed body ${resp.body}")
   }
 
+  def callV2Api(
+    endpointId: String,
+    params: Map[String, Any]
+  ): JobResult = {
+
+    val millis = timeout * 1000
+    val url = s"http://$host:$port/v2/api/endpoints/$endpointId/jobs?force=true"
+
+    val req = Http(url)
+      .timeout(millis, millis)
+      .header("Content-Type", "application/json")
+      .postData(params.toJson)
+
+    val resp = req.asString
+    if (resp.code == 200)
+      resp.body.parseJson.convertTo[JobResult]
+    else
+      throw new RuntimeException(s"Job failed body ${resp.body}")
+  }
+
   sealed trait ActionType
   case object Execute extends ActionType
-  case object Train extends ActionType
   case object Serve extends ActionType
 }
 

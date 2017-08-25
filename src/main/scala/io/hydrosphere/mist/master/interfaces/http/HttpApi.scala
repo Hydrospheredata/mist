@@ -6,7 +6,7 @@ import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.MasterService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{RunSettings, JobStartRequest}
+import io.hydrosphere.mist.master.models.{RunSettings, EndpointStartRequest}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
 
@@ -55,17 +55,13 @@ class HttpApi(master: MasterService) extends Logger {
       }
     } ~
     path("api" / Segment) { routeId =>
-      post { parameters('train.?, 'serve.?) { (train, serve) =>
+      post { parameters('serve.?) { (serve) =>
         entity(as[JobParameters]) { jobParams =>
 
           complete {
-            val action = if (train.isDefined)
-              Action.Train
-            else if (serve.isDefined)
-              Action.Serve
-            else Action.Execute
+            val action = if (serve.isDefined) Action.Serve else Action.Execute
 
-            val request = JobStartRequest(
+            val request = EndpointStartRequest(
               endpointId = routeId,
               parameters = jobParams,
               externalId = None,
