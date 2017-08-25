@@ -15,7 +15,8 @@ import scalaj.http.Http
 
 class MistJobRunner(
   masterHttpHost: String,
-  masterHttpPort: Int
+  masterHttpPort: Int,
+  jobRunnerSelector: PartialFunction[File, JobRunner]
 ) extends JobRunner {
 
   override def run(req: RunJobRequest, context: NamedContext): Either[String, Map[String, Any]] = {
@@ -26,14 +27,14 @@ class MistJobRunner(
     }
     fileT match {
       case Success(file) =>
-        val specificRunner = selectRunner(file)
+        val specificRunner = jobRunnerSelector(file)
         specificRunner.run(req, context)
       case Failure(ex) =>
         Left(ex.getMessage)
     }
   }
 
-  private def loadFromMaster(filename: String): Try[File] = {
+  def loadFromMaster(filename: String): Try[File] = {
     val artifactUrl = s"http://$masterHttpHost:$masterHttpPort/api/v2/artifacts/"
     val millis = 120 * 1000 // 120 seconds
     val req = Http(artifactUrl + filename)
@@ -51,14 +52,27 @@ class MistJobRunner(
         throw new RuntimeException(s"failed to load from master: body ${resp.body}")
     }
   }
-
-  private def selectRunner(file: File): JobRunner = {
-    val filePath = file.getAbsolutePath
-    if (filePath.endsWith(".py"))
-      new PythonRunner(file)
-    else if (filePath.endsWith(".jar"))
-      new ScalaRunner(file)
-    else
-      throw new IllegalArgumentException(s"Can not select runner for $filePath")
-  }
 }
+
+
+object MistJobRunner {
+
+  val ExtensionMatchingRunnerSelector: PartialFunction[File, JobRunner] = {
+    case f if f.getAbsolutePath.endsWith(".py") => new PythonRunner(f)
+    case f if f.getAbsolutePath.endsWith(".jar") => new ScalaRunner(f)
+    case x => throw new IllegalArgumentException(s"Can not select runner for ${x.toString}")
+  }
+
+  def apply(
+    masterHttpHost: String,
+    masterHttpPort: Int
+  ): MistJobRunner =
+    create(masterHttpHost, masterHttpPort, ExtensionMatchingRunnerSelector)
+
+  def create(
+    masterHttpHost: String,
+    masterHttpPort: Int,
+    jobRunnerSelector: PartialFunction[File, JobRunner]
+  ): MistJobRunner = new MistJobRunner(masterHttpHost, masterHttpPort, jobRunnerSelector)
+}
+

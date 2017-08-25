@@ -195,7 +195,7 @@ object WorkerActor {
       val (h, p) = info.masterHttpConf.split(':') match {
         case Array(host, port)=> (host, port.toInt)
       }
-      val mistJobRunner = new MistJobRunner(h, p)
+      val mistJobRunner = MistJobRunner(h, p)
       val props = mode match {
         case Shared => SharedWorkerActor.props(namedContext, mistJobRunner, info.downtime, info.maxJobs)
         case Exclusive => ExclusiveWorkerActor.props(namedContext, mistJobRunner)
