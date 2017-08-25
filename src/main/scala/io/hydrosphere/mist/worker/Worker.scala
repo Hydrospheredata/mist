@@ -42,7 +42,7 @@ object WorkerArguments {
 
     head("mist-worker")
 
-    opt[String]("bind-address").action((x, a) => a)
+    opt[String]("bind-address").action((x, a) => a.copy(bindAddress = x))
 
     opt[String]("master").action((x, a) => a.copy(masterAddress = x))
       .text("host:port to master")
