@@ -268,11 +268,20 @@ object HttpV2Routes {
     }
   }
 
+  def statusApi: Route = {
+    path( root / "status" ) {
+      get {
+        complete(MistStatus.Value)
+      }
+    }
+  }
+
   def apiRoutes(masterService: MasterService): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
-    contextsRoutes(masterService.contexts)
+    contextsRoutes(masterService.contexts) ~
+    statusApi
   }
 
   def apiWithCORS(masterService: MasterService): Route =

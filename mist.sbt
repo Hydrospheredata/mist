@@ -64,7 +64,7 @@ lazy val currentExamples = currentSparkVersion match {
 
 lazy val mist = project.in(file("."))
   .dependsOn(mistLib)
-  .enablePlugins(DockerPlugin)
+  .enablePlugins(DockerPlugin, BuildInfoPlugin)
   .settings(commonSettings: _*)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings: _*)
@@ -140,8 +140,10 @@ lazy val mist = project.in(file("."))
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-  )
-  .settings(
+  ).settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
+    buildInfoPackage := "io.hydrosphere.mist"
+  ).settings(
     stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
     stageActions := {
       val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"

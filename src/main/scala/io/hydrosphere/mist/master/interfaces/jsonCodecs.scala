@@ -1,5 +1,8 @@
 package io.hydrosphere.mist.master.interfaces
 
+import java.time.LocalDateTime
+import java.time.format.{DateTimeParseException, DateTimeFormatter}
+
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.Messages.StatusMessages._
@@ -7,7 +10,7 @@ import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JobResult}
 import io.hydrosphere.mist.master.WorkerLink
-import io.hydrosphere.mist.master.interfaces.http.{ContextCreateRequest, HttpEndpointInfoV2, HttpJobArg, HttpJobInfo}
+import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobResponseOrError
 import spray.json._
@@ -119,6 +122,27 @@ trait JsonCodecs extends SprayJsonSupport
     "name", "lang", "execute", "tags", "path", "className", "defaultContext")))
 
   implicit val workerLinkF = jsonFormat3(WorkerLink)
+
+  implicit val localDateF = new JsonFormat[LocalDateTime] {
+    val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+    override def write(o: LocalDateTime): JsValue = {
+      val s = formatter.format(o)
+      JsString(s)
+    }
+
+    override def read(json: JsValue): LocalDateTime = {
+      json match {
+        case JsString(s) =>
+          try { LocalDateTime.parse(s, formatter) }
+          catch { case e: DateTimeParseException => throw new DeserializationException(e.getMessage)}
+        case x =>
+          throw new DeserializationException("LocalDateTime formatter expects json string")
+      }
+    }
+  }
+
+  implicit val mistStatusF = jsonFormat3(MistStatus.apply)
 
   implicit val jobStartResponseF = jsonFormat1(JobStartResponse)
 
