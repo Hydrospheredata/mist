@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker.runners
 
 import java.io.{ByteArrayInputStream, File}
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Paths, StandardCopyOption}
 
 import io.hydrosphere.mist.Messages.JobMessages.RunJobRequest
 import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
@@ -16,7 +16,7 @@ import scalaj.http.Http
 class MistJobRunner(
   masterHttpHost: String,
   masterHttpPort: Int,
-  jobRunnerSelector: PartialFunction[File, JobRunner]
+  jobRunnerSelector: File => JobRunner
 ) extends JobRunner {
 
   override def run(req: RunJobRequest, context: NamedContext): Either[String, Map[String, Any]] = {
@@ -43,9 +43,8 @@ class MistJobRunner(
       val resp = req.asBytes
 
       if (resp.code == 200) {
-        //TODO: change path with config
         val filePath = Paths.get("/tmp", filename)
-        Files.copy(new ByteArrayInputStream(resp.body), filePath)
+        Files.copy(new ByteArrayInputStream(resp.body), filePath, StandardCopyOption.REPLACE_EXISTING)
         filePath.toFile
       }
       else
@@ -57,7 +56,7 @@ class MistJobRunner(
 
 object MistJobRunner {
 
-  val ExtensionMatchingRunnerSelector: PartialFunction[File, JobRunner] = {
+  val ExtensionMatchingRunnerSelector: File => JobRunner = {
     case f if f.getAbsolutePath.endsWith(".py") => new PythonRunner(f)
     case f if f.getAbsolutePath.endsWith(".jar") => new ScalaRunner(f)
     case x => throw new IllegalArgumentException(s"Can not select runner for ${x.toString}")
@@ -72,7 +71,7 @@ object MistJobRunner {
   def create(
     masterHttpHost: String,
     masterHttpPort: Int,
-    jobRunnerSelector: PartialFunction[File, JobRunner]
+    jobRunnerSelector: File => JobRunner
   ): MistJobRunner = new MistJobRunner(masterHttpHost, masterHttpPort, jobRunnerSelector)
 }
 
