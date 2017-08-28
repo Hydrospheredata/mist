@@ -13,7 +13,7 @@ import org.apache.commons.codec.digest.DigestUtils
 case class MavenArtifactResolver(
   repoUrl: String,
   artifact: MavenArtifact,
-  targetDirectory: String = "/tmp"
+  targetDirectory: String
 ) extends JobResolver {
 
   import scalaj.http._
@@ -76,21 +76,21 @@ object MavenArtifactResolver {
     "(https?://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])\\s?::\\s?" + // repo - host:port/path
     "(.+) % (.+) % (.+)"r
 
-  def fromPath(p: String): MavenArtifactResolver = pattern.findFirstMatchIn(p) match {
-    case Some(m) => toResolver(m)
+  def fromPath(jobPath: String, savePath: String = JobResolver.DefaultSavePath): MavenArtifactResolver = pattern.findFirstMatchIn(jobPath) match {
+    case Some(m) => toResolver(m, savePath)
     case None =>
       val message =
-        s"""Invalid path $p for maven artifact resolver.
+        s"""Invalid path $jobPath for maven artifact resolver.
            |String should be like: \"mvn://host:port/myrepo:: org % name % version\" """.stripMargin
       throw new IllegalArgumentException(message)
   }
 
-  private def toResolver(m: Regex.Match): MavenArtifactResolver = {
+  private def toResolver(m: Regex.Match, savePath: String): MavenArtifactResolver = {
     val groups = m.subgroups
 
     val repoUrl = groups(0)
     val artifact = MavenArtifact(groups(1), groups(2), groups(3))
-    new MavenArtifactResolver(repoUrl, artifact)
+    new MavenArtifactResolver(repoUrl, artifact, savePath)
   }
 }
 

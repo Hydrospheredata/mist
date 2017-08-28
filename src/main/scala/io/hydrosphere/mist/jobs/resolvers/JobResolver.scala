@@ -22,15 +22,14 @@ trait JobResolver {
 
 object JobResolver {
 
-  //TODO: should be provided from config
-  private val saveDirectory = "/tmp"
+  val DefaultSavePath = "/tmp"
 
-  def fromPath(path: String): JobResolver = {
-    if (path.startsWith("hdfs://"))
-      new HDFSResolver(path, saveDirectory)
-    else if(path.startsWith("mvn://"))
-      MavenArtifactResolver.fromPath(path)
+  def fromPath(jobPath: String, savePath: String = DefaultSavePath): JobResolver = {
+    if (jobPath.startsWith("hdfs://"))
+      new HDFSResolver(jobPath, savePath)
+    else if(jobPath.startsWith("mvn://"))
+      MavenArtifactResolver.fromPath(jobPath, savePath)
     else
-      new LocalResolver(path)
+      new LocalResolver(jobPath)
   }
 }

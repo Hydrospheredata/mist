@@ -9,7 +9,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 
 class HDFSResolver(
   path: String,
-  targetDir: String = "/tmp"
+  targetDir: String
 ) extends JobResolver {
 
   private val uri = new URI(path)
