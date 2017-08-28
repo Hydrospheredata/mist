@@ -101,8 +101,23 @@ class MistJobRunnerSpec extends FunSpecLike
     val file = res.get
     file.exists() shouldBe true
     file.getName shouldBe "test.jar"
-
   }
+
+  it("should fail when downloading file failed") {
+    val routes = Flow[HttpRequest].map { request =>
+      HttpResponse(StatusCodes.InternalServerError)
+    }
+
+    val future = MockHttpServer.onServer(routes, binding => {
+      val mockRunner = mock[JobRunner]
+      val myMockSelector: File => JobRunner = { _: File => mockRunner }
+      val mistJobRunner = MistJobRunner.create("localhost", binding.localAddress.getPort, myMockSelector)
+      mistJobRunner.loadFromMaster("test.jar")
+    })
+    val res = future.await
+    res.isFailure shouldBe true
+  }
+
 
   it("should return left when error happen with file downloading") {
     val mistJobRunner = MistJobRunner("localhost", 2004)
