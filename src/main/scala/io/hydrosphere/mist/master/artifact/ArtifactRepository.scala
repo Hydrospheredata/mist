@@ -29,10 +29,18 @@ class FsArtifactRepository(
   override def listPaths(): Future[Set[String]] = {
     val artifactDir = Paths.get(rootDir).toFile
     if (artifactDir.isDirectory) {
-      Future.successful(artifactDir.listFiles().map(_.getName).toSet)
+      Future.successful(
+        artifactDir.listFiles()
+          .map(_.getName)
+          .filter(allowedExtension)
+          .toSet
+      )
     } else Future.failed(new IllegalStateException(s"$rootDir is not directory"))
   }
-
+  private def allowedExtension(fileName: String): Boolean = {
+    ArtifactRepository.AllowedExtensions
+        .contains(FilenameUtils.getExtension(fileName))
+  }
   override def get(key: String): Option[File] = {
     Paths.get(rootDir, key).toFile match {
       case f if f.exists => Some(f)
@@ -82,6 +90,8 @@ class SimpleArtifactRepository(
 }
 
 object ArtifactRepository {
+
+  val AllowedExtensions = Set("py", "jar")
 
   def create(
     storagePath: String,

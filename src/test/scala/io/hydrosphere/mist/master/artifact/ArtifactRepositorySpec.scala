@@ -77,6 +77,18 @@ class ArtifactRepositorySpec extends FunSpecLike
       file.delete()
       source.delete()
     }
+    it("should list only .py and .jar files") {
+      val artifactRepo = new FsArtifactRepository(dir.toString)
+      val unknownExtension = Paths.get(dir.toString, "unknown.test")
+      val pyExt = Paths.get(dir.toString, "test.py")
+      FileUtils.touch(unknownExtension.toFile)
+      FileUtils.touch(pyExt.toFile)
+
+      artifactRepo.listPaths().await should contain allOf(testArtifactName, "test.py")
+
+      FileUtils.deleteQuietly(pyExt.toFile)
+      FileUtils.deleteQuietly(unknownExtension.toFile)
+    }
   }
   describe("DefaultArtifactRepositorySpec") {
 
