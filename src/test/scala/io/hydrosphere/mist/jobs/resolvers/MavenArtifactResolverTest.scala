@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.Flow
 import org.apache.commons.codec.digest.DigestUtils
 import org.scalatest.{FunSuite, Matchers}
-
+import io.hydrosphere.mist.master.TestUtils.MockHttpServer
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
@@ -53,50 +53,5 @@ class MavenArtifactResolverTest extends FunSuite with Matchers {
     file.exists() shouldBe true
     val content = Files.readAllBytes(Paths.get(file.getAbsolutePath))
     new String(content) shouldBe "JAR CONTENT"
-  }
-
-  object MockHttpServer {
-
-    import akka.actor.ActorSystem
-    import akka.http.scaladsl.Http
-    import akka.stream.ActorMaterializer
-    import akka.util.Timeout
-
-    import scala.concurrent.duration._
-
-    def onServer[A](
-      routes: Flow[HttpRequest, HttpResponse, Unit],
-      f: (Http.ServerBinding) => A): Future[A] = {
-
-      implicit val system = ActorSystem("mock-http-cli")
-      implicit val materializer = ActorMaterializer()
-
-      implicit val executionContext = system.dispatcher
-      implicit val timeout = Timeout(1.seconds)
-
-      val binding = Http().bindAndHandle(routes, "localhost", 0)
-
-      val close = Promise[Http.ServerBinding]
-      close.future
-        .flatMap(binding => binding.unbind())
-        .onComplete(_ => {
-          system.shutdown()
-          system.awaitTermination()
-        })
-
-      val result = binding.flatMap(binding => {
-        try{
-          Future.successful(f(binding))
-        } catch {
-          case e: Throwable =>
-            Future.failed(e)
-        } finally {
-          close.success(binding)
-        }
-      })
-      result
-    }
-
-
   }
 }
