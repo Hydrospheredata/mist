@@ -50,6 +50,7 @@ object HttpV2Base {
 
   import Directives._
   import JsonCodecs._
+  import ParameterDirectives.ParamMagnet
   import akka.http.scaladsl.model.StatusCodes
   import akka.http.scaladsl.server._
 
@@ -331,12 +332,21 @@ object HttpV2Routes {
     }
   }
 
+  def statusApi: Route = {
+    path( root / "status" ) {
+      get {
+        complete(MistStatus.Value)
+      }
+    }
+  }
+
   def apiRoutes(masterService: MasterService): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
     contextsRoutes(masterService.contexts) ~
-    artifactRoutes(masterService.artifactRepository)
+    artifactRoutes(masterService.artifactRepository) ~
+    statusApi
   }
 
   def apiWithCORS(masterService: MasterService): Route =

@@ -262,8 +262,8 @@ class HttpApiV2Spec extends FunSpec
 
     }
 
-
   }
+
   describe("contexts") {
 
     it("should create jobs with optional parameters") {
@@ -287,6 +287,18 @@ class HttpApiV2Spec extends FunSpec
         verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
           "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", "shared", 1 seconds
         )))
+      }
+    }
+  }
+
+
+  describe("status") {
+
+    it("should return status") {
+      val route = HttpV2Routes.statusApi
+      Get("/v2/api/status") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[MistStatus]
       }
     }
 

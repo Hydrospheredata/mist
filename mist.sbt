@@ -64,7 +64,7 @@ lazy val currentExamples = currentSparkVersion match {
 
 lazy val mist = project.in(file("."))
   .dependsOn(mistLib)
-  .enablePlugins(DockerPlugin)
+  .enablePlugins(DockerPlugin, BuildInfoPlugin)
   .settings(commonSettings: _*)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings: _*)
@@ -141,8 +141,10 @@ lazy val mist = project.in(file("."))
   ).settings(
     ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
     ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-  )
-  .settings(
+  ).settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
+    buildInfoPackage := "io.hydrosphere.mist"
+  ).settings(
     stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
     stageActions := {
       val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
@@ -192,7 +194,7 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .settings(
     name := "mist-examples-spark2",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.1",
+    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.2",
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
     assembledMappings in assembly := {
       // hack - there is no options how to exclude all dependecies that comes

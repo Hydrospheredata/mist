@@ -44,7 +44,8 @@ object MLClassification extends MLMistJob {
   def serve(text: List[String]): Map[String, Any] = {
     import LocalPipelineModel._
 
-    val pipeline = PipelineLoader.load(s"regression")
+    val source = ModelSource.hadoop("regression", context.hadoopConfiguration)
+    val pipeline = PipelineLoader.load(source)
     val data = LocalData(
       LocalDataColumn("text", text)
     )
