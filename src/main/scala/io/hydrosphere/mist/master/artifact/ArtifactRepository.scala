@@ -86,9 +86,11 @@ object ArtifactRepository {
   def create(
     storagePath: String,
     defaultEndpoints: Seq[EndpointConfig],
-    artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]
+    artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String],
+    jobsSavePath: String
   ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
+    val toFile = fromEndpointConfig(_: EndpointConfig, jobsSavePath)
     val defaultJobsPath = defaultEndpoints
       .map(e => artifactKeyProvider.provideKey(e) -> e)
       .toMap
@@ -100,7 +102,7 @@ object ArtifactRepository {
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 
-  private def toFile(endpointConfig: EndpointConfig): Try[File] =
-    Try { JobResolver.fromPath(endpointConfig.path).resolve() }
+  private def fromEndpointConfig(endpointConfig: EndpointConfig, savePath: String): Try[File] =
+    Try { JobResolver.fromPath(endpointConfig.path, savePath).resolve() }
 
 }

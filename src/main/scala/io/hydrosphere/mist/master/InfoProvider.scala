@@ -9,7 +9,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class InfoProvider(
   logServiceConfig: LogServiceConfig,
   httpConfig: HttpConfig,
-  contextsStorage: ContextsStorage
+  contextsStorage: ContextsStorage,
+  jobsSavePath: String
 ) {
 
   def workerInitInfo(contextName: String): Future[WorkerInitInfo] = {
@@ -20,7 +21,8 @@ class InfoProvider(
         downtime = contextConfig.downtime,
         streamingDuration = contextConfig.streamingDuration,
         logService = s"${logServiceConfig.host}:${logServiceConfig.port}",
-        masterHttpConf = s"${httpConfig.host}:${httpConfig.port}"
+        masterHttpConf = s"${httpConfig.host}:${httpConfig.port}",
+        jobsSavePath = jobsSavePath
       ))
   }
 }

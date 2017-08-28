@@ -16,12 +16,13 @@ import scalaj.http.Http
 class MistJobRunner(
   masterHttpHost: String,
   masterHttpPort: Int,
-  jobRunnerSelector: File => JobRunner
+  jobRunnerSelector: File => JobRunner,
+  savePath: String
 ) extends JobRunner {
 
   override def run(req: RunJobRequest, context: NamedContext): Either[String, Map[String, Any]] = {
     val filePath = req.params.filePath
-    val fileT = JobResolver.fromPath(filePath) match {
+    val fileT = JobResolver.fromPath(filePath, savePath) match {
       case r: LocalResolver if !r.exists => loadFromMaster(FilenameUtils.getName(filePath))
       case r => Try { r.resolve() }
     }
@@ -43,7 +44,7 @@ class MistJobRunner(
       val resp = req.asBytes
 
       if (resp.code == 200) {
-        val filePath = Paths.get("/tmp", filename)
+        val filePath = Paths.get(savePath, filename)
         Files.copy(new ByteArrayInputStream(resp.body), filePath, StandardCopyOption.REPLACE_EXISTING)
         filePath.toFile
       }
@@ -64,14 +65,16 @@ object MistJobRunner {
 
   def apply(
     masterHttpHost: String,
-    masterHttpPort: Int
+    masterHttpPort: Int,
+    savePath: String
   ): MistJobRunner =
-    create(masterHttpHost, masterHttpPort, ExtensionMatchingRunnerSelector)
+    create(masterHttpHost, masterHttpPort, ExtensionMatchingRunnerSelector, savePath: String)
 
   def create(
     masterHttpHost: String,
     masterHttpPort: Int,
-    jobRunnerSelector: File => JobRunner
-  ): MistJobRunner = new MistJobRunner(masterHttpHost, masterHttpPort, jobRunnerSelector)
+    jobRunnerSelector: File => JobRunner,
+    savePath: String
+  ): MistJobRunner = new MistJobRunner(masterHttpHost, masterHttpPort, jobRunnerSelector, savePath)
 }
 

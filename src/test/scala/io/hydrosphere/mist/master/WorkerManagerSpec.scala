@@ -73,7 +73,8 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
         downtime = Duration.Inf,
         streamingDuration = 30 seconds,
         logService = "yoyo:9090",
-        masterHttpConf = "localhost:2004"
+        masterHttpConf = "localhost:2004",
+        jobsSavePath = "/tmp"
       ))
 
 

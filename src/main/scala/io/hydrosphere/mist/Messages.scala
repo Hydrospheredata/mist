@@ -54,7 +54,8 @@ object Messages {
       downtime: Duration,
       streamingDuration: Duration,
       logService: String,
-      masterHttpConf: String
+      masterHttpConf: String,
+      jobsSavePath: String
     )
 
   }

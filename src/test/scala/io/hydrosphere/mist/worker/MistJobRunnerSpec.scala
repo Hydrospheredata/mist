@@ -1,14 +1,14 @@
 package io.hydrosphere.mist.worker
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.stream.scaladsl.Flow
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.Action.Execute
-import io.hydrosphere.mist.master.TestUtils.{MockHttpServer, AwaitSyntax}
+import io.hydrosphere.mist.master.TestUtils.{AwaitSyntax, MockHttpServer}
 import io.hydrosphere.mist.worker.runners.{JobRunner, MistJobRunner}
 import io.hydrosphere.mist.worker.runners.python.PythonRunner
 import io.hydrosphere.mist.worker.runners.scala.ScalaRunner
@@ -31,15 +31,15 @@ class MistJobRunnerSpec extends FunSpecLike
   val unknownJob = Paths.get(basePath, "yo.unknown").toString
 
   override protected def beforeAll(): Unit = {
+    val f = Paths.get(basePath).toFile
+    FileUtils.deleteDirectory(f)
     FileUtils.touch(new File(scalaJobPath))
     FileUtils.touch(new File(pythonJobPath))
     FileUtils.touch(new File(unknownJob))
   }
 
   override protected def afterAll(): Unit = {
-    FileUtils.deleteQuietly(new File(scalaJobPath))
-    FileUtils.deleteQuietly(new File(pythonJobPath))
-    FileUtils.deleteQuietly(new File(unknownJob))
+    FileUtils.deleteDirectory(new File(basePath))
   }
 
   it("should select correct job runner by path ending") {
@@ -64,7 +64,7 @@ class MistJobRunnerSpec extends FunSpecLike
       case _: File => mockRunner
     }
 
-    val mistJobRunner = MistJobRunner.create("localhost", 2004, myMockSelector)
+    val mistJobRunner = MistJobRunner.create("localhost", 2004, myMockSelector, basePath)
     val spiedJobRunner = spy(mistJobRunner)
 
     when(mockRunner.run(any[RunJobRequest], any[NamedContext]))
@@ -93,7 +93,7 @@ class MistJobRunnerSpec extends FunSpecLike
     val future = MockHttpServer.onServer(routes, binding => {
       val mockRunner = mock[JobRunner]
       val myMockSelector: File => JobRunner = { _: File => mockRunner }
-      val mistJobRunner = MistJobRunner.create("localhost", binding.localAddress.getPort, myMockSelector)
+      val mistJobRunner = MistJobRunner.create("localhost", binding.localAddress.getPort, myMockSelector, basePath)
       mistJobRunner.loadFromMaster("test.jar")
     })
     val res = future.await
@@ -111,7 +111,7 @@ class MistJobRunnerSpec extends FunSpecLike
     val future = MockHttpServer.onServer(routes, binding => {
       val mockRunner = mock[JobRunner]
       val myMockSelector: File => JobRunner = { _: File => mockRunner }
-      val mistJobRunner = MistJobRunner.create("localhost", binding.localAddress.getPort, myMockSelector)
+      val mistJobRunner = MistJobRunner.create("localhost", binding.localAddress.getPort, myMockSelector, basePath)
       mistJobRunner.loadFromMaster("test.jar")
     })
     val res = future.await
@@ -120,7 +120,7 @@ class MistJobRunnerSpec extends FunSpecLike
 
 
   it("should return left when error happen with file downloading") {
-    val mistJobRunner = MistJobRunner("localhost", 2004)
+    val mistJobRunner = MistJobRunner("localhost", 2004, basePath)
     val spied = spy(mistJobRunner)
 
     doReturn(Failure(new Exception("error")))
