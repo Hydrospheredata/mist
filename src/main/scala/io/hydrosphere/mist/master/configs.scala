@@ -174,7 +174,6 @@ object MasterConfig {
     val appConfig = ConfigFactory.parseResourcesAnySyntax("master.conf")
     val user = ConfigFactory.parseFile(new File(filePath))
     val properties = ConfigFactory.systemProperties()
-    val cfg = properties.withFallback(user.withFallback(appConfig)).resolve()
     properties.withFallback(user.withFallback(appConfig)).resolve()
   }
 
