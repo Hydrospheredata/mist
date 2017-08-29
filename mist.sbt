@@ -56,6 +56,23 @@ lazy val mistLib = project.in(file("mist-lib"))
     )
   )
 
+lazy val core = project.in(file("mist/core"))
+  .dependsOn(mistLib)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "mist-core",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % "1.7.5",
+
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    )
+  )
+
 lazy val currentExamples = currentSparkVersion match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
@@ -194,7 +211,14 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .settings(
     name := "mist-examples-spark2",
     libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies += "io.hydrosphere" %% "spark-ml-serving" % "0.1.2",
+    // examplesspark2 works only for 2.11
+    libraryDependencies ++= {
+      val is2_11 = """2\.11\..""".r
+      scalaVersion.value match {
+        case is2_11() => Seq("io.hydrosphere" %% "spark-ml-serving" % "0.1.2")
+        case _ => Seq.empty
+      }
+    },
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
     assembledMappings in assembly := {
       // hack - there is no options how to exclude all dependecies that comes
@@ -344,4 +368,19 @@ lazy val commonAssemblySettings = Seq(
       ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
   ),
   test in assembly := {}
+)
+
+lazy val commonScalacOptions = Seq(
+  "-deprecation",
+  "-encoding", "UTF-8",
+  "-feature",
+  "-language:existentials",
+  "-language:higherKinds",
+  "-language:implicitConversions",
+  "-unchecked",
+  "-Xfatal-warnings",
+  "-Yno-adapted-args",
+  "-Ywarn-dead-code",
+  "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard"
 )
