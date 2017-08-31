@@ -1,21 +1,25 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import java.io.File
 import java.nio.file.Paths
 import java.util.UUID
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, RequestEntity, StatusCodes}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.util.ByteString
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
 import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
+import org.apache.commons.io.FileUtils
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 
@@ -23,7 +27,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util._
 import org.mockito.Matchers.{anyInt, eq => mockitoEq}
-import org.mockito.Mockito.{times, verify}
+import org.mockito.Mockito.{doNothing, times, verify}
 
 class HttpApiV2Spec extends FunSpec
   with Matchers
@@ -290,7 +294,86 @@ class HttpApiV2Spec extends FunSpec
       }
     }
   }
+  describe("artifact") {
+    it("should list all unique file names in artifact repository") {
+      val artifactRepo = mock[ArtifactRepository]
+      when(artifactRepo.listPaths()).thenSuccess(Set("test.jar", "test.py"))
 
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+
+      Get("/v2/api/artifacts") ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[Set[String]] should contain allOf("test.jar", "test.py")
+      }
+    }
+
+    it("should upload file if it unique") {
+      val artifactRepo = mock[ArtifactRepository]
+      when(artifactRepo.get(any[String]))
+        .thenReturn(None)
+      when(artifactRepo.store(any[File], any[String]))
+        .thenSuccess(new File("some/internal/path/test.jar"))
+
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+      val multipartForm =
+        Multipart.FormData(Multipart.FormData.BodyPart.Strict(
+          "file",
+          HttpEntity(ContentTypes.`application/octet-stream`, ByteString.fromString("Jar content")),
+          Map("filename" -> "test.jar")))
+
+      Post("/v2/api/artifacts", multipartForm) ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[String] shouldBe "test.jar"
+      }
+    }
+
+    it("should return 400 when upload filename not unique") {
+      val artifactRepo = mock[ArtifactRepository]
+      when(artifactRepo.get(any[String]))
+        .thenReturn(Some(new File("test.jar")))
+
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+      val multipartForm =
+        Multipart.FormData(Multipart.FormData.BodyPart.Strict(
+          "file",
+          HttpEntity(ContentTypes.`application/octet-stream`, ByteString.fromString("Jar content")),
+          Map("filename" -> "test.jar")))
+
+      Post("/v2/api/artifacts", multipartForm) ~> routes ~> check {
+        status shouldBe StatusCodes.Conflict
+      }
+    }
+
+    it("should download file if it exists") {
+      val artifactRepo = mock[ArtifactRepository]
+      val file = new File("./target/test.jar")
+      FileUtils.touch(file)
+      when(artifactRepo.get(any[String]))
+        .thenReturn(Some(file))
+
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+
+
+      Get("/v2/api/artifacts/test.jar") ~> routes ~> check {
+        status shouldBe StatusCodes.OK
+      }
+
+      FileUtils.deleteQuietly(file)
+    }
+
+    it("should return not found when download file not exists") {
+
+      val artifactRepo = mock[ArtifactRepository]
+      when(artifactRepo.get(any[String]))
+        .thenReturn(None)
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+
+
+      Get("/v2/api/artifacts/test.jar") ~> routes ~> check {
+        status shouldBe StatusCodes.NotFound
+      }
+    }
+  }
 
   describe("status") {
 
