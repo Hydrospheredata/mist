@@ -55,10 +55,12 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
   val overrideConf: Option[String] = None
   val overrideRouter: Option[String] = None
+  protected def beforeMistStart: Unit = {()}
 
-  private var ps: Process = null
+  private var ps: Process = _
 
   override def beforeAll {
+    beforeMistStart
     ps = runMist(overrideConf, overrideRouter)
   }
 
@@ -82,6 +84,16 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
   def runOnlyOnSpark1(body: => Unit): Unit =
     runOnlyIf(isSpark1, "SKIP TEST - ONLY FOR SPARK1")(body)
+
+  private def prepareOnlyIf(pred: => Boolean, body: => Unit) = {
+    if (pred) body
+  }
+
+  def prepareOnlyForSpark2(body: => Unit): Unit =
+    prepareOnlyIf(isSpark2, body)
+
+  def prepareOnlyForSpark1(body: => Unit): Unit =
+    prepareOnlyIf(isSpark1, body)
 }
 
 case class MistHttpInterface(

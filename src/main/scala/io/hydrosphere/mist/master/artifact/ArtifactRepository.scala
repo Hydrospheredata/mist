@@ -4,13 +4,11 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.Executors
 
-import io.hydrosphere.mist.jobs.resolvers.{JobResolver, LocalResolver}
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.jobs.resolvers.JobResolver
 import io.hydrosphere.mist.master.models.EndpointConfig
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
 
 
@@ -63,9 +61,7 @@ class DefaultArtifactRepository(val default: Map[String, File])(implicit val ec:
 
   override def listPaths(): Future[Set[String]] = Future.successful(default.keys.toSet)
 
-  override def get(key: String): Option[File] =
-    default.values
-      .find { _.getName == key }
+  override def get(key: String): Option[File] = default.get(key)
 
   override def store(src: File, fileName: String): Future[File] =
     Future.failed(new UnsupportedOperationException("do not implement this"))
