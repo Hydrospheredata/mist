@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.MockitoSugar
-import io.hydrosphere.mist.master.artifact.{ArtifactRepository, EndpointArtifactKeyProvider, ArtifactKeyProvider}
+import io.hydrosphere.mist.master.artifact.{ArtifactKeyProvider, ArtifactRepository, EndpointArtifactKeyProvider}
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
@@ -18,6 +18,7 @@ import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
@@ -123,6 +124,35 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     ScalaFutures.whenReady(runInfo.failed) {ex =>
       ex shouldBe an[IllegalArgumentException]
     }
+
+  }
+  it("should return only existing endpoint jobs") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStorageMappings]
+    val artifactRepository = mock[ArtifactRepository]
+    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository, artifactKeyProvider)
+    val spiedService = spy(service)
+    val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
+    val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
+    val fullInfo = FullEndpointInfo(epConf, PyJobInfo)
+
+    doReturn(Success(fullInfo))
+      .when(spiedService)
+      .loadEndpointInfo(epConf)
+
+    doReturn(Failure(new RuntimeException("failed")))
+      .when(spiedService)
+      .loadEndpointInfo(noMatterEpConf)
+
+    when(endpoints.all)
+      .thenSuccess(Seq(epConf, noMatterEpConf))
+
+    val endpointsInfo = spiedService.endpointsInfo.await
+    endpointsInfo.size shouldBe 1
+    endpointsInfo should contain allElementsOf Seq(fullInfo)
 
   }
 
