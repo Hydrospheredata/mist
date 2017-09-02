@@ -258,9 +258,18 @@ object HttpV2Routes {
       post {
         uploadedFile("file") {
           case (metadata, tempFile) =>
-            onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
-              tempFile.delete
-              complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+            artifactRepo.get(metadata.fileName) match {
+              case Some(_) => complete {
+                HttpResponse(
+                  StatusCodes.Conflict,
+                  entity = s"Filename must be unique: found ${metadata.fileName} in repository"
+                )
+              }
+              case None =>
+                onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
+                  tempFile.delete
+                  complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+                }
             }
         }
       }
