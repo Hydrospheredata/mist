@@ -123,6 +123,22 @@ lazy val master = project.in(file("mist/master"))
     buildInfoPackage := "io.hydrosphere.mist"
   )
 
+lazy val worker = project.in(file("mist/worker"))
+  .dependsOn(core)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "mist-worker",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= akkaDependencies(scalaVersion.value),
+    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Seq(
+      "com.github.scopt" %% "scopt" % "3.6.0",
+
+      "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
+      "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test"
+    )
+  )
+
 lazy val currentExamples = currentSparkVersion match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
