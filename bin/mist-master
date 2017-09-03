@@ -3,7 +3,7 @@
 export MIST_HOME="$(cd "`dirname "$0"`"/..; pwd)"
 JAVA=$(which java)
 
-ASSEMBLY_JAR=$MIST_HOME/mist.jar
+ASSEMBLY_JAR=$MIST_HOME/mist-master.jar
 
 CONFIG_FILE=$MIST_HOME/configs/default.conf
 ROUTER_CONFIG=$MIST_HOME/configs/router.conf

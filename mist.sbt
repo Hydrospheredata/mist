@@ -76,6 +76,7 @@ lazy val core = project.in(file("mist/core"))
 lazy val master = project.in(file("mist/master"))
   .dependsOn(core)
   .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
   .enablePlugins(BuildInfoPlugin)
   .settings(
     name := "mist-master",
@@ -126,6 +127,7 @@ lazy val master = project.in(file("mist/master"))
 lazy val worker = project.in(file("mist/worker"))
   .dependsOn(core)
   .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
   .settings(
     name := "mist-worker",
     scalacOptions ++= commonScalacOptions,
@@ -134,8 +136,11 @@ lazy val worker = project.in(file("mist/worker"))
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % "3.6.0",
 
-      "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test"
+    ),
+    assemblyShadeRules in assembly := Seq(
+      ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
     )
   )
 
@@ -144,63 +149,121 @@ lazy val currentExamples = currentSparkVersion match {
   case _ => examplesSpark2
 }
 
-
-lazy val mist = project.in(file("."))
-  .dependsOn(mistLib)
-  .enablePlugins(DockerPlugin, BuildInfoPlugin)
+lazy val root = project.in(file("."))
+  .aggregate(mistLib, core, master, worker)
+  .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
-  .configs(IntegrationTest)
-  .settings(Defaults.itSettings: _*)
-  .settings(commonAssemblySettings: _*)
-  .settings(mistMiscTasks: _*)
-  .settings(StageDist.settings: _*)
-  .settings(dockerSettings: _*)
   .settings(Ui.settings: _*)
+  .settings(StageDist.settings: _*)
   .settings(
     name := "mist",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
-    libraryDependencies ++= Seq(
-      "com.typesafe" % "config" % "1.3.1",
-      "joda-time" % "joda-time" % "2.5",
-      "org.slf4j" % "slf4j-api" % "1.7.5",
-      "org.slf4j" % "slf4j-log4j12" % "1.7.5",
 
-      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
-      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    stageActions := {
+      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
+      val routes = {
+        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
+          .as("router.conf")
+          .to("configs")
+      }
+      Seq(
+        CpFile("bin"),
+        MkDir("configs"),
+        CpFile("configs/default.conf").to("configs"),
+        CpFile("configs/logging").to("configs"),
+        routes,
+        CpFile("examples/examples-python").as("examples-python"),
+        CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
+        CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
+        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+          .as(s"mist-examples-spark$sparkMajor.jar"),
+        CpFile(Ui.ui.value).as("ui")
+      )
+    },
+    stageActions in basicStage +=
+      CpFile("configs/default.conf").to("configs"),
+    stageActions in dockerStage +=
+      CpFile("configs/docker.conf").as("default.conf").to("configs")
+  ).settings(
+    sparkLocal := {
+      val log = streams.value.log
+      val version = sparkVersion.value
 
-      "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+      val local = file("spark_local")
+      if (!local.exists())
+        IO.createDirectory(local)
 
-      "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
+      val sparkDir = local / SparkLocal.distrName(version)
+      if (!sparkDir.exists()) {
+        log.info(s"Downloading spark $version to $sparkDir")
+        SparkLocal.downloadSpark(version, local)
+      }
+      sparkDir
+    },
 
-      "org.scalatest" %% "scalatest" % "3.0.1" % "it,test",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+    mistRun := {
+      val log = streams.value.log
+      val sparkHome = sparkLocal.value.getAbsolutePath
 
-      "com.twitter" %% "chill" % "0.9.2",
-      "com.github.scopt" %% "scopt" % "3.6.0",
+      val taskArgs = spaceDelimited("<arg>").parsed
+      val uiEnvs = {
+        val uiPath =
+          taskArgs.grouped(2)
+            .find(parts => parts.size > 1 && parts.head == "--ui-dir")
+            .map(_.last)
 
-      "org.mockito" % "mockito-all" % "1.10.19" % "test",
-      "org.scalamock" %% "scalamock-scalatest-support" % "3.2.2" % "test",
-      "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
+        uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+      }
+      val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
+      val home = basicStage.value
 
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-      "org.apache.hadoop" % "hadoop-client" % "2.6.4" intransitive(),
+      val args = Seq("bin/mist-master", "start", "--debug", "true")
+      val ps = Process(args, Some(home), extraEnv: _*)
+      log.info(s"Running mist $ps with env $extraEnv")
 
-      "org.scalaj" %% "scalaj-http" % "2.3.0",
-      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
-      "commons-io" % "commons-io" % "2.5",
-      "com.h2database" % "h2" % "1.4.194",
-      "org.flywaydb" % "flyway-core" % "4.1.1",
-      "org.typelevel" %% "cats" % "0.9.0"
+      ps.!<(StdOutLogger)
+    }
+  ).settings(
+    imageNames in docker := Seq(
+      ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
     ),
+    dockerfile in docker := {
+      val localSpark = sparkLocal.value
+      val mistHome = "/usr/share/mist"
+      val distr = dockerStage.value
 
-    libraryDependencies ++= akkaDependencies(scalaVersion.value),
-    libraryDependencies ++= miniClusterDependencies,
-    dependencyOverrides += "com.typesafe" % "config" % "1.3.1",
+      new Dockerfile {
+        from("anapsix/alpine-java:8")
+        env("SPARK_VERSION", sparkVersion.value)
+        env("SPARK_HOME", "/usr/share/spark")
+        env("MIST_HOME", mistHome)
 
-    parallelExecution in Test := false,
+        copy(localSpark, "/usr/share/spark")
+        copy(distr, mistHome)
+
+        copy(file("docker-entrypoint.sh"), "/")
+        run("chmod", "+x", "/docker-entrypoint.sh")
+
+        run("apk", "update")
+        run("apk", "add", "python", "curl", "jq", "coreutils")
+
+        workDir(mistHome)
+        entryPoint("/docker-entrypoint.sh")
+      }
+    })
+  .configs(IntegrationTest)
+  .settings(Defaults.itSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.spray" %% "spray-json" % "1.3.2" % "it",
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
+      "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "it",
+      "org.testcontainers" % "testcontainers" % "1.2.1" % "it"
+    ),
+    scalaSource in IntegrationTest := baseDirectory.value / "mist-tests" / "scala",
+    resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
-
-    fork in(Test, test) := true,
     fork in(IntegrationTest, test) := true,
     fork in(IntegrationTest, testOnly) := true,
     javaOptions in(IntegrationTest, test) ++= {
@@ -221,38 +284,6 @@ lazy val mist = project.in(file("."))
         "-Xmx512m"
       )
     }
-  ).settings(
-    ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 30,
-    ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
-  ).settings(
-    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
-    buildInfoPackage := "io.hydrosphere.mist"
-  ).settings(
-    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
-    stageActions := {
-      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
-      val routes = {
-        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
-          .as("router.conf")
-          .to("configs")
-      }
-      Seq(
-        CpFile("bin"),
-        MkDir("configs"),
-        CpFile("configs/default.conf").to("configs"),
-        CpFile("configs/logging").to("configs"),
-        routes,
-        CpFile("examples/examples-python").as("examples-python"),
-        CpFile(assembly.value).as("mist.jar"),
-        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
-          .as(s"mist-examples-spark$sparkMajor.jar"),
-        CpFile(Ui.ui.value).as("ui")
-      )
-    },
-    stageActions in basicStage +=
-      CpFile("configs/default.conf").to("configs"),
-    stageActions in dockerStage +=
-      CpFile("configs/docker.conf").as("default.conf").to("configs")
 
   )
 
@@ -307,77 +338,6 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
 
   )
 
-lazy val mistMiscTasks = Seq(
-  sparkLocal := {
-    val log = streams.value.log
-    val version = sparkVersion.value
-
-    val local = file("spark_local")
-    if (!local.exists())
-      IO.createDirectory(local)
-
-    val sparkDir = local / SparkLocal.distrName(version)
-    if (!sparkDir.exists()) {
-      log.info(s"Downloading spark $version to $sparkDir")
-      SparkLocal.downloadSpark(version, local)
-    }
-    sparkDir
-  },
-
-  mistRun := {
-    val log = streams.value.log
-    val sparkHome = sparkLocal.value.getAbsolutePath
-
-    val taskArgs = spaceDelimited("<arg>").parsed
-    val uiEnvs = {
-      val uiPath =
-        taskArgs.grouped(2)
-          .find(parts => parts.size > 1 && parts.head == "--ui-dir")
-          .map(_.last)
-
-      uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
-    }
-    val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
-    val home = basicStage.value
-
-    val args = Seq("bin/mist-master", "start", "--debug", "true")
-    val ps = Process(args, Some(home), extraEnv: _*)
-    log.info(s"Running mist $ps with env $extraEnv")
-
-    ps.!<(StdOutLogger)
-  }
-)
-
-lazy val dockerSettings = Seq(
-  imageNames in docker := Seq(
-    ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
-  ),
-  dockerfile in docker := {
-    val localSpark = sparkLocal.value
-    val mistHome = "/usr/share/mist"
-    val distr = dockerStage.value
-
-    new Dockerfile {
-      from("anapsix/alpine-java:8")
-      env("SPARK_VERSION", sparkVersion.value)
-      env("SPARK_HOME", "/usr/share/spark")
-      env("MIST_HOME", mistHome)
-
-      copy(localSpark, "/usr/share/spark")
-      copy(distr, mistHome)
-
-      copy(file("docker-entrypoint.sh"), "/")
-      run("chmod", "+x", "/docker-entrypoint.sh")
-
-      run("apk", "update")
-      run("apk", "add", "python", "curl", "jq", "coreutils")
-
-      workDir(mistHome)
-      entryPoint("/docker-entrypoint.sh")
-    }
-  }
-)
-
 def akkaDependencies(scalaVersion: String) = {
   val New = """2\.11\..""".r
 
@@ -428,9 +388,7 @@ lazy val commonAssemblySettings = Seq(
     case _ => MergeStrategy.first
   }
   },
-  assemblyShadeRules in assembly := Seq(
-      ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
-  ),
+  logLevel in assembly := Level.Error,
   test in assembly := {}
 )
 
@@ -443,5 +401,6 @@ lazy val commonScalacOptions = Seq(
   "-language:postfixOps",
   "-unchecked",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen"
+  "-Ywarn-numeric-widen",
+  "-Ywarn-unused-import"
 )

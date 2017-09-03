@@ -1,7 +1,5 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.JobResult
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.scalatest._
 import scala.sys.process._
 
