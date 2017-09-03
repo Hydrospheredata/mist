@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core
 
 import scala.concurrent.duration.Duration
 
-object RemoteProtocol {
+object CoreData {
 
   /**
     * Request data for creating spark/mist context on worker

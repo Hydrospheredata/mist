@@ -3,7 +3,8 @@ package io.hydrosphere.mist.core.jvmjob
 import java.lang.reflect.InvocationTargetException
 
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.core.jvmjob.EitherOps._
+import io.hydrosphere.mist.utils.EitherOps
+import EitherOps._
 
 import scala.reflect.runtime.universe._
 
@@ -79,9 +80,3 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
   def argumentsTypes: Map[String, JobArgType] =
     arguments.toMap.mapValues(JobArgType.fromType)
 }
-
-object EitherUtils {
-
-
-}
-

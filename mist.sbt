@@ -66,11 +66,57 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % "1.7.5",
 
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      //"org.scala-lang" % "scala-reflect" % scalaVersion.value,
 
-      "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
+      //"org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
+  )
+
+lazy val master = project.in(file("mist/master"))
+  .dependsOn(core)
+  .settings(commonSettings: _*)
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    name := "mist-master",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= akkaDependencies(scalaVersion.value),
+    libraryDependencies ++= Seq(
+      "org.slf4j" % "slf4j-api" % "1.7.5",
+
+      "com.typesafe.slick" %% "slick" % "3.1.1",
+      "com.h2database" % "h2" % "1.4.194",
+      "org.flywaydb" % "flyway-core" % "4.1.1",
+      
+      "org.typelevel" %% "cats" % "0.9.0",
+      "com.twitter" %% "chill" % "0.9.2",
+      "com.github.scopt" %% "scopt" % "3.6.0",
+
+      "org.apache.hadoop" % "hadoop-common" % "2.8.1",
+      "org.scalaj" %% "scalaj-http" % "2.3.0",
+
+      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
+
+      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
+      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
+
+      "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
+
+      "org.mockito" % "mockito-all" % "1.10.19" % "test",
+      "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    ),
+    libraryDependencies ++= {
+      val is2_10 = """2\.10\..""".r
+      scalaVersion.value match {
+        case is2_10() => Seq("org.apache.spark" %% "spark-core" % sparkVersion.value % "provided")
+        case _ => Seq()
+      }
+    }
+  ).settings(
+    buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
+    buildInfoPackage := "io.hydrosphere.mist"
   )
 
 lazy val currentExamples = currentSparkVersion match {
@@ -319,14 +365,12 @@ def akkaDependencies(scalaVersion: String) = {
     case New() => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.4.7",
       "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1", // needed for logback to work
-      "com.typesafe.slick" %% "slick" % "3.2.0"
+      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"
     )
     case _ => Seq(
       "com.typesafe.akka" %% "akka-actor" % "2.3.15",
       "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.15", // needed for logback to work
-      "com.typesafe.slick" %% "slick" % "3.1.1"
+      "com.typesafe.akka" %% "akka-slf4j" % "2.3.15"
     )
   }
 }
@@ -371,16 +415,13 @@ lazy val commonAssemblySettings = Seq(
 )
 
 lazy val commonScalacOptions = Seq(
-  "-deprecation",
   "-encoding", "UTF-8",
   "-feature",
   "-language:existentials",
   "-language:higherKinds",
   "-language:implicitConversions",
+  "-language:postfixOps",
   "-unchecked",
-  "-Xfatal-warnings",
-  "-Yno-adapted-args",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen",
-  "-Ywarn-value-discard"
+  "-Ywarn-numeric-widen"
 )

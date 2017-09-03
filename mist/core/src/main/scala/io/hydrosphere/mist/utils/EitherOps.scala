@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core.jvmjob
+package io.hydrosphere.mist.utils
 
 /**
   * We don't need full cats library for worker - keep worker artifact with minimal dependency
