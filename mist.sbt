@@ -84,6 +84,8 @@ lazy val master = project.in(file("mist/master"))
     libraryDependencies ++= Seq(
       "org.slf4j" % "slf4j-api" % "1.7.5",
 
+      "com.typesafe" % "config" % "1.3.1",
+
       "com.typesafe.slick" %% "slick" % "3.1.1",
       "com.h2database" % "h2" % "1.4.194",
       "org.flywaydb" % "flyway-core" % "4.1.1",
@@ -92,7 +94,8 @@ lazy val master = project.in(file("mist/master"))
       "com.twitter" %% "chill" % "0.9.2",
       "com.github.scopt" %% "scopt" % "3.6.0",
 
-      "org.apache.hadoop" % "hadoop-common" % "2.8.1",
+      "org.apache.hadoop" % "hadoop-common" % "2.6.4",
+      "commons-codec" % "commons-codec" % "1.10",
       "org.scalaj" %% "scalaj-http" % "2.3.0",
 
       "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
@@ -107,6 +110,7 @@ lazy val master = project.in(file("mist/master"))
       "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     ),
+    libraryDependencies ++= miniClusterDependencies,
     libraryDependencies ++= {
       val is2_10 = """2\.10\..""".r
       scalaVersion.value match {
