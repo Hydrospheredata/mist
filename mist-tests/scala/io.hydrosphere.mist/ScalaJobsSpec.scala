@@ -2,14 +2,7 @@ package io.hydrosphere.mist
 
 import java.nio.file.{Files, Paths}
 
-import io.hydrosphere.mist.jobs.JobResult
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.scalatest.{FunSpec, Matchers}
-
-import JsonCodecs._
-import spray.json.pimpString
-
-import scalaj.http.Http
 
 class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
@@ -17,8 +10,6 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
   override val overrideRouter = Some("scalajobs/router.conf")
 
   override def beforeMistStart: Unit = {
-    val sparkPref = sparkVersion.split('.').head
-
     val jobSource = s"""
       |
       | import io.hydrosphere.mist.api.MistJob
