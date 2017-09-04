@@ -30,6 +30,11 @@ trait MistRunner {
     val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
     val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
+    def isBindedToPort: Boolean = {
+      val out = "ss -tln sport eq :2004".!!
+      out.trim.split("\n").length > 1
+    }
+
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
 //    val ps = Process(args, None, env: _*).run(new ProcessLogger {
 //      override def buffer[T](f: => T): T = f
@@ -39,7 +44,16 @@ trait MistRunner {
 //      override def err(s: => String): Unit = ()
 //    })
     val ps = Process(args, None, env: _*).run()
-    Thread.sleep(5000)
+
+    var taken = 0
+    val max = 15
+    while(!isBindedToPort && taken < max) {
+      Thread.sleep(1000)
+      taken += 1
+    }
+    if (taken >= max) {
+      throw new RuntimeException(s"Mist didn't start during $max millis")
+    }
     ps
   }
 
