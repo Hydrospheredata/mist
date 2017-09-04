@@ -53,7 +53,7 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
   val overrideConf: Option[String] = None
   val overrideRouter: Option[String] = None
-  protected def beforeMistStart: Unit = {()}
+  protected def beforeMistStart: Unit = {}
 
   private var ps: Process = _
 

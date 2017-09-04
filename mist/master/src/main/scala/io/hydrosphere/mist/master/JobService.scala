@@ -4,7 +4,7 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.models._
 
 import Messages.Status._

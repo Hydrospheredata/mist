@@ -6,7 +6,8 @@ import java.util.UUID
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
-import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo, Action}
+import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.jvmjob.JobClass
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 

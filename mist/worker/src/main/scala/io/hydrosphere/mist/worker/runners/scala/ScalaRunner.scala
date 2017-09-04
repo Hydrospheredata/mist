@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker.runners.scala
 
 import java.io.File
 
-import io.hydrosphere.mist.core.CoreData.{JobParams, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
 
 import io.hydrosphere.mist.utils.EitherOps._

@@ -2,6 +2,7 @@ package io.hydrosphere.mist.core
 
 import java.io.File
 
+import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{JobsLoader, JobClass}
 
 import io.hydrosphere.mist.utils.EitherOps._

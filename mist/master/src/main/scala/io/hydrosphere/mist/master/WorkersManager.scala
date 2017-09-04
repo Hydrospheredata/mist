@@ -9,7 +9,7 @@ import akka.util.Timeout
 import Messages.JobExecution._
 import WorkersManager.WorkerResolved
 
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}

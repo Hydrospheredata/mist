@@ -2,8 +2,7 @@ package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestProbe, TestKit}
-import io.hydrosphere.mist.core.Action
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.JobExecution.WorkerUp
 import io.hydrosphere.mist.master.Messages.Status._
 import org.scalatest.{Matchers, FunSpecLike}

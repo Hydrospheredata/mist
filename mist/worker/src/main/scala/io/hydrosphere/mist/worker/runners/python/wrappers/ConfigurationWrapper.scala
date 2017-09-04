@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.worker.runners.python.wrappers
 
-import io.hydrosphere.mist.core.CoreData.JobParams
+import io.hydrosphere.mist.core.CommonData.JobParams
 import io.hydrosphere.mist.utils.Collections
 
 class ConfigurationWrapper(configuration: JobParams) {

@@ -5,7 +5,7 @@ import java.time.{ZoneId, Instant}
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.{ListRoutes, RunJobCli}
 import io.hydrosphere.mist.master.Messages.Status.RunningJobs

@@ -7,8 +7,8 @@ import java.util.UUID
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
-import io.hydrosphere.mist.core.CoreData.JobParams
-import io.hydrosphere.mist.core.{Action, PyJobInfo, JvmJobInfo}
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
+import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master.artifact.ArtifactRepository

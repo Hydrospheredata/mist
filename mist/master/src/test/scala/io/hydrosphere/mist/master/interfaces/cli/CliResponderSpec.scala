@@ -2,14 +2,10 @@ package io.hydrosphere.mist.master.interfaces.cli
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CoreData.JobParams
-import io.hydrosphere.mist.core.{Action, JvmJobInfo, PyJobInfo}
-import io.hydrosphere.mist.core.jvmjob.JobsLoader
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.Messages.JobExecution.StopAllWorkers
-import io.hydrosphere.mist.master.Messages.ListRoutes
 import io.hydrosphere.mist.master.Messages.Status.RunningJobs
 import io.hydrosphere.mist.master.{JobDetails, JobService, MasterService}
-import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo}
 import org.mockito.Mockito._
 import org.scalatest.{FunSpecLike, Matchers}
 

@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.core.CoreData.WorkerInitInfo
+import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.data.ContextsStorage
 
 import scala.concurrent.Future

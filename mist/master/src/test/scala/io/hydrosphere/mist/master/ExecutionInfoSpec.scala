@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.core.Action
-import io.hydrosphere.mist.core.CoreData.{JobParams, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest, Action}
 import io.hydrosphere.mist.master.models.JobStartResponse
 import org.scalatest._
 

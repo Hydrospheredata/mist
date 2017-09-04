@@ -3,7 +3,7 @@ package io.hydrosphere.mist.core.jvmjob
 import java.io.File
 import java.net.URLClassLoader
 
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.CommonData.Action
 
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success, Try}

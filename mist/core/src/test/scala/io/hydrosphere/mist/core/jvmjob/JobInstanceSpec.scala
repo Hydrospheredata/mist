@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.core.jvmjob
 
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
 
 import org.apache.spark.{SparkConf, SparkContext}

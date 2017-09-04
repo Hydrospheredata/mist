@@ -2,8 +2,7 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.hydrosphere.mist.core.Action
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.JobDetails.{Status, Source}
 import io.hydrosphere.mist.master.{MockitoSugar, ExecutionInfo, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs

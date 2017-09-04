@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core.jvmjob
 
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{FunSpec, Matchers}
 
 class JobsLoaderSpec extends FunSpec with Matchers {
