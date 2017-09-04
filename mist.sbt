@@ -290,11 +290,7 @@ lazy val root = project.in(file("."))
 
   )
 
-lazy val commandAlias = currentSparkVersion match {
-  case versionRegex("1", minor) => ";mist/test;mist/it:test"
-  case _ => ";mistLib/test;mist/test;mist/it:test"
-}
-addCommandAlias("testAll", commandAlias)
+addCommandAlias("testAll", ";test;it:test")
 
 lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
   .dependsOn(mistLib)
