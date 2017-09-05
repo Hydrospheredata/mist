@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core
 
 import scala.concurrent.duration.Duration
 
-object CoreData {
+object CommonData {
 
   /**
     * Request data for creating spark/mist context on worker
@@ -72,4 +72,23 @@ object CoreData {
 
   case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
+
+
+
+  sealed trait Action
+  object Action {
+
+    def apply(string: String): Action = string match {
+      case "execute" => Execute
+      case "serve" => Serve
+    }
+
+    case object Execute extends Action {
+      override def toString: String = "execute"
+    }
+
+    case object Serve extends Action {
+      override def toString: String = "serve"
+    }
+  }
 }

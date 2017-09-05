@@ -4,7 +4,7 @@ import java.util.concurrent.Executors
 
 import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.{JobRunner, MistJobRunner}
 import org.apache.spark.{SparkConf, SparkContext}
 

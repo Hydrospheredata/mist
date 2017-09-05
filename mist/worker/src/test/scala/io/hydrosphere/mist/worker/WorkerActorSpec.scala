@@ -2,8 +2,7 @@ package io.hydrosphere.mist.worker
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.Action
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.JobRunner
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._

@@ -2,6 +2,7 @@ package io.hydrosphere.mist
 
 import org.scalatest._
 import scala.sys.process._
+import io.hydrosphere.mist.master.JobResult
 
 trait MistRunner {
 
@@ -29,6 +30,11 @@ trait MistRunner {
     val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
     val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
+    def isBindedToPort: Boolean = {
+      val out = "ss -tln sport eq :2004".!!
+      out.trim.split("\n").length > 1
+    }
+
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
 //    val ps = Process(args, None, env: _*).run(new ProcessLogger {
 //      override def buffer[T](f: => T): T = f
@@ -38,7 +44,16 @@ trait MistRunner {
 //      override def err(s: => String): Unit = ()
 //    })
     val ps = Process(args, None, env: _*).run()
-    Thread.sleep(5000)
+
+    var taken = 0
+    val max = 15
+    while(!isBindedToPort && taken < max) {
+      Thread.sleep(1000)
+      taken += 1
+    }
+    if (taken >= max) {
+      throw new RuntimeException(s"Mist didn't start during $max millis")
+    }
     ps
   }
 
@@ -53,7 +68,7 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
 
   val overrideConf: Option[String] = None
   val overrideRouter: Option[String] = None
-  protected def beforeMistStart: Unit = {()}
+  protected def beforeMistStart: Unit = {}
 
   private var ps: Process = _
 
@@ -100,8 +115,7 @@ case class MistHttpInterface(
   timeout: Int = 120
 ) {
 
-  import JsonCodecs._
-  import spray.json.pimpString
+  import io.hydrosphere.mist.master.interfaces.JsonCodecs._
   import spray.json._
   import scalaj.http.Http
 

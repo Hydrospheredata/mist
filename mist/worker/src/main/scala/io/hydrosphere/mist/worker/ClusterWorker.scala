@@ -4,7 +4,7 @@ import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 
 class ClusterWorker(
   name: String,

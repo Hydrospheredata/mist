@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.models
 
 import java.util.UUID
 
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.master.JobDetails
 
 /** Specify how use context/workers */

@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.core.CoreData.JobParams
+import io.hydrosphere.mist.core.CommonData.JobParams
 
 object JobDetails {
   

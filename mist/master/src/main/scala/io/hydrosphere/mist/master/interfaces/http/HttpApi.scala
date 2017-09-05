@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.server.{Directives, Route}
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.master.{JobDetails, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{RunSettings, EndpointStartRequest}

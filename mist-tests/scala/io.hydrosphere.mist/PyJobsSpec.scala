@@ -18,14 +18,14 @@ class PyJobsSpec extends FunSpec with MistItTest with Matchers {
 
   it("should run hive job") { runOnlyOnSpark1 {
     val result = interface.runJob("hive-job-py",
-      "path" -> "./src/it/resources/pyjobs/jobs/hive_job_data.json"
+      "path" -> "./mist-tests/resources/pyjobs/jobs/hive_job_data.json"
     )
     assert(result.success, s"Job is failed $result")
   }}
 
   it("should run session hive job") { runOnlyOnSpark2 {
     val result = interface.runJob("session-py",
-      "path" -> "./src/it/resources/pyjobs/jobs/hive_job_data.json"
+      "path" -> "./mist-tests/resources/pyjobs/jobs/hive_job_data.json"
     )
     assert(result.success, s"Job is failed $result")
   }}

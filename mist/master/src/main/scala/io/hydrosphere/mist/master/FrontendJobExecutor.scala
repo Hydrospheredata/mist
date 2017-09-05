@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
-import io.hydrosphere.mist.core.CoreData._
+import io.hydrosphere.mist.core.CommonData._
 
 import models.JobStartResponse
 import Messages.Status._

@@ -5,8 +5,7 @@ import java.time.format.{DateTimeParseException, DateTimeFormatter}
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
-import io.hydrosphere.mist.core.Action
-import io.hydrosphere.mist.core.CoreData.JobParams
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.Messages.Status._
 import io.hydrosphere.mist.master.{JobResult, JobDetails, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._

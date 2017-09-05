@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker.runners.python
 
 import java.io.File
 
-import io.hydrosphere.mist.core.CoreData.RunJobRequest
+import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner

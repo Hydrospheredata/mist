@@ -51,7 +51,7 @@ def test_mist(slaveName, sparkVersion) {
                     //Clear derby databases
                     sh "rm -rf metastore_db recovery.db derby.log"
                     echo 'Testing Mist with Spark version: ' + sparkVersion
-                    sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean assembly testAll"
+                    sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean testAll"
                 }
 
                 def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
