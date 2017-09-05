@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master
 
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.data.ContextsStorage
 import org.scalatest.{FunSpec, Matchers}
 

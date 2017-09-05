@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.artifact
 import java.io.File
 import java.nio.file.{Files, Paths}
 
-import io.hydrosphere.mist.master.MockitoSugar
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.TestUtils.AwaitSyntax
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import org.apache.commons.io.FileUtils

@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.core.Action
+import io.hydrosphere.mist.core.{Action, MockitoSugar}
 import io.hydrosphere.mist.core.CoreData._
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import org.scalatest.concurrent.Eventually

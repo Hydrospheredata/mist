@@ -69,6 +69,7 @@ lazy val core = project.in(file("mist/core"))
       //"org.scala-lang" % "scala-reflect" % scalaVersion.value,
 
       //"org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
+      "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
   )

@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CoreData.{JobParams, RunJobRequest}
-import io.hydrosphere.mist.core.{PyJobInfo, Action, JvmJobInfo}
+import io.hydrosphere.mist.core.{Action, JvmJobInfo, MockitoSugar, PyJobInfo}
 import io.hydrosphere.mist.master.artifact.{ArtifactKeyProvider, ArtifactRepository, EndpointArtifactKeyProvider}
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings

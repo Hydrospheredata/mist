@@ -3,10 +3,10 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo, Action}
+import io.hydrosphere.mist.core.{Action, JvmJobInfo, MockitoSugar, PyJobInfo}
 import io.hydrosphere.mist.core.CoreData.JobParams
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig, EndpointStartRequest, RunSettings}
+import io.hydrosphere.mist.master.models.{EndpointConfig, EndpointStartRequest, FullEndpointInfo, RunSettings}
 import io.hydrosphere.mist.master._
 import org.scalatest.{FunSpec, Matchers}
 
