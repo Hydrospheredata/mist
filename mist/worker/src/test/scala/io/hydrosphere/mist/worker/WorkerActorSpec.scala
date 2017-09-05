@@ -12,6 +12,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
@@ -88,7 +89,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
       it(s"should cancel job in $name mode") {
         val runnerSelector = RunnerSelector(new JobRunner {
-          override def run(req: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = {
+          override def run(req: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Either[String, Map[String, Any]] = {
             val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
             Right(Map("r" -> "Ok"))
@@ -159,7 +160,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   def testRunner(f: => Either[String, Map[String, Any]]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = f
+      def run(p: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Either[String, Map[String, Any]] = f
     }
   }
 }

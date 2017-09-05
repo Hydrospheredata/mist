@@ -75,7 +75,7 @@ lazy val core = project.in(file("mist/core"))
   )
 
 lazy val master = project.in(file("mist/master"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .enablePlugins(BuildInfoPlugin)
@@ -126,7 +126,7 @@ lazy val master = project.in(file("mist/master"))
   )
 
 lazy val worker = project.in(file("mist/worker"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(
