@@ -4,34 +4,34 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-
-import io.hydrosphere.mist.utils.EitherOps._
-
+import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import org.apache.spark.util.SparkClassLoader
+
+import scala.concurrent.{ExecutionContext, Future}
 
 
 class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext): Either[String, Map[String, Any]] = {
+    context: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
 
     val params = request.params
     import params._
 
     if (!jobFile.exists()) {
-      Left(s"Can not found file: $filePath")
+      Future.failed(new IllegalArgumentException(s"Cannot find file $filePath"))
     } else {
       context.addJar(params.filePath)
       val loader = prepareClassloader(jobFile)
       val jobsLoader = new JobsLoader(loader)
-
-      val load = jobsLoader.loadJobInstance(className, action)
-      Either.fromTry(load).flatMap(instance => {
-        instance.run(context.setupConfiguration(request.id), arguments)
-      }).leftMap(e => buildErrorMessage(params, e))
+      for {
+        instance <- Future.fromTry(jobsLoader.loadJobInstance(className, action))
+        setupConf = context.setupConfiguration(request.id)
+        result <- Future.fromEither(instance.run(setupConf, arguments))
+      } yield result
     }
   }
 
@@ -42,12 +42,6 @@ class ScalaRunner(jobFile: File) extends JobRunner {
     val patched = SparkClassLoader.withURLs(existing, url)
     Thread.currentThread().setContextClassLoader(patched)
     patched
-  }
-
-  private def buildErrorMessage(params: JobParams, e: Throwable): String = {
-    val msg = Option(e.getMessage).getOrElse("")
-    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
-    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
   }
 
 }

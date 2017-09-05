@@ -1,9 +1,13 @@
 package io.hydrosphere.mist.worker
 
+import java.io.File
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.JobRunner
+import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -13,6 +17,7 @@ import scala.concurrent.duration.Duration
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
   with Matchers
+  with MockitoSugar
   with BeforeAndAfterAll {
 
   val conf = new SparkConf()
@@ -38,17 +43,22 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   describe("common behavior") {
 
-    type WorkerProps = JobRunner => Props
+    type WorkerProps = RunnerSelector => Props
+
+    val artifactDownloader = mock[ArtifactDownloader]
+
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
 
     val workers = Table[String, WorkerProps](
       ("name", "f"),
-      ("shared", (r: JobRunner) => SharedWorkerActor.props(context, r, Duration.Inf, 10)),
-      ("exclusive", (r: JobRunner) => ExclusiveWorkerActor.props(context, r))
+      ("shared", (r: RunnerSelector) => SharedWorkerActor.props(r, context, artifactDownloader, Duration.Inf, 10)),
+      ("exclusive", (r: RunnerSelector) => ExclusiveWorkerActor.props(r, context, artifactDownloader))
     )
 
     forAll(workers) { (name, makeProps) =>
       it(s"should execute jobs in $name mode") {
-        val runner = SuccessRunner(Map("answer" -> 42))
+        val runner = SuccessRunnerSelector(Map("answer" -> 42))
 
         val probe = TestProbe()
         val worker = createActor(makeProps(runner))
@@ -63,7 +73,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       }
 
       it(s"should respond failure in $name mode") {
-        val runner = FailureRunner("Expected error")
+        val runner = FailureRunnerSelector("Expected error")
         val worker = createActor(makeProps(runner))
 
         val probe = TestProbe()
@@ -77,15 +87,15 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       }
 
       it(s"should cancel job in $name mode") {
-        val runner = new JobRunner {
+        val runnerSelector = RunnerSelector(new JobRunner {
           override def run(req: RunJobRequest, c: NamedContext): Either[String, Map[String, Any]] = {
             val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
             Right(Map("r" -> "Ok"))
           }
-        }
+        })
 
-        val worker = createActor(makeProps(runner))
+        val worker = createActor(makeProps(runnerSelector))
 
         val probe = TestProbe()
         probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
@@ -103,14 +113,18 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   it("should limit jobs") {
-    val runner = SuccessRunner({
+    val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
       Map("yoyo" -> "hey")
     })
 
     val probe = TestProbe()
 
-    val props = SharedWorkerActor.props(context, runner, Duration.Inf, 2)
+    val artifactDownloader = mock[ArtifactDownloader]
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
+
+    val props = SharedWorkerActor.props(runnerSelector, context, artifactDownloader, Duration.Inf, 2)
     val worker = TestActorRef[SharedWorkerActor](props)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
@@ -121,6 +135,21 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.expectMsgType[JobStarted]
     probe.expectMsgType[WorkerIsBusy]
   }
+
+  def RunnerSelector(r: JobRunner): RunnerSelector =
+    new RunnerSelector {
+      override def selectRunner(file: File): JobRunner = r
+    }
+
+  def SuccessRunnerSelector(r: => Map[String, Any]): RunnerSelector =
+    new RunnerSelector {
+      override def selectRunner(file: File): JobRunner = testRunner(Right(r))
+    }
+
+  def FailureRunnerSelector(error: String): RunnerSelector =
+    new RunnerSelector {
+      override def selectRunner(file: File): JobRunner = testRunner(Left(error))
+    }
 
   def SuccessRunner(r: => Map[String, Any]): JobRunner =
     testRunner(Right(r))

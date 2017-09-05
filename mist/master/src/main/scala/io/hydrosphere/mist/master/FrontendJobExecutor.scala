@@ -104,7 +104,7 @@ class FrontendJobExecutor(
         statusService ! StartedEvent(id, time)
         info.updateStatus(JobDetails.Status.Started)
       })
-
+    //TODO: handling of FileDownloading and Downloaded event
     case done: JobResponse =>
       onJobDone(done)
       sendQueued(worker)
