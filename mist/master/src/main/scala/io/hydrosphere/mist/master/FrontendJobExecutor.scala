@@ -4,9 +4,8 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
-
 import models.JobStartResponse
-import Messages.Status._
+import Messages.Status.{UpdateStatusEvent, _}
 import Messages.JobExecution._
 
 import scala.collection.mutable
@@ -104,7 +103,13 @@ class FrontendJobExecutor(
         statusService ! StartedEvent(id, time)
         info.updateStatus(JobDetails.Status.Started)
       })
-    //TODO: handling of FileDownloading and Downloaded event
+
+    case JobFileDownloaded(id, time) =>
+      updateJob(JobFileDownloadedEvent(id, time), JobDetails.Status.FileDownloaded)
+
+    case JobFileDownloading(id, time) =>
+      updateJob(JobFileDownloadingEvent(id, time), JobDetails.Status.FileDownloading)
+
     case done: JobResponse =>
       onJobDone(done)
       sendQueued(worker)
@@ -193,6 +198,12 @@ class FrontendJobExecutor(
     worker ! info.request
   }
 
+  private def updateJob(evt: UpdateStatusEvent, jobStatus: JobDetails.Status): Unit = {
+    jobs.get(evt.id).foreach(info => {
+      statusService ! evt
+      info.updateStatus(jobStatus)
+    })
+  }
 }
 
 object FrontendJobExecutor {
