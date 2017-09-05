@@ -47,7 +47,7 @@ trait JobStarting { that: Actor =>
       case Success(_) =>
         sender() ! JobFileDownloaded(id)
       case Failure(ex) =>
-        sender() ! JobFailure(id, ex.getMessage)
+        self ! JobFailure(id, ex.getMessage)
     }
     fileDownload
   }
@@ -91,6 +91,7 @@ class SharedWorkerActor(
           runner = runnerSelector.selectRunner(file)
           res <- {
             val jobStarted = startJob(req, runner)
+            sender() ! JobStarted(id)
             log.info(s"Starting job: $id")
             activeJobs += id -> ExecutionUnit(sender(), jobStarted)
             jobStarted
