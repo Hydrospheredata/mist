@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.logging
 import java.nio.ByteOrder
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.ActorMaterializer
+import akka.stream.{OverflowStrategy, ActorMaterializer}
 import akka.stream.io.Framing
 import akka.stream.scaladsl._
 import akka.util.ByteString
@@ -70,7 +70,7 @@ trait LogStreams {
     writer: LogsWriter,
     publishers: Seq[JobEventPublisher]
   )(implicit mat: ActorMaterializer): ActorRef = {
-    val source = Source.actorPublisher[LogEvent](DummyPublisher.props())
+    val source = Source.actorRef[LogEvent](10000, OverflowStrategy.dropHead)
     val sink = sinkToPublishers(publishers)
 
     source.via(storeFlow(writer)).toMat(sink)(Keep.left).run()
