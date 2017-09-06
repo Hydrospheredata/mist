@@ -137,6 +137,9 @@ lazy val worker = project.in(file("mist/worker"))
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % "3.6.0",
 
+      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4" ,
+      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test"
     ),

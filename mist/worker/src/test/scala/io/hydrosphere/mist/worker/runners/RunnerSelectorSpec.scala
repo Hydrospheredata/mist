@@ -1,13 +1,11 @@
-package io.hydrosphere.mist.worker
+package io.hydrosphere.mist.worker.runners
 
 import java.io.File
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.worker.runners.SimpleRunnerSelector
 import io.hydrosphere.mist.worker.runners.python.PythonRunner
 import io.hydrosphere.mist.worker.runners.scala.ScalaRunner
 import org.apache.commons.io.FileUtils
-import org.apache.spark.deploy.PythonRunner
 import org.scalatest.{BeforeAndAfter, FunSpecLike, Matchers}
 
 class RunnerSelectorSpec extends FunSpecLike
