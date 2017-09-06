@@ -222,6 +222,7 @@ trait JsonCodecs extends SprayJsonSupport
     implicit val failedF = jsonFormat3(FailedEvent)
 
     implicit val receivedLogF = jsonFormat3(ReceivedLogs)
+    implicit val fileDownloadingF = jsonFormat2(JobFileDownloadingEvent)
 
     override def write(obj: SystemEvent): JsValue = {
       val (name, initial) = obj match {

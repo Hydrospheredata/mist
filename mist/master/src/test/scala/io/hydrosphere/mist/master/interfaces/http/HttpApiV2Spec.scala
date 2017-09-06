@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import akka.http.scaladsl.model._
@@ -16,6 +16,7 @@ import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master._
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
@@ -370,6 +371,23 @@ class HttpApiV2Spec extends FunSpec
         status shouldBe StatusCodes.NotFound
       }
     }
+
+    it("should return sha of given filename") {
+      val file = new File("./target/test.jar")
+      FileUtils.touch(file)
+
+      val expectedHex = DigestUtils.sha1Hex(Files.newInputStream(file.toPath))
+
+      val artifactRepository = mock[ArtifactRepository]
+      when(artifactRepository.get(any[String]))
+        .thenReturn(Some(file))
+
+      val routes = HttpV2Routes.artifactRoutes(artifactRepository)
+      Get("/v2/api/artifacts/test.jar/sha") ~> routes ~> check {
+        responseAs[String] shouldBe expectedHex
+      }
+    }
+
   }
 
   describe("status") {
