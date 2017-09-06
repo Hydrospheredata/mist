@@ -104,11 +104,11 @@ class FrontendJobExecutor(
         info.updateStatus(JobDetails.Status.Started)
       })
 
-    case JobFileDownloaded(id, time) =>
-      updateJob(JobFileDownloadedEvent(id, time), JobDetails.Status.FileDownloaded)
-
-    case JobFileDownloading(id, time) =>
-      updateJob(JobFileDownloadingEvent(id, time), JobDetails.Status.FileDownloading)
+    case e@JobFileDownloadingEvent(id, _)=>
+      jobs.get(id).foreach(info => {
+        statusService ! e
+        info.updateStatus(JobDetails.Status.FileDownloading)
+      })
 
     case done: JobResponse =>
       onJobDone(done)
@@ -198,12 +198,6 @@ class FrontendJobExecutor(
     worker ! info.request
   }
 
-  private def updateJob(evt: UpdateStatusEvent, jobStatus: JobDetails.Status): Unit = {
-    jobs.get(evt.id).foreach(info => {
-      statusService ! evt
-      info.updateStatus(jobStatus)
-    })
-  }
 }
 
 object FrontendJobExecutor {

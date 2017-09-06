@@ -29,7 +29,6 @@ object Messages {
     case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
     case class QueuedEvent(id: String) extends UpdateStatusEvent
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class JobFileDownloadedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class JobFileDownloadingEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
     case class FinishedEvent(id: String, time: Long, result: Map[String, Any]) extends UpdateStatusEvent

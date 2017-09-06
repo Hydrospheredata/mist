@@ -38,7 +38,7 @@ class RunnerSelectorSpec extends FunSpecLike
   }
 
 
-  it("should throw exception when exception is thrown") {
+  it("should throw exception when unknown file type is passed") {
     val selector = new SimpleRunnerSelector
     intercept[IllegalArgumentException] {
       selector.selectRunner(unknown)

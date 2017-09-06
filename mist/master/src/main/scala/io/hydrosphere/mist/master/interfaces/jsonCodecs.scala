@@ -232,6 +232,7 @@ trait JsonCodecs extends SprayJsonSupport
         case x: FinishedEvent => "finished" -> x.toJson
         case x: FailedEvent => "failed" -> x.toJson
         case x: ReceivedLogs => "logs" -> x.toJson
+        case x: JobFileDownloadingEvent => "job-file-downloading" -> x.toJson
       }
 
       val merged = initial.asJsObject.fields + ("event" -> JsString(name))
@@ -248,6 +249,7 @@ trait JsonCodecs extends SprayJsonSupport
         case JsString("finished") => obj.convertTo[FinishedEvent]
         case JsString("failed") => obj.convertTo[FailedEvent]
         case JsString("logs") => obj.convertTo[ReceivedLogs]
+        case JsString("job-file-downloading") => obj.convertTo[JobFileDownloadingEvent]
         case x => throw new IllegalArgumentException(s"Unknown event type $x")
       }
     }

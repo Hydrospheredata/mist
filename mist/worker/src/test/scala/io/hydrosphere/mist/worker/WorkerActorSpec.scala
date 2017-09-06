@@ -3,17 +3,18 @@ package io.hydrosphere.mist.worker
 import java.io.File
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.event.LoggingReceive
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
+import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
@@ -60,12 +61,13 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     forAll(workers) { (name, makeProps) =>
       it(s"should execute jobs in $name mode") {
         val runner = SuccessRunnerSelector(Map("answer" -> 42))
+        val worker = createActor(makeProps(runner))
 
         val probe = TestProbe()
-        val worker = createActor(makeProps(runner))
 
         probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
+        probe.expectMsgType[JobFileDownloading]
         probe.expectMsgType[JobStarted]
         probe.expectMsgPF(){
           case JobSuccess("id", r) =>
@@ -79,20 +81,20 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
         val probe = TestProbe()
         probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
+        probe.expectMsgType[JobFileDownloading]
         probe.expectMsgType[JobStarted]
-        probe.expectMsgPF(){
+        probe.expectMsgPF() {
           case JobFailure("id", e) =>
-            e shouldBe "Expected error"
+            e should not be empty
         }
       }
 
       it(s"should cancel job in $name mode") {
         val runnerSelector = RunnerSelector(new JobRunner {
-          override def run(req: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Either[String, Map[String, Any]] = {
+          override def run(req: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
             val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-            Right(Map("r" -> "Ok"))
+            Future.successful(Map("r" -> "Ok"))
           }
         })
 
@@ -102,10 +104,10 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
         probe.send(worker, CancelJobRequest("id"))
 
+        probe.expectMsgType[JobFileDownloading]
         probe.expectMsgType[JobStarted]
         probe.expectMsgType[JobIsCancelled]
       }
-
       def createActor(props: Props): ActorRef = {
         TestActorRef[Actor](props)
       }
@@ -132,8 +134,12 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
     probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
-    probe.expectMsgType[JobStarted]
-    probe.expectMsgType[JobStarted]
+    probe.expectMsgAllClassOf(
+      classOf[JobFileDownloading],
+      classOf[JobFileDownloading],
+      classOf[JobStarted],
+      classOf[JobStarted]
+    )
     probe.expectMsgType[WorkerIsBusy]
   }
 
@@ -144,23 +150,26 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   def SuccessRunnerSelector(r: => Map[String, Any]): RunnerSelector =
     new RunnerSelector {
-      override def selectRunner(file: File): JobRunner = testRunner(Right(r))
+      override def selectRunner(file: File): JobRunner = SuccessRunner(r)
     }
 
   def FailureRunnerSelector(error: String): RunnerSelector =
     new RunnerSelector {
-      override def selectRunner(file: File): JobRunner = testRunner(Left(error))
+      override def selectRunner(file: File): JobRunner = FailureRunner(error)
     }
 
   def SuccessRunner(r: => Map[String, Any]): JobRunner =
-    testRunner(Right(r))
+    testRunner(Future.successful(r))
 
   def FailureRunner(error: String): JobRunner =
-    testRunner(Left(error))
+    testRunner(Future.failed(new RuntimeException(error)))
 
-  def testRunner(f: => Either[String, Map[String, Any]]): JobRunner = {
+  def testRunner(f: => Future[Map[String, Any]]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Either[String, Map[String, Any]] = f
+      def run(p: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+        Thread.sleep(1000)
+        f
+      }
     }
   }
 }

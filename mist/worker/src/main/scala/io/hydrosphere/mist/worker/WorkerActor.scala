@@ -19,37 +19,37 @@ case class ExecutionUnit(
   jobFuture: Future[Map[String, Any]]
 )
 
-trait JobStarting { that: Actor =>
+trait JobStarting {
+  that: Actor =>
   val runnerSelector: RunnerSelector
   val namedContext: NamedContext
   val artifactDownloader: ArtifactDownloader
 
-  def startJob(req: RunJobRequest, runner: JobRunner)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+  protected final def startJob(req: RunJobRequest)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
     val id = req.id
-    namedContext.sparkContext.setJobGroup(id, id)
-    val future = runner.run(req, namedContext)
+    sender() ! JobFileDownloading(id)
+    val jobStart = for {
+      file   <- artifactDownloader.downloadArtifact(req.params.filePath)
+      runner =  runnerSelector.selectRunner(file)
+      res    <- runJob(req, runner)
+    } yield res
 
-    future.onComplete(r => {
+    sender() ! JobStarted(id)
+
+    jobStart.onComplete(r => {
       val message = r match {
         case Success(value) => JobSuccess(id, value)
         case Failure(e) => JobFailure(id, buildErrorMessage(req.params, e))
       }
       self ! message
     })
-
-    future
+    jobStart
   }
 
-  def downloadFile(id: String, filePath: String)(implicit ec: ExecutionContext): Future[File] = {
-    val fileDownload = artifactDownloader.downloadArtifact(filePath)
-    sender() ! JobFileDownloading(id)
-    fileDownload.onComplete {
-      case Success(_) =>
-        sender() ! JobFileDownloaded(id)
-      case Failure(ex) =>
-        self ! JobFailure(id, ex.getMessage)
-    }
-    fileDownload
+  private def runJob(req: RunJobRequest, runner: JobRunner)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+    val id = req.id
+    namedContext.sparkContext.setJobGroup(id, id)
+    runner.run(req, namedContext)
   }
 
   protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
@@ -86,17 +86,8 @@ class SharedWorkerActor(
       if (activeJobs.size == maxJobs) {
         sender() ! WorkerIsBusy(id)
       } else {
-        for {
-          file <- downloadFile(req.id, req.params.filePath)
-          runner = runnerSelector.selectRunner(file)
-          res <- {
-            val jobStarted = startJob(req, runner)
-            sender() ! JobStarted(id)
-            log.info(s"Starting job: $id")
-            activeJobs += id -> ExecutionUnit(sender(), jobStarted)
-            jobStarted
-          }
-        } yield res
+        val jobStarted = startJob(req)
+        activeJobs += id -> ExecutionUnit(sender(), jobStarted)
       }
 
     // it does not work for streaming jobs
@@ -159,18 +150,9 @@ class ExclusiveWorkerActor(
   override def receive: Receive = awaitRequest
 
   val awaitRequest: Receive = {
-    case req@RunJobRequest(id, params) => for {
-      file <- downloadFile(id, params.filePath)
-      runner = runnerSelector.selectRunner(file)
-      res <- {
-        val jobStarted = startJob(req, runner)
-        sender() ! JobStarted(id)
-        val unit = ExecutionUnit(sender(), jobStarted)
-        context.become(execute(unit))
-        log.info(s"Starting job: $id")
-        jobStarted
-      }
-    } yield res
+    case req: RunJobRequest =>
+      val jobStarted = startJob(req)
+      context.become(execute(ExecutionUnit(sender(), jobStarted)))
   }
 
   def execute(executionUnit: ExecutionUnit): Receive = {

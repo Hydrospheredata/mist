@@ -91,6 +91,7 @@ object StatusService {
       case QueuedEvent(_) => d.withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Started)
       case CanceledEvent(_, time) => d.withEndTime(time).withStatus(Status.Canceled)
+      case JobFileDownloadingEvent(_, _) => d.withStatus(Status.FileDownloading)
       case FinishedEvent(_, time, result) =>
         d.withEndTime(time).withJobResult(result).withStatus(Status.Finished)
       case FailedEvent(_, time, error) =>
