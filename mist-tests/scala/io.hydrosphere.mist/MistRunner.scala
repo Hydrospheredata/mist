@@ -31,8 +31,8 @@ trait MistRunner {
     val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
     def isBindedToPort: Boolean = {
-      val out = "ss -tln sport eq :2004".!!
-      out.trim.split("\n").length > 1
+      val out = "netstat -l".!!
+      out.split("\n").find(_.contains(":2004")).isDefined
     }
 
     val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
