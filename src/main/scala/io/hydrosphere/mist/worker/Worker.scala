@@ -107,7 +107,7 @@ object Worker extends App with Logger {
 
     system.awaitTermination()
     logger.info(s"Shutdown worker application $name ${arguments.contextName}")
-
+    sys.exit()
   } catch {
     case e: Throwable =>
     logger.error("Fatal error", e)
