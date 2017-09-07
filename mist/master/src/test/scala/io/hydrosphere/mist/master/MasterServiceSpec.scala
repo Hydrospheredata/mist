@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest, Action}
 import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo, MockitoSugar}
-import io.hydrosphere.mist.master.artifact.{ArtifactKeyProvider, ArtifactRepository, EndpointArtifactKeyProvider}
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
@@ -31,7 +31,6 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
     val artifactRepo = mock[ArtifactRepository]
-    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
 
     when(endpoints.get(any[String]))
       .thenSuccess(Some(EndpointConfig("name", "path.py", "MyJob", "namespace")))
@@ -47,7 +46,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
         status = JobDetails.Status.Queued
       ))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo, artifactKeyProvider)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -61,7 +60,6 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val logs = mock[LogStorageMappings]
     val artifactRepo = mock[ArtifactRepository]
     val jvmMock = mock[JvmJobInfo]
-    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
 
     val info = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -70,7 +68,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jvmMock.validateAction(any[Map[String, Any]], any[Action]))
       .thenReturn(Left(new IllegalArgumentException("INVALID")))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo, artifactKeyProvider)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val spiedMasterService = spy(service)
 
@@ -92,8 +90,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
     val artifactRepository = mock[ArtifactRepository]
-    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository, artifactKeyProvider)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
     val spiedService = spy(service)
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -130,8 +127,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStorageMappings]
     val artifactRepository = mock[ArtifactRepository]
-    val artifactKeyProvider = mock[ArtifactKeyProvider[EndpointConfig, String]]
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository, artifactKeyProvider)
+    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
     val spiedService = spy(service)
     val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
     val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
