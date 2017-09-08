@@ -11,7 +11,6 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
@@ -89,10 +88,10 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
       it(s"should cancel job in $name mode") {
         val runnerSelector = RunnerSelector(new JobRunner {
-          override def run(req: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+          override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, Map[String, Any]] = {
             val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-            Future.successful(Map("r" -> "Ok"))
+            Right(Map("r" -> "Ok"))
           }
         })
 
@@ -157,17 +156,14 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     }
 
   def SuccessRunner(r: => Map[String, Any]): JobRunner =
-    testRunner(Future.successful(r))
+    testRunner(Right(r))
 
   def FailureRunner(error: String): JobRunner =
-    testRunner(Future.failed(new RuntimeException(error)))
+    testRunner(Left(new RuntimeException(error)))
 
-  def testRunner(f: => Future[Map[String, Any]]): JobRunner = {
+  def testRunner(f: => Either[Throwable, Map[String, Any]]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
-        Thread.sleep(1000)
-        f
-      }
+      def run(p: RunJobRequest, c: NamedContext): Either[Throwable, Map[String, Any]] = f
     }
   }
 }

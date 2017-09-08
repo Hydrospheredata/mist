@@ -27,7 +27,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
   override def run(
     req: RunJobRequest,
     context: NamedContext
-  )(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+  ): Either[Throwable, Map[String, Any]] = {
 
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -59,9 +59,9 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
         gatewayServer.shutdown()
       }
 
-      Future.successful(entryPoint.dataWrapper.get)
+      Right(entryPoint.dataWrapper.get)
     } catch {
-      case e: Throwable => Future.failed(e)
+      case e: Throwable => Left(e)
     }
   }
 }

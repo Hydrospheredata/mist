@@ -4,33 +4,38 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import org.apache.spark.util.SparkClassLoader
+import io.hydrosphere.mist.utils.EitherOps
+import EitherOps._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 
 class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+    context: NamedContext):Either[Throwable, Map[String, Any]] = {
 
     val params = request.params
     import params._
 
     if (!jobFile.exists()) {
-      Future.failed(new IllegalArgumentException(s"Cannot find file $filePath"))
+      Left(new IllegalArgumentException(s"Cannot find file $filePath"))
     } else {
       context.addJar(jobFile.toString)
       val loader = prepareClassloader(jobFile)
       val jobsLoader = new JobsLoader(loader)
+      val instance = jobsLoader.loadJobInstance(className, action) match {
+        case Success(i) => Right(i)
+        case Failure(ex) => Left(ex)
+      }
       for {
-        instance <- Future.fromTry(jobsLoader.loadJobInstance(className, action))
-        setupConf = context.setupConfiguration(request.id)
-        result <- Future.fromEither(instance.run(setupConf, arguments))
+        inst      <- instance
+        setupConf =  context.setupConfiguration(request.id)
+        result    <- inst.run(setupConf, arguments)
       } yield result
     }
   }

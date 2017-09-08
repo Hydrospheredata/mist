@@ -1,6 +1,5 @@
 package io.hydrosphere.mist.worker
 
-import java.io.File
 import java.util.concurrent.Executors
 
 import akka.actor._
@@ -16,7 +15,7 @@ import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
   requester: ActorRef,
-  jobFuture: Future[Map[String, Any]]
+  jobFuture: Future[Either[Throwable, Map[String, Any]]]
 )
 
 trait JobStarting {
@@ -25,28 +24,34 @@ trait JobStarting {
   val namedContext: NamedContext
   val artifactDownloader: ArtifactDownloader
 
-  protected final def startJob(req: RunJobRequest)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+  protected final def startJob(
+    req: RunJobRequest
+  )(implicit ec: ExecutionContext): Future[Either[Throwable, Map[String, Any]]] = {
     val id = req.id
     sender() ! JobFileDownloading(id)
     val jobStart = for {
       file   <- artifactDownloader.downloadArtifact(req.params.filePath)
+      _      =  sender() ! JobStarted(id)
       runner =  runnerSelector.selectRunner(file)
-      res    <- runJob(req, runner)
+      res    =  runJob(req, runner)
     } yield res
-
-    sender() ! JobStarted(id)
 
     jobStart.onComplete(r => {
       val message = r match {
-        case Success(value) => JobSuccess(id, value)
-        case Failure(e) => JobFailure(id, buildErrorMessage(req.params, e))
+        case Success(Right(value)) => JobSuccess(id, value)
+        case Success(Left(err)) => failure(req, err)
+        case Failure(e) => failure(req, e)
       }
       self ! message
     })
     jobStart
   }
 
-  private def runJob(req: RunJobRequest, runner: JobRunner)(implicit ec: ExecutionContext): Future[Map[String, Any]] = {
+  private def failure(req: RunJobRequest, ex: Throwable): JobResponse =
+    JobFailure(req.id, buildErrorMessage(req.params, ex))
+
+
+  private def runJob(req: RunJobRequest, runner: JobRunner): Either[Throwable, Map[String, Any]] = {
     val id = req.id
     namedContext.sparkContext.setJobGroup(id, id)
     runner.run(req, namedContext)

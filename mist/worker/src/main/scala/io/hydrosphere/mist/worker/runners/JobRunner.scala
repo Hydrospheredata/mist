@@ -10,7 +10,7 @@ trait JobRunner {
   def run(
     request: RunJobRequest,
     context: NamedContext
-  )(implicit ec: ExecutionContext): Future[Map[String, Any]]
+  ): Either[Throwable, Map[String, Any]]
 
 }
 
