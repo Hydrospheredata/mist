@@ -101,9 +101,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
         probe.send(worker, CancelJobRequest("id"))
 
-        probe.expectMsgType[JobFileDownloading]
-        probe.expectMsgType[JobStarted]
-        probe.expectMsgType[JobIsCancelled]
+        probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
       }
       def createActor(props: Props): ActorRef = {
         TestActorRef[Actor](props)
@@ -131,13 +129,13 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
     probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
-    probe.expectMsgAllClassOf(
+    probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
       classOf[JobFileDownloading],
       classOf[JobStarted],
-      classOf[JobStarted]
+      classOf[JobStarted],
+      classOf[WorkerIsBusy]
     )
-    probe.expectMsgType[WorkerIsBusy]
   }
 
   def RunnerSelector(r: JobRunner): RunnerSelector =
