@@ -1,8 +1,13 @@
 package io.hydrosphere.mist
 
+import java.nio.file.{Files, Paths}
+
 import org.scalatest._
+
 import scala.sys.process._
 import io.hydrosphere.mist.master.JobResult
+
+import scala.io.Source
 
 trait MistRunner {
 
@@ -30,8 +35,11 @@ trait MistRunner {
     val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
     val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
 
+    val isOSX = System.getProperty("os.name").startsWith("Mac")
+
     def isBindedToPort: Boolean = {
-      val out = "netstat -l".!!
+      val cmd = if (isOSX) "lsof -i -P" else "netstat -l"
+      val out = cmd.!!
       out.split("\n").find(_.contains(":2004")).isDefined
     }
 
@@ -52,7 +60,10 @@ trait MistRunner {
       taken += 1
     }
     if (taken >= max) {
-      throw new RuntimeException(s"Mist didn't start during $max millis")
+      for (line <- Source.fromFile(s"$mistHome/logs/mist.log").getLines) {
+        println(line)
+      }
+      throw new RuntimeException(s"Mist didn't start during $max seconds")
     }
     ps
   }

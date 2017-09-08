@@ -63,6 +63,35 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
       })
       Await.result(fileContent, Duration.Inf) shouldBe "JAR CONTENT"
     }
+
+    it("should not download whole file if checksums are correct") {
+      val localFile = Paths.get(basePath, "test.jar")
+      Files.write(localFile, "JAR CONTENT".getBytes())
+
+      val fileF = MockHttpServer.onServer(routes, binding => {
+        val port = binding.localAddress.getPort
+        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
+        file
+      })
+      Await.result(fileF, Duration.Inf).lastModified() == localFile.toFile.lastModified()
+    }
+
+    it("should not download file if file present by filepath") {
+      val localFile = Paths.get(basePath, "test.jar")
+      Files.write(localFile, "JAR CONTENT".getBytes())
+
+      val fileF = MockHttpServer.onServer(routes, binding => {
+        val port = binding.localAddress.getPort
+        val downloader = ArtifactDownloader.create("localhost", port, "/tmp")
+        val file = Await.result(downloader.downloadArtifact(s"$basePath/test.jar"), Duration.Inf)
+        file
+      })
+      val file = Await.result(fileF, Duration.Inf)
+      file.lastModified() shouldBe localFile.toFile.lastModified()
+      file.toString shouldBe localFile.toFile.toString
+    }
+
     it("should fail when local and remote file not found") {
       val routes = Flow[HttpRequest].map {request => {
         HttpResponse(status = StatusCodes.NotFound, entity = s"Not found ${request.uri}")

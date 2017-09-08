@@ -181,7 +181,6 @@ class MasterService(
 
   def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = for {
     file     <- artifactByKey(e.path)
-    _         = println(file.toString)
     jobInfo  <- JobInfo.load(e.name, file, e.className)
     fullInfo  = FullEndpointInfo(e, jobInfo)
   } yield fullInfo
