@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.worker
 
+import java.io.File
 import java.util.concurrent.Executors
 
 import akka.actor._
@@ -28,12 +29,11 @@ trait JobStarting {
     req: RunJobRequest
   )(implicit ec: ExecutionContext): Future[Either[Throwable, Map[String, Any]]] = {
     val id = req.id
-    sender() ! JobFileDownloading(id)
+    val s = sender()
     val jobStart = for {
-      file   <- artifactDownloader.downloadArtifact(req.params.filePath)
-      _      =  sender() ! JobStarted(id)
+      file   <- downloadFile(s, req)
       runner =  runnerSelector.selectRunner(file)
-      res    =  runJob(req, runner)
+      res    =  runJob(s, req, runner)
     } yield res
 
     jobStart.onComplete(r => {
@@ -47,12 +47,18 @@ trait JobStarting {
     jobStart
   }
 
+  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[File] = {
+    actor ! JobFileDownloading(req.id)
+    artifactDownloader.downloadArtifact(req.params.filePath)
+  }
+
   private def failure(req: RunJobRequest, ex: Throwable): JobResponse =
     JobFailure(req.id, buildErrorMessage(req.params, ex))
 
 
-  private def runJob(req: RunJobRequest, runner: JobRunner): Either[Throwable, Map[String, Any]] = {
+  private def runJob(actor: ActorRef, req: RunJobRequest, runner: JobRunner): Either[Throwable, Map[String, Any]] = {
     val id = req.id
+    actor ! JobStarted(id)
     namedContext.sparkContext.setJobGroup(id, id)
     runner.run(req, namedContext)
   }
