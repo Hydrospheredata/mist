@@ -18,6 +18,7 @@ import _root_.scala.concurrent.{ExecutionContext, Future}
 
 trait ArtifactDownloader {
   def downloadArtifact(filePath: String): Future[File]
+  def stop(): Unit
 }
 
 case class HttpArtifactDownloader(
@@ -87,6 +88,10 @@ case class HttpArtifactDownloader(
       FilenameUtils.getName(filePath)
 
     Paths.get(savePath, fileName).toFile
+  }
+
+  override def stop(): Unit = {
+    system.shutdown()
   }
 }
 

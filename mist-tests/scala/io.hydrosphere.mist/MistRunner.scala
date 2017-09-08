@@ -60,9 +60,6 @@ trait MistRunner {
       taken += 1
     }
     if (taken >= max) {
-      for (line <- Source.fromFile(s"$mistHome/logs/mist.log").getLines) {
-        println(line)
-      }
       throw new RuntimeException(s"Mist didn't start during $max seconds")
     }
     ps

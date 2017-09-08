@@ -118,6 +118,7 @@ class SharedWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    artifactDownloader.stop()
     namedContext.stop()
   }
 
@@ -169,6 +170,7 @@ class ExclusiveWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    artifactDownloader.stop()
     namedContext.stop()
   }
 
