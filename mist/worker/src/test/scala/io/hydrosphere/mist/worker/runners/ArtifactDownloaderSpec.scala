@@ -35,9 +35,11 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         HttpResponse(status = StatusCodes.NotFound, entity = s"Not found ${request.uri}")
       }
     }
+
     before {
       val f = new File(basePath)
       FileUtils.deleteQuietly(f)
+      FileUtils.forceMkdir(f)
     }
 
     it("should download file if it not found locally") {
@@ -71,7 +73,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         val downloader = ArtifactDownloader.create("localhost", port, basePath)
 
         val fileF = downloader.downloadArtifact("test.jar")
-        Await.result(fileF.failed, Duration.Inf)
+        Await.result(fileF, Duration.Inf)
       })
 
       ScalaFutures.whenReady(fileF.failed) {ex =>

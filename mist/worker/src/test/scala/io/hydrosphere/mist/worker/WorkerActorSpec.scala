@@ -3,9 +3,7 @@ package io.hydrosphere.mist.worker
 import java.io.File
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import akka.event.LoggingReceive
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
