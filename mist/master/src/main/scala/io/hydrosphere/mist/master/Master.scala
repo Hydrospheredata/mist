@@ -80,7 +80,7 @@ object Master extends App with Logger {
     val jobsSavePath = config.jobsSavePath
     val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, jobsSavePath)
 
-    val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage.defaults, jobsSavePath)
+    val artifactRepository = ArtifactRepository.create(config.artifactRepositoryPath, endpointsStorage.defaults, jobsSavePath)
     val workerManager = system.actorOf(
       WorkersManager.props(
         statusService, workerRunner,

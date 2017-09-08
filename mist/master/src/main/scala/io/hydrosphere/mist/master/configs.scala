@@ -161,6 +161,7 @@ case class MasterConfig(
   endpointsPath: String,
   security: SecurityConfig,
   jobsSavePath: String,
+  artifactRepositoryPath: String,
   raw: Config
 )
 
@@ -193,6 +194,7 @@ object MasterConfig {
       endpointsPath = mist.getString("endpoints-store.path"),
       security = SecurityConfig(mist.getConfig("security")),
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
+      artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
       raw = config
     )
   }
