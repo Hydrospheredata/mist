@@ -24,7 +24,7 @@ class ScalaRunner(jobFile: File) extends JobRunner {
     if (!jobFile.exists()) {
       Future.failed(new IllegalArgumentException(s"Cannot find file $filePath"))
     } else {
-      context.addJar(params.filePath)
+      context.addJar(jobFile.toString)
       val loader = prepareClassloader(jobFile)
       val jobsLoader = new JobsLoader(loader)
       for {

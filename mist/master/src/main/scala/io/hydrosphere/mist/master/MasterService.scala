@@ -11,7 +11,7 @@ import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.jvmjob.JobClass
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 
-import io.hydrosphere.mist.master.artifact.{ArtifactKeyProvider, ArtifactRepository}
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
@@ -27,8 +27,7 @@ class MasterService(
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logStorageMappings: LogStorageMappings,
-  val artifactRepository: ArtifactRepository,
-  val artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String]
+  val artifactRepository: ArtifactRepository
 ) extends Logger {
 
   def runJob(
@@ -181,15 +180,16 @@ class MasterService(
   }
 
   def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = for {
-    file <- artifactByKey(artifactKeyProvider.provideKey(e))
-    jobInfo <- JobInfo.load(e.name, file, e.className)
-    fullInfo = FullEndpointInfo(e, jobInfo)
+    file     <- artifactByKey(e.path)
+    _         = println(file.toString)
+    jobInfo  <- JobInfo.load(e.name, file, e.className)
+    fullInfo  = FullEndpointInfo(e, jobInfo)
   } yield fullInfo
 
-  private def artifactByKey(artifactKey: String): Try[File] = {
-    artifactRepository.get(artifactKey) match {
+  private def artifactByKey(filePath: String): Try[File] = {
+    artifactRepository.get(filePath) match {
       case Some(file) => Success(file)
-      case None => Failure(new IllegalArgumentException(s"file not found by key $artifactKey"))
+      case None => Failure(new IllegalArgumentException(s"file not found by key $filePath"))
     }
   }
 
@@ -198,7 +198,9 @@ class MasterService(
     fullInfo = configs.map(loadEndpointInfo)
       .foldLeft(List.empty[FullEndpointInfo]) {
         case (list, Success(x)) => list :+ x
-        case (list, Failure(ex)) => list
+        case (list, Failure(ex)) =>
+          logger.error(ex.getMessage, ex)
+          list
       }
   } yield fullInfo
 
