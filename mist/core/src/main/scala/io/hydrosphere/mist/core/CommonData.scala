@@ -53,6 +53,11 @@ object CommonData {
     time: Long = System.currentTimeMillis()
   ) extends RunJobResponse
 
+  case class JobFileDownloading(
+    id: String,
+    time: Long = System.currentTimeMillis()
+  ) extends RunJobResponse
+
   case class WorkerIsBusy(
     id: String,
     time: Long = System.currentTimeMillis()

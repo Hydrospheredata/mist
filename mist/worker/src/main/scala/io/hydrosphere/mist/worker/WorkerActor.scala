@@ -1,11 +1,12 @@
 package io.hydrosphere.mist.worker
 
+import java.io.File
 import java.util.concurrent.Executors
 
 import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.worker.runners.{JobRunner, MistJobRunner}
+import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable
@@ -15,37 +16,64 @@ import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
   requester: ActorRef,
-  jobFuture: Future[Either[String, Map[String, Any]]]
+  jobFuture: Future[Either[Throwable, Map[String, Any]]]
 )
 
-trait JobStarting { that: Actor =>
-
+trait JobStarting {
+  that: Actor =>
+  val runnerSelector: RunnerSelector
   val namedContext: NamedContext
-  val runner: JobRunner
+  val artifactDownloader: ArtifactDownloader
 
-  def startJob(req: RunJobRequest)(implicit ec: ExecutionContext): Future[Either[String, Map[String, Any]]] = {
+  protected final def startJob(
+    req: RunJobRequest
+  )(implicit ec: ExecutionContext): Future[Either[Throwable, Map[String, Any]]] = {
     val id = req.id
-    val future = Future {
-      namedContext.sparkContext.setJobGroup(req.id, req.id)
-      runner.run(req, namedContext)
-    }
+    val s = sender()
+    val jobStart = for {
+      file   <- downloadFile(s, req)
+      runner =  runnerSelector.selectRunner(file)
+      res    =  runJob(s, req, runner)
+    } yield res
 
-    future.onComplete(r => {
+    jobStart.onComplete(r => {
       val message = r match {
-        case Success(Left(error)) => JobFailure(id, error)
         case Success(Right(value)) => JobSuccess(id, value)
-        case Failure(e) => JobFailure(id, e.getMessage)
+        case Success(Left(err)) => failure(req, err)
+        case Failure(e) => failure(req, e)
       }
       self ! message
     })
+    jobStart
+  }
 
-    future
+  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[File] = {
+    actor ! JobFileDownloading(req.id)
+    artifactDownloader.downloadArtifact(req.params.filePath)
+  }
+
+  private def failure(req: RunJobRequest, ex: Throwable): JobResponse =
+    JobFailure(req.id, buildErrorMessage(req.params, ex))
+
+
+  private def runJob(actor: ActorRef, req: RunJobRequest, runner: JobRunner): Either[Throwable, Map[String, Any]] = {
+    val id = req.id
+    actor ! JobStarted(id)
+    namedContext.sparkContext.setJobGroup(id, id)
+    runner.run(req, namedContext)
+  }
+
+  protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
+    val msg = Option(e.getMessage).getOrElse("")
+    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
+    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
   }
 }
 
 class SharedWorkerActor(
+  val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
-  val runner: JobRunner,
+  val artifactDownloader: ArtifactDownloader,
   idleTimeout: Duration,
   maxJobs: Int
 ) extends Actor with JobStarting with ActorLogging {
@@ -65,14 +93,12 @@ class SharedWorkerActor(
   }
 
   override def receive: Receive = {
-    case req @ RunJobRequest(id, params) =>
+    case req@RunJobRequest(id, params) =>
       if (activeJobs.size == maxJobs) {
         sender() ! WorkerIsBusy(id)
       } else {
-        val future = startJob(req)
-        log.info(s"Starting job: $id")
-        activeJobs += id -> ExecutionUnit(sender(), future)
-        sender() ! JobStarted(id)
+        val jobStarted = startJob(req)
+        activeJobs += id -> ExecutionUnit(sender(), jobStarted)
       }
 
     // it does not work for streaming jobs
@@ -103,6 +129,7 @@ class SharedWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    artifactDownloader.stop()
     namedContext.stop()
   }
 
@@ -111,18 +138,20 @@ class SharedWorkerActor(
 object SharedWorkerActor {
 
   def props(
+    runnerSelector: RunnerSelector,
     context: NamedContext,
-    jobRunner: JobRunner,
+    artifactDownloader: ArtifactDownloader,
     idleTimeout: Duration,
     maxJobs: Int
   ): Props =
-    Props(classOf[SharedWorkerActor], context, jobRunner, idleTimeout, maxJobs)
+    Props(new SharedWorkerActor(runnerSelector, context, artifactDownloader, idleTimeout, maxJobs))
 
 }
 
 class ExclusiveWorkerActor(
+  val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
-  val runner: JobRunner
+  val artifactDownloader: ArtifactDownloader
 ) extends Actor with JobStarting with ActorLogging {
 
   implicit val ec = {
@@ -133,12 +162,9 @@ class ExclusiveWorkerActor(
   override def receive: Receive = awaitRequest
 
   val awaitRequest: Receive = {
-    case req @ RunJobRequest(id, params) =>
-      val future = startJob(req)
-      sender() ! JobStarted(id)
-      val unit = ExecutionUnit(sender(), future)
-      context.become(execute(unit))
-      log.info(s"Starting job: $id")
+    case req: RunJobRequest =>
+      val jobStarted = startJob(req)
+      context.become(execute(ExecutionUnit(sender(), jobStarted)))
   }
 
   def execute(executionUnit: ExecutionUnit): Receive = {
@@ -155,6 +181,7 @@ class ExclusiveWorkerActor(
 
   override def postStop(): Unit = {
     ec.shutdown()
+    artifactDownloader.stop()
     namedContext.stop()
   }
 
@@ -162,8 +189,8 @@ class ExclusiveWorkerActor(
 
 object ExclusiveWorkerActor {
 
-  def props(context: NamedContext, jobRunner: JobRunner): Props =
-    Props(classOf[ExclusiveWorkerActor], context, jobRunner)
+  def props(runnerSelector: RunnerSelector, context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
+    Props(new ExclusiveWorkerActor(runnerSelector, context, artifactDownloader))
 }
 
 object WorkerActor {
@@ -192,12 +219,13 @@ object WorkerActor {
     (info: WorkerInitInfo) => {
       val namedContext = mkNamedContext(info)
       val (h, p) = info.masterHttpConf.split(':') match {
-        case Array(host, port)=> (host, port.toInt)
+        case Array(host, port) => (host, port.toInt)
       }
-      val mistJobRunner = MistJobRunner(h, p, info.jobsSavePath)
+      val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
+      val runnerSelector = new SimpleRunnerSelector
       val props = mode match {
-        case Shared => SharedWorkerActor.props(namedContext, mistJobRunner, info.downtime, info.maxJobs)
-        case Exclusive => ExclusiveWorkerActor.props(namedContext, mistJobRunner)
+        case Shared => SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
+        case Exclusive => ExclusiveWorkerActor.props(runnerSelector, namedContext, artifactDownloader)
       }
       (namedContext, props)
     }

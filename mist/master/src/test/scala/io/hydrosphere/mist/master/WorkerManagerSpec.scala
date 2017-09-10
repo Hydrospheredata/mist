@@ -4,16 +4,17 @@ import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.Messages.JobExecution._
+import io.hydrosphere.mist.master.WorkerManagerSpec._
+import io.hydrosphere.mist.master.logging.JobsLogger
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.duration._
 import scala.util.Success
-import WorkerManagerSpec._
-import io.hydrosphere.mist.master.logging.JobsLogger
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
 class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
   with ImplicitSender

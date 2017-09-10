@@ -25,6 +25,7 @@ object JobDetails {
       case "finished" => Finished
       case "canceled" => Canceled
       case "failed" => Failed
+      case "job-file-downloading" => FileDownloading
       case x => throw new IllegalArgumentException(s"Unknown status $x")
     }
 
@@ -45,6 +46,9 @@ object JobDetails {
     }
     case object Failed extends Status with Done {
       override def toString: String = "failed"
+    }
+    case object FileDownloading extends Status with InProgress {
+      override def toString: String = "job-file-downloading"
     }
 
   }

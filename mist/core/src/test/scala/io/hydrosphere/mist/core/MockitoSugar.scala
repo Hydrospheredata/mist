@@ -1,9 +1,9 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.core
 
 import org.mockito.stubbing.OngoingStubbing
 
-import reflect.ClassTag
 import scala.concurrent.Future
+import scala.reflect.ClassTag
 
 trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
 

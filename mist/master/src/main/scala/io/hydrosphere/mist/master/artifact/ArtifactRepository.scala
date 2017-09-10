@@ -87,16 +87,14 @@ object ArtifactRepository {
   def create(
     storagePath: String,
     defaultEndpoints: Seq[EndpointConfig],
-    artifactKeyProvider: ArtifactKeyProvider[EndpointConfig, String],
     jobsSavePath: String
   ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
     val toFile = fromEndpointConfig(_: EndpointConfig, jobsSavePath)
     // TODO there is enough one map and collect
     val defaultJobsPath = defaultEndpoints
-      .map(e => artifactKeyProvider.provideKey(e) -> e)
+      .map(e => e.path -> toFile(e))
       .toMap
-      .mapValues(toFile)
       .collect { case (key, Success(file)) => key -> file }
 
     val defaultArtifactRepo = new DefaultArtifactRepository(defaultJobsPath)(ec)
@@ -104,7 +102,7 @@ object ArtifactRepository {
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 
-  private def fromEndpointConfig(endpointConfig: EndpointConfig, savePath: String): Try[File] =
-    Try { JobResolver.fromPath(endpointConfig.path, savePath).resolve() }
+  private def fromEndpointConfig(e: EndpointConfig, savePath: String): Try[File] =
+    Try { JobResolver.fromPath(e.path, savePath).resolve() }
 
 }

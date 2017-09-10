@@ -9,6 +9,7 @@ import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.worker.runners.python.wrappers._
 import py4j.GatewayServer
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
 
 class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
@@ -25,7 +26,8 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
 
   override def run(
     req: RunJobRequest,
-    context: NamedContext): Either[String, Map[String, Any]] = {
+    context: NamedContext
+  ): Either[Throwable, Map[String, Any]] = {
 
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -59,9 +61,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
 
       Right(entryPoint.dataWrapper.get)
     } catch {
-      case e: Throwable =>
-        logger.error(e.getMessage, e)
-        Left(e.toString)
+      case e: Throwable => Left(e)
     }
   }
 }

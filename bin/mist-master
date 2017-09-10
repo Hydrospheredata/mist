@@ -63,7 +63,7 @@ function startMist() {
     if [ -f $PID_FILE ]; then
       PID=$(cat $PID_FILE)
       if ps -p $PID > /dev/null; then
-        echo "MIst already is running on $PID"
+        echo "Mist already is running on pid: $PID"
         exit 1
       else
         rm -f $PID_FILE

@@ -6,7 +6,8 @@ import io.hydrosphere.mist.core.jvmjob.JobsLoader
 import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig, EndpointStartRequest, RunSettings}
+import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.master.models.{EndpointConfig, EndpointStartRequest, FullEndpointInfo, RunSettings}
 import io.hydrosphere.mist.master._
 import org.scalatest.{FunSpec, Matchers}
 

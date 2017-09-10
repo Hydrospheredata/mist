@@ -79,9 +79,8 @@ object Master extends App with Logger {
     val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
     val jobsSavePath = config.jobsSavePath
     val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, jobsSavePath)
-    val artifactKeyProvider = new EndpointArtifactKeyProvider
 
-    val artifactRepository = ArtifactRepository.create("/tmp", endpointsStorage.defaults, artifactKeyProvider, jobsSavePath)
+    val artifactRepository = ArtifactRepository.create(config.artifactRepositoryPath, endpointsStorage.defaults, jobsSavePath)
     val workerManager = system.actorOf(
       WorkersManager.props(
         statusService, workerRunner,
@@ -96,8 +95,7 @@ object Master extends App with Logger {
       endpointsStorage,
       contextsStorage,
       logsMappings,
-      artifactRepository,
-      artifactKeyProvider
+      artifactRepository
     )
 
     val precreated = Await.result(contextsStorage.precreated, Duration.Inf)

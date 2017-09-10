@@ -4,10 +4,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.JobDetails.{Status, Source}
-import io.hydrosphere.mist.master.{MockitoSugar, ExecutionInfo, MasterService}
+import io.hydrosphere.mist.master.{ExecutionInfo, MasterService}
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{DevJobStartRequest, DevJobStartRequestModel}
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.Promise
 

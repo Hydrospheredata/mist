@@ -16,7 +16,8 @@ import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobDetails, JobService, MasterService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
-
+import org.apache.commons.codec.digest.DigestUtils
+import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
@@ -243,6 +244,18 @@ object HttpV2Routes {
       get {
         artifactRepo.get(filename) match {
           case Some(file) => getFromFile(file)
+          case None => complete {
+            HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
+          }
+        }
+      }
+    } ~
+    path(root / "artifacts" / Segment / "sha" ) { filename =>
+      get {
+        artifactRepo.get(filename) match {
+          case Some(file) => complete {
+            DigestUtils.sha1Hex(Files.newInputStream(file.toPath))
+          }
           case None => complete {
             HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
           }

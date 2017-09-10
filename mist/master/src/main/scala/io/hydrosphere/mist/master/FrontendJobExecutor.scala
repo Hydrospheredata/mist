@@ -4,9 +4,8 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
-
 import models.JobStartResponse
-import Messages.Status._
+import Messages.Status.{UpdateStatusEvent, _}
 import Messages.JobExecution._
 
 import scala.collection.mutable
@@ -103,6 +102,12 @@ class FrontendJobExecutor(
         log.info(s"Job has been started $id")
         statusService ! StartedEvent(id, time)
         info.updateStatus(JobDetails.Status.Started)
+      })
+
+    case e@JobFileDownloadingEvent(id, _)=>
+      jobs.get(id).foreach(info => {
+        statusService ! e
+        info.updateStatus(JobDetails.Status.FileDownloading)
       })
 
     case done: JobResponse =>

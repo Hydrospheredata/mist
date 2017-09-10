@@ -69,12 +69,13 @@ lazy val core = project.in(file("mist/core"))
       //"org.scala-lang" % "scala-reflect" % scalaVersion.value,
 
       //"org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
+      "org.mockito" % "mockito-all" % "1.10.19" % "test",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test"
     )
   )
 
 lazy val master = project.in(file("mist/master"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .enablePlugins(BuildInfoPlugin)
@@ -125,7 +126,7 @@ lazy val master = project.in(file("mist/master"))
   )
 
 lazy val worker = project.in(file("mist/worker"))
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(
@@ -136,6 +137,9 @@ lazy val worker = project.in(file("mist/worker"))
     libraryDependencies ++= Seq(
       "com.github.scopt" %% "scopt" % "3.6.0",
 
+      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4" ,
+      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
+      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
       "org.scalatest" %% "scalatest" % "3.0.1" % "test",
       "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test"
     ),

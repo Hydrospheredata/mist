@@ -4,34 +4,39 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-
-import io.hydrosphere.mist.utils.EitherOps._
-
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import org.apache.spark.util.SparkClassLoader
+import io.hydrosphere.mist.utils.EitherOps
+import EitherOps._
+
+import scala.util.{Failure, Success}
 
 
 class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext): Either[String, Map[String, Any]] = {
+    context: NamedContext):Either[Throwable, Map[String, Any]] = {
 
     val params = request.params
     import params._
 
     if (!jobFile.exists()) {
-      Left(s"Can not found file: $filePath")
+      Left(new IllegalArgumentException(s"Cannot find file $filePath"))
     } else {
-      context.addJar(params.filePath)
+      context.addJar(jobFile.toString)
       val loader = prepareClassloader(jobFile)
       val jobsLoader = new JobsLoader(loader)
-
-      val load = jobsLoader.loadJobInstance(className, action)
-      Either.fromTry(load).flatMap(instance => {
-        instance.run(context.setupConfiguration(request.id), arguments)
-      }).leftMap(e => buildErrorMessage(params, e))
+      val instance = jobsLoader.loadJobInstance(className, action) match {
+        case Success(i) => Right(i)
+        case Failure(ex) => Left(ex)
+      }
+      for {
+        inst      <- instance
+        setupConf =  context.setupConfiguration(request.id)
+        result    <- inst.run(setupConf, arguments)
+      } yield result
     }
   }
 
@@ -42,12 +47,6 @@ class ScalaRunner(jobFile: File) extends JobRunner {
     val patched = SparkClassLoader.withURLs(existing, url)
     Thread.currentThread().setContextClassLoader(patched)
     patched
-  }
-
-  private def buildErrorMessage(params: JobParams, e: Throwable): String = {
-    val msg = Option(e.getMessage).getOrElse("")
-    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
-    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
   }
 
 }
