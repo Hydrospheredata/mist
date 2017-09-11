@@ -38,7 +38,7 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.13.1"
+  version := "0.13.2"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
