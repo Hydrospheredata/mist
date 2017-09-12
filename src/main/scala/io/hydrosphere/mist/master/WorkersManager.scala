@@ -5,6 +5,8 @@ import akka.cluster.ClusterEvent._
 import akka.cluster._
 import akka.pattern._
 import akka.util.Timeout
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.Messages.WorkerMessages._
 import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
@@ -139,6 +141,12 @@ class WorkersManager(
           cluster down address
           log.warning("Received memberResolve from unknown worker {}", name)
       }
+    case GetInitInfo(id) =>
+      val res = for {
+        state <- OptionT.fromOption[Future](workerStates.get(id))
+        initInfo <- OptionT(getInitInfo(state))
+      } yield initInfo
+      res.value pipeTo sender()
 
     case CheckWorkerUp(id) =>
       checkWorkerUp(id)
@@ -154,6 +162,13 @@ class WorkersManager(
 
     case CreateContext(ctx) =>
       startWorker(ctx.name, ctx, RunMode.Shared)
+  }
+
+  private def getInitInfo(s: WorkerState): Future[Option[WorkerInitInfo]] = s match {
+    case Started(_,_,backend, _) =>
+      implicit val timeout = Timeout(5 seconds)
+      backend.ask(GetRunInitInfo).mapTo[WorkerInitInfo].map(Some.apply)
+    case _ => Future.successful(None)
   }
 
   private def checkWorkerUp(id: String): Unit = {

@@ -1,6 +1,8 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
+import akka.cluster.ClusterEvent.MemberEvent
+import akka.cluster.Member
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source
@@ -37,6 +39,11 @@ object Messages {
 
     case object GetWorkers
     case object GetActiveJobs
+    case class GetInitInfo(id: String)
+
+    sealed trait GetRunInitInfo
+    case object GetRunInitInfo extends GetRunInitInfo
+
     case class FailRemainingJobs(reason: String)
 
     case class StopWorker(name: String)
@@ -134,7 +141,7 @@ object Messages {
     case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetById(id: String)
-
+    case class RunningJobsByWorker(id: String)
   }
 
   // only for cli
