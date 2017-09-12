@@ -122,7 +122,9 @@ object HttpV2Routes {
       get { complete(jobService.workers()) }
     } ~
     path( root / "workers" / Segment ) { workerId =>
-      delete { completeU(jobService.stopWorker(workerId)) }
+      delete {
+        completeU(jobService.stopWorker(workerId))
+      } ~
       get {
         complete { jobService.getWorkerInfo(workerId) }
       }
