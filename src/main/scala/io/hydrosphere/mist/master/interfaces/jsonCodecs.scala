@@ -212,6 +212,7 @@ trait JsonCodecs extends SprayJsonSupport
     }
   }
 
+  implicit val jobDetailsLinkF = jsonFormat7(JobDetailsLink)
   implicit val WorkerInitInfoF = jsonFormat5(WorkerInitInfo)
   implicit val workerFullInfoF = jsonFormat3(WorkerFullInfo)
   

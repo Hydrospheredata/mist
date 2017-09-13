@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import io.hydrosphere.mist.Messages.WorkerMessages.WorkerInitInfo
-import io.hydrosphere.mist.jobs.JobDetails
+import io.hydrosphere.mist.master.models.JobDetailsLink
 
 case class WorkerLink(
   name: String,
@@ -11,6 +11,6 @@ case class WorkerLink(
 
 case class WorkerFullInfo(
   name: String,
-  jobs: Seq[JobDetails],
+  jobs: Seq[JobDetailsLink],
   initInfo: Option[WorkerInitInfo]
 )
