@@ -1,8 +1,6 @@
 package io.hydrosphere.mist
 
 import akka.actor.{ActorRef, Address}
-import akka.cluster.ClusterEvent.MemberEvent
-import akka.cluster.Member
 import io.hydrosphere.mist.Messages.JobMessages.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.jobs.JobDetails.Source

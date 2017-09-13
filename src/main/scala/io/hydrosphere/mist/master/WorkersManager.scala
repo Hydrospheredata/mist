@@ -165,7 +165,7 @@ class WorkersManager(
   }
 
   private def getInitInfo(s: WorkerState): Future[Option[WorkerInitInfo]] = s match {
-    case Started(_,_,backend, _) =>
+    case Started(_, _, backend, _) =>
       implicit val timeout = Timeout(5 seconds)
       backend.ask(GetRunInitInfo).mapTo[WorkerInitInfo].map(Some.apply)
     case _ => Future.successful(None)
