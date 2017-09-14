@@ -7,6 +7,9 @@ import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.{MasterAppArguments, MasterServer}
 import org.scalatest._
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 trait MistRunner {
 
   private def getProperty(name: String): String = sys.props.get(name) match {
@@ -30,7 +33,7 @@ trait MistRunner {
     val conf = overrideConf.map(fromResource).getOrElse(defaultArgs.configPath)
     val router = overrideRouter.map(fromResource).getOrElse(defaultArgs.routerConfigPath)
     val master = MasterServer(conf, router)
-    master.start()
+    Await.result(master.start(), Duration.Inf)
     master
   }
 
@@ -46,13 +49,11 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
   var master: MasterServer = _
 
   override def beforeAll {
-    Thread.sleep(5000)
     master = runMist(overrideConf, overrideRouter)
   }
 
   override def afterAll: Unit = {
-    Thread.sleep(5000)
-    master.stop()
+    Await.result(master.stop(), Duration.Inf)
   }
 
   def isSpark2: Boolean = sparkVersion.startsWith("2.")

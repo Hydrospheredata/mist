@@ -2,6 +2,8 @@ package io.hydrosphere.mist.master
 
 import io.hydrosphere.mist.utils.Logger
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.language.reflectiveCalls
 
 
@@ -18,7 +20,7 @@ object Master extends App with Logger {
   master.start()
 
   sys addShutdownHook {
-    master.stop()
+    Await.result(master.stop(), Duration.Inf)
   }
 
 }

@@ -1,14 +1,11 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.utils.Logger
-import java.io.File
-
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.Constants
 import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
 import io.hydrosphere.mist.jobs.JobDetails.Source
@@ -17,14 +14,13 @@ import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.logging.{LogService, LogStorageMappings, LogStreams}
+import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.Constants
-import io.hydrosphere.mist.master.security.KInitLauncher
 
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.language.reflectiveCalls
 
 class MasterServer(
@@ -41,87 +37,80 @@ class MasterServer(
   private var logsService: Option[LogService] = None
   private implicit val system = ActorSystem("mist", config.raw)
   private implicit val materializer = ActorMaterializer()
+  private implicit val ec = system.dispatcher
 
-  def start(): Unit = {
+  def start(): Future[Unit] = Future {
     logger.info("Starting mist master")
-    try {
-      security = bootstrapSecurity
+    security = bootstrapSecurity
 
-      val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
-      val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
+    val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
+    val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
 
-      val workerRunner = WorkerRunner.create(config)
+    val workerRunner = WorkerRunner.create(config)
 
-      val store = H2JobsRepository(config.dbPath)
+    val store = H2JobsRepository(config.dbPath)
 
-      val streamer = EventsStreamer(system)
+    val streamer = EventsStreamer(system)
 
-      val wsPublisher = new JobEventPublisher {
-        override def notify(event: SystemEvent): Unit =
-          streamer.push(event)
+    val wsPublisher = new JobEventPublisher {
+      override def notify(event: SystemEvent): Unit =
+        streamer.push(event)
 
-        override def close(): Unit = {}
-      }
-
-      eventPublishers = buildEventPublishers(config) :+ wsPublisher
-
-      val logsMappings = LogStorageMappings.create(config.logs.dumpDirectory)
-      val logsServiceVal = LogStreams.runService(
-        config.logs.host, config.logs.port,
-        logsMappings, eventPublishers
-      )
-      logsService = Some(logsServiceVal)
-      val jobsLogger = logsServiceVal.getLogger
-      val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
-      val infoProvider = new InfoProvider(config.logs, contextsStorage)
-
-      val workerManagerVal = system.actorOf(
-        WorkersManager.props(
-          statusService, workerRunner,
-          jobsLogger,
-          config.workers.runnerInitTimeout,
-          infoProvider
-        ), "workers-manager")
-
-      workerManager = Some(workerManagerVal)
-
-      val jobService = new JobService(workerManagerVal, statusService)
-      val masterService = new MasterService(
-        jobService,
-        endpointsStorage,
-        contextsStorage,
-        logsMappings
-      )
-
-      val precreated = Await.result(contextsStorage.precreated, Duration.Inf)
-      precreated.foreach(context => {
-        logger.info(s"Precreate context for ${context.name}")
-        workerManagerVal ! CreateContext(context)
-      })
-
-      // Start CLI
-      system.actorOf(
-        CliResponder.props(masterService, workerManagerVal),
-        name = Constants.Actors.cliResponderName)
-
-      logger.info(s"${Constants.Actors.cliResponderName}: started")
-
-      masterService.recoverJobs()
-
-      httpBinding = Some(bootstrapHttp(streamer, masterService))
-
-      // Start MQTT subscriber
-      mqttInput = bootstrapMqtt(masterService)
-
-      // Start Kafka subscriber
-      kafkaInput = bootstrapKafka(masterService)
-
-    } catch {
-      case e: Throwable =>
-        logger.error(e.getMessage, e)
-        stopUnexpectedly()
+      override def close(): Unit = {}
     }
 
+    eventPublishers = buildEventPublishers(config) :+ wsPublisher
+
+    val logsMappings = LogStorageMappings.create(config.logs.dumpDirectory)
+    val logsServiceVal = LogStreams.runService(
+      config.logs.host, config.logs.port,
+      logsMappings, eventPublishers
+    )
+    logsService = Some(logsServiceVal)
+    val jobsLogger = logsServiceVal.getLogger
+    val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
+    val infoProvider = new InfoProvider(config.logs, contextsStorage)
+
+    val workerManagerVal = system.actorOf(
+      WorkersManager.props(
+        statusService, workerRunner,
+        jobsLogger,
+        config.workers.runnerInitTimeout,
+        infoProvider
+      ), "workers-manager")
+
+    workerManager = Some(workerManagerVal)
+
+    val jobService = new JobService(workerManagerVal, statusService)
+    val masterService = new MasterService(
+      jobService,
+      endpointsStorage,
+      contextsStorage,
+      logsMappings
+    )
+
+    val precreated = Await.result(contextsStorage.precreated, Duration.Inf)
+    precreated.foreach(context => {
+      logger.info(s"Precreate context for ${context.name}")
+      workerManagerVal ! CreateContext(context)
+    })
+
+    // Start CLI
+    system.actorOf(
+      CliResponder.props(masterService, workerManagerVal),
+      name = Constants.Actors.cliResponderName)
+
+    logger.info(s"${Constants.Actors.cliResponderName}: started")
+
+    masterService.recoverJobs()
+
+    httpBinding = Some(bootstrapHttp(streamer, masterService))
+
+    // Start MQTT subscriber
+    mqttInput = bootstrapMqtt(masterService)
+
+    // Start Kafka subscriber
+    kafkaInput = bootstrapKafka(masterService)
   }
 
   private def bootstrapKafka(masterService: MasterService): Option[AsyncInterface] = {
@@ -169,7 +158,6 @@ class MasterServer(
 
   private def bootstrapSecurity: Option[KInitLauncher.LoopedProcess] = if (config.security.enabled) {
     import config.security._
-    import scala.concurrent.ExecutionContext.Implicits._
 
     logger.info("Security is enabled - starting Knit loop")
     val ps = KInitLauncher.create(keytab, principal, interval)
@@ -189,22 +177,31 @@ class MasterServer(
     sys.exit(1)
   }
 
-  def stop(): Unit = {
+  def stop(): Future[Unit] = {
     logger.info("Stopping mist master")
-    workerManager.foreach(_ ! StopAllWorkers)
-    security.foreach(_.stop())
-    httpBinding.foreach(binding => {
-      logger.info("Unbinding http port")
-      Await.result(binding.unbind(), Duration.Inf)
-    })
-    logsService.foreach(binding => {
-      logger.info("Unbinding log service")
-      Await.result(binding.close(), Duration.Inf)
-    })
-    eventPublishers.foreach(_.close())
-    mqttInput.foreach(_.close())
-    kafkaInput.foreach(_.close())
-    system.shutdown()
+    for {
+      _ <- {
+        optionSwitch(security.map(_.stop()))
+      }
+      _ <- {
+        logger.info("Unbinding http port")
+        optionSwitch(httpBinding.map(_.unbind()))
+      }
+      _ <- {
+        logger.info("Unbinding log service")
+        optionSwitch(logsService.map(_.close()))
+      }
+      _ = workerManager.foreach(_ ! StopAllWorkers)
+      _ = eventPublishers.foreach(_.close())
+      _ = mqttInput.foreach(_.close())
+      _ = kafkaInput.foreach(_.close())
+      _ = system.shutdown()
+    } yield ()
+  }
+
+  private def optionSwitch(of: Option[Future[Unit]]): Future[Option[Unit]] = of match {
+    case Some(f) => f.map(Some.apply)
+    case None => Future.successful(None)
   }
 
   private def buildEventPublishers(config: MasterConfig): Seq[JobEventPublisher] = {
