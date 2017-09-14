@@ -65,7 +65,7 @@ class ClusterWorker(
       context.stop(self)
       cluster.system.shutdown()
 
-    case x if isWorkerLetter(x) =>
+    case x if isWorkerMessage(x) =>
       worker forward x
 
     case GetRunInitInfo =>
@@ -75,8 +75,8 @@ class ClusterWorker(
       log.debug(s"Worker interface received $x")
 
   }
-  private def isWorkerLetter(letter: Any): Boolean =
-    !letter.isInstanceOf[MemberEvent] && !letter.isInstanceOf[GetRunInitInfo]
+  private def isWorkerMessage(msg: Any): Boolean =
+    !msg.isInstanceOf[MemberEvent] && !msg.isInstanceOf[GetRunInitInfo]
 
   private def toManagerSelection(address: Address): ActorSelection =
     cluster.system.actorSelection(RootActorPath(address) / "user" / "workers-manager")
