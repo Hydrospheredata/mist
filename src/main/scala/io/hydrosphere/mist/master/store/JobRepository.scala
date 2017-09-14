@@ -21,6 +21,8 @@ trait JobRepository {
   def getAll(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
   def getAll(limit: Int, offset: Int): Future[Seq[JobDetails]] = getAll(limit, offset, Seq.empty)
 
+  def getByWorkerId(workerId: String): Future[Seq[JobDetails]]
+
   def clear(): Future[Unit]
 
 }

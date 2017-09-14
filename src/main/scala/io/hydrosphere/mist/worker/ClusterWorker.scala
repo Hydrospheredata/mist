@@ -3,7 +3,9 @@ package io.hydrosphere.mist.worker
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-import io.hydrosphere.mist.Messages.WorkerMessages.{WorkerInitInfoReq, WorkerInitInfo, WorkerRegistration}
+import io.hydrosphere.mist.Messages.WorkerMessages.{GetRunInitInfo, WorkerInitInfo, WorkerInitInfoReq, WorkerRegistration}
+
+import scala.reflect.ClassTag
 
 class ClusterWorker(
   name: String,
@@ -45,10 +47,10 @@ class ClusterWorker(
       log.info("Worker actor started")
       val ui = SparkUtils.getSparkUiAddress(nm.sparkContext)
       register(master, ui)
-      context become initialized(master, worker)
+      context become initialized(master, worker, info)
   }
 
-  def initialized(master: Address, worker: ActorRef): Receive = {
+  def initialized(master: Address, worker: ActorRef, info: WorkerInitInfo): Receive = {
     case Terminated(ref) if ref == worker =>
       log.info(s"Worker reference for $name is terminated, leave cluster")
       cluster.leave(cluster.selfAddress)
@@ -63,13 +65,18 @@ class ClusterWorker(
       context.stop(self)
       cluster.system.shutdown()
 
-    case x if !x.isInstanceOf[MemberEvent] =>
+    case x if isWorkerMessage(x) =>
       worker forward x
+
+    case GetRunInitInfo =>
+      sender() ! info
 
     case x =>
       log.debug(s"Worker interface received $x")
 
   }
+  private def isWorkerMessage(msg: Any): Boolean =
+    !msg.isInstanceOf[MemberEvent] && !msg.isInstanceOf[GetRunInitInfo]
 
   private def toManagerSelection(address: Address): ActorSelection =
     cluster.system.actorSelection(RootActorPath(address) / "user" / "workers-manager")

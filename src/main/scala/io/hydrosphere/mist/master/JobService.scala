@@ -43,6 +43,19 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
 
+  def getWorkerInfo(workerId: String): Future[WorkerFullInfo] = {
+    for {
+      jobs     <- askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId))
+      initInfo <- askManager[Option[WorkerInitInfo]](GetInitInfo(workerId))
+      jobsLink =  jobs.map(toJobLinks)
+    } yield WorkerFullInfo(workerId, jobsLink, initInfo)
+  }
+
+  private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
+      job.jobId, job.source, job.startTime, job.endTime,
+      job.status, job.endpoint, job.workerId, job.createTime
+  )
+
   def stopAllWorkers(): Future[Unit] = workerManager.ask(StopAllWorkers).map(_ => ())
 
   def stopWorker(workerId: String): Future[Unit] = workerManager.ask(StopWorker(workerId)).map(_ => ())

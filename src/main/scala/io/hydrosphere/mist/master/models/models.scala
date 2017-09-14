@@ -113,3 +113,13 @@ case class DevJobStartRequestModel(
     )
   }
 }
+case class JobDetailsLink(
+  jobId: String,
+  source: JobDetails.Source,
+  startTime: Option[Long] = None,
+  endTime: Option[Long] = None,
+  status: JobDetails.Status = JobDetails.Status.Initialized,
+  endpoint: String,
+  workerId: String,
+  createTime: Long = System.currentTimeMillis()
+)
