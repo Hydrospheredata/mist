@@ -30,8 +30,8 @@ class MasterServer(
 
   private var security: Option[KInitLauncher.LoopedProcess] = None
   private var httpBinding: Option[ServerBinding] = None
-  private var mqttInput: Option[AsyncInterface] = None
-  private var kafkaInput: Option[AsyncInterface] = None
+  private var mqttInterface: Option[AsyncInterface] = None
+  private var kafkaInterface: Option[AsyncInterface] = None
   private var workerManager: Option[ActorRef] = None
   private var eventPublishers: Seq[JobEventPublisher] = Seq()
   private var logsService: Option[LogService] = None
@@ -107,10 +107,10 @@ class MasterServer(
     httpBinding = Some(bootstrapHttp(streamer, masterService))
 
     // Start MQTT subscriber
-    mqttInput = bootstrapMqtt(masterService)
+    mqttInterface = bootstrapMqtt(masterService)
 
     // Start Kafka subscriber
-    kafkaInput = bootstrapKafka(masterService)
+    kafkaInterface = bootstrapKafka(masterService)
   }
 
   private def bootstrapKafka(masterService: MasterService): Option[AsyncInterface] = {
@@ -181,20 +181,20 @@ class MasterServer(
     logger.info("Stopping mist master")
     for {
       _ <- {
-        optionSwitch(security.map(_.stop()))
-      }
-      _ <- {
         logger.info("Unbinding http port")
         optionSwitch(httpBinding.map(_.unbind()))
       }
+      _ = mqttInterface.foreach(_.close())
+      _ = kafkaInterface.foreach(_.close())
+      _ <- {
+        optionSwitch(security.map(_.stop()))
+      }
+      _ = workerManager.foreach(_ ! StopAllWorkers)
+      _ = eventPublishers.foreach(_.close())
       _ <- {
         logger.info("Unbinding log service")
         optionSwitch(logsService.map(_.close()))
       }
-      _ = workerManager.foreach(_ ! StopAllWorkers)
-      _ = eventPublishers.foreach(_.close())
-      _ = mqttInput.foreach(_.close())
-      _ = kafkaInput.foreach(_.close())
       _ = system.shutdown()
     } yield ()
   }
