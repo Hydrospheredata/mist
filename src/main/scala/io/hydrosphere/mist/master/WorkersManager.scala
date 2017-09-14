@@ -97,7 +97,7 @@ class WorkersManager(
     case StopWorker(name) =>
       workerStates.get(name).foreach({
         case s: Started =>
-          cluster.leave(s.address)
+          cluster leave s.address
           setWorkerDown(name)
           sender() ! akka.actor.Status.Success(())
         case _ =>
@@ -107,7 +107,7 @@ class WorkersManager(
       workerStates.foreach({case (name, state) =>
         state match {
           case s: Started =>
-            cluster.leave(s.address)
+            cluster leave s.address
             setWorkerDown(name)
           case _ =>
         }
@@ -133,10 +133,10 @@ class WorkersManager(
           log.info(s"Worker with $name is registered on $address")
 
         case None =>
-          // this is possible when worker starting is too slow and we mark it as down (gg CheckInitWorkers)
+          // this is possible when worker starting is too slow and we mark it as down
           // and we already sent to frontend that jobs failed and removed default state of worker
           // so we here and we need to shutdown worker so actor does not leak
-          cluster down address
+          cluster leave address
           log.warning("Received memberResolve from unknown worker {}", name)
       }
 

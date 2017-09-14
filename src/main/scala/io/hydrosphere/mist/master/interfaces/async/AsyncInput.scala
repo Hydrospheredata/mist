@@ -62,8 +62,14 @@ object AsyncInput {
       }
 
       override def close(): Unit = {
-        client.disconnect()
-        client.close()
+        try {
+          client.disconnect()
+        } catch {
+          case _: Throwable =>
+            client.disconnectForcibly()
+        } finally {
+          client.close()
+        }
       }
 
     }
