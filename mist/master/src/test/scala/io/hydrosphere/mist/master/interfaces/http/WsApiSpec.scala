@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import io.hydrosphere.mist.master.Messages.Status._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.EventsStreamer
 import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}

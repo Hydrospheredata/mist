@@ -5,10 +5,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import io.hydrosphere.mist.Constants
-import io.hydrosphere.mist.Messages.StatusMessages.SystemEvent
-import io.hydrosphere.mist.Messages.WorkerMessages.{CreateContext, StopAllWorkers}
-import io.hydrosphere.mist.jobs.JobDetails.Source
+import io.hydrosphere.mist.master.JobDetails.Source
+import io.hydrosphere.mist.master.Messages.JobExecution.{CreateContext, StopAllWorkers}
+import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
@@ -69,7 +69,7 @@ class MasterServer(
     logsService = Some(logsServiceVal)
     val jobsLogger = logsServiceVal.getLogger
     val statusService = system.actorOf(StatusService.props(store, eventPublishers, jobsLogger), "status-service")
-    val infoProvider = new InfoProvider(config.logs, contextsStorage)
+    val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
 
     val workerManagerVal = system.actorOf(
       WorkersManager.props(
@@ -82,11 +82,18 @@ class MasterServer(
     workerManager = Some(workerManagerVal)
 
     val jobService = new JobService(workerManagerVal, statusService)
+
+    val artifactRepository = ArtifactRepository.create(
+      config.artifactRepositoryPath,
+      endpointsStorage.defaults,
+      config.jobsSavePath
+    )
     val masterService = new MasterService(
       jobService,
       endpointsStorage,
       contextsStorage,
-      logsMappings
+      logsMappings,
+      artifactRepository
     )
 
     val precreated = Await.result(contextsStorage.precreated, Duration.Inf)
@@ -98,9 +105,9 @@ class MasterServer(
     // Start CLI
     system.actorOf(
       CliResponder.props(masterService, workerManagerVal),
-      name = Constants.Actors.cliResponderName)
+      name = CliResponder.Name)
 
-    logger.info(s"${Constants.Actors.cliResponderName}: started")
+    logger.info(s"${CliResponder.Name}: started")
 
     masterService.recoverJobs()
 

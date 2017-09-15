@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.interfaces.cli
 import akka.pattern.pipe
 import akka.actor.{Actor, ActorRef, Props}
 import akka.util.Timeout
-import io.hydrosphere.mist.master.Messages.Status.RunningJobs
+import io.hydrosphere.mist.master.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.master.{JobDetails, MasterService}
 import io.hydrosphere.mist.master.Messages.{RunJobCli, ListRoutes}
 import io.hydrosphere.mist.master.models.EndpointStartRequest

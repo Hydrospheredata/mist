@@ -1,14 +1,13 @@
 package io.hydrosphere.mist
 
-import io.hydrosphere.mist.jobs.JobResult
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.{MasterAppArguments, MasterServer}
-import java.nio.file.{Files, Paths}
+import io.hydrosphere.mist.master.{JobResult, MasterAppArguments, MasterServer}
+import java.nio.file.Paths
 
 import org.scalatest._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scalaj.http.Http
 
 trait MistRunner {
 

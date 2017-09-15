@@ -25,7 +25,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         contextsPath = "",
         endpointsPath = "",
         jobsSavePath = "/tmp",
-        artifactRepositoryPath = "/tmp"
+        artifactRepositoryPath = "/tmp",
         srcConfigPath = ""
       )
 

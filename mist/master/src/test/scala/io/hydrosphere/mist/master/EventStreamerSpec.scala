@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import akka.testkit.TestKit
-import io.hydrosphere.mist.master.Messages.Status.StartedEvent
+import io.hydrosphere.mist.master.Messages.StatusMessages.StartedEvent
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Await

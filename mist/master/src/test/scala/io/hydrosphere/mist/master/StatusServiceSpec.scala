@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, RunJobRequest, JobParams}
 import io.hydrosphere.mist.master.JobDetails.Status
-import io.hydrosphere.mist.master.Messages.Status._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.store.JobRepository
 import org.mockito.Matchers._

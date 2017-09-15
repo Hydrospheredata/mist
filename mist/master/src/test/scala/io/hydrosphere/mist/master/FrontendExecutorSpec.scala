@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestProbe, TestKit}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.JobExecution.WorkerUp
-import io.hydrosphere.mist.master.Messages.Status._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import org.scalatest.{Matchers, FunSpecLike}
 
 class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))

@@ -4,10 +4,8 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern._
 import cats.data._
 import cats.implicits._
-
-import Messages.Status._
-
 import io.hydrosphere.mist.master.JobDetails.Status
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.StatusService._
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.store.JobRepository

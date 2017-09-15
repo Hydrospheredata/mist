@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.Messages.Status.{GetById, Register}
+import io.hydrosphere.mist.master.Messages.StatusMessages.{GetById, Register}
 import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, EndpointConfig}
 import org.scalatest._
 

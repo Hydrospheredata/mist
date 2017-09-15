@@ -6,7 +6,6 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.language.reflectiveCalls
 
-
 /** This object is entry point of Mist project */
 object Master extends App with Logger {
 

@@ -76,8 +76,6 @@ object Messages {
     case class CheckWorkerUp(id: String)
 
     case class GetInitInfo(id: String)
-    sealed trait GetRunInitInfo
-    case object GetRunInitInfo extends GetRunInitInfo
   }
 
   // only for cli

@@ -78,7 +78,8 @@ object CommonData {
   case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
-
+  sealed trait GetRunInitInfo
+  case object GetRunInitInfo extends GetRunInitInfo
 
   sealed trait Action
   object Action {

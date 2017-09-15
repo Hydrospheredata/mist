@@ -5,8 +5,8 @@ import akka.pattern._
 import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
 import models.JobStartResponse
-import Messages.Status.{UpdateStatusEvent, _}
 import Messages.JobExecution._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global

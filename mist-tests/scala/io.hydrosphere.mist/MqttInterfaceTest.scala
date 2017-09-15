@@ -3,7 +3,7 @@ package io.hydrosphere.mist
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
-import io.hydrosphere.mist.master.Messages.Status._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}

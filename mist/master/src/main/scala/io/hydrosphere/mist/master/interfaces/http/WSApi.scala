@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.Directives
 import akka.stream.scaladsl.{Flow, Sink}
 import io.hydrosphere.mist.master.EventsStreamer
-import io.hydrosphere.mist.master.Messages.Status._
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import spray.json._
 

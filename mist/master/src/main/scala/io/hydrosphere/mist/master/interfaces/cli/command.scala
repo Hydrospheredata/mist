@@ -1,17 +1,17 @@
 package io.hydrosphere.mist.master.interfaces.cli
 
-import java.time.{ZoneId, Instant}
+import java.time.{Instant, ZoneId}
 
 import akka.actor.ActorRef
 import akka.pattern.ask
 import akka.util.Timeout
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.JobExecution._
+import io.hydrosphere.mist.master.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.master.Messages.{ListRoutes, RunJobCli}
-import io.hydrosphere.mist.master.Messages.Status.RunningJobs
-import io.hydrosphere.mist.master.{JobDetails, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{FullEndpointInfo, JobStartResponse}
+import io.hydrosphere.mist.master.{JobDetails, WorkerLink}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -187,9 +187,9 @@ object Command {
   }
 
   private def parseStartCommand(s: String): Either[String, StartJobCmd] = {
+    import JsonCodecs._
     import cats.implicits._
     import spray.json._
-    import JsonCodecs._
 
     def parseArgs(args: String): Either[String, Map[String, Any]] = {
       if (args.length == 0)

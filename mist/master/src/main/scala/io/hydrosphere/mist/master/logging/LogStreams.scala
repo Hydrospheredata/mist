@@ -3,14 +3,14 @@ package io.hydrosphere.mist.master.logging
 import java.nio.ByteOrder
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.{OverflowStrategy, ActorMaterializer}
+import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.io.Framing
 import akka.stream.scaladsl._
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.master.JobEventPublisher
-import io.hydrosphere.mist.master.Messages.Status.ReceivedLogs
+import io.hydrosphere.mist.master.Messages.StatusMessages.ReceivedLogs
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

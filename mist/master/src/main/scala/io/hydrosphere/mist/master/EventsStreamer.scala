@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl._
-import io.hydrosphere.mist.master.Messages.Status.{UpdateStatusEvent, SystemEvent}
+import io.hydrosphere.mist.master.Messages.StatusMessages.{UpdateStatusEvent, SystemEvent}
 
 /**
   * TODO: Rewrite MQTT and Kafka publisher in akka-streams-way

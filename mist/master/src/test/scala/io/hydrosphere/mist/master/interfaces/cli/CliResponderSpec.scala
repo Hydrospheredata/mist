@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.Messages.JobExecution.StopAllWorkers
-import io.hydrosphere.mist.master.Messages.Status.RunningJobs
+import io.hydrosphere.mist.master.Messages.StatusMessages.RunningJobs
 import io.hydrosphere.mist.master.{JobDetails, JobService, MasterService}
 import org.mockito.Mockito._
 import org.scalatest.{FunSpecLike, Matchers}
