@@ -45,13 +45,13 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
 
   def getWorkerInfo(workerId: String): Future[WorkerFullInfo] = for {
     jobs               <- askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId))
-    (state, initInfo)  <- askManager[(WorkerState, Option[WorkerInitInfo])](GetInitInfo(workerId))
+    result             <- askManager[Option[(WorkerState, WorkerInitInfo)]](GetInitInfo(workerId))
     jobsLink           =  jobs.map(toJobLinks)
-    (address, sparkUi) =  state match {
-                            case Started(_, a, _, s) => (a.toString, s)
+    (address, sparkUi) =  result.map(_._1) match {
+                            case Some(Started(_, a, _, s)) => (a.toString, s)
                             case _ => ("", None)
                           }
-  } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, initInfo)
+  } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, result.map(_._2))
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
