@@ -138,8 +138,10 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(query.result)
   }
 
-  override def getByWorkerId(workerId: String): Future[Seq[JobDetails]] = {
-    val query = table.filter(_.workerId === workerId).sortBy(_.createTime.desc)
+  override def getByWorkerIdBeforeDate(workerId: String, timestamp: Long): Future[Seq[JobDetails]] = {
+    val query = table.filter(_.workerId === workerId)
+        .filter(_.startTime >= timestamp)
+        .sortBy(_.createTime.desc)
     run(query.result)
   }
 

@@ -126,7 +126,7 @@ object HttpV2Routes {
         completeU(jobService.stopWorker(workerId))
       } ~
       get {
-        complete { jobService.getWorkerInfo(workerId) }
+        completeOpt { jobService.getWorkerInfo(workerId) }
       }
     }
   }

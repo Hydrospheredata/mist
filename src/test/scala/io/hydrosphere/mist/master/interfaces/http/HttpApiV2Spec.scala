@@ -7,6 +7,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, RequestEntity, Status
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.Messages.JobMessages.JobParams
+import io.hydrosphere.mist.Messages.WorkerMessages.WorkerInitInfo
 import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar.JobsLoader
@@ -64,7 +65,10 @@ class HttpApiV2Spec extends FunSpec
     it("should get full worker info") {
       val jobService = mock[JobService]
       when(jobService.getWorkerInfo(any[String]))
-        .thenSuccess(WorkerFullInfo("id", "test", None, Seq(), None))
+        .thenSuccess(Some(WorkerFullInfo(
+          "id", "test", None, Seq(),
+          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test"))))
+
       val route = HttpV2Routes.workerRoutes(jobService)
 
       Get("/v2/api/workers/id") ~> route ~> check {
@@ -72,7 +76,7 @@ class HttpApiV2Spec extends FunSpec
         val resp = responseAs[WorkerFullInfo]
         resp.name shouldBe "id"
         resp.jobs shouldBe empty
-        resp.initInfo should not be defined
+        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
       }

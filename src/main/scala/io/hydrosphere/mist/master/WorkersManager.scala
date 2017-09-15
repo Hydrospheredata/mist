@@ -24,18 +24,25 @@ import scala.util.{Failure, Success}
   */
 sealed trait WorkerState {
   val frontend: ActorRef
+  val timestamp: Long
   def forward(msg: Any)(implicit context: ActorContext): Unit = frontend forward msg
 }
 
 /**
   * Worker is down
   */
-case class Down(frontend: ActorRef) extends WorkerState
+case class Down(
+  frontend: ActorRef,
+  override val timestamp: Long = System.currentTimeMillis()
+) extends WorkerState
 
 /**
   * Worker is starting, but not already registered
   */
-case class Initializing(frontend: ActorRef) extends WorkerState
+case class Initializing(
+  frontend: ActorRef,
+  override val timestamp: Long = System.currentTimeMillis()
+) extends WorkerState
 
 /**
   * Workers is started and registered
@@ -44,7 +51,8 @@ case class Started(
   frontend: ActorRef,
   address: Address,
   backend: ActorRef,
-  sparkUi: Option[String]
+  sparkUi: Option[String],
+  override val timestamp: Long = System.currentTimeMillis()
 ) extends WorkerState
 
 /**
@@ -165,7 +173,7 @@ class WorkersManager(
   }
 
   private def getInitInfo(s: WorkerState): Future[Option[WorkerInitInfo]] = s match {
-    case Started(_, _, backend, _) =>
+    case Started(_, _, backend, _, _) =>
       implicit val timeout = Timeout(5 seconds)
       backend.ask(GetRunInitInfo).mapTo[WorkerInitInfo].map(Some.apply)
     case _ => Future.successful(None)

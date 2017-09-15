@@ -3,6 +3,8 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.Messages.JobMessages._
 import io.hydrosphere.mist.Messages.StatusMessages
 import io.hydrosphere.mist.Messages.StatusMessages.{FailedEvent, Register}
@@ -43,15 +45,28 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
 
-  def getWorkerInfo(workerId: String): Future[WorkerFullInfo] = for {
-    jobs               <- askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId))
-    result             <- askManager[Option[(WorkerState, WorkerInitInfo)]](GetInitInfo(workerId))
-    jobsLink           =  jobs.map(toJobLinks)
-    (address, sparkUi) =  result.map(_._1) match {
-                            case Some(Started(_, a, _, s)) => (a.toString, s)
-                            case _ => ("", None)
-                          }
-  } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, result.map(_._2))
+  def getWorkerInfo(workerId: String): Future[Option[WorkerFullInfo]] = {
+    val res = for {
+      workerInfo                       <- OptionT(workerInitInfo(workerId))
+      jobs                             <- OptionT.liftF(jobsByWorker(workerId, workerInfo._1))
+      jobsLink                         =  jobs.map(toJobLinks)
+      (initInfo, address, sparkUi)     =  workerInfo match {
+                                            case (Started(_, a, _, s, _), i) => (i, a.toString, s)
+                                            case (_, i) => (i, "", None)
+                                          }
+    } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, initInfo)
+
+    res.value
+  }
+
+  private def workerInitInfo(workerId: String): Future[Option[(WorkerState, WorkerInitInfo)]] =
+    askManager[Option[(WorkerState, WorkerInitInfo)]](GetInitInfo(workerId))
+
+  private def jobsByWorker(
+    workerId: String,
+    state: WorkerState
+  ): Future[Seq[JobDetails]] =
+    askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId, state))
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,

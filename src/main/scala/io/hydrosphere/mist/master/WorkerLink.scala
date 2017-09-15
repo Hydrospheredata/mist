@@ -14,5 +14,5 @@ case class WorkerFullInfo(
   address: String,
   sparkUi: Option[String],
   jobs: Seq[JobDetailsLink],
-  initInfo: Option[WorkerInitInfo]
+  initInfo: WorkerInitInfo
 )
