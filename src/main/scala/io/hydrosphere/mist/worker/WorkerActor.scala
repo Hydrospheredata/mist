@@ -128,7 +128,7 @@ class ExclusiveWorkerActor(
 
   implicit val ec = {
     val service = Executors.newSingleThreadExecutor()
-    ExecutionContext.fromExecutorService(service)
+    ExecutionContext.fromExecutorService(service, t => log.error(t.getMessage, t))
   }
 
   override def receive: Receive = awaitRequest

@@ -18,7 +18,38 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
   import JsonCodecs._
   import spray.json.pimpString
 
+  implicit private val suiteDescription = Description.createSuiteDescription(getClass)
+  implicit override val patienceConfig =
+    PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(1, Seconds)))
   override val overrideConf = Some("mqtt/integration.conf")
+
+  var container: Container = _
+  var mqttClient: MqttClient = _
+
+  override def beforeAll = {
+    container = GenericContainer(
+      "ansi/mosquitto:latest", Map(1883 -> 1883),
+      waitStrategy = Wait.forListeningPort()
+    )
+    container.starting()
+
+    super.beforeAll()
+
+    val persistence = new MemoryPersistence
+    mqttClient = new MqttClient(s"tcp://localhost:1883", MqttClient.generateClientId, persistence)
+    mqttClient.connect()
+  }
+
+
+  override def afterAll = {
+    try {
+      mqttClient.disconnect()
+    } finally {
+      mqttClient.close()
+    }
+    container.finished()
+    super.afterAll
+  }
 
   it("should run job by mqtt") {
     val request =
@@ -57,33 +88,4 @@ class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
 
   }
 
-  var container: Container = _
-  var mqttClient: MqttClient = _
-
-  override def beforeAll = {
-    container = GenericContainer(
-      "ansi/mosquitto:latest", Map(1883 -> 1883),
-      waitStrategy = Wait.forListeningPort()
-    )
-    container.starting()
-
-    super.beforeAll()
-
-    val persistence = new MemoryPersistence
-    mqttClient = new MqttClient(s"tcp://localhost:1883", MqttClient.generateClientId, persistence)
-    mqttClient.connect()
-  }
-
-  implicit override val patienceConfig =
-    PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(1, Seconds)))
-
-  implicit private val suiteDescription = Description.createSuiteDescription(getClass)
-
-  override def afterAll = {
-    super.afterAll
-
-    mqttClient.disconnect()
-    mqttClient.close()
-    container.finished()
-  }
 }

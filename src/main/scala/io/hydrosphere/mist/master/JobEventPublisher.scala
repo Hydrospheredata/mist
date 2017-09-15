@@ -28,7 +28,9 @@ object JobEventPublisher {
         producer.send("", json)
       }
 
-      override def close(): Unit = {}
+      override def close(): Unit = {
+        producer.close()
+      }
     }
   }
 

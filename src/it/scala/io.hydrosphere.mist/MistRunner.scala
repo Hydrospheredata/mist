@@ -1,9 +1,14 @@
 package io.hydrosphere.mist
 
+import java.nio.file.Paths
+
 import io.hydrosphere.mist.jobs.JobResult
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.{MasterAppArguments, MasterServer}
 import org.scalatest._
-import scala.sys.process._
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 trait MistRunner {
 
@@ -19,34 +24,19 @@ trait MistRunner {
   def runMist(
     overrideConf: Option[String],
     overrideRouter: Option[String]
-  ): Process = {
-
+  ): MasterServer = {
     def fromResource(path: String): String =
       getClass.getClassLoader.getResource(path).getPath
 
-    def optArg(key: String, value: Option[String]): Seq[String] =
-      value.map(v => Seq(key, v)).getOrElse(Seq.empty)
+    val defaultArgs = MasterAppArguments.fromPath(Paths.get(mistHome))
 
-    val configArg = optArg("--config", overrideConf.map(fromResource))
-    val routerArg = optArg("--router-config", overrideRouter.map(fromResource))
-    val args = Seq(s"$mistHome/bin/mist-master", "start") ++ configArg ++ routerArg
-
-    val env = sys.env.toSeq :+ ("SPARK_HOME" -> sparkHome)
-//    val ps = Process(args, None, env: _*).run(new ProcessLogger {
-//      override def buffer[T](f: => T): T = f
-//
-//      override def out(s: => String): Unit = ()
-//
-//      override def err(s: => String): Unit = ()
-//    })
-    val ps = Process(args, None, env: _*).run()
-    Thread.sleep(5000)
-    ps
+    val conf = overrideConf.map(fromResource).getOrElse(defaultArgs.configPath)
+    val router = overrideRouter.map(fromResource).getOrElse(defaultArgs.routerConfigPath)
+    val master = MasterServer(conf, router)
+    Await.result(master.start(), Duration.Inf)
+    master
   }
 
-  def killMist(): Unit ={
-    Process(s"$mistHome/bin/mist-master stop").run(false).exitValue()
-  }
 }
 
 object MistRunner extends MistRunner
@@ -56,17 +46,14 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
   val overrideConf: Option[String] = None
   val overrideRouter: Option[String] = None
 
-  private var ps: Process = null
+  var master: MasterServer = _
 
   override def beforeAll {
-    ps = runMist(overrideConf, overrideRouter)
+    master = runMist(overrideConf, overrideRouter)
   }
 
   override def afterAll: Unit = {
-    // call kill over bash - destroy works strangely
-    ps.destroy()
-    killMist()
-    Thread.sleep(5000)
+    Await.result(master.stop(), Duration.Inf)
   }
 
   def isSpark2: Boolean = sparkVersion.startsWith("2.")
@@ -91,8 +78,8 @@ case class MistHttpInterface(
 ) {
 
   import JsonCodecs._
-  import spray.json.pimpString
-  import spray.json._
+  import spray.json.{pimpString, _}
+
   import scalaj.http.Http
 
   def runJob(routeId: String, params: (String, Any)*): JobResult =
