@@ -63,6 +63,20 @@ class HttpApiV2Spec extends FunSpec
         status shouldBe StatusCodes.OK
       }
     }
+    it("should get full worker info") {
+      val jobService = mock[JobService]
+      when(jobService.getWorkerInfo(any[String]))
+        .thenSuccess(WorkerFullInfo("id", Seq(), None))
+      val route = HttpV2Routes.workerRoutes(jobService)
+
+      Get("/v2/api/workers/id") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val resp = responseAs[WorkerFullInfo]
+        resp.name shouldBe "id"
+        resp.jobs shouldBe empty
+        resp.initInfo should not be defined
+      }
+    }
 
   }
 

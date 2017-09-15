@@ -10,7 +10,7 @@ import io.hydrosphere.mist.master.models.{RunMode, ContextConfig}
 
 object Messages {
 
-  object Status {
+  object StatusMessages {
 
     case class Register(
       request: RunJobRequest,
@@ -41,6 +41,7 @@ object Messages {
     case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetById(id: String)
+    case class RunningJobsByWorker(id: String)
 
   }
 
@@ -73,6 +74,10 @@ object Messages {
     case object WorkerDown
 
     case class CheckWorkerUp(id: String)
+
+    case class GetInitInfo(id: String)
+    sealed trait GetRunInitInfo
+    case object GetRunInitInfo extends GetRunInitInfo
   }
 
   // only for cli

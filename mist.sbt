@@ -38,7 +38,7 @@ lazy val commonSettings = Seq(
     }),
 
   crossScalaVersions := mistScalaCrossCompile,
-  version := "0.13.1"
+  version := "0.13.2"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -91,7 +91,7 @@ lazy val master = project.in(file("mist/master"))
       "com.typesafe.slick" %% "slick" % "3.1.1",
       "com.h2database" % "h2" % "1.4.194",
       "org.flywaydb" % "flyway-core" % "4.1.1",
-      
+
       "org.typelevel" %% "cats" % "0.9.0",
       "com.twitter" %% "chill" % "0.9.2",
       "com.github.scopt" %% "scopt" % "3.6.0",
@@ -273,6 +273,10 @@ lazy val root = project.in(file("."))
     parallelExecution in IntegrationTest := false,
     fork in(IntegrationTest, test) := true,
     fork in(IntegrationTest, testOnly) := true,
+    envVars in IntegrationTest ++= Map(
+      "SPARK_HOME" -> s"${sparkLocal.value}",
+      "MIST_HOME" -> s"${basicStage.value}"
+    ),
     javaOptions in(IntegrationTest, test) ++= {
       val mistHome = basicStage.value
       Seq(

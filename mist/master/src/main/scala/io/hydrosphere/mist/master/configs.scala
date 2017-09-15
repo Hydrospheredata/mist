@@ -160,6 +160,7 @@ case class MasterConfig(
   contextsPath: String,
   endpointsPath: String,
   security: SecurityConfig,
+  srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
   raw: Config
@@ -169,7 +170,7 @@ object MasterConfig {
 
   def load(filePath: String): MasterConfig = {
     val cfg = loadConfig(filePath)
-    parse(cfg)
+    parse(filePath, cfg)
   }
 
   def loadConfig(filePath: String): Config = {
@@ -179,7 +180,7 @@ object MasterConfig {
     properties.withFallback(user.withFallback(appConfig)).resolve()
   }
 
-  def parse(config: Config): MasterConfig = {
+  def parse(filePath: String, config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
     MasterConfig(
       cluster = HostPortConfig(mist.getConfig("cluster")),
@@ -195,6 +196,7 @@ object MasterConfig {
       security = SecurityConfig(mist.getConfig("security")),
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
+      srcConfigPath = filePath,
       raw = config
     )
   }

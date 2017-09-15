@@ -147,6 +147,12 @@ Glosssary:
       <td>None</td>
       <td>Stop worker</td>
     </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/workers/{id}</td>
+      <td>None</td>
+      <td>Get detailed worker info(context config, jobs, etc..)</td>
+    </tr>
   </tbody>
 </table>
 

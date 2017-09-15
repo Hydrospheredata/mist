@@ -5,12 +5,11 @@ import akka.cluster.ClusterEvent._
 import akka.cluster._
 import akka.pattern._
 import akka.util.Timeout
-
-import Messages.JobExecution._
-import WorkersManager.WorkerResolved
-
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.core.CommonData._
-
+import io.hydrosphere.mist.master.Messages.JobExecution._
+import io.hydrosphere.mist.master.WorkersManager.WorkerResolved
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 
@@ -101,7 +100,7 @@ class WorkersManager(
     case StopWorker(name) =>
       workerStates.get(name).foreach({
         case s: Started =>
-          cluster.leave(s.address)
+          cluster leave s.address
           setWorkerDown(name)
           sender() ! akka.actor.Status.Success(())
         case _ =>
@@ -111,7 +110,7 @@ class WorkersManager(
       workerStates.foreach({case (name, state) =>
         state match {
           case s: Started =>
-            cluster.leave(s.address)
+            cluster leave s.address
             setWorkerDown(name)
           case _ =>
         }
@@ -138,12 +137,18 @@ class WorkersManager(
           log.info(s"Worker with $name is registered on $address")
 
         case None =>
-          // this is possible when worker starting is too slow and we mark it as down (gg CheckInitWorkers)
+          // this is possible when worker starting is too slow and we mark it as down
           // and we already sent to frontend that jobs failed and removed default state of worker
           // so we here and we need to shutdown worker so actor does not leak
-          cluster down address
+          cluster leave address
           log.warning("Received memberResolve from unknown worker {}", name)
       }
+    case GetInitInfo(id) =>
+      val res = for {
+        state <- OptionT.fromOption[Future](workerStates.get(id))
+        initInfo <- OptionT(getInitInfo(state))
+      } yield initInfo
+      res.value pipeTo sender()
 
     case CheckWorkerUp(id) =>
       checkWorkerUp(id)
@@ -159,6 +164,13 @@ class WorkersManager(
 
     case CreateContext(ctx) =>
       startWorker(ctx.name, ctx, RunMode.Shared)
+  }
+
+  private def getInitInfo(s: WorkerState): Future[Option[WorkerInitInfo]] = s match {
+    case Started(_, _, backend, _) =>
+      implicit val timeout = Timeout(5 seconds)
+      backend.ask(GetRunInitInfo).mapTo[WorkerInitInfo].map(Some.apply)
+    case _ => Future.successful(None)
   }
 
   private def checkWorkerUp(id: String): Unit = {

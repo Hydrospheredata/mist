@@ -76,10 +76,10 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 - [x] CLI
 - [x] Web Interface
 - [x] Apache Kafka support
+- [x] Kerberos integration
 - [ ] AWS ECS cloudformation package 
 - [ ] AWS EMR cloudformation package
 - [ ] Hortonworks Ambari package
-- [ ] Kerberos integration
 - [ ] DC/OS package
 - [ ] Dynamic auto-configurable Spark settings based on jobs history
 - [ ] Bi-directional streaming API

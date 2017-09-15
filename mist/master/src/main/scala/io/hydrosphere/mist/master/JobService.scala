@@ -3,13 +3,10 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.models._
-
-import Messages.Status._
 import Messages.JobExecution._
-
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag
@@ -43,6 +40,19 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
 
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
+
+  def getWorkerInfo(workerId: String): Future[WorkerFullInfo] = {
+    for {
+      jobs     <- askStatus[Seq[JobDetails]](RunningJobsByWorker(workerId))
+      initInfo <- askManager[Option[WorkerInitInfo]](GetInitInfo(workerId))
+      jobsLink =  jobs.map(toJobLinks)
+    } yield WorkerFullInfo(workerId, jobsLink, initInfo)
+  }
+
+  private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
+      job.jobId, job.source, job.startTime, job.endTime,
+      job.status, job.endpoint, job.workerId, job.createTime
+  )
 
   def stopAllWorkers(): Future[Unit] = workerManager.ask(StopAllWorkers).map(_ => ())
 

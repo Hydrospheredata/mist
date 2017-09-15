@@ -26,6 +26,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         endpointsPath = "",
         jobsSavePath = "/tmp",
         artifactRepositoryPath = "/tmp"
+        srcConfigPath = ""
       )
 
       val name = "worker-name"

@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.master.interfaces
 
 import java.time.LocalDateTime
-import java.time.format.{DateTimeParseException, DateTimeFormatter}
+import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
-import io.hydrosphere.mist.master.Messages.Status._
-import io.hydrosphere.mist.master.{JobResult, JobDetails, WorkerLink}
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
+import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.{JobDetails, JobResult, WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
 import spray.json._
@@ -207,6 +207,10 @@ trait JsonCodecs extends SprayJsonSupport
       case x => throw DeserializationException(s"Duration should be JsString")
     }
   }
+
+  implicit val jobDetailsLinkF = jsonFormat8(JobDetailsLink)
+  implicit val WorkerInitInfoF = jsonFormat7(WorkerInitInfo)
+  implicit val workerFullInfoF = jsonFormat3(WorkerFullInfo)
 
   implicit val contextConfigF = jsonFormat8(ContextConfig.apply)
 

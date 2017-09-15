@@ -1,9 +1,8 @@
 package io.hydrosphere.mist.master
 
-import Messages.Status.SystemEvent
 import interfaces.JsonCodecs
 import interfaces.async.kafka.TopicProducer
-
+import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{MqttAsyncClient, MqttConnectOptions, MqttMessage}
 
@@ -29,7 +28,9 @@ object JobEventPublisher {
         producer.send("", json)
       }
 
-      override def close(): Unit = {}
+      override def close(): Unit = {
+        producer.close()
+      }
     }
   }
 
