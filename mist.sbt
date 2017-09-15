@@ -119,6 +119,10 @@ lazy val mist = project.in(file("."))
     fork in(Test, test) := true,
     fork in(IntegrationTest, test) := true,
     fork in(IntegrationTest, testOnly) := true,
+    envVars in IntegrationTest ++= Map(
+      "SPARK_HOME" -> s"${sparkLocal.value}",
+      "MIST_HOME" -> s"${basicStage.value}"
+    ),
     javaOptions in(IntegrationTest, test) ++= {
       val mistHome = basicStage.value
       Seq(

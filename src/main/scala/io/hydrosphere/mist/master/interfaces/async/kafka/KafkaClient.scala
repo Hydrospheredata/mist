@@ -19,6 +19,9 @@ class TopicProducer[K, V](
     val record = new ProducerRecord(topic, key, value)
     producer.send(record)
   }
+  def close(): Unit = {
+    producer.close()
+  }
 
 }
 

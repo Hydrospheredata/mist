@@ -160,6 +160,7 @@ case class MasterConfig(
   contextsPath: String,
   endpointsPath: String,
   security: SecurityConfig,
+  srcConfigPath: String,
   raw: Config
 )
 
@@ -167,7 +168,7 @@ object MasterConfig {
 
   def load(filePath: String): MasterConfig = {
     val cfg = loadConfig(filePath)
-    parse(cfg)
+    parse(filePath, cfg)
   }
 
   def loadConfig(filePath: String): Config = {
@@ -177,7 +178,7 @@ object MasterConfig {
     properties.withFallback(user.withFallback(appConfig)).resolve()
   }
 
-  def parse(config: Config): MasterConfig = {
+  def parse(filePath: String, config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
     MasterConfig(
       cluster = HostPortConfig(mist.getConfig("cluster")),
@@ -191,6 +192,7 @@ object MasterConfig {
       contextsPath = mist.getString("contexts-store.path"),
       endpointsPath = mist.getString("endpoints-store.path"),
       security = SecurityConfig(mist.getConfig("security")),
+      srcConfigPath = filePath,
       raw = config
     )
   }

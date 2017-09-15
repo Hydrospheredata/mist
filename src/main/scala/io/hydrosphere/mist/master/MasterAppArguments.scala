@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 
 case class MasterAppArguments(
   configPath: String,
@@ -21,13 +21,16 @@ object MasterAppArguments {
 
   }
 
-  val default = {
+  val default: MasterAppArguments = {
     val root = Paths.get(sys.env.getOrElse("MIST_HOME", "."))
-    MasterAppArguments(
-      root.resolve("configs").resolve("default.conf").toString,
-      root.resolve("configs").resolve("router.conf").toString
-    )
+    fromPath(root)
   }
+
+  def fromPath(root: Path): MasterAppArguments = MasterAppArguments(
+    root.resolve("configs").resolve("default.conf").toString,
+    root.resolve("configs").resolve("router.conf").toString
+  )
+
 
   def parse(args: Seq[String]): Option[MasterAppArguments] = parser.parse(args, default)
 }

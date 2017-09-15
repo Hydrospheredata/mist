@@ -23,7 +23,8 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         security = SecurityConfig.disabled,
         raw = ConfigFactory.empty(),
         contextsPath = "",
-        endpointsPath = ""
+        endpointsPath = "",
+        srcConfigPath = ""
       )
 
       val name = "worker-name"
