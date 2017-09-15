@@ -145,7 +145,7 @@ class WorkersManager(
       val res = for {
         state <- OptionT.fromOption[Future](workerStates.get(id))
         initInfo <- OptionT(getInitInfo(state))
-      } yield initInfo
+      } yield (state, initInfo)
       res.value pipeTo sender()
 
     case CheckWorkerUp(id) =>

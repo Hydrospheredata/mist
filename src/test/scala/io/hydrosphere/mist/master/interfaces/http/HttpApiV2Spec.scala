@@ -64,7 +64,7 @@ class HttpApiV2Spec extends FunSpec
     it("should get full worker info") {
       val jobService = mock[JobService]
       when(jobService.getWorkerInfo(any[String]))
-        .thenSuccess(WorkerFullInfo("id", Seq(), None))
+        .thenSuccess(WorkerFullInfo("id", "test", None, Seq(), None))
       val route = HttpV2Routes.workerRoutes(jobService)
 
       Get("/v2/api/workers/id") ~> route ~> check {
@@ -73,6 +73,8 @@ class HttpApiV2Spec extends FunSpec
         resp.name shouldBe "id"
         resp.jobs shouldBe empty
         resp.initInfo should not be defined
+        resp.sparkUi should not be defined
+        resp.address shouldBe "test"
       }
     }
 
