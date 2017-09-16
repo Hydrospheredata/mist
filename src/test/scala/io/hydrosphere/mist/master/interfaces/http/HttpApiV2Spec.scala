@@ -274,9 +274,8 @@ class HttpApiV2Spec extends FunSpec
       val route = HttpV2Routes.jobsRoutes(master)
 
       Get("/v2/api/jobs/id/worker") ~> route ~> check {
-        response.status shouldBe StatusCodes.OK
-        val resp = responseAs[WorkerLink]
-        resp.name shouldBe "test"
+        status shouldBe StatusCodes.OK
+        responseAs[WorkerLink].name shouldBe "test"
       }
     }
     it("should return 404 when worker not found") {
@@ -289,7 +288,7 @@ class HttpApiV2Spec extends FunSpec
       val route = HttpV2Routes.jobsRoutes(master)
 
       Get("/v2/api/jobs/id/worker") ~> route ~> check {
-        response.status shouldBe StatusCodes.NotFound
+        status shouldBe StatusCodes.NotFound
       }
     }
     it("should return 200 empty response on logs request when job log file not exists") {

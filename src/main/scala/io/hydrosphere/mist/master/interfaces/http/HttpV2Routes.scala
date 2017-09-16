@@ -236,7 +236,10 @@ object HttpV2Routes {
     } ~
     path( root / "jobs" / Segment / "worker" ) { jobId =>
       get {
-        completeOpt { master.jobService.workerByJobId(jobId) }
+        onSuccess(master.jobService.workerByJobId(jobId)) {
+          case Some(worker) => complete { worker }
+          case None => complete { HttpResponse(StatusCodes.NotFound, entity=s"Worker by jobId $jobId not found") }
+        }
       }
     } ~
     path( root / "jobs" / Segment ) { jobId =>
