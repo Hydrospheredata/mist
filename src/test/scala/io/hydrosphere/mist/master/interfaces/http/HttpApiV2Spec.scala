@@ -263,6 +263,35 @@ class HttpApiV2Spec extends FunSpec
         status shouldBe StatusCodes.NotFound
       }
     }
+    it("should return worker info") {
+      val jobService = mock[JobService]
+      val master = mock[MasterService]
+      when(master.jobService)
+        .thenReturn(jobService)
+      when(jobService.workerByJobId(any[String]))
+        .thenSuccess(Some(WorkerLink("test", "localhost:0", None)))
+
+      val route = HttpV2Routes.jobsRoutes(master)
+
+      Get("/v2/api/jobs/id/worker") ~> route ~> check {
+        response.status shouldBe StatusCodes.OK
+        val resp = responseAs[WorkerLink]
+        resp.name shouldBe "test"
+      }
+    }
+    it("should return 404 when worker not found") {
+      val jobService = mock[JobService]
+      val master = mock[MasterService]
+      when(master.jobService)
+        .thenReturn(jobService)
+      when(jobService.workerByJobId(any[String]))
+        .thenSuccess(None)
+      val route = HttpV2Routes.jobsRoutes(master)
+
+      Get("/v2/api/jobs/id/worker") ~> route ~> check {
+        response.status shouldBe StatusCodes.NotFound
+      }
+    }
     it("should return 200 empty response on logs request when job log file not exists") {
       val jobsService = mock[JobService]
       val master = mock[MasterService]
