@@ -234,6 +234,11 @@ object HttpV2Routes {
         }
       }
     } ~
+    path( root / "jobs" / Segment / "worker" ) { jobId =>
+      get {
+        completeOpt { master.jobService.workerByJobId(jobId) }
+      }
+    } ~
     path( root / "jobs" / Segment ) { jobId =>
       delete { completeOpt {
         master.jobService.stopJob(jobId)

@@ -45,6 +45,30 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
 
+  def workerByJobId(jobId: String): Future[Option[WorkerLink]] = {
+    val res = for {
+      job        <- OptionT(jobStatusById(jobId))
+      workerLink <- OptionT(fetchWorkerLink(job))
+    } yield workerLink
+    res.value
+  }
+
+  private def fetchWorkerLink(job: JobDetails): Future[Option[WorkerLink]] = {
+    val res = for {
+      startTime  <- OptionT.fromOption[Future](job.startTime)
+      (state, _) <- OptionT(workerInitInfo(job.workerId))
+      l          <- OptionT.fromOption[Future](toWorkerLink(state))
+      link       <- OptionT.fromOption[Future](if (state.timestamp <= startTime) Some(l) else None)
+      workerLink =  link.copy(name = job.workerId)
+    } yield workerLink
+    res.value
+  }
+
+  private def toWorkerLink(state: WorkerState): Option[WorkerLink] = state match {
+    case Started(_, addr, _, sparkUi, _) => Some(WorkerLink("", addr.toString, sparkUi))
+    case _                            => None
+  }
+
   def getWorkerInfo(workerId: String): Future[Option[WorkerFullInfo]] = {
     val res = for {
       workerInfo                       <- OptionT(workerInitInfo(workerId))
