@@ -20,12 +20,15 @@ parallel branches
 //some commit
 node("JenkinsOnDemand") {
     stage('Final stage - scm checkout') {
-        checkout scm
-        sh "cd ${env.WORKSPACE}"
+             // when jenkins git plugin 3.4.0 change git scm behaviour
+             // so we must force it to checkout tags as was before
+             // https://issues.jenkins-ci.org/browse/JENKINS-45164
+             checkout scm
+             sh "cd ${env.WORKSPACE}"
+             sh "git fetch --tags"
     }
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
             publishVersions = ["1.5.2", "2.1.0"]
@@ -43,8 +46,12 @@ def test_mist(slaveName, sparkVersion) {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
             try {
                 stage('Clone project ' + sparkVersion) {
+                    // when jenkins git plugin 3.4.0 change git scm behaviour
+                    // so we must force it to checkout tags as was before
+                    // https://issues.jenkins-ci.org/browse/JENKINS-45164
                     checkout scm
                     sh "cd ${env.WORKSPACE}"
+                    sh "git fetch --tags"
                 }
 
                 stage('Build and test') {
