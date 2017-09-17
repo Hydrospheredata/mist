@@ -26,8 +26,6 @@ node("JenkinsOnDemand") {
              checkout scm
              sh "cd ${env.WORKSPACE}"
              sh "git fetch --tags"
-         }
-
     }
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
