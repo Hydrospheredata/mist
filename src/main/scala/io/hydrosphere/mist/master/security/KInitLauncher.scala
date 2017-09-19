@@ -29,7 +29,7 @@ object KInitLauncher {
       }
     }
 
-    private def loop():Future[Unit] = {
+    private def loop(): Future[Unit] = {
       val thread = new Thread(new Runnable {
         override def run(): Unit = {
           while (!stopped) {

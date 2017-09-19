@@ -114,15 +114,12 @@ object LogStreams extends LogStreams {
     port: Int,
     mappings: LogStorageMappings,
     publishers: Seq[JobEventPublisher]
-  )(implicit sys: ActorSystem, mat: ActorMaterializer): LogService = {
+  )(implicit sys: ActorSystem, mat: ActorMaterializer): Future[LogService] = {
 
     val writer = LogsWriter(mappings, sys)
-
     val storeInput = runStoreFlow(writer, publishers)
     val f = runTcpServer(host, port, storeInput)
-    val binding = Await.result(f, Duration.Inf)
-
-    new LogService(storeInput, binding)
+    f.map(binding => new LogService(storeInput, binding))(sys.dispatcher)
   }
 }
 
