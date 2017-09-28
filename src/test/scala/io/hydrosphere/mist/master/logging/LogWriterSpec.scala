@@ -56,7 +56,7 @@ class LogWriterSpec extends TestKit(ActorSystem("log-writer-test", ConfigFactory
   describe("writers group") {
 
     it("should proxy to writer") {
-      val mappings = new LogStorageMappings(dir)
+      val mappings = new LogStoragePaths(dir)
       val expectedPath = mappings.pathFor("id")
       if (Files.exists(expectedPath)) Files.delete(expectedPath)
 

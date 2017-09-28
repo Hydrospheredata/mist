@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import io.hydrosphere.mist.jobs.JobResult
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.{MasterAppArguments, MasterServer}
+import io.hydrosphere.mist.master.{MasterServer, ServerInstance, MasterAppArguments}
 import org.scalatest._
 
 import scala.concurrent.Await
@@ -24,7 +24,7 @@ trait MistRunner {
   def runMist(
     overrideConf: Option[String],
     overrideRouter: Option[String]
-  ): MasterServer = {
+  ): ServerInstance = {
     def fromResource(path: String): String =
       getClass.getClassLoader.getResource(path).getPath
 
@@ -32,9 +32,8 @@ trait MistRunner {
 
     val conf = overrideConf.map(fromResource).getOrElse(defaultArgs.configPath)
     val router = overrideRouter.map(fromResource).getOrElse(defaultArgs.routerConfigPath)
-    val master = MasterServer(conf, router)
-    Await.result(master.start(), Duration.Inf)
-    master
+    val starting = MasterServer.start(conf, router)
+    Await.result(starting, Duration.Inf)
   }
 
 }
@@ -46,7 +45,7 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
   val overrideConf: Option[String] = None
   val overrideRouter: Option[String] = None
 
-  var master: MasterServer = _
+  var master: ServerInstance = _
 
   override def beforeAll {
     master = runMist(overrideConf, overrideRouter)

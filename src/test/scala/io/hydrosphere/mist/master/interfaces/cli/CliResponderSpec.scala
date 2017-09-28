@@ -9,7 +9,7 @@ import io.hydrosphere.mist.Messages.WorkerMessages.StopAllWorkers
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
-import io.hydrosphere.mist.master.{JobService, MasterService}
+import io.hydrosphere.mist.master.{JobService, MainService}
 import io.hydrosphere.mist.master.models.{EndpointConfig, FullEndpointInfo}
 import org.mockito.Mockito._
 import org.scalatest.{FunSpecLike, Matchers}
@@ -29,7 +29,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
       JvmJobInfo(JobsLoader.Common.loadJobClass(scalaJobClass.getName).get)
     ).map(i => FullEndpointInfo(epConfig, i))
 
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
     when(master.endpointsInfo).thenReturn(Future.successful(infos))
 
     val responder = system.actorOf(CliResponder.props(master, TestProbe().ref))
@@ -43,7 +43,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
   }
 
   it("should return running jobs") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
     val jobService = mock(classOf[JobService])
     when(jobService.activeJobs())
       .thenReturn(Future.successful(List(
@@ -71,7 +71,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
   }
 
   it("should forward other messages to manager") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
     val manager = TestProbe()
     val responder = system.actorOf(CliResponder.props(master, manager.ref))
 

@@ -9,7 +9,7 @@ import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.jobs.jar._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{FullEndpointInfo, EndpointConfig, EndpointStartRequest, RunSettings}
-import io.hydrosphere.mist.master.{JobService, MasterService, WorkerLink}
+import io.hydrosphere.mist.master.{JobService, MainService, WorkerLink}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.Future
@@ -93,7 +93,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
 
 
   it("should serve routes") {
-    val master = mock[MasterService]
+    val master = mock[MainService]
     val api = new HttpApi(master).route
 
     val testJobClass = io.hydrosphere.mist.jobs.jar.MultiplyJob
@@ -121,7 +121,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
   }
 
   it("should start job") {
-    val master = mock[MasterService]
+    val master = mock[MainService]
     val api = new HttpApi(master).route
     when(master.forceJobRun(any[EndpointStartRequest], any[Source], any[Action]))
       .thenReturn(Future.successful(Some(
@@ -133,8 +133,8 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
     }
   }
 
-  def masterMock(jobService: JobService): MasterService = {
-    val master = mock[MasterService]
+  def masterMock(jobService: JobService): MainService = {
+    val master = mock[MainService]
     when(master.jobService).thenReturn(jobService)
     master
   }

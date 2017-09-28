@@ -1,9 +1,11 @@
 package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
+import akka.stream.scaladsl
 import akka.testkit.TestKit
 import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.Messages.StatusMessages._
+import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.{Source, Status}
 import io.hydrosphere.mist.jobs.{Action, JobDetails}
 import io.hydrosphere.mist.master.logging.JobsLogger
@@ -19,18 +21,19 @@ import scala.concurrent.Future
 
 class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
   with FunSpecLike
+  with MockitoSugar
   with Matchers
   with Eventually {
 
   val params = JobParams("path", "className", Map.empty, Action.Execute)
 
   it("should register jobs") {
-    val store = mock(classOf[JobRepository])
-    val jobsLogger = mock(classOf[JobsLogger])
+    val store = mock[JobRepository]
+    val jobsLogger = mock[JobsLogger]
     when(store.update(any[JobDetails]))
       .thenReturn(Future.successful(()))
 
-    val status = system.actorOf(StatusService.props(store, Seq.empty, jobsLogger))
+    val status = system.actorOf(StatusService.props(store, mock[EventsStreamer], jobsLogger))
 
     status ! Register(
       RunJobRequest("id", params),
@@ -47,8 +50,8 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
   }
 
   it("should update status in storage and call publisher") {
-    val store = mock(classOf[JobRepository])
-    val jobsLogger = mock(classOf[JobsLogger])
+    val store = mock[JobRepository]
+    val jobsLogger = mock[JobsLogger]
     when(store.get(any[String])).thenReturn({
       val jobDetails = JobDetails(
         params = params,
@@ -63,9 +66,9 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
     })
     when(store.update(any[JobDetails])).thenReturn(Future.successful(()))
 
-    val publisher = mock(classOf[JobEventPublisher])
+    val streamer = mock[EventsStreamer]
 
-    val status = system.actorOf(StatusService.props(store, Seq(publisher), jobsLogger))
+    val status = system.actorOf(StatusService.props(store, streamer, jobsLogger))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 
@@ -74,7 +77,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
     }
 
     eventually(timeout(Span(1, Seconds))) {
-      verify(publisher).notify(any[StartedEvent])
+      verify(streamer).push(any[StartedEvent])
     }
   }
 

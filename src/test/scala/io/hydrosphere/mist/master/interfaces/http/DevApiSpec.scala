@@ -6,7 +6,7 @@ import io.hydrosphere.mist.Messages.JobMessages.{JobParams, RunJobRequest}
 import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.JobDetails.{Status, Source}
-import io.hydrosphere.mist.master.{ExecutionInfo, MasterService}
+import io.hydrosphere.mist.master.{ExecutionInfo, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.{DevJobStartRequest, DevJobStartRequestModel}
 import org.scalatest.{Matchers, FunSpec}
@@ -19,7 +19,7 @@ class DevApiSpec extends FunSpec with Matchers with ScalatestRouteTest with Mock
   import io.hydrosphere.mist.master.TestUtils._
 
   it("should start job in dev mode") {
-    val master = mock[MasterService]
+    val master = mock[MainService]
     val api = DevApi.devRoutes(master)
 
     val req = DevJobStartRequestModel("simple-context", "path", "className", None, None, None, "foo")
