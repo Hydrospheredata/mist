@@ -7,7 +7,7 @@ import io.hydrosphere.mist.MockitoSugar
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.jobs._
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.logging.LogStoragePaths
 import io.hydrosphere.mist.master.models._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{FunSpecLike, Matchers}
@@ -15,7 +15,7 @@ import org.scalatest.{FunSpecLike, Matchers}
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
+class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
   with Matchers
   with MockitoSugar {
@@ -26,7 +26,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
 
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -46,7 +46,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
       )
     )
 
-    val service = new MasterService(jobService, endpoints, contexts, logs)
+    val service = new MainService(jobService, endpoints, contexts, logs)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http).await
@@ -57,7 +57,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
 
     val jvmMock = mock[JvmJobInfo]
     val info = FullEndpointInfo(
@@ -70,7 +70,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(endpoints.getFullInfo(any[String]))
       .thenSuccess(Some(info))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs)
+    val service = new MainService(jobService, endpoints, contexts, logs)
 
     val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
     val f = service.runJob(req, Source.Http)
@@ -84,7 +84,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
 
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -106,7 +106,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
         1 seconds
       ))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs)
+    val service = new MainService(jobService, endpoints, contexts, logs)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, Source.Http)

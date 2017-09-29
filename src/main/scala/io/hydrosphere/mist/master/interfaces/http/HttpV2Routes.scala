@@ -8,7 +8,7 @@ import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails
 import io.hydrosphere.mist.jobs.JobDetails.Source
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{JobService, MasterService}
+import io.hydrosphere.mist.master.{JobService, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.TypeAlias.JobParameters
@@ -131,7 +131,7 @@ object HttpV2Routes {
     }
   }
 
-  def endpointsRoutes(master: MasterService): Route = {
+  def endpointsRoutes(master: MainService): Route = {
     val exceptionHandler =
       ExceptionHandler {
         case iae: IllegalArgumentException =>
@@ -208,7 +208,7 @@ object HttpV2Routes {
     }
   }
 
-  def jobsRoutes(master: MasterService): Route = {
+  def jobsRoutes(master: MainService): Route = {
     path( root / "jobs" ) {
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
@@ -225,7 +225,7 @@ object HttpV2Routes {
       get {
         onSuccess(master.jobService.jobStatusById(jobId)) {
           case Some(_) =>
-            master.logStorageMappings.pathFor(jobId).toFile match {
+            master.logsPaths.pathFor(jobId).toFile match {
               case file if file.exists => getFromFile(file)
               case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
             }
@@ -289,7 +289,7 @@ object HttpV2Routes {
     }
   }
 
-  def apiRoutes(masterService: MasterService): Route = {
+  def apiRoutes(masterService: MainService): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
@@ -297,6 +297,6 @@ object HttpV2Routes {
     statusApi
   }
 
-  def apiWithCORS(masterService: MasterService): Route =
+  def apiWithCORS(masterService: MainService): Route =
     CorsDirective.cors() { apiRoutes(masterService) }
 }

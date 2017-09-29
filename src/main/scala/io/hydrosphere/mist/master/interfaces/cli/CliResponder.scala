@@ -5,7 +5,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.util.Timeout
 import io.hydrosphere.mist.Messages.{ListRoutes, RunJobCli, StatusMessages}
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.MainService
 import io.hydrosphere.mist.master.models.EndpointStartRequest
 import io.hydrosphere.mist.utils.Logger
 
@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * Console interface provider
   */
 class CliResponder(
-  masterService: MasterService,
+  masterService: MainService,
   workerManager: ActorRef
 ) extends Actor with Logger {
   
@@ -42,7 +42,7 @@ class CliResponder(
 
 object CliResponder {
 
-  def props(masterService: MasterService, workersManager: ActorRef): Props =
+  def props(masterService: MainService, workersManager: ActorRef): Props =
     Props(classOf[CliResponder], masterService, workersManager)
 
 }

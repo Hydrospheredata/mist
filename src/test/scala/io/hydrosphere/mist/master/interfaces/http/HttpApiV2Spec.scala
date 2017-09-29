@@ -14,9 +14,9 @@ import io.hydrosphere.mist.jobs.jar.JobsLoader
 import io.hydrosphere.mist.jobs.{Action, JobDetails, JvmJobInfo, PyJobInfo}
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.logging.LogStorageMappings
+import io.hydrosphere.mist.master.logging.LogStoragePaths
 import io.hydrosphere.mist.master.models._
-import io.hydrosphere.mist.master.{JobService, MasterService, WorkerFullInfo, WorkerLink}
+import io.hydrosphere.mist.master.{JobService, MainService, WorkerFullInfo, WorkerLink}
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 
@@ -33,7 +33,7 @@ class HttpApiV2Spec extends FunSpec
 
   import JsonCodecs._
 
-  val mappings = new LogStorageMappings(Paths.get("."))
+  val mappings = new LogStoragePaths(Paths.get("."))
 
   describe("workers") {
 
@@ -90,7 +90,7 @@ class HttpApiV2Spec extends FunSpec
   describe("endpoints") {
 
     it("should run job") {
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenSuccess(Some(JobStartResponse("1")))
 
@@ -102,7 +102,7 @@ class HttpApiV2Spec extends FunSpec
     }
 
     it("should return bad request on futures failed illegal argument exception") {
-      val master = mock[MasterService]
+      val master = mock[MainService]
 
       when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenFailure(new IllegalArgumentException("argument missing"))
@@ -115,7 +115,7 @@ class HttpApiV2Spec extends FunSpec
     }
 
     it("should return 500 on future`s any exception except iae") {
-      val master = mock[MasterService]
+      val master = mock[MainService]
 
       when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenFailure(new IllegalStateException("some exception"))
@@ -131,7 +131,7 @@ class HttpApiV2Spec extends FunSpec
       val epConfig = EndpointConfig("name", "path", "className", "context")
       val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
 
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.endpointsInfo).thenSuccess(infos)
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -146,7 +146,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should return history for endpoint") {
       val jobService = mock[JobService]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.jobService).thenReturn(jobService)
 
       when(jobService.endpointHistory(
@@ -175,7 +175,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should create endpoint") {
       val endpointsStorage = mock[EndpointsStorage]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.endpoints).thenReturn(endpointsStorage)
 
       when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
@@ -197,7 +197,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock[EndpointsStorage]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.endpoints).thenReturn(endpointsStorage)
 
       val endpointConfig = EndpointConfig("name", "path", "className", "context")
@@ -238,7 +238,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should return jobs status by id") {
       val jobsService = mock[JobService]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.jobService).thenReturn(jobsService)
       when(jobsService.jobStatusById(any[String]))
         .thenSuccess(Some(jobDetails))
@@ -253,7 +253,7 @@ class HttpApiV2Spec extends FunSpec
     }
     it("should return 400 on logs request when job not found") {
       val jobsService = mock[JobService]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.jobService).thenReturn(jobsService)
       when(jobsService.jobStatusById(any[String]))
         .thenSuccess(None)
@@ -265,7 +265,7 @@ class HttpApiV2Spec extends FunSpec
     }
     it("should return worker info") {
       val jobService = mock[JobService]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.jobService)
         .thenReturn(jobService)
       when(jobService.workerByJobId(any[String]))
@@ -280,7 +280,7 @@ class HttpApiV2Spec extends FunSpec
     }
     it("should return 404 when worker not found") {
       val jobService = mock[JobService]
-      val master = mock[MasterService]
+      val master = mock[MainService]
       when(master.jobService)
         .thenReturn(jobService)
       when(jobService.workerByJobId(any[String]))
@@ -293,10 +293,10 @@ class HttpApiV2Spec extends FunSpec
     }
     it("should return 200 empty response on logs request when job log file not exists") {
       val jobsService = mock[JobService]
-      val master = mock[MasterService]
-      val logStorageMappings = mock[LogStorageMappings]
+      val master = mock[MainService]
+      val logStorageMappings = mock[LogStoragePaths]
       when(master.jobService).thenReturn(jobsService)
-      when(master.logStorageMappings).thenReturn(logStorageMappings)
+      when(master.logsPaths).thenReturn(logStorageMappings)
       when(jobsService.jobStatusById(any[String]))
         .thenSuccess(Some(jobDetails))
       when(logStorageMappings.pathFor(any[String]))

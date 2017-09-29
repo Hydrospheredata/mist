@@ -23,4 +23,5 @@ trait MockitoSugar extends org.scalatest.mockito.MockitoSugar {
     def thenFailure(e: Throwable): OngoingStubbing[Future[A]] =
       stubbing.thenReturn(Future.failed(e))
   }
+
 }

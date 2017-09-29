@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.interfaces.async
 
 import io.hydrosphere.mist.jobs.Action
 import io.hydrosphere.mist.jobs.JobDetails.Source
-import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.MainService
 import io.hydrosphere.mist.master.models.{RunMode, DevJobStartRequest, EndpointStartRequest}
 import org.scalatest.FunSpec
 import org.mockito.Mockito._
@@ -11,11 +11,11 @@ import org.mockito.Matchers._
 class AsyncInterfaceSpec extends FunSpec {
 
   it("should run job on endpoint") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
 
     val input = new TestAsyncInput
 
-    val interface = new AsyncInterface(master, input, Source.Async("Test"))
+    val interface = new AsyncInterface(master, input, "Test")
 
     interface.start()
 
@@ -32,11 +32,11 @@ class AsyncInterfaceSpec extends FunSpec {
   }
 
   it("should run dev job") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
 
     val input = new TestAsyncInput
 
-    val interface = new AsyncInterface(master, input, Source.Async("Test"))
+    val interface = new AsyncInterface(master, input, "Test")
 
     interface.start()
 

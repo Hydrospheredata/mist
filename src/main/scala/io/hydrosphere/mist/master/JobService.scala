@@ -18,7 +18,8 @@ import scala.reflect.ClassTag
 /**
   *  Jobs starting/stopping, statuses, worker utility methods
   */
-class JobService(workerManager: ActorRef, statusService: ActorRef) {
+//TODO: refactor cli interface
+class JobService(val workerManager: ActorRef, statusService: ActorRef) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
