@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
 import io.hydrosphere.mist.jobs.JobDetails.Source
 
-import io.hydrosphere.mist.master.MasterService
+import io.hydrosphere.mist.master.MainService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models.DevJobStartRequestModel
 
@@ -24,7 +24,7 @@ object DevApi {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  def devRoutes(masterService: MasterService): Route = {
+  def devRoutes(masterService: MainService): Route = {
     val exceptionHandler =
       ExceptionHandler {
         case iae: IllegalArgumentException =>

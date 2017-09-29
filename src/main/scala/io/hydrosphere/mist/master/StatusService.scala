@@ -17,7 +17,7 @@ import scala.util.{Failure, Success}
 
 class StatusService(
   store: JobRepository,
-  notifiers: Seq[JobEventPublisher],
+  streamer: EventsStreamer,
   jobsLogger: JobsLogger
 ) extends Actor with ActorLogging {
 
@@ -31,7 +31,7 @@ class StatusService(
       store.update(details).map(_ => {
         s ! akka.actor.Status.Success(())
         val event = InitializedEvent(req.id, req.params, externalId)
-        callNotifiers(event)
+        streamer.push(event)
       })
 
     case e: UpdateStatusEvent =>
@@ -40,7 +40,7 @@ class StatusService(
         case Success(Some(details)) =>
           jobsLogger.info(e.id, s"$e for job $details")
           origin ! details
-          callNotifiers(e)
+          streamer.push(e)
 
         case Success(None) =>
           val message = s"Received $e for unknown job"
@@ -77,15 +77,12 @@ class StatusService(
     result.value
   }
 
-  private def callNotifiers(event: UpdateStatusEvent): Unit =
-    notifiers.foreach(n => n.notify(event))
-
 }
 
 object StatusService {
 
-  def props(store: JobRepository, notifiers: Seq[JobEventPublisher], jobsLogger: JobsLogger): Props =
-    Props(classOf[StatusService], store, notifiers, jobsLogger)
+  def props(store: JobRepository, streamer: EventsStreamer, jobsLogger: JobsLogger): Props =
+    Props(classOf[StatusService], store, streamer, jobsLogger)
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {

@@ -10,7 +10,7 @@ import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import io.hydrosphere.mist.Messages.StatusMessages.ReceivedLogs
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
-import io.hydrosphere.mist.master.JobEventPublisher
+import io.hydrosphere.mist.master.{EventsStreamer, JobEventPublisher}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -56,10 +56,10 @@ trait LogStreams {
       .filter(_ => false)
   }
 
-  def sinkToPublishers(seq: Seq[JobEventPublisher]): Sink[LogUpdate, Any] = {
+  def eventStreamerSink(streamer: EventsStreamer): Sink[LogUpdate, Any] = {
     Sink.foreach[LogUpdate](upd => {
       val event = ReceivedLogs(upd.jobId, upd.events, upd.bytesOffset)
-      seq.foreach(_.notify(event))
+      streamer.push(event)
     })
   }
 
@@ -68,10 +68,10 @@ trait LogStreams {
     */
   def runStoreFlow(
     writer: LogsWriter,
-    publishers: Seq[JobEventPublisher]
+    streamer: EventsStreamer
   )(implicit mat: ActorMaterializer): ActorRef = {
     val source = Source.actorRef[LogEvent](10000, OverflowStrategy.dropHead)
-    val sink = sinkToPublishers(publishers)
+    val sink = eventStreamerSink(streamer)
 
     source.via(storeFlow(writer)).toMat(sink)(Keep.left).run()
   }
@@ -112,17 +112,14 @@ object LogStreams extends LogStreams {
   def runService(
     host: String,
     port: Int,
-    mappings: LogStorageMappings,
-    publishers: Seq[JobEventPublisher]
-  )(implicit sys: ActorSystem, mat: ActorMaterializer): LogService = {
+    paths: LogStoragePaths,
+    eventsStreamer: EventsStreamer
+  )(implicit sys: ActorSystem, mat: ActorMaterializer): Future[LogService] = {
 
-    val writer = LogsWriter(mappings, sys)
-
-    val storeInput = runStoreFlow(writer, publishers)
+    val writer = LogsWriter(paths, sys)
+    val storeInput = runStoreFlow(writer, eventsStreamer)
     val f = runTcpServer(host, port, storeInput)
-    val binding = Await.result(f, Duration.Inf)
-
-    new LogService(storeInput, binding)
+    f.map(binding => new LogService(storeInput, binding))(sys.dispatcher)
   }
 }
 
