@@ -5,24 +5,12 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl._
 import io.hydrosphere.mist.master.Messages.StatusMessages.{UpdateStatusEvent, SystemEvent}
 
-/**
-  * TODO: Rewrite MQTT and Kafka publisher in akka-streams-way
-  */
 trait EventsStreamer {
 
   def eventsSource(): Source[SystemEvent, Unit]
 
   def push(event: SystemEvent): Unit
 
-  def asPublisher: JobEventPublisher = {
-
-    new JobEventPublisher {
-      override def notify(event: SystemEvent): Unit =
-        push(event)
-
-      override def close(): Unit = {}
-    }
-  }
 }
 
 /**

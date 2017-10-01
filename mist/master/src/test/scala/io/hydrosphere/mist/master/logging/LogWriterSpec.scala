@@ -2,12 +2,13 @@ package io.hydrosphere.mist.master.logging
 
 import java.nio.file.{Files, Paths}
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.testkit.{TestActorRef, TestKit}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.master.LogStoragePaths
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
@@ -56,7 +57,7 @@ class LogWriterSpec extends TestKit(ActorSystem("log-writer-test", ConfigFactory
   describe("writers group") {
 
     it("should proxy to writer") {
-      val mappings = new LogStorageMappings(dir)
+      val mappings = new LogStoragePaths(dir)
       val expectedPath = mappings.pathFor("id")
       if (Files.exists(expectedPath)) Files.delete(expectedPath)
 

@@ -7,13 +7,12 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.jvmjob.JobClass
+import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.master.JobDetails.Source.Async
-
+import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
@@ -22,11 +21,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success, Try}
 
-class MasterService(
+class MainService(
   val jobService: JobService,
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
-  val logStorageMappings: LogStorageMappings,
+  val logsPaths: LogStoragePaths,
   val artifactRepository: ArtifactRepository
 ) extends Logger {
 
@@ -218,4 +217,25 @@ class MasterService(
       case Failure(ex) => Future.failed(ex)
     }
 
+}
+
+object MainService extends Logger {
+
+  def start(
+    jobService: JobService,
+    endpoints: EndpointsStorage,
+    contexts: ContextsStorage,
+    logsPaths: LogStoragePaths,
+    artifactRepository: ArtifactRepository
+  ): Future[MainService] = {
+    val service = new MainService(jobService, endpoints, contexts, logsPaths, artifactRepository)
+    for {
+      precreated <- contexts.precreated
+      _ = precreated.foreach(ctx => {
+        logger.info(s"Precreate context for ${ctx.name}")
+        jobService.workerManager ! CreateContext(ctx)
+      })
+      _ <- service.recoverJobs()
+    } yield service
+  }
 }

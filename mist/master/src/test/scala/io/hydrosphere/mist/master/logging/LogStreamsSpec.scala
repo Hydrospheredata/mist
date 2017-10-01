@@ -5,22 +5,23 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.testkit.TestKit
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.core.MockitoSugar
+import org.mockito.Mockito.verify
 import org.scalatest.{FunSpecLike, Matchers}
-import org.mockito.Mockito._
-import org.mockito.Matchers._
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 class LogStreamsSpec extends TestKit(ActorSystem("log-service-test"))
   with FunSpecLike
+  with MockitoSugar
   with Matchers {
 
   implicit val materializer = ActorMaterializer()
 
   it("should store events") {
-    val writer = mock(classOf[LogsWriter])
-    when(writer.write(any(classOf[String]), any(classOf[Seq[LogEvent]])))
+    val writer = mock[LogsWriter]
+    when(writer.write(any[String], any[Seq[LogEvent]]))
       .thenReturn(Future.successful(LogUpdate("jobId", Seq.empty, 1)))
 
 
@@ -32,6 +33,6 @@ class LogStreamsSpec extends TestKit(ActorSystem("log-service-test"))
     val updates = Await.result(out, Duration.Inf)
 
     updates.size shouldBe 1
-    verify(writer).write(any(classOf[String]), any(classOf[Seq[LogEvent]]))
+    verify(writer).write(any[String], any[Seq[LogEvent]])
   }
 }

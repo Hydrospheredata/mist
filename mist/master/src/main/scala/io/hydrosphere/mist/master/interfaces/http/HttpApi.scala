@@ -1,16 +1,17 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.server.{Directives, Route}
+import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.master.{JobDetails, MasterService}
+import io.hydrosphere.mist.master.{JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.models.{RunSettings, EndpointStartRequest}
+import io.hydrosphere.mist.master.models.{EndpointStartRequest, RunSettings}
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
 
-class HttpApi(master: MasterService) extends Logger {
+class HttpApi(master: MainService) extends Logger {
 
   import Directives._
   import JsonCodecs._

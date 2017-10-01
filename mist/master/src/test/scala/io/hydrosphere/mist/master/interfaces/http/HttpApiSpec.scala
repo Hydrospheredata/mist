@@ -2,13 +2,11 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.hydrosphere.mist.core.jvmjob.JobsLoader
-import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.master.models.{EndpointConfig, EndpointStartRequest, FullEndpointInfo, RunSettings}
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.models.EndpointStartRequest
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.Future
@@ -120,7 +118,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
 //  }
 
   it("should start job") {
-    val master = mock[MasterService]
+    val master = mock[MainService]
     val api = new HttpApi(master).route
     when(master.forceJobRun(any[EndpointStartRequest], any[JobDetails.Source], any[Action]))
       .thenReturn(Future.successful(Some(
@@ -132,8 +130,8 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
     }
   }
 
-  def masterMock(jobService: JobService): MasterService = {
-    val master = mock[MasterService]
+  def masterMock(jobService: JobService): MainService = {
+    val master = mock[MainService]
     when(master.jobService).thenReturn(jobService)
     master
   }

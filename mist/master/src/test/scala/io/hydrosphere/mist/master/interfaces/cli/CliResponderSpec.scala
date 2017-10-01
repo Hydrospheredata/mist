@@ -5,7 +5,7 @@ import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.Messages.JobExecution.StopAllWorkers
 import io.hydrosphere.mist.master.Messages.StatusMessages.RunningJobs
-import io.hydrosphere.mist.master.{JobDetails, JobService, MasterService}
+import io.hydrosphere.mist.master.{JobDetails, JobService, MainService}
 import org.mockito.Mockito._
 import org.scalatest.{FunSpecLike, Matchers}
 
@@ -38,7 +38,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
 //  }
 
   it("should return running jobs") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
     val jobService = mock(classOf[JobService])
     when(jobService.activeJobs())
       .thenReturn(Future.successful(List(
@@ -66,7 +66,7 @@ class CliResponderSpec extends TestKit(ActorSystem("cliResponderTest"))
   }
 
   it("should forward other messages to manager") {
-    val master = mock(classOf[MasterService])
+    val master = mock(classOf[MainService])
     val manager = TestProbe()
     val responder = system.actorOf(CliResponder.props(master, manager.ref))
 

@@ -7,11 +7,12 @@ import io.hydrosphere.mist.master.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
 
+import cats.syntax.option._
+
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
-  isOn: Boolean,
   host: String,
   port: Int,
   publishTopic: String,
@@ -63,7 +64,6 @@ object AsyncInterfaceConfig {
 
   def apply(config: Config): AsyncInterfaceConfig = {
     AsyncInterfaceConfig(
-      isOn = config.getBoolean("on"),
       host = config.getString("host"),
       port = config.getInt("port"),
       publishTopic = config.getString("publish-topic"),
@@ -71,7 +71,13 @@ object AsyncInterfaceConfig {
     )
   }
 
-  val disabled: AsyncInterfaceConfig = AsyncInterfaceConfig(isOn = false, "", 0, "", "")
+  def ifEnabled(config: Config): Option[AsyncInterfaceConfig] = {
+    if (config.getBoolean("on"))
+      AsyncInterfaceConfig(config).some
+    else
+      None
+  }
+
 }
 
 case class WorkersSettingsConfig(
@@ -129,7 +135,6 @@ object ContextsSettings {
 }
 
 case class SecurityConfig(
-  enabled: Boolean,
   keytab: String,
   principal: String,
   interval: FiniteDuration
@@ -138,28 +143,30 @@ case class SecurityConfig(
 object SecurityConfig {
   def apply(c: Config): SecurityConfig = {
     SecurityConfig(
-      enabled = c.getBoolean("enabled"),
       keytab = c.getString("keytab"),
       principal = c.getString("principal"),
       interval = c.getFiniteDuration("interval")
     )
   }
 
-  val disabled = SecurityConfig(enabled = false, "", "", 1.second)
+  def ifEnabled(c: Config): Option[SecurityConfig] = {
+    if (c.getBoolean("enabled")) SecurityConfig(c).some else None
+  }
+
 }
 
 case class MasterConfig(
   cluster: HostPortConfig,
   http: HttpConfig,
-  mqtt: AsyncInterfaceConfig,
-  kafka: AsyncInterfaceConfig,
+  mqtt: Option[AsyncInterfaceConfig],
+  kafka: Option[AsyncInterfaceConfig],
   logs: LogServiceConfig,
   workers: WorkersSettingsConfig,
   contextsSettings: ContextsSettings,
   dbPath: String,
   contextsPath: String,
   endpointsPath: String,
-  security: SecurityConfig,
+  security: Option[SecurityConfig],
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
@@ -185,17 +192,17 @@ object MasterConfig {
     MasterConfig(
       cluster = HostPortConfig(mist.getConfig("cluster")),
       http = HttpConfig(mist.getConfig("http")),
-      mqtt = AsyncInterfaceConfig(mist.getConfig("mqtt")),
-      kafka = AsyncInterfaceConfig(mist.getConfig("kafka")),
+      mqtt = AsyncInterfaceConfig.ifEnabled(mist.getConfig("mqtt")),
+      kafka = AsyncInterfaceConfig.ifEnabled(mist.getConfig("kafka")),
       logs = LogServiceConfig(mist.getConfig("log-service")),
       workers = WorkersSettingsConfig(mist.getConfig("workers")),
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
       contextsPath = mist.getString("contexts-store.path"),
       endpointsPath = mist.getString("endpoints-store.path"),
-      security = SecurityConfig(mist.getConfig("security")),
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
+      security = SecurityConfig.ifEnabled(mist.getConfig("security")),
       srcConfigPath = filePath,
       raw = config
     )

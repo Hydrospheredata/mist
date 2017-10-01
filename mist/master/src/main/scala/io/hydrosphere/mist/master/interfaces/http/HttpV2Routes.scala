@@ -10,14 +10,14 @@ import akka.http.scaladsl.server.directives.{FileInfo, ParameterDirectives}
 import akka.stream.scaladsl
 import cats.data.OptionT
 import cats.implicits._
-
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{JobDetails, JobService, MasterService}
+import io.hydrosphere.mist.master.{JobDetails, JobService, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
@@ -137,12 +137,12 @@ object HttpV2Routes {
         completeU(jobService.stopWorker(workerId))
       } ~
       get {
-        complete { jobService.getWorkerInfo(workerId) }
+        completeOpt { jobService.getWorkerInfo(workerId) }
       }
     }
   }
 
-  def endpointsRoutes(master: MasterService): Route = {
+  def endpointsRoutes(master: MainService): Route = {
     val exceptionHandler =
       ExceptionHandler {
         case iae: IllegalArgumentException =>
@@ -289,7 +289,7 @@ object HttpV2Routes {
     }
   }
 
-  def jobsRoutes(master: MasterService): Route = {
+  def jobsRoutes(master: MainService): Route = {
     path( root / "jobs" ) {
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
@@ -306,12 +306,20 @@ object HttpV2Routes {
       get {
         onSuccess(master.jobService.jobStatusById(jobId)) {
           case Some(_) =>
-            master.logStorageMappings.pathFor(jobId).toFile match {
+            master.logsPaths.pathFor(jobId).toFile match {
               case file if file.exists => getFromFile(file)
               case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
             }
           case None =>
             complete { HttpResponse(StatusCodes.NotFound, entity=s"Job $jobId not found")}
+        }
+      }
+    } ~
+    path( root / "jobs" / Segment / "worker" ) { jobId =>
+      get {
+        onSuccess(master.jobService.workerByJobId(jobId)) {
+          case Some(worker) => complete { worker }
+          case None => complete { HttpResponse(StatusCodes.NotFound, entity=s"Worker by jobId $jobId not found") }
         }
       }
     } ~
@@ -362,7 +370,7 @@ object HttpV2Routes {
     }
   }
 
-  def apiRoutes(masterService: MasterService): Route = {
+  def apiRoutes(masterService: MainService): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
@@ -371,6 +379,6 @@ object HttpV2Routes {
     statusApi
   }
 
-  def apiWithCORS(masterService: MasterService): Route =
+  def apiWithCORS(masterService: MainService): Route =
     CorsDirective.cors() { apiRoutes(masterService) }
 }

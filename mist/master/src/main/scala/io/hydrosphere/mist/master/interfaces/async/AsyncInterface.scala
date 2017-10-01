@@ -1,19 +1,21 @@
 package io.hydrosphere.mist.master.interfaces.async
 
-import io.hydrosphere.mist.master.{JobDetails, MasterService}
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.JobDetails.Source
+import io.hydrosphere.mist.master.MainService
+import io.hydrosphere.mist.master.interfaces.JsonCodecs._
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
-import spray.json.{JsValue, DeserializationException, JsonParser, pimpString}
-import JsonCodecs._
+import spray.json.{DeserializationException, JsValue, JsonParser, pimpString}
 
 import scala.util.{Failure, Success, Try}
 
 class AsyncInterface(
-  masterService: MasterService,
+  mainService: MainService,
   input: AsyncInput,
-  source: JobDetails.Source
+  val name: String
 ) extends Logger {
+
+  private val source = Source.Async(name)
 
   def start(): this.type  = {
     input.start(process)
@@ -29,9 +31,9 @@ class AsyncInterface(
 
       Try[Any](asDevRequest(js)).orElse(Try(asEndpointRequest(js))) match {
         case Success(req: AsyncEndpointStartRequest) =>
-          masterService.runJob(req.toCommon, source)
+          mainService.runJob(req.toCommon, source)
         case Success(req: DevJobStartRequestModel) =>
-          masterService.devRun(req.toCommon, source)
+          mainService.devRun(req.toCommon, source)
         case Success(x) => throw new IllegalArgumentException("Unknown request type")
         case Failure(e) => throw e
       }

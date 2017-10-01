@@ -6,6 +6,7 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.master.LogStoragePaths
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -54,7 +55,7 @@ object WriterActor {
 /**
   * Group of file writers
   */
-class WritersGroupActor(mappings: LogStorageMappings) extends Actor {
+class WritersGroupActor(paths: LogStoragePaths) extends Actor {
 
   var idToRef = Map.empty[String, ActorRef]
   var refToId = Map.empty[ActorRef, String]
@@ -70,7 +71,7 @@ class WritersGroupActor(mappings: LogStorageMappings) extends Actor {
   }
 
   def create(id: String): ActorRef = {
-    val path = mappings.pathFor(id)
+    val path = paths.pathFor(id)
     val props = WriterActor.props(path).withDispatcher("writers-blocking-dispatcher")
     val actor = context.actorOf(props, s"writer-$id")
     context.watch(actor)
@@ -90,8 +91,8 @@ class WritersGroupActor(mappings: LogStorageMappings) extends Actor {
 
 object WritersGroupActor {
 
-  def props(mappings: LogStorageMappings): Props = {
-    Props(classOf[WritersGroupActor], mappings)
+  def props(paths: LogStoragePaths): Props = {
+    Props(classOf[WritersGroupActor], paths)
   }
 }
 
@@ -103,9 +104,9 @@ trait LogsWriter {
 
 object LogsWriter {
 
-  def apply(mappings: LogStorageMappings, f: ActorRefFactory): LogsWriter = {
+  def apply(paths: LogStoragePaths, f: ActorRefFactory): LogsWriter = {
     new LogsWriter {
-      val actor = f.actorOf(WritersGroupActor.props(mappings), "writers-group")
+      val actor = f.actorOf(WritersGroupActor.props(paths), "writers-group")
       implicit val timeout = Timeout(10 second)
 
       override def write(from: String, events: Seq[LogEvent]): Future[LogUpdate] = {

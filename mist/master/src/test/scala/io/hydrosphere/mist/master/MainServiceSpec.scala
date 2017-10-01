@@ -4,11 +4,10 @@ import java.io.File
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest, Action}
-import io.hydrosphere.mist.core.{PyJobInfo, JvmJobInfo, MockitoSugar}
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
+import io.hydrosphere.mist.core.{JvmJobInfo, MockitoSugar, PyJobInfo}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.logging.LogStorageMappings
 import io.hydrosphere.mist.master.models._
 import org.mockito.Mockito.{doReturn, spy}
 import org.scalatest.concurrent.ScalaFutures
@@ -18,7 +17,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
+class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
   with Matchers
   with MockitoSugar {
@@ -29,7 +28,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
 
     when(endpoints.get(any[String]))
@@ -46,7 +45,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
         status = JobDetails.Status.Queued
       ))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
+    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -57,7 +56,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
     val jvmMock = mock[JvmJobInfo]
 
@@ -68,7 +67,7 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jvmMock.validateAction(any[Map[String, Any]], any[Action]))
       .thenReturn(Left(new IllegalArgumentException("INVALID")))
 
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepo)
+    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepo)
 
     val spiedMasterService = spy(service)
 
@@ -88,9 +87,9 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepository)
     val spiedService = spy(service)
     val fullInfo = FullEndpointInfo(
       EndpointConfig("name", "path", "MyJob", "namespace"),
@@ -125,9 +124,9 @@ class MasterServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
-    val logs = mock[LogStorageMappings]
+    val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val service = new MasterService(jobService, endpoints, contexts, logs, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepository)
     val spiedService = spy(service)
     val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
     val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")

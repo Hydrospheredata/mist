@@ -3,9 +3,12 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.core.CommonData._
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.master.models._
 import Messages.JobExecution._
+import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest, WorkerInitInfo}
+import io.hydrosphere.mist.master.Messages.StatusMessages
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 
 import scala.concurrent.Future
@@ -14,7 +17,7 @@ import scala.reflect.ClassTag
 /**
   *  Jobs starting/stopping, statuses, worker utility methods
   */
-class JobService(workerManager: ActorRef, statusService: ActorRef) {
+class JobService(val workerManager: ActorRef, statusService: ActorRef) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
@@ -41,13 +44,52 @@ class JobService(workerManager: ActorRef, statusService: ActorRef) {
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
 
-  def getWorkerInfo(workerId: String): Future[WorkerFullInfo] = {
-    for {
-      jobs     <- askStatus[Seq[JobDetails]](RunningJobsByWorker(workerId))
-      initInfo <- askManager[Option[WorkerInitInfo]](GetInitInfo(workerId))
-      jobsLink =  jobs.map(toJobLinks)
-    } yield WorkerFullInfo(workerId, jobsLink, initInfo)
+  def workerByJobId(jobId: String): Future[Option[WorkerLink]] = {
+    val res = for {
+      job        <- OptionT(jobStatusById(jobId))
+      workerLink <- OptionT(fetchWorkerLink(job))
+    } yield workerLink
+    res.value
   }
+
+  private def fetchWorkerLink(job: JobDetails): Future[Option[WorkerLink]] = {
+    val res = for {
+      startTime  <- OptionT.fromOption[Future](job.startTime)
+      (state, _) <- OptionT(workerInitInfo(job.workerId))
+      l          <- OptionT.fromOption[Future](toWorkerLink(state))
+      link       <- OptionT.fromOption[Future](if (state.timestamp <= startTime) Some(l) else None)
+      workerLink =  link.copy(name = job.workerId)
+    } yield workerLink
+    res.value
+  }
+
+  private def toWorkerLink(state: WorkerState): Option[WorkerLink] = state match {
+    case Started(_, addr, _, sparkUi, _) => Some(WorkerLink("", addr.toString, sparkUi))
+    case _                            => None
+  }
+
+  def getWorkerInfo(workerId: String): Future[Option[WorkerFullInfo]] = {
+    val res = for {
+      workerInfo                       <- OptionT(workerInitInfo(workerId))
+      jobs                             <- OptionT.liftF(jobsByWorker(workerId, workerInfo._1))
+      jobsLink                         =  jobs.map(toJobLinks)
+      (initInfo, address, sparkUi)     =  workerInfo match {
+                                            case (Started(_, a, _, s, _), i) => (i, a.toString, s)
+                                            case (_, i) => (i, "", None)
+                                          }
+    } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, initInfo)
+
+    res.value
+  }
+
+  private def workerInitInfo(workerId: String): Future[Option[(WorkerState, WorkerInitInfo)]] =
+    askManager[Option[(WorkerState, WorkerInitInfo)]](GetInitInfo(workerId))
+
+  private def jobsByWorker(
+    workerId: String,
+    state: WorkerState
+  ): Future[Seq[JobDetails]] =
+    askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId, state))
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
