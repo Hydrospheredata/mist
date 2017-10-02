@@ -10,6 +10,7 @@ import akka.http.scaladsl.server.directives.{FileInfo, ParameterDirectives}
 import akka.stream.scaladsl
 import cats.data.OptionT
 import cats.implicits._
+import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.{JobDetails, JobService, MainService}
@@ -158,28 +159,13 @@ object HttpV2Routes {
     } ~
     path( root / "endpoints" ) {
       post { entity(as[EndpointConfig]) { req =>
-        onSuccess(master.endpoints.get(req.name)) {
-          case Some(_) =>
-            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} already exists")
-            complete(resp)
-          case None =>
+        val res = for {
+          updated      <- master.endpoints.update(req)
+          fullInfo     <- Future.fromTry(master.loadEndpointInfo(updated))
+          endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
+        } yield endpointInfo
 
-            val eventualInfo = master.loadEndpointInfo(req) match {
-              case Success(e) => Future.successful(e)
-              case Failure(ex) => Future.failed(ex)
-            }
-
-            val res = for {
-              fullInfo <- OptionT.liftF(eventualInfo)
-              _ <- OptionT.liftF(master.endpoints.update(req))
-              endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
-            } yield endpointInfo
-
-            completeF(res.value.flatMap {
-              case Some(e) => Future.successful(e)
-              case None => Future.failed(new IllegalArgumentException("No info found during processing"))
-            }, StatusCodes.BadRequest)
-        }
+        completeF(res, StatusCodes.BadRequest)
       }}
     } ~
     path( root / "endpoints" ) {
@@ -190,20 +176,13 @@ object HttpV2Routes {
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
-            val eventualInfo = master.loadEndpointInfo(req) match {
-              case Success(e) => Future.successful(e)
-              case Failure(ex) => Future.failed(ex)
-            }
             val res = for {
-              fullInfo <- OptionT.liftF(eventualInfo)
-              _ <- OptionT.liftF(master.endpoints.update(req))
-              endpointInfo = HttpEndpointInfoV2.convert(fullInfo)
+              updated      <- master.endpoints.update(req)
+              fullInfo     <- Future.fromTry(master.loadEndpointInfo(updated))
+              endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
 
-            completeF(res.value.flatMap {
-              case Some(e) => Future.successful(e)
-              case None => Future.failed(new IllegalArgumentException("No info found during processing"))
-            }, StatusCodes.BadRequest)
+            completeF(res, StatusCodes.BadRequest)
         }
       }}
     } ~
@@ -339,15 +318,8 @@ object HttpV2Routes {
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextCreateRequest]) { context =>
-        onSuccess(contexts.get(context.name)) {
-          case None => complete {
-            val config = context.toContextWithFallback(contexts.defaultConfig)
-            contexts.update(config)
-          }
-          case Some(_) =>
-            val rsp = HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists")
-            complete(rsp)
-        }
+        val config = context.toContextWithFallback(contexts.defaultConfig)
+        complete { contexts.update(config) }
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
