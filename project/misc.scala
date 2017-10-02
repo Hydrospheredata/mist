@@ -42,3 +42,40 @@ object Tar {
   }
 
 }
+
+object SparkLocal {
+
+  def downloadSpark(version: String, to: File): Unit = {
+    val link = url(downloadUrl(version))
+    val target = to / distrTar(version)
+
+    IO.download(link, target)
+    Tar.extractTarGz(target, to)
+  }
+
+  def downloadUrl(v: String): String =
+    s"https://archive.apache.org/dist/spark/spark-$v/${distrTar(v)}"
+
+  def distrName(v: String): String = {
+    val hadoopVersion = if(v.startsWith("1.")) "2.6" else "2.7"
+    s"spark-$v-bin-hadoop$hadoopVersion"
+  }
+
+  def distrTar(v: String): String = s"${distrName(v)}.tgz"
+
+}
+
+/**
+  * Dummy stdout logger for process running
+  */
+object StdOutLogger extends ProcessLogger {
+
+  override def error(s: => String): Unit =
+    ConsoleOut.systemOut.println(s)
+
+  override def info(s: => String): Unit =
+    ConsoleOut.systemOut.println(s)
+
+  override def buffer[T](f: => T): T = f
+
+}

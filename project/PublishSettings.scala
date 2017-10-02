@@ -42,6 +42,20 @@ object PublishSettings {
           <organization>Hydrosphere</organization>
           <organizationUrl>http://hydrosphere.io/</organizationUrl>
         </developer>
+        <developer>
+          <id>dos65</id>
+          <name>Vadim Chelyshov</name>
+          <url>https://github.com/dos65</url>
+          <organization>Hydrosphere</organization>
+          <organizationUrl>http://hydrosphere.io/</organizationUrl>
+        </developer>
+        <developer>
+          <id>blvp</id>
+          <name>Pavel Borobov</name>
+          <url>https://github.com/blvp</url>
+          <organization>Hydrosphere</organization>
+          <organizationUrl>http://hydrosphere.io/</organizationUrl>
+        </developer>
       </developers>
   )
 }

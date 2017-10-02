@@ -13,31 +13,21 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
-lazy val sparkMajorVersion: SettingKey[String] = settingKey[String]("Spark major version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
 
 lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 
-lazy val currentSparkVersion=util.Properties.propOrElse("sparkVersion", "1.5.2")
-
-lazy val mistScalaCrossCompile = currentSparkVersion match {
-  case versionRegex("1", minor) => Seq("2.10.6")
-  case _ => Seq("2.11.8")
-}
-
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := currentSparkVersion,
-  sparkMajorVersion := sparkVersion.value.split('.').head,
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
       case _ => "2.11.8"
     }),
 
-  crossScalaVersions := mistScalaCrossCompile,
   version := "0.13.3"
 )
 
@@ -45,14 +35,13 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
-    name := s"mist-lib-spark${sparkMajorVersion.value}",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    name := s"mist-lib-spark${sparkVersion.value}",
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
-
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      "org.slf4j" % "slf4j-api" % "1.7.5" % "test",
-      "org.slf4j" % "slf4j-log4j12" % "1.7.5" % "test"
+      Library.Akka.streams,
+      Library.slf4j % "test",
+      Library.slf4jLog4j % "test",
+      Library.scalaTest % "test"
     )
   )
 
@@ -62,15 +51,10 @@ lazy val core = project.in(file("mist/core"))
   .settings(
     name := "mist-core",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % "1.7.5",
-
-      //"org.scala-lang" % "scala-reflect" % scalaVersion.value,
-
-      //"org.scala-lang" % "scala-compiler" % scalaVersion.value % "test",
-      "org.mockito" % "mockito-all" % "1.10.19" % "test",
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+      Library.slf4j,
+      Library.mockito % "test", Library.scalaTest % "test"
     )
   )
 
@@ -82,37 +66,23 @@ lazy val master = project.in(file("mist/master"))
   .settings(
     name := "mist-master",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= akkaDependencies(scalaVersion.value),
+    libraryDependencies ++= Library.Akka.base(scalaVersion.value) ++ Library.Akka.http,
+    libraryDependencies += Library.Akka.testKit(scalaVersion.value),
     libraryDependencies ++= Seq(
-      "org.slf4j" % "slf4j-api" % "1.7.5",
+      Library.slf4j, Library.typesafeConfig, Library.scopt,
+      Library.slick, Library.h2, Library.flyway,
+      Library.chill,
+      Library.kafka, Library.pahoMqtt,
 
-      "com.typesafe" % "config" % "1.3.1",
+      Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
+      Library.cats,
 
-      "com.typesafe.slick" %% "slick" % "3.1.1",
-      "com.h2database" % "h2" % "1.4.194",
-      "org.flywaydb" % "flyway-core" % "4.1.1",
+      Library.hadoopCommon, Library.commonsCodec, Library.scalajHttp,
 
-      "org.typelevel" %% "cats" % "0.9.0",
-      "com.twitter" %% "chill" % "0.9.2",
-      "com.github.scopt" %% "scopt" % "3.6.0",
-
-      "org.apache.hadoop" % "hadoop-common" % "2.6.4",
-      "commons-codec" % "commons-codec" % "1.10",
-      "org.scalaj" %% "scalaj-http" % "2.3.0",
-
-      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4",
-      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
-      "com.typesafe.akka" %% "akka-http-spray-json-experimental" % "2.0.4",
-
-      "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0",
-      "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12"),
-
-      "com.typesafe.akka" %% "akka-http-testkit-experimental" % "2.0.4" % "test",
-
-      "org.mockito" % "mockito-all" % "1.10.19" % "test",
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+      Library.scalaTest % "test",
+      Library.mockito % "test"
     ),
-    libraryDependencies ++= miniClusterDependencies,
+    libraryDependencies ++= Library.hadoopMinicluster,
     libraryDependencies ++= {
       val is2_10 = """2\.10\..""".r
       scalaVersion.value match {
@@ -132,23 +102,19 @@ lazy val worker = project.in(file("mist/worker"))
   .settings(
     name := "mist-worker",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= akkaDependencies(scalaVersion.value),
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Library.Akka.base(scalaVersion.value) ++ Library.Akka.http,
+    libraryDependencies += Library.Akka.testKit(scalaVersion.value),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
-      "com.github.scopt" %% "scopt" % "3.6.0",
-
-      "com.typesafe.akka" %% "akka-http-core-experimental" % "2.0.4" ,
-      "com.typesafe.akka" %% "akka-http-experimental" % "2.0.4",
-      "com.typesafe.akka" %% "akka-stream-experimental" % "2.0.4",
-      "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-      "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test"
+      Library.scopt,
+      Library.scalaTest % "test"
     ),
     assemblyShadeRules in assembly := Seq(
       ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
     )
   )
 
-lazy val currentExamples = currentSparkVersion match {
+lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
 }
@@ -267,7 +233,7 @@ lazy val root = project.in(file("."))
       "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
-    libraryDependencies ++= sparkDependencies(sparkVersion.value),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     scalaSource in IntegrationTest := baseDirectory.value / "mist-tests" / "scala",
     resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
@@ -305,7 +271,7 @@ lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark1",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     autoScalaLibrary := false
   )
 
@@ -314,7 +280,7 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
   .settings(commonSettings: _*)
   .settings(
     name := "mist-examples-spark2",
-    libraryDependencies ++= sparkDependencies(currentSparkVersion),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     // examplesspark2 works only for 2.11
     libraryDependencies ++= {
       val is2_11 = """2\.11\..""".r
@@ -345,42 +311,6 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
 
   )
 
-def akkaDependencies(scalaVersion: String) = {
-  val New = """2\.11\..""".r
-
-  scalaVersion match {
-    case New() => Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.4.7",
-      "com.typesafe.akka" %% "akka-cluster" % "2.4.7",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.4.1"
-    )
-    case _ => Seq(
-      "com.typesafe.akka" %% "akka-actor" % "2.3.15",
-      "com.typesafe.akka" %% "akka-cluster" % "2.3.15",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.3.15"
-    )
-  }
-}
-
-def sparkDependencies(v: String) =
-  Seq(
-    "org.apache.spark" %% "spark-core" % v % "provided",
-    "org.apache.spark" %% "spark-sql" % v % "provided",
-    "org.apache.spark" %% "spark-hive" % v % "provided",
-    "org.apache.spark" %% "spark-streaming" % v % "provided",
-    "org.apache.spark" %% "spark-mllib" % v % "provided"
-  )
-
-lazy val miniClusterDependencies =
-  Seq(
-    "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4" % "test"
-  ).map(_.exclude("javax.servlet", "servlet-api"))
 
 lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
