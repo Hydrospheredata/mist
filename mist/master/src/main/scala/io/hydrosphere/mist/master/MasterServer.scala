@@ -18,7 +18,8 @@ import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
+import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 import scala.util._
 
@@ -47,16 +48,20 @@ case class ServerInstance(closeSteps: Seq[Step[Unit]])
 
   def stop(): Future[Unit] = {
     def execStep(step: Step[Unit]): Future[Unit] = {
-      val f = step.exec()
-      f.onComplete {
-        case Success(_) => logger.info(s"${step.name} closed")
-        case Failure(e) => logger.error(s"Closing ${step.name} failed", e)
+      val p = Promise[Unit]
+      step.exec().onComplete {
+        case Success(_) =>
+          logger.info(s"${step.name} closed")
+          p.success(())
+        case Failure(e) =>
+          logger.error(s"Closing ${step.name} failed", e)
+          p.success(())
       }
-      f
+      p.future
     }
-    closeSteps.foldLeft(Future.successful(())) { (acc, step) => {
-      acc.andThen({ case _ => execStep(step) })
-    }}
+    closeSteps.foldLeft(Future.successful()) {
+      case (acc, step) => acc.flatMap(_ => execStep(step))
+    }
   }
 }
 
@@ -107,7 +112,7 @@ object MasterServer extends Logger {
     val security = bootstrapSecurity(config)
 
     for {
-      logService      <- start("Jobs logging", runLogService())
+      logService      <- start("LogsSystem", runLogService())
       jobsService     =  runJobService(logService.getLogger)
       masterService   <- start("Main service", MainService.start(jobsService, endpointsStorage, contextsStorage, logsPaths, artifactRepository))
       _               =  runCliInterface(masterService)
@@ -121,8 +126,10 @@ object MasterServer extends Logger {
       Step.future("System", {
         materializer.shutdown()
         system.shutdown()
-        Future(system.awaitTermination())
-      })
+        Future(system.awaitTermination(30 seconds))
+      }) :+
+      Step.future("LogsSystem", logService.close())
+
     )
 
   }
