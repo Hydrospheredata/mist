@@ -331,9 +331,6 @@ class HttpApiV2Spec extends FunSpec
       when(contextStorage.defaultConfig)
         .thenReturn(defaultValue)
 
-      when(contextStorage.get(any[String]))
-          .thenSuccess(None)
-
       when(contextStorage.update(any[ContextConfig]))
         .thenReturn(Future.successful(defaultValue))
 

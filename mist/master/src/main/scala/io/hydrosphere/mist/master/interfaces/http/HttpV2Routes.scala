@@ -318,15 +318,8 @@ object HttpV2Routes {
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextCreateRequest]) { context =>
-        onSuccess(contexts.get(context.name)) {
-          case None => complete {
-            val config = context.toContextWithFallback(contexts.defaultConfig)
-            contexts.update(config)
-          }
-          case Some(_) =>
-            val rsp = HttpResponse(StatusCodes.Conflict, entity = s"Context with name ${context.name} already exists")
-            complete(rsp)
-        }
+        val config = context.toContextWithFallback(contexts.defaultConfig)
+        complete { contexts.update(config) }
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
