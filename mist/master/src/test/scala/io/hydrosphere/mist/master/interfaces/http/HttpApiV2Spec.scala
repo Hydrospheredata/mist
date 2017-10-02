@@ -24,7 +24,8 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util._
 import org.mockito.Matchers.{anyInt, eq => mockitoEq}
-import org.mockito.Mockito.{doNothing, times, verify}
+import org.mockito.Mockito
+import org.mockito.Mockito.{doReturn, doNothing, times, verify}
 
 class HttpApiV2Spec extends FunSpec
   with Matchers
@@ -34,6 +35,13 @@ class HttpApiV2Spec extends FunSpec
   import JsonCodecs._
 
   val mappings = new LogStoragePaths(Paths.get("."))
+
+  implicit class ToEntityOps[A](a: A)(implicit f: RootJsonWriter[A]) {
+    def toEntity(implicit f: RootJsonWriter[A]): RequestEntity =  {
+      val data = f.write(a)
+      HttpEntity(ContentTypes.`application/json`, data)
+    }
+  }
 
   describe("workers") {
 
@@ -127,6 +135,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
+
 //    it("should return endpoints") {
 //      val epConfig = EndpointConfig("name", "path", "className", "context")
 //      val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
@@ -173,27 +182,33 @@ class HttpApiV2Spec extends FunSpec
 
     val endpointConfig = EndpointConfig("name", "path", "className", "context")
 
-//    it("should create endpoint") {
-//      val endpointsStorage = mock[EndpointsStorage]
-//      val master = mock[MainService]
-//      when(master.endpoints).thenReturn(endpointsStorage)
-//
-//      when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
-//      when(endpointsStorage.update(any[EndpointConfig]))
-//        .thenSuccess(endpointConfig)
-//
-//      when(master.loadEndpointInfo(any[EndpointConfig])).thenReturn(Success(
-//        FullEndpointInfo(endpointConfig, testScalaJob)
-//      ))
-//
-//      val route = HttpV2Routes.endpointsRoutes(master)
-//
-//      Post("/v2/api/endpoints", endpointConfig.toEntity) ~> route ~> check {
-//        status shouldBe StatusCodes.OK
-//        val info = responseAs[HttpEndpointInfoV2]
-//        info.name shouldBe "name"
-//      }
-//    }
+    it("should update endpoint on create if endpoint created") {
+
+      val endpoints = mock[EndpointsStorage]
+      val master = new MainService(
+        mock[JobService],
+        endpoints,
+        mock[ContextsStorage],
+        mock[LogStoragePaths],
+        mock[ArtifactRepository]
+      )
+
+      val spiedMaster = Mockito.spy(master)
+      val test = EndpointConfig("test", "test", "test", "default")
+      when(endpoints.update(any[EndpointConfig]))
+        .thenSuccess(test)
+
+      doReturn(Success(FullEndpointInfo(test, PyJobInfo)))
+        .when(spiedMaster)
+        .loadEndpointInfo(any[EndpointConfig])
+
+      val route = HttpV2Routes.endpointsRoutes(spiedMaster)
+
+      Post("/v2/api/endpoints", test.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        verify(endpoints, times(1)).update(any[EndpointConfig])
+      }
+    }
 
     it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock[EndpointsStorage]
@@ -218,12 +233,6 @@ class HttpApiV2Spec extends FunSpec
   }
 
 
-  implicit class ToEntityOps[A](a: A)(implicit f: RootJsonWriter[A]) {
-    def toEntity(implicit f: RootJsonWriter[A]): RequestEntity =  {
-      val data = f.write(a)
-      HttpEntity(ContentTypes.`application/json`, data)
-    }
-  }
 
   describe("jobs") {
 
