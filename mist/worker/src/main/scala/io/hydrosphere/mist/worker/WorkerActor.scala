@@ -8,6 +8,7 @@ import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent._
@@ -81,10 +82,11 @@ class SharedWorkerActor(
   val activeJobs = mutable.Map[String, ExecutionUnit]()
 
   implicit val ec = {
+    val logger = LoggerFactory.getLogger(this.getClass)
     val service = Executors.newFixedThreadPool(maxJobs)
     ExecutionContext.fromExecutorService(
       service,
-      e => log.error(e, "Error from thread pool")
+      e => logger.error("Error from thread pool", e)
     )
   }
 
@@ -155,8 +157,9 @@ class ExclusiveWorkerActor(
 ) extends Actor with JobStarting with ActorLogging {
 
   implicit val ec = {
+    val logger = LoggerFactory.getLogger(this.getClass)
     val service = Executors.newSingleThreadExecutor()
-    ExecutionContext.fromExecutorService(service, t => log.error(t.getMessage, t))
+    ExecutionContext.fromExecutorService(service, t => logger.error("Error from thread pool", t))
   }
 
   override def receive: Receive = awaitRequest
