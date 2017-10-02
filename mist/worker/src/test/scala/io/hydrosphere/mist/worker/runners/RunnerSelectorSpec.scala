@@ -4,7 +4,6 @@ import java.io.File
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.worker.runners.python.PythonRunner
-import io.hydrosphere.mist.worker.runners.scala.ScalaRunner
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpecLike, Matchers}
 

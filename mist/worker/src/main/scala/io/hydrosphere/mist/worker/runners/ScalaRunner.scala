@@ -1,14 +1,13 @@
-package io.hydrosphere.mist.worker.runners.scala
+package io.hydrosphere.mist.worker.runners
 
 import java.io.File
 
-import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-import io.hydrosphere.mist.worker.NamedContext
-import io.hydrosphere.mist.worker.runners.JobRunner
-import org.apache.spark.util.SparkClassLoader
 import io.hydrosphere.mist.utils.EitherOps
-import EitherOps._
+import io.hydrosphere.mist.utils.EitherOps._
+import io.hydrosphere.mist.worker.NamedContext
+import org.apache.spark.util.SparkClassLoader
 
 import scala.util.{Failure, Success}
 

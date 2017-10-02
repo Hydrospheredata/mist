@@ -8,11 +8,12 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.stream.scaladsl.Flow
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, FunSpecLike, Matchers}
 
-import _root_.scala.concurrent.Await
-import _root_.scala.concurrent.duration.Duration
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfter {
 
@@ -105,8 +106,8 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         Await.result(fileF, Duration.Inf)
       })
 
-      ScalaFutures.whenReady(fileF.failed) {ex =>
-        ex shouldBe a[IllegalArgumentException]
+      intercept[IllegalArgumentException] {
+        Await.result(fileF, 30.seconds)
       }
     }
 
@@ -140,8 +141,8 @@ object MockHttpServer {
   import akka.stream.ActorMaterializer
   import akka.util.Timeout
 
-  import _root_.scala.concurrent.duration._
-  import _root_.scala.concurrent.{Future, Promise}
+  import scala.concurrent.duration._
+  import scala.concurrent.{Future, Promise}
 
   def onServer[A](
     routes: Flow[HttpRequest, HttpResponse, Unit],

@@ -3,7 +3,6 @@ package io.hydrosphere.mist.worker.runners
 import java.io.File
 
 import io.hydrosphere.mist.worker.runners.python.PythonRunner
-import io.hydrosphere.mist.worker.runners.scala.ScalaRunner
 
 trait RunnerSelector {
   def selectRunner(file: File): JobRunner
