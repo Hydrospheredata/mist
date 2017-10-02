@@ -59,7 +59,7 @@ def test_mist(slaveName, sparkVersion) {
                     sh "rm -rf metastore_db recovery.db derby.log"
                     echo 'Testing Mist with Spark version: ' + sparkVersion
                     try{
-                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean assembly testAll"
+                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean testAll"
                     }finally{
                         junit testResults: '**/target/test-reports/io.hydrosphere*.xml', allowEmptyResults: true
                     }
