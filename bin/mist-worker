@@ -3,11 +3,10 @@
 export MIST_HOME="$(cd "`dirname "$0"`"/..; pwd)"
 JAVA=$(which java)
 
-ASSEMBLY_JAR=$MIST_HOME/mist.jar
+ASSEMBLY_JAR=$MIST_HOME/mist-worker.jar
 
 CONFIG_FILE=$MIST_HOME/configs/default.conf
-NAME=""
-CONTEXT=""
+WORKER_NAME=""
 JAVA_ARGS=""
 RUNNER="local"
 MODE="shared"
@@ -37,6 +36,11 @@ do
       RUNNER="$2"
       shift
       ;;
+
+    --name)
+      WORKER_NAME="$2"
+      shift
+      ;;
   esac
 shift
 done
@@ -52,6 +56,11 @@ function startWorker() {
 
     SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
     MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
+
+    LOGGER_CONF=$MIST_HOME/configs/logging/log4j.worker.properties
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dmist.home=$MIST_HOME"
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dmist.worker.name=$WORKER_NAME"
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dlog4j.configuration=file:$LOGGER_CONF"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
 
     exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS
@@ -112,15 +121,6 @@ then
 elif [ "$RUNNER" == 'docker' ]
 then
     startWorkerContainer
-elif [ "$RUNNER" == 'local2' ]
-then
-    export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
-
-    SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
-    MAIN_CLASS="io.hydrosphere.mist.worker.Worker"
-    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
-
-    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS
 else
     (>&2 echo "runner arg $RUNNER is invalid")
     exit 3

@@ -6,7 +6,7 @@ Glosssary:
 - Job - fact of endpoint invocation
 - Namespace - SparkContext configs and Mist configs for given SparkContext 
 - Worker - Mist slave instance that holds Spark Driver application
-- Mode - job can be run in two worker modes: `shared` or `exclusive`
+- Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](configuration.md))
     - Shared - all jobs from same context are using one spark driver application
     - Exclusive - fresh driver application will be created for one job invocation
 
@@ -37,13 +37,27 @@ Glosssary:
     </tr>
     <tr>
       <td>POST</td>
+      <td>/v2/api/endpoints</td>
+      <td>
+        <p>Post body - json: endpoint configuration:
+          <ul>
+            <li>name</li>
+            <li>path</li>
+            <li>className</li>
+            <li>defaultContext</li>
+          </ul>
+        </p>
+      </td>
+      <td>Create endpoint</td>
+    </tr>
+    <tr>
+      <td>POST</td>
       <td>/v2/api/endpoints/{id}/jobs</td>
       <td>
         <p>Post body: endpoint (MistJob) arguments </p>
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
-            <li>mode - Not required, values: [exclusive|shared]</li>
             <li>workerId - Not required</li>
           </ul>
         </p>
@@ -133,8 +147,82 @@ Glosssary:
       <td>None</td>
       <td>Stop worker</td>
     </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/workers/{id}</td>
+      <td>None</td>
+      <td>Get detailed worker info(context config, jobs, etc..)</td>
+    </tr>
   </tbody>
 </table>
+
+**Contexts**:
+<table>
+  <thead>
+    <tr>
+      <td>Method</td>
+      <td>Path</td>
+      <td>Params</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/contexts</td>
+      <td>None</td>
+      <td>List of all contexts</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/contexts/{id}</td>
+      <td>None</td>
+      <td>Get context by id</td>
+    </tr>
+    <tr>
+      <td>POST</td>
+      <td>/v2/api/contexts</td>
+      <td>Json body:
+        <ul>
+          <li>name</li>
+          <li>sparkConf - Key-value string->string object</li>
+          <li>downtime - Idle timeout before worker shut self down - Duration</li>
+          <li>maxJobs - max parallel jobs - Int</li>
+          <li>workerMode - worker mode (shared | exclusive) - String</li>
+          <li>precreated - Boolean</li>
+          <li>runOptions - String</li>
+          <li>streamingDuration - Duration</li>
+        </ul>
+      </td>
+      <td>Get context by id</td>
+    </tr>
+  </tbody>
+</table>
+
+**Status**
+<table>
+  <thead>
+    <tr>
+      <td>Method</td>
+      <td>Path</td>
+      <td>Params</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/status</td>
+      <td>None</td>
+      <td>Mist status info (version, start time, spark version)</td>
+    </tr>
+  </tbody>
+</table>
+
+
+Note: Mist always has default context settings, you can obtain it by "default" id.
+
+
 
 ### Next 
 - [Reactive API](/docs/reactive_api.md)

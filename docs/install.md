@@ -7,7 +7,7 @@ Docker image also has Apache Spark binaries for a quick start.
 
 Releases:
 
-- tar <http://repo.hydrosphere.io/static/> 
+- tar <http://repo.hydrosphere.io/hydrosphere/static/> 
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
@@ -17,8 +17,8 @@ Version of distributive is a combination of Mist and Spark versions.
 
 For example latest Mist release for Spark `1.6.2` version is:
 
-- docker image `hydrosphere/mist:0.12.2-1.6.2`
-- tar <http://repo.hydrosphere.io/static/mist-0.12.2-1.6.2.tar.gz>
+- docker image `hydrosphere/mist:0.13.0-1.6.2`
+- tar <http://repo.hydrosphere.io/hydrosphere/static/mist-0.13.0-1.6.2.tar.gz>
 
 ### Install locally
 
@@ -26,9 +26,9 @@ For example latest Mist release for Spark `1.6.2` version is:
 - Download Mist and run
 
 ```sh
-wget http://repo.hydrosphere.io/static/mist-0.12.2-2.1.1.tar.gz
-tar xvfz mist-0.12.2-2.1.1.tar.gz
-cd mist-0.12.2-2.1.1
+wget http://repo.hydrosphere.io/hydrosphere/static/mist-0.13.0-2.1.1.tar.gz
+tar xvfz mist-0.13.0-2.1.1.tar.gz
+cd mist-0.13.0-2.1.1
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
@@ -52,7 +52,7 @@ docker run \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v $PWD/my_config:/my_config \
    -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.12.2-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
+   hydrosphere/mist:0.13.0-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
 
 For spark 1.6.2
@@ -68,7 +68,7 @@ docker run \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v $PWD/my_config:/my_config \
    -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.12.2-1.6.2 mist --config /my_config/docker.conf --router-config /my_config/router.conf
+   hydrosphere/mist:0.13.0-1.6.2 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
 
 
@@ -82,15 +82,15 @@ Mist has built-in UI where you could check running workers and jobs as well as e
 By default it's available by `/ui` path.
 Link on it for local installation <http://localhost:2004/ui>.
 Also Mist has prebuilt examples for: 
-- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples-spark1/src/main/scala)
-- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples-spark2/src/main/scala)
-- [python](https://github.com/Hydrospheredata/mist/tree/master/examples-python)
+- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark1/src/main/scala)
+- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark2/src/main/scala)
+- [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
 You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SimpleContext](https://github.com/Hydrospheredata/mist/blob/master/examples-spark1/src/main/scala/SimpleContext.scala)
 from examples looks like that:
 ```sh
-curl --header "Content-Type: application/json" \
-     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"
+curl --header "Content-Type: application/json"\
+     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
 
 ```
