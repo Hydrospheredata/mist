@@ -1,8 +1,11 @@
 package io.hydrosphere.mist.apiv2
 
+import io.hydrosphere.mist.api.v2.JobResult
 import org.apache.spark.SparkContext
 import shapeless.ops.adjoin.Adjoin
-import shapeless.{::, HNil}
+import shapeless.ops.function.{FnToProduct, FnFromProduct}
+import shapeless.ops.hlist.Tupler
+import shapeless.{DepFn1, HList, ::, HNil}
 
 trait ArgExtraction[+A]
 case class Extracted[+A](value: A) extends ArgExtraction[A]
@@ -60,16 +63,35 @@ trait ArgDef[A] { self =>
     }
   }
 
+  def apply[F, R](f: F)(implicit fntp: FnToProduct.Aux[F, A => R]): JobDef[R] = {
+    new JobDef[R] {
+      override def invoke(ctx: JobContext): JobResult[R] = {
+        extract(ctx) match {
+          case Extracted(args) =>
+            try {
+              val result = fntp(f)(args)
+              JobResult.success(result)
+            } catch {
+              case e: Throwable => JobResult.failure(e)
+            }
+          case Missing(msg) =>
+            val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
+            JobResult.failure(e)
+        }
+      }
+    }
+  }
+
 }
 
 object ArgDef {
 
-  def const[A](value: A): ArgDef[A] = new ArgDef[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = Extracted(value)
+  def const[A](value: A): ArgDef[A:: HNil] = new ArgDef[A :: HNil] {
+    override def extract(ctx: JobContext): ArgExtraction[A :: HNil] = Extracted(value :: HNil)
   }
 
-  def missing[A](message: String): ArgDef[A] = new ArgDef[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = Missing(message)
+  def missing[A](message: String): ArgDef[A :: HNil] = new ArgDef[A :: HNil] {
+    override def extract(ctx: JobContext): ArgExtraction[A :: HNil] = Missing(message)
   }
 
 }

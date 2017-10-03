@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.apiv2
 
+import io.hydrosphere.mist.api.v2.{JobResult, JobSuccess}
+import io.hydrosphere.mist.apiv2.ArgDef.JobConv
 import org.scalatest.{Matchers, FunSpec}
 import shapeless.HNil
 
@@ -8,7 +10,7 @@ class ArgDefSpec extends FunSpec with Matchers {
   describe("const/missing") {
 
     it("should extract const") {
-      ArgDef.const("1").extract(testCtx()) shouldBe Extracted("1")
+      ArgDef.const("1").extract(testCtx()) shouldBe Extracted("1" :: HNil)
     }
 
     it("should extract missing") {
@@ -30,6 +32,19 @@ class ArgDefSpec extends FunSpec with Matchers {
       val combined = ArgDef.const("1") combine ArgDef.missing[Int]("msg1") combine ArgDef.missing[Int]("msg2")
       val data = combined.extract(testCtx())
       data shouldBe Missing("msg1, msg2")
+    }
+  }
+
+  describe("job def") {
+
+    it("should describe job") {
+      val argsDef = ArgDef.const("first")
+      val job42 = argsDef.apply((a: String) => {
+        println("YOYO:", a)
+        42
+      })
+      val res = job42.invoke(testCtx())
+      res shouldBe JobSuccess(42)
     }
   }
 
