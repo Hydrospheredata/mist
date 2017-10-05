@@ -1,35 +1,35 @@
 package io.hydrosphere.mist.apiv2
 
-import io.hydrosphere.mist.api.v2.{JobResult, JobSuccess}
-import io.hydrosphere.mist.apiv2.ArgDef.JobConv
-import org.scalatest.{Matchers, FunSpec}
+import io.hydrosphere.mist.api.v2.JobSuccess
+import org.scalatest.{FunSpec, Matchers}
 import shapeless.HNil
+
+import ArgDef._
 
 class ArgDefSpec extends FunSpec with Matchers {
 
   describe("const/missing") {
 
     it("should extract const") {
-      ArgDef.const("1").extract(testCtx()) shouldBe Extracted("1" :: HNil)
+      const("1").extract(testCtx()) shouldBe Extracted("1")
     }
 
     it("should extract missing") {
-      ArgDef.missing("msg").extract(testCtx()) shouldBe Missing("msg")
+      missing("msg").extract(testCtx()) shouldBe Missing("msg")
     }
   }
 
   describe("combine") {
 
     it("should extract combined") {
-      val combined = ArgDef.const("first") &
-        ArgDef.const("second") & ArgDef.const("third") & ArgDef.const(4)
+      val combined = const("first") & const("second") & const("third") & const(4)
 
       val data = combined.extract(testCtx())
       data shouldBe Extracted("first" :: "second" :: "third" :: 4 :: HNil)
     }
 
     it("should fail all") {
-      val combined = ArgDef.const("1") combine ArgDef.missing[Int]("msg1") combine ArgDef.missing[Int]("msg2")
+      val combined = const("1") combine missing[Int]("msg1") combine missing[Int]("msg2")
       val data = combined.extract(testCtx())
       data shouldBe Missing("msg1, msg2")
     }
@@ -38,17 +38,71 @@ class ArgDefSpec extends FunSpec with Matchers {
   describe("job def") {
 
     it("should describe job") {
-      val argsDef = ArgDef.const("first")
-      val job42 = argsDef.apply((a: String) => {
-        println("YOYO:", a)
-        42
-      })
+      val job42 = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
       val res = job42.invoke(testCtx())
       res shouldBe JobSuccess(42)
     }
+
+    it("should apply arguments in correct order") {
+      val hello = const("W") & const("o") & const("r") & const("l") & const("d") apply {
+        (a: String, b: String, c: String, d: String, e: String) =>
+          s"Hello $a$b$c$d$e"
+      }
+      hello.invoke(testCtx()) shouldBe JobSuccess("Hello World")
+    }
+
+    it("shouldn't work with missing args") {
+      val invalid = const("valid") & missing[Int]("msg") & const("last") apply {
+        (a: String, b: Int, c: String) => "wtf?"
+      }
+      invalid.invoke(testCtx()) shouldBe a[JobFailure[_]]
+    }
+
+    it("should fail on error") {
+      val broken: JobDef[Int] = const("a")({(a: String) => throw new RuntimeException("broken") })
+      broken.invoke(testCtx()) shouldBe a[JobFailure[_]]
+    }
+
+    it("should work with one arg") {
+      val jobDef = const("single") { (a: String) => a }
+      val res = jobDef.invoke(testCtx())
+      res shouldBe JobSuccess("single")
+    }
   }
 
-  def testCtx(params: Map[String, Any] = Map.empty): JobContext = {
-    JobContext(null, params)
+
+  describe("ArgDef combs") {
+
+    it("for named arg") {
+      val x = arg[Int]("abc")
+      x.extract(testCtx("abc" -> 42)) shouldBe Extracted(42)
+      x.extract(testCtx()) shouldBe a[Missing[_]]
+      x.extract(testCtx("abc" -> "str")) shouldBe a[Missing[_]]
+    }
+
+    it("for opt named arg") {
+      val x = optArg[Int]("opt")
+      x.extract(testCtx("opt" -> 1)) shouldBe Extracted(Some(1))
+      x.extract(testCtx()) shouldBe Extracted(None)
+      x.extract(testCtx("opt" -> "str")) shouldBe a[Missing[_]]
+    }
+
+    it("for named arg with default value") {
+      val x = arg[Int]("abc", -1)
+      x.extract(testCtx("abc" -> 42)) shouldBe Extracted(42)
+      x.extract(testCtx()) shouldBe Extracted(-1)
+      x.extract(testCtx("abc" -> "str")) shouldBe a[Missing[_]]
+    }
+
+    it("all args") {
+      allArgs.extract(testCtx("a" -> "b", "x" -> 42)) shouldBe
+        Extracted(Map("a" -> "b", "x" -> 42))
+
+      allArgs.extract(testCtx()) shouldBe Extracted(Map.empty)
+    }
+  }
+
+  def testCtx(params: (String, Any)*): JobContext = {
+    JobContext(null, params.toMap)
   }
 }

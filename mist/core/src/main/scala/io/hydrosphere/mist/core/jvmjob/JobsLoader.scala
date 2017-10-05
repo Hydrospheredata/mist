@@ -4,6 +4,7 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.api.SetupConfiguration
+import io.hydrosphere.mist.apiv2.JobContext
 import io.hydrosphere.mist.core.CommonData.Action
 
 import scala.reflect.runtime.universe._
@@ -11,7 +12,7 @@ import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
-  val v2Job = classOf[io.hydrosphere.mist.api.v2.MistJob]
+  val v2Job = classOf[io.hydrosphere.mist.apiv2.MistJob[_]]
 
   def loadJobClass(className: String): Try[JobClass] = {
     loadClass(className).map(clz => {
@@ -40,11 +41,18 @@ class JobsLoader(val classLoader: ClassLoader) {
     loadClass(className).map(clz => {
       new JobInstance(clz, null) {
         override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-          val i = clz.getField("MODULE$").get(null).asInstanceOf[io.hydrosphere.mist.api.v2.MistJob]
-          i.run.run(params, conf.context) match {
-            case io.hydrosphere.mist.api.v2.JobSuccess(v) => Right(Map("result" -> v))
-            case io.hydrosphere.mist.api.v2.JobFailure(e) => Left(e)
+          val i = clz.getField("MODULE$").get(null).asInstanceOf[io.hydrosphere.mist.apiv2.MistJob[_]]
+          val ctx = new JobContext(conf, params)
+          i.defineJob.invoke(ctx) match {
+            case io.hydrosphere.mist.apiv2.JobSuccess(v) => Right(Map("result" -> v))
+            case io.hydrosphere.mist.apiv2.JobFailure(e) => Left(e)
           }
+        }
+
+        override def argumentsTypes: Map[String, JobArgType] = Map.empty
+
+        override def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
+          Right(Seq.empty)
         }
       }
     })

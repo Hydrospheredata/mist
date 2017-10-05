@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.api.v2
+package io.hydrosphere.mist.apiv2
 
 sealed trait JobResult[+A]
 

@@ -4,6 +4,7 @@ trait FromAny[A] {
   def apply(a: Any): Option[A]
 }
 
+//TODO: double, float, date?
 trait FromAnyInstances {
 
   def create[A](f: Any => Option[A]): FromAny[A] = new FromAny[A] {

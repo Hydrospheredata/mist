@@ -48,7 +48,7 @@ lazy val mistLib = project.in(file("mist-lib"))
         Seq("com.chuusai" %% "shapeless" % "2.3.2")
       }
     },
-    sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue,
+    //sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       Library.Akka.streams,
@@ -125,8 +125,6 @@ lazy val worker = project.in(file("mist/worker"))
     assemblyShadeRules in assembly := Seq(
       ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
     )
-  ).settings(
-    sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue
   )
 
 lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {

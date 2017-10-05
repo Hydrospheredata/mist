@@ -154,7 +154,10 @@ object HttpV2Routes {
 
     path( root / "endpoints" ) {
       get { complete {
-        master.endpointsInfo.map(_.map(HttpEndpointInfoV2.convert))
+        master.endpointsInfo.map(infos => {
+          infos.map(info => Try(HttpEndpointInfoV2.convert(info)))
+            .collect({ case Success(v) => v })
+        })
       }}
     } ~
     path( root / "endpoints" ) {
