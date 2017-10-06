@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.apiv2
+package mist.api
 
 case class InputDescription(msg: String)
 
@@ -8,8 +8,7 @@ trait JobInfo {
 
 }
 
-trait MistJob[A] extends JobInfo
-  with JobDefInstances {
+trait MistJob[A] extends JobInfo with JobDefInstances with DefaultEncoders {
 
   def defineJob: JobDef[A]
 

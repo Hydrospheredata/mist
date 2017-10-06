@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.apiv2
+package mist.api
 
 import org.apache.spark.SparkContext
 import org.scalatest._
@@ -36,8 +36,10 @@ class JobDefInstancesSpec extends FunSpec with Matchers {
   }
 
   it("for spark context") {
-    val spJob = arg[Seq[Int]]("nums").onSparkContext.apply((nums: Seq[Int], sp: SparkContext) => {
-      sp.parallelize(nums).map(_ * 2).collect()
+    import DefaultEncoders._
+    val spJob: JobDef[Array[Int]] = arg[Seq[Int]]("nums").onSparkContext.apply(
+      (nums: Seq[Int], sp: SparkContext) => {
+        sp.parallelize(nums).map(_ * 2).collect()
     })
     spJob.invoke(testCtx("nums" -> (1 to 10)))
   }

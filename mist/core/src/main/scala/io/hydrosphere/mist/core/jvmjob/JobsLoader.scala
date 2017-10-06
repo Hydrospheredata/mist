@@ -4,31 +4,38 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.api.SetupConfiguration
-import io.hydrosphere.mist.apiv2.JobContext
 import io.hydrosphere.mist.core.CommonData.Action
+import mist.api.jdsl.JMistJob
+import mist.api.{JobContext, MistJob}
 
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
-  val v2Job = classOf[io.hydrosphere.mist.apiv2.MistJob[_]]
+  val v2Job = classOf[MistJob[_]]
 
   def loadJobClass(className: String): Try[JobClass] = {
-    loadClass(className).map(clz => {
-      if (isV2Job(clz)) {
-        new JobClass(
-          clazz = clz,
-          execute = loadv2Job(className).toOption,
-          serve = None
-        )
-      } else {
-        val instance = new JobClass(
-          clazz = clz,
-          execute = loadJobInstance(clz, Action.Execute),
-          serve = loadJobInstance(clz, Action.Serve)
-        )
-        instance
+    loadClass(className).map(clazz => {
+      clazz match {
+        case clz if isV2Job(clz) =>
+          new JobClass(
+            clazz = clz,
+            execute = loadv2Job(className).toOption,
+            serve = None
+          )
+        case clz if isV2JavaJob(clz) =>
+          new JobClass(
+            clazz = clz,
+            execute = loadV2JavaJob(className).toOption,
+            serve = None
+          )
+        case clz =>
+          new JobClass(
+            clazz = clz,
+            execute = loadJobInstance(clz, Action.Execute),
+            serve = loadJobInstance(clz, Action.Serve)
+          )
       }
     })
   }
@@ -37,15 +44,42 @@ class JobsLoader(val classLoader: ClassLoader) {
     clz.getInterfaces.contains(v2Job)
   }
 
+  def isV2JavaJob(clz: Class[_]): Boolean = {
+    clz.getSuperclass == classOf[JMistJob[_]]
+  }
+
   def loadv2Job(className: String): Try[JobInstance] = {
     loadClass(className).map(clz => {
       new JobInstance(clz, null) {
         override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-          val i = clz.getField("MODULE$").get(null).asInstanceOf[io.hydrosphere.mist.apiv2.MistJob[_]]
+          val i = clz.getField("MODULE$").get(null).asInstanceOf[MistJob[_]]
           val ctx = new JobContext(conf, params)
           i.defineJob.invoke(ctx) match {
-            case io.hydrosphere.mist.apiv2.JobSuccess(v) => Right(Map("result" -> v))
-            case io.hydrosphere.mist.apiv2.JobFailure(e) => Left(e)
+            case mist.api.JobSuccess(v) => Right(Map("result" -> v))
+            case mist.api.JobFailure(e) => Left(e)
+          }
+        }
+
+        override def argumentsTypes: Map[String, JobArgType] = Map.empty
+
+        override def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
+          Right(Seq.empty)
+        }
+      }
+    })
+  }
+
+  def loadV2JavaJob(className: String): Try[JobInstance] = {
+    loadClass(className).map(clz => {
+      new JobInstance(clz, null) {
+        override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
+          val constr = clz.getDeclaredConstructor();
+          constr.setAccessible(true)
+          val i = constr.newInstance().asInstanceOf[MistJob[_]]
+          val ctx = new JobContext(conf, params)
+          i.defineJob.invoke(ctx) match {
+            case mist.api.JobSuccess(v) => Right(Map("result" -> v))
+            case mist.api.JobFailure(e) => Left(e)
           }
         }
 
@@ -62,6 +96,8 @@ class JobsLoader(val classLoader: ClassLoader) {
     loadClass(className).flatMap(clz => {
       if (isV2Job(clz)) {
         loadv2Job(className)
+      } else if (isV2JavaJob(clz)) {
+        loadV2JavaJob(className)
       } else {
         loadJobInstance(clz, action) match {
           case Some(i) => Success(i)

@@ -1,21 +1,27 @@
-package io.hydrosphere.mist.apiv2
+package mist.api
 
 import org.apache.spark.SparkContext
-import shapeless.HList
-import shapeless.ops.function.FnToProduct
+import org.apache.spark.api.java.JavaSparkContext
+
+class SparkContextArgDef extends ArgDef[SparkContext] {
+  override def extract(ctx: JobContext): ArgExtraction[SparkContext] =
+    Extracted(ctx.setupConfiguration.context)
+}
+
+class JSparkContextArgDef extends ArgDef[JavaSparkContext] {
+
+  override def extract(ctx: JobContext): ArgExtraction[JavaSparkContext] = {
+    val jSc = new JavaSparkContext(ctx.setupConfiguration.context)
+    Extracted(jSc)
+  }
+}
 
 trait SparkContextsInstances {
 
-  class SparkContextArgDef extends ArgDef[SparkContext] {
-    override def extract(ctx: JobContext): ArgExtraction[SparkContext] =
-      Extracted(ctx.setupConfiguration.context)
-  }
 
   implicit class SpContextOps[A](args: ArgDef[A]) {
 
-    def onSparkContext(
-      implicit cmb: ArgCombiner[A, SparkContext]
-    ): ArgDef[cmb.Out] = {
+    def onSparkContext(implicit cmb: ArgCombiner[A, SparkContext]): ArgDef[cmb.Out] = {
       cmb(args, new SparkContextArgDef)
     }
 
@@ -77,5 +83,5 @@ trait JobDefInstances extends SparkContextsInstances with FromAnyInstances {
 object JobDefInstances extends JobDefInstances
 
 trait JobDef[R] {
-  def invoke(ctx: JobContext): JobResult[R]
+  def invoke(ctx: JobContext): JobResult[Any]
 }

@@ -1,9 +1,13 @@
-package io.hydrosphere.mist.apiv2
+package mist.api
 
+import mist.api.jdsl.RetVal
 import org.apache.spark.SparkContext
+import org.json4s.JsonAST.JValue
 import shapeless.ops.adjoin.Adjoin
 import shapeless.ops.function.FnToProduct
-import shapeless.{HList, ::, HNil}
+import shapeless.{::, HList, HNil, Lazy}
+
+import scala.annotation.implicitNotFound
 
 trait ArgExtraction[+A]
 case class Extracted[+A](value: A) extends ArgExtraction[A]
@@ -38,8 +42,6 @@ object ArgCombiner {
     }
   }
 }
-
-trait JobDefLifter
 
 trait ArgDef[A] { self =>
 
@@ -82,13 +84,41 @@ trait ArgDef[A] { self =>
     })
   }
 
+  @implicitNotFound(msg = "Encoder ${R}")
   def apply[F, R, H <: HList](f: F)
       (implicit
+         enc: Encoder[R],
          norm: Normalizer.Aux[A, H],
          fntp: FnToProduct.Aux[F, H => R]): JobDef[R] = {
 
     new JobDef[R] {
-      override def invoke(ctx: JobContext): JobResult[R] = {
+
+      override def invoke(ctx: JobContext): JobResult[Any]= {
+        self.extract(ctx) match {
+          case Extracted(args) =>
+            try {
+              val result = fntp(f)(norm(args))
+              JobResult.success(enc(result))
+            } catch {
+              case e: Throwable => JobResult.failure(e)
+            }
+          case Missing(msg) =>
+            val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
+            JobResult.failure(e)
+        }
+      }
+
+    }
+  }
+
+  def apply2[F, R, H <: HList](f: F)
+      (implicit
+         norm: Normalizer.Aux[A, H],
+         fntp: FnToProduct.Aux[F, H => Any]): JobDef[R] = {
+
+    new JobDef[R] {
+
+      override def invoke(ctx: JobContext): JobResult[Any]= {
         self.extract(ctx) match {
           case Extracted(args) =>
             try {
@@ -102,6 +132,7 @@ trait ArgDef[A] { self =>
             JobResult.failure(e)
         }
       }
+
     }
   }
 

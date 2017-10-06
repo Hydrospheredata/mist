@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.apiv2
+package mist.api
 
 trait FromAny[A] {
   def apply(a: Any): Option[A]
@@ -13,12 +13,12 @@ trait FromAnyInstances {
 
   implicit val forInt: FromAny[Int] = create {
     case i: Int => Some(i)
-    case x => None
+    case _ => None
   }
 
   implicit val forString: FromAny[String] = create {
     case s: String => Some(s)
-    case x => None
+    case _ => None
   }
 
   implicit def forSeq[A](implicit underlying: FromAny[A]): FromAny[Seq[A]] = create {
