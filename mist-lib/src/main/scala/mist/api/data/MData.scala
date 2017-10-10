@@ -1,4 +1,4 @@
-package mist.api
+package mist.api.data
 
 sealed trait MData
 case class MString(s: String) extends MData

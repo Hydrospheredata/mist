@@ -10,6 +10,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.{JobDetails, JobResult, WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
+import mist.api.data._
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -47,6 +48,26 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
       case JsTrue => true
       case JsFalse => false
       case unknown: Any => deserializationError("Do not understand how to deserialize " + unknown)
+    }
+  }
+}
+
+trait MDataFormat {
+
+  implicit val mDataFormat = new RootJsonFormat[MData] {
+    //TODO: ???
+    override def read(json: JsValue): MData = {
+      ???
+    }
+
+    override def write(obj: MData): JsValue = {
+      obj match {
+        case MInt(i)       => JsNumber(i)
+        case MDouble(d)    => JsNumber(d)
+        case MBoolean(b)   => JsBoolean(b)
+        case MList(values) => JsArray(values.map(v => write(v)).toVector)
+        case MMap(map)     => JsObject(map.mapValues(v => write(v)))
+      }
     }
   }
 }

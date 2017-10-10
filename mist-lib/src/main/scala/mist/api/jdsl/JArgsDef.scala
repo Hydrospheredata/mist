@@ -6,9 +6,9 @@ import java.lang.{Integer => JavaInt}
 
 import org.apache.spark.api.java.JavaSparkContext
 import org.json4s.JValue
-
 import FuncOps._
 import BaseContexts._
+import mist.api.data._
 
 //case class Args1[T1](a1: ArgDef[T1]) {
 //

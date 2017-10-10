@@ -1,4 +1,7 @@
 package mist.api
+
+import mist.api.data._
+
 import scala.annotation.implicitNotFound
 
 @implicitNotFound(msg = "Could not find Encoder instance for ${A}")

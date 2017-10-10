@@ -1,5 +1,7 @@
 package mist.api
 
+import mist.api.data.MData
+
 case class InputDescription(msg: String)
 
 trait JobInfo {
