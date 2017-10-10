@@ -3,34 +3,7 @@ package mist.api
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
 
-class SparkContextArgDef extends ArgDef[SparkContext] {
-  override def extract(ctx: JobContext): ArgExtraction[SparkContext] =
-    Extracted(ctx.setupConfiguration.context)
-}
-
-class JSparkContextArgDef extends ArgDef[JavaSparkContext] {
-
-  override def extract(ctx: JobContext): ArgExtraction[JavaSparkContext] = {
-    val jSc = new JavaSparkContext(ctx.setupConfiguration.context)
-    Extracted(jSc)
-  }
-}
-
-trait SparkContextsInstances {
-
-
-  implicit class SpContextOps[A](args: ArgDef[A]) {
-
-    def onSparkContext(implicit cmb: ArgCombiner[A, SparkContext]): ArgDef[cmb.Out] = {
-      cmb(args, new SparkContextArgDef)
-    }
-
-
-  }
-
-}
-
-trait JobDefInstances extends SparkContextsInstances with FromAnyInstances {
+trait JobDefInstances extends FromAnyInstances {
 
   class NamedArgDef[A](name: String)(implicit fromAny: FromAny[A]) extends ArgDef[A] {
     override def extract(ctx: JobContext): ArgExtraction[A] = {
@@ -82,6 +55,16 @@ trait JobDefInstances extends SparkContextsInstances with FromAnyInstances {
 
 object JobDefInstances extends JobDefInstances
 
-trait JobDef[R] {
-  def invoke(ctx: JobContext): JobResult[Any]
+trait JobDef[A] { self =>
+
+  def invoke(ctx: JobContext): JobResult[A]
+}
+
+object JobDef {
+
+  def instance[A](f: JobContext => JobResult[A]): JobDef[A] = new JobDef[A] {
+
+    override def invoke(ctx: JobContext): JobResult[A] = f(ctx)
+
+  }
 }

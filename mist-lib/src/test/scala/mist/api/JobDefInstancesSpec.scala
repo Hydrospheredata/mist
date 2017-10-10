@@ -37,7 +37,9 @@ class JobDefInstancesSpec extends FunSpec with Matchers {
 
   it("for spark context") {
     import DefaultEncoders._
-    val spJob: JobDef[Array[Int]] = arg[Seq[Int]]("nums").onSparkContext.apply(
+    import BaseContexts._
+
+    val spJob: JobDef[Array[Int]] = arg[Seq[Int]]("nums").onSparkContext(
       (nums: Seq[Int], sp: SparkContext) => {
         sp.parallelize(nums).map(_ * 2).collect()
     })

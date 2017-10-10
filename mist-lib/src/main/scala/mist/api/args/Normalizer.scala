@@ -1,4 +1,4 @@
-package mist.api
+package mist.api.args
 
 import shapeless._
 
@@ -15,7 +15,6 @@ trait LowPriorityNormalizer {
 }
 
 object Normalizer extends LowPriorityNormalizer {
-
 
   def apply[A](implicit n: Normalizer[A]): Aux[A, n.Out] = n
 

@@ -16,6 +16,4 @@ public class RetValue {
         return instance.stringRetVal(s);
     }
 
-    public RetVal<List<>>
-
 }

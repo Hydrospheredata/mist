@@ -7,6 +7,7 @@ import shapeless.HNil
 class ArgDefSpec extends FunSpec with Matchers {
 
   import DefaultEncoders._
+  import JobDefInstances._
 
   describe("const/missing") {
 

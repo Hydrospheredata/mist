@@ -5,7 +5,7 @@ import java.net.URLClassLoader
 
 import io.hydrosphere.mist.api.SetupConfiguration
 import io.hydrosphere.mist.core.CommonData.Action
-import mist.api.jdsl.JMistJob
+//import mist.api.jdsl.JMistJob
 import mist.api.{JobContext, MistJob}
 
 import scala.reflect.runtime.universe._
@@ -24,12 +24,12 @@ class JobsLoader(val classLoader: ClassLoader) {
             execute = loadv2Job(className).toOption,
             serve = None
           )
-        case clz if isV2JavaJob(clz) =>
-          new JobClass(
-            clazz = clz,
-            execute = loadV2JavaJob(className).toOption,
-            serve = None
-          )
+//        case clz if isV2JavaJob(clz) =>
+//          new JobClass(
+//            clazz = clz,
+//            execute = loadV2JavaJob(className).toOption,
+//            serve = None
+//          )
         case clz =>
           new JobClass(
             clazz = clz,
@@ -44,9 +44,9 @@ class JobsLoader(val classLoader: ClassLoader) {
     clz.getInterfaces.contains(v2Job)
   }
 
-  def isV2JavaJob(clz: Class[_]): Boolean = {
-    clz.getSuperclass == classOf[JMistJob[_]]
-  }
+//  def isV2JavaJob(clz: Class[_]): Boolean = {
+//    clz.getSuperclass == classOf[JMistJob[_]]
+//  }
 
   def loadv2Job(className: String): Try[JobInstance] = {
     loadClass(className).map(clz => {
@@ -54,7 +54,7 @@ class JobsLoader(val classLoader: ClassLoader) {
         override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
           val i = clz.getField("MODULE$").get(null).asInstanceOf[MistJob[_]]
           val ctx = new JobContext(conf, params)
-          i.defineJob.invoke(ctx) match {
+          i.execute(ctx) match {
             case mist.api.JobSuccess(v) => Right(Map("result" -> v))
             case mist.api.JobFailure(e) => Left(e)
           }
@@ -69,35 +69,35 @@ class JobsLoader(val classLoader: ClassLoader) {
     })
   }
 
-  def loadV2JavaJob(className: String): Try[JobInstance] = {
-    loadClass(className).map(clz => {
-      new JobInstance(clz, null) {
-        override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-          val constr = clz.getDeclaredConstructor();
-          constr.setAccessible(true)
-          val i = constr.newInstance().asInstanceOf[MistJob[_]]
-          val ctx = new JobContext(conf, params)
-          i.defineJob.invoke(ctx) match {
-            case mist.api.JobSuccess(v) => Right(Map("result" -> v))
-            case mist.api.JobFailure(e) => Left(e)
-          }
-        }
-
-        override def argumentsTypes: Map[String, JobArgType] = Map.empty
-
-        override def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
-          Right(Seq.empty)
-        }
-      }
-    })
-  }
+//  def loadV2JavaJob(className: String): Try[JobInstance] = {
+//    loadClass(className).map(clz => {
+//      new JobInstance(clz, null) {
+//        override def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
+//          val constr = clz.getDeclaredConstructor();
+//          constr.setAccessible(true)
+//          val i = constr.newInstance().asInstanceOf[MistJob[_]]
+//          val ctx = new JobContext(conf, params)
+//          i.defineJob.invoke(ctx) match {
+//            case mist.api.JobSuccess(v) => Right(Map("result" -> v))
+//            case mist.api.JobFailure(e) => Left(e)
+//          }
+//        }
+//
+//        override def argumentsTypes: Map[String, JobArgType] = Map.empty
+//
+//        override def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
+//          Right(Seq.empty)
+//        }
+//      }
+//    })
+//  }
 
   def loadJobInstance(className: String, action: Action): Try[JobInstance] = {
     loadClass(className).flatMap(clz => {
       if (isV2Job(clz)) {
         loadv2Job(className)
-      } else if (isV2JavaJob(clz)) {
-        loadV2JavaJob(className)
+//      } else if (isV2JavaJob(clz)) {
+//        loadV2JavaJob(className)
       } else {
         loadJobInstance(clz, action) match {
           case Some(i) => Success(i)

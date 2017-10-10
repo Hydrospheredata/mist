@@ -38,7 +38,7 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(PublishSettings.settings: _*)
   .settings(
     scalacOptions ++= commonScalacOptions,
-    scalacOptions += "-Xlog-implicits",
+    //scalacOptions += "-Xlog-implicits",
     name := s"mist-lib-spark${sparkVersion.value}",
     libraryDependencies ++= {
       if (is2_10.value ) {

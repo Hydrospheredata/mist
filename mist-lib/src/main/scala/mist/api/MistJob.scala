@@ -8,9 +8,19 @@ trait JobInfo {
 
 }
 
-trait MistJob[A] extends JobInfo with JobDefInstances with DefaultEncoders {
+abstract class MistJob[A](implicit enc: Encoder[A])
+  extends JobInfo
+  with JobDefInstances
+  with Contexts {
 
   def defineJob: JobDef[A]
+
+  def execute(ctx: JobContext): JobResult[MData] = {
+    defineJob.invoke(ctx) match {
+      case JobSuccess(data) => JobSuccess(enc(data))
+      case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
+    }
+  }
 
   override final def describe(): InputDescription = InputDescription("descr")
 
