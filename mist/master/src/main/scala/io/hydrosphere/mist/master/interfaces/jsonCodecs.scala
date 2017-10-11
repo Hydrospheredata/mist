@@ -55,9 +55,21 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 trait MDataFormat {
 
   implicit val mDataFormat = new RootJsonFormat[MData] {
-    //TODO: ???
+    //TODO: MORE TYPES!!!
     override def read(json: JsValue): MData = {
-      ???
+      json match {
+        case JsObject(fields) => MMap(fields.mapValues(v => read(v)))
+        case JsString(s) => MString(s)
+        case JsNumber(dec) => dec match {
+          case v if v.isValidInt => MInt(dec.intValue())
+          case v if v.isValidDouble => MDouble(dec.doubleValue())
+          case _ => throw new NotImplementedError("implemented only for int and double")
+        }
+        case JsFalse => MBoolean(false) //TODO MBoolean can has default false and true
+        case JsTrue  => MBoolean(true)
+        case JsNull  => MOption(None)
+        case JsArray(values) => MList(values.map(read))
+      }
     }
 
     override def write(obj: MData): JsValue = {
@@ -65,6 +77,9 @@ trait MDataFormat {
         case MInt(i)       => JsNumber(i)
         case MDouble(d)    => JsNumber(d)
         case MBoolean(b)   => JsBoolean(b)
+        case MString(s)    => JsString(s)
+        case MOption(d)    => d.fold(JsNull: JsValue)(d => write(d))
+        case MUnit         => JsObject(Map.empty[String, JsValue])
         case MList(values) => JsArray(values.map(v => write(v)).toVector)
         case MMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
@@ -73,21 +88,7 @@ trait MDataFormat {
 }
 
 
-trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat {
-
-//  implicit object EitherJobResultSupport extends RootJsonFormat[Either[String, Map[String, Any]]] {
-//    override def write(obj: Either[String, Map[String, Any]]): JsValue = obj match {
-//      case Right(s: String) => JsString(s)
-//      case Left(m) => mapFormat[String, Any].write(m)
-//    }
-//
-//    override def read(json: JsValue): Either[String, Map[String, Any]] = json match {
-//      case JsString(str) => Right(str)
-//      case _: JsObject => Left(mapFormat[String, Any].read(json))
-//      case _ => throw DeserializationException("Either[Map, String] can be only string or object")
-//    }
-//  }
-
+trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with MDataFormat {
 
   implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
     override def write(obj: JobDetails.Status): JsValue = JsString(obj.toString)

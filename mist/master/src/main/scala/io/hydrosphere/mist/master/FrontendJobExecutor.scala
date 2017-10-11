@@ -7,6 +7,7 @@ import io.hydrosphere.mist.core.CommonData._
 import models.JobStartResponse
 import Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import mist.api.data.MData
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -17,7 +18,7 @@ import scala.util._
 //TODO don't use public status struct
 case class ExecutionInfo(
   request: RunJobRequest,
-  promise: Promise[Map[String, Any]],
+  promise: Promise[MData],
   var status: JobDetails.Status
 ) {
 
@@ -43,10 +44,10 @@ case class ExecutionInfo(
 object ExecutionInfo {
 
   def apply(req: RunJobRequest, status: JobDetails.Status): ExecutionInfo =
-    ExecutionInfo(req, Promise[Map[String, Any]], status)
+    ExecutionInfo(req, Promise[MData], status)
 
   def apply(req: RunJobRequest): ExecutionInfo =
-    ExecutionInfo(req, Promise[Map[String, Any]], JobDetails.Status.Queued)
+    ExecutionInfo(req, Promise[MData], JobDetails.Status.Queued)
 }
 
 //TODO: if worker crashed - jobs that is in running status should be marked as Failure
@@ -208,7 +209,6 @@ object FrontendJobExecutor {
     statusService: ActorRef
   ): Props =
     Props(classOf[FrontendJobExecutor], name, maxRunningJobs, statusService)
-
 
 }
 

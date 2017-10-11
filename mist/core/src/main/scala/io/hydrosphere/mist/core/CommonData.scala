@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.core
 
+import mist.api.data.MData
+
 import scala.concurrent.duration.Duration
 
 object CommonData {
@@ -75,7 +77,7 @@ object CommonData {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
+  case class JobSuccess(id: String, result: MData) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
   sealed trait GetRunInitInfo

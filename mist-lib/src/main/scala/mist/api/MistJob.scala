@@ -4,15 +4,8 @@ import mist.api.data.MData
 
 case class InputDescription(msg: String)
 
-trait JobInfo {
-
-  def describe(): InputDescription
-
-}
-
 abstract class MistJob[A](implicit enc: Encoder[A])
-  extends JobInfo
-  with JobDefInstances
+  extends JobDefInstances
   with Contexts {
 
   def defineJob: JobDef[A]
@@ -23,8 +16,6 @@ abstract class MistJob[A](implicit enc: Encoder[A])
       case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
     }
   }
-
-  override final def describe(): InputDescription = InputDescription("descr")
 
   def main(args: Array[String]) = {
     println("HELLO!")

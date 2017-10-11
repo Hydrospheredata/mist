@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import io.hydrosphere.mist.core.CommonData.JobParams
+import mist.api.data.MData
 
 object JobDetails {
   
@@ -99,7 +100,7 @@ case class JobDetails(
   source: JobDetails.Source,
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
-  jobResult: Option[Either[String, Map[String, Any]]] = None,
+  jobResult: Option[Either[String, MData]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
   workerId: String,
   createTime: Long = System.currentTimeMillis()
@@ -114,7 +115,7 @@ case class JobDetails(
   
   def ends(): JobDetails = withEndTime(System.currentTimeMillis())
 
-  def withJobResult(result: Map[String, Any]): JobDetails =
+  def withJobResult(result: MData): JobDetails =
     copy(jobResult = Some(Right(result)))
 
   def withFailure(message: String): JobDetails =

@@ -3,9 +3,9 @@ package io.hydrosphere.mist.master.interfaces.http
 import java.time.LocalDateTime
 
 import io.hydrosphere.mist.api._
-import io.hydrosphere.mist.core.jvmjob._
 import io.hydrosphere.mist.core.{JvmJobInfo, PyJobInfo}
-import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo, RunMode}
+import io.hydrosphere.mist.master.models.{ContextConfig, FullEndpointInfo}
+import mist.api.UserInputArgument
 
 import scala.concurrent.duration.Duration
 
@@ -33,8 +33,14 @@ object HttpJobInfo {
       val classes = inst.supportedClasses()
       HttpJobInfo(
         name = fullInfo.config.name,
-        execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
-        serve = inst.serve.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+        execute = inst.execute.map(i => {
+          val userArgs = i.describe().collect({case u:UserInputArgument => u})
+          userArgs.map(a => a.name -> HttpJobArg.convert(a.t)).toMap
+        }),
+        serve = inst.serve.map(i => {
+          val userArgs = i.describe().collect({case u:UserInputArgument => u})
+          userArgs.map(a => a.name -> HttpJobArg.convert(a.t)).toMap
+        }),
 
         isHiveJob = classes.contains(classOf[HiveSupport]),
         isSqlJob = classes.contains(classOf[SQLSupport]),
@@ -50,14 +56,16 @@ case class HttpJobArg(
 )
 
 object HttpJobArg {
+  import mist.api.args._
 
-  def convert(argType: JobArgType): HttpJobArg = {
-    val t = argType.getClass.getSimpleName.replace("$", "")
+  def convert(argType: ArgType): HttpJobArg = {
+    //TODO:: hack!
+    val t = argType.getClass.getSimpleName.replace("$", "").replace("MT", "M")
     val typeArgs = argType match {
-      case x @ (MInt | MDouble| MString | MAny) => Seq.empty
-      case x: MMap => Seq(x.k, x.v).map(HttpJobArg.convert)
-      case x: MList => Seq(HttpJobArg.convert(x.v))
-      case x: MOption => Seq(HttpJobArg.convert(x.v))
+      case x @ (MTInt | MTDouble| MTString | MTAny) => Seq.empty
+      case x: MTMap => Seq(x.k, x.v).map(HttpJobArg.convert)
+      case x: MTList => Seq(HttpJobArg.convert(x.v))
+      case x: MTOption => Seq(HttpJobArg.convert(x.v))
     }
     new HttpJobArg(t, typeArgs)
   }
@@ -115,7 +123,10 @@ object HttpEndpointInfoV2 {
         HttpEndpointInfoV2(
           name = name,
           lang = ScalaLang,
-          execute = inst.execute.map(i => i.argumentsTypes.mapValues(HttpJobArg.convert)),
+          execute = inst.execute.map(i => {
+            val userArgs = i.describe().collect({case u:UserInputArgument => u})
+            userArgs.map(a => a.name -> HttpJobArg.convert(a.t)).toMap
+          }),
           tags = tags,
 
           path = path,

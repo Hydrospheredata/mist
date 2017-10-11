@@ -2,11 +2,15 @@ package mist.api
 
 import mist.api.args.{ArgCombiner, ToJobDef}
 
+import scala.reflect.ClassTag
+
 trait ArgExtraction[+A]
 case class Extracted[+A](value: A) extends ArgExtraction[A]
 case class Missing[+A](description: String) extends ArgExtraction[A]
 
 trait ArgDef[A] { self =>
+
+  def describe(): Seq[ArgInfo]
 
   def extract(ctx: JobContext): ArgExtraction[A]
 
@@ -18,6 +22,9 @@ trait ArgDef[A] { self =>
 
   def map[B](f: A => B): ArgDef[B] = {
     new ArgDef[B] {
+
+      override def describe(): Seq[ArgInfo] = self.describe()
+
       override def extract(ctx: JobContext): ArgExtraction[B] = {
         self.extract(ctx) match {
           case Extracted(a) => Extracted(f(a))
@@ -29,6 +36,7 @@ trait ArgDef[A] { self =>
 
   def flatMap[B](f: A => ArgExtraction[B]): ArgDef[B] = {
     new ArgDef[B] {
+      override def describe(): Seq[ArgInfo] = self.describe()
       override def extract(ctx: JobContext): ArgExtraction[B] =
         self.extract(ctx) match {
           case Extracted(a) => f(a)
@@ -51,15 +59,16 @@ trait ArgDef[A] { self =>
 
 }
 
-object ArgDef extends FromAnyInstances {
+object ArgDef {
 
-  def create[A](f: JobContext => ArgExtraction[A]): ArgDef[A] = new ArgDef[A] {
-      override def extract(ctx: JobContext): ArgExtraction[A] = f(ctx)
+  def create[A](info: ArgInfo)(f: JobContext => ArgExtraction[A]): ArgDef[A] = new ArgDef[A] {
+      def describe(): Seq[ArgInfo] = Seq(info)
+      def extract(ctx: JobContext): ArgExtraction[A] = f(ctx)
   }
 
-  def const[A](value: A): ArgDef[A] = create(_ => Extracted(value))
+  def const[A](value: A): ArgDef[A] = create(InternalArgument)(_ => Extracted(value))
 
-  def missing[A](message: String): ArgDef[A] = create(_ => Missing(message))
+  def missing[A](message: String): ArgDef[A] = create(InternalArgument)(_ => Missing(message))
 
 }
 

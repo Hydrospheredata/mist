@@ -19,6 +19,8 @@ import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
 
+import io.hydrosphere.mist.utils.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
@@ -120,7 +122,7 @@ object HttpV2Base {
   }
 }
 
-object HttpV2Routes {
+object HttpV2Routes extends Logger {
 
   import Directives._
   import JsonCodecs._
@@ -155,8 +157,14 @@ object HttpV2Routes {
     path( root / "endpoints" ) {
       get { complete {
         master.endpointsInfo.map(infos => {
-          infos.map(info => Try(HttpEndpointInfoV2.convert(info)))
-            .collect({ case Success(v) => v })
+          infos.map(info => {
+            val v = Try(HttpEndpointInfoV2.convert(info))
+            v match {
+              case Failure(e) => logger.error(s"What? ${info.config}", e)
+              case _ =>
+            }
+            v
+          }).collect({ case Success(v) => v })
         })
       }}
     } ~

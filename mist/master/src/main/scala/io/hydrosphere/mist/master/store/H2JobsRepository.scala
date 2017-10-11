@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import JsonCodecs._
-
+import mist.api.data.MData
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 import spray.json.{pimpAny, pimpString}
@@ -26,9 +26,9 @@ trait JobsTable {
     string => JobDetails.Status(string)
   )
 
-  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, Map[String, Any]], String](
+  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, MData], String](
     jobResponseOrError => jobResponseOrError.toJson.compactPrint,
-    string => string.parseJson.convertTo[Either[String, Map[String, Any]]]
+    string => string.parseJson.convertTo[Either[String, MData]]
   )
 
   implicit def string2JobParameters = MappedColumnType.base[Map[String, Any], String](
@@ -59,7 +59,7 @@ trait JobsTable {
     def jobId = column[String]("job_id", O.PrimaryKey)
     def startTime = column[Option[Long]]("start_time")
     def endTime = column[Option[Long]]("end_time")
-    def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
+    def jobResult = column[Option[Either[String, MData]]]("job_result")
     def status = column[JobDetails.Status]("status")
     def workerId = column[String]("worker_id")
     def createTime = column[Long]("create_time")

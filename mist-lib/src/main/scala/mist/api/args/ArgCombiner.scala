@@ -18,7 +18,9 @@ object ArgCombiner {
 
     override def apply(a: ArgDef[A], b: ArgDef[B]): ArgDef[Out] = {
       new ArgDef[adj.Out] {
-        override def extract(ctx: JobContext): ArgExtraction[adj.Out] = {
+        def describe(): Seq[ArgInfo] = a.describe() ++ b.describe()
+
+        def extract(ctx: JobContext): ArgExtraction[adj.Out] = {
           (b.extract(ctx), a.extract(ctx)) match {
             case (Extracted(be), Extracted(ae)) =>
               val out = adj(ae :: be :: HNil)
@@ -28,9 +30,8 @@ object ArgCombiner {
             case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[adj.Out]]
           }
         }
-      }
-
+     }
     }
   }
-}
 
+}

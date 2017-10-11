@@ -60,5 +60,3 @@ object JobInfo {
   }
 
 }
-
-

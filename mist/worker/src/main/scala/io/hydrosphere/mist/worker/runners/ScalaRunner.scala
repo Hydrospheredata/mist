@@ -7,6 +7,8 @@ import io.hydrosphere.mist.core.jvmjob.JobsLoader
 import io.hydrosphere.mist.utils.EitherOps
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.worker.NamedContext
+import mist.api.JobContext
+import mist.api.data.MData
 import org.apache.spark.util.SparkClassLoader
 
 import scala.util.{Failure, Success}
@@ -16,7 +18,7 @@ class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext):Either[Throwable, Map[String, Any]] = {
+    context: NamedContext):Either[Throwable, MData] = {
 
     val params = request.params
     import params._
@@ -34,7 +36,7 @@ class ScalaRunner(jobFile: File) extends JobRunner {
       for {
         inst      <- instance
         setupConf =  context.setupConfiguration(request.id)
-        result    <- inst.run(setupConf, arguments)
+        result    <- inst.run(JobContext(setupConf, params.arguments))
       } yield result
     }
   }

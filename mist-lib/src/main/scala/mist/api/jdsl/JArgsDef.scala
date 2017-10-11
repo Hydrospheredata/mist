@@ -8,6 +8,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.json4s.JValue
 import FuncOps._
 import BaseContexts._
+import mist.api.args.{ArgType, MTInt}
 import mist.api.data._
 
 //case class Args1[T1](a1: ArgDef[T1]) {
@@ -44,16 +45,17 @@ trait RetVals {
 
 object RetVals extends RetVals
 
-trait JArgsDef extends FromAnyInstances {
+trait JArgsDef extends ArgDescriptionInstances {
 
   import JobDefInstances._
 
-  implicit val jInt = new FromAny[JavaInt] {
+  implicit val jInt = new ArgDescription[JavaInt] {
+    override def `type`: ArgType = MTInt
     override def apply(a: Any): Option[JavaInt] = a match {
       case i: Int => Some(new JavaInt(i))
       case _ => None
     }
-  }
+}
 
   def intArg(name: String): ArgDef[Integer] = arg[Integer](name)
   def stringArg(name: String): ArgDef[String] = arg[String](name)
