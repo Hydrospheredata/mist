@@ -22,6 +22,7 @@ trait Func3[-T1, -T2, -T3, +R] extends java.io.Serializable {
 
 trait JScFunc1[R] extends Func1[JavaSparkContext, R] {
   override def apply(sc: JavaSparkContext): R
+
 }
 
 trait JScFunc2[T1, R] extends Func2[T1, JavaSparkContext, R] {

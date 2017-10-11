@@ -90,5 +90,5 @@ object JobDef {
     }
 
     override def validate(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = validateF(params)
-}
+  }
 }

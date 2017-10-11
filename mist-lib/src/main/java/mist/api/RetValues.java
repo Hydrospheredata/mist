@@ -4,11 +4,11 @@ import mist.api.jdsl.RetVal;
 import mist.api.jdsl.RetVals;
 import mist.api.jdsl.RetVals$;
 
-public class RetValue {
+public class RetValues {
 
     private static RetVals instance = RetVals$.MODULE$;
 
-    public RetVal<Integer> of(int i) {
+    public static RetVal<Integer> of(int i) {
         return instance.intRetVal(i);
     }
 

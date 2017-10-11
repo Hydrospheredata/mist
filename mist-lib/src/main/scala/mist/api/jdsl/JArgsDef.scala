@@ -11,25 +11,22 @@ import BaseContexts._
 import mist.api.args.{ArgType, MTInt}
 import mist.api.data._
 
-//case class Args1[T1](a1: ArgDef[T1]) {
-//
-//  def onJSparkContext[R](f: JScFunc2[T1, RetVal[R]]): JobDef[R] = {
-//
-//    val func = f.map(_.encoded())
-//    (a1 & javaSparkContext).apply(func)
-//  }
-//}
-//
-//case class Args2[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]) {
-//
-//  def onJSparkContext[R](f: JScFunc3[T1, T2, RetVal[R]]): JobDef[R] = {
-//    val func = f.map(_.encoded())
-//    (a1 & a2 & javaSparkContext).apply(func)
-//  }
-//}
+case class Args1[T1](a1: ArgDef[T1]) {
+
+  def onSparkContext[R](f: JScFunc2[T1, RetVal[R]]): JJobDef[R] = {
+    (a1 & javaSparkContext).apply(f.toScalaFunc).asInstanceOf[JJobDef[R]]
+  }
+}
+
+case class Args2[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]) {
+
+  def onSparkContext[R](f: JScFunc3[T1, T2, RetVal[R]]): JJobDef[R] = {
+    (a1 & a2 & javaSparkContext).apply(f.toScalaFunc).asInstanceOf[JJobDef[R]]
+  }
+}
 
 case class RetVal[T](value: T, encoder: Encoder[T]) {
-  def encoded(): Any = encoder(value)
+  def encoded(): MData = encoder(value)
 }
 
 trait RetVals {
@@ -39,7 +36,6 @@ trait RetVals {
   })
 
   def stringRetVal(s: String): RetVal[String] = RetVal(s, DefaultEncoders.StringEncoder)
-
 
 }
 
@@ -60,8 +56,21 @@ trait JArgsDef extends ArgDescriptionInstances {
   def intArg(name: String): ArgDef[Integer] = arg[Integer](name)
   def stringArg(name: String): ArgDef[String] = arg[String](name)
 
-//  def withArgs[T1](a1: ArgDef[T1]): Args1[T1] = Args1(a1)
-//  def withArgs[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]): Args2[T1, T2] = Args2(a1, a2)
+  def withArgs[T1](a1: ArgDef[T1]): Args1[T1] = Args1(a1)
+  def withArgs[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]): Args2[T1, T2] = Args2(a1, a2)
 }
 
-//abstract class JMistJob[T] extends MistJob[T] with JArgsDef with RetVals
+trait JJobDef[T] extends mist.api.JobDef[RetVal[T]]
+
+abstract class JMistJob[T] extends JArgsDef {
+
+  def defineJob: JJobDef[T]
+
+  final def execute(ctx: JobContext): JobResult[MData] = {
+    defineJob.invoke(ctx) match {
+      case JobSuccess(v) => JobSuccess(v.encoded())
+      case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
+    }
+  }
+}
+
