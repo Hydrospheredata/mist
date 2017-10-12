@@ -13,15 +13,17 @@ import mist.api.data._
 
 case class Args1[T1](a1: ArgDef[T1]) {
 
-  def onSparkContext[R](f: JScFunc2[T1, RetVal[R]]): JJobDef[R] = {
-    (a1 & javaSparkContext).apply(f.toScalaFunc).asInstanceOf[JJobDef[R]]
+  def onSparkContext[R](f: Func2[T1, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
+    val job = (a1 & javaSparkContext).apply(f.toScalaFunc)
+    new JJobDef(job)
   }
 }
 
 case class Args2[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]) {
 
-  def onSparkContext[R](f: JScFunc3[T1, T2, RetVal[R]]): JJobDef[R] = {
-    (a1 & a2 & javaSparkContext).apply(f.toScalaFunc).asInstanceOf[JJobDef[R]]
+  def onSparkContext[R](f: Func3[T1, T2, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
+    val job = (a1 & a2 & javaSparkContext).apply(f.toScalaFunc)
+    new JJobDef(job)
   }
 }
 
@@ -60,14 +62,14 @@ trait JArgsDef extends ArgDescriptionInstances {
   def withArgs[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]): Args2[T1, T2] = Args2(a1, a2)
 }
 
-trait JJobDef[T] extends mist.api.JobDef[RetVal[T]]
+class JJobDef[T](val jobDef: JobDef[RetVal[T]])
 
 abstract class JMistJob[T] extends JArgsDef {
 
   def defineJob: JJobDef[T]
 
   final def execute(ctx: JobContext): JobResult[MData] = {
-    defineJob.invoke(ctx) match {
+    defineJob.jobDef.invoke(ctx) match {
       case JobSuccess(v) => JobSuccess(v.encoded())
       case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
     }
