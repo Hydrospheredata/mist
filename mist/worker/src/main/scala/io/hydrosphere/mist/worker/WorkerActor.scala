@@ -7,7 +7,7 @@ import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -18,7 +18,7 @@ import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
   requester: ActorRef,
-  jobFuture: Future[Either[Throwable, MData]]
+  jobFuture: Future[Either[Throwable, JsLikeData]]
 )
 
 trait JobStarting {
@@ -29,7 +29,7 @@ trait JobStarting {
 
   protected final def startJob(
     req: RunJobRequest
-  )(implicit ec: ExecutionContext): Future[Either[Throwable, MData]] = {
+  )(implicit ec: ExecutionContext): Future[Either[Throwable, JsLikeData]] = {
     val id = req.id
     val s = sender()
     val jobStart = for {
@@ -58,7 +58,7 @@ trait JobStarting {
     JobFailure(req.id, buildErrorMessage(req.params, ex))
 
 
-  private def runJob(actor: ActorRef, req: RunJobRequest, runner: JobRunner): Either[Throwable, MData] = {
+  private def runJob(actor: ActorRef, req: RunJobRequest, runner: JobRunner): Either[Throwable, JsLikeData] = {
     val id = req.id
     actor ! JobStarted(id)
     namedContext.sparkContext.setJobGroup(id, id)

@@ -54,34 +54,34 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 
 trait MDataFormat {
 
-  implicit val mDataFormat = new RootJsonFormat[MData] {
+  implicit val mDataFormat = new RootJsonFormat[JsLikeData] {
     //TODO: MORE TYPES!!!
-    override def read(json: JsValue): MData = {
+    override def read(json: JsValue): JsLikeData = {
       json match {
-        case JsObject(fields) => MMap(fields.mapValues(v => read(v)))
-        case JsString(s) => MString(s)
+        case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
+        case JsString(s) => JsLikeString(s)
         case JsNumber(dec) => dec match {
-          case v if v.isValidInt => MInt(dec.intValue())
-          case v if v.isValidDouble => MDouble(dec.doubleValue())
+          case v if v.isValidInt => JsLikeInt(dec.intValue())
+          case v if v.isValidDouble => JsLikeDouble(dec.doubleValue())
           case _ => throw new NotImplementedError("implemented only for int and double")
         }
-        case JsFalse => MBoolean(false) //TODO MBoolean can has default false and true
-        case JsTrue  => MBoolean(true)
-        case JsNull  => MOption(None)
-        case JsArray(values) => MList(values.map(read))
+        case JsFalse => JsLikeBoolean(false) //TODO MBoolean can has default false and true
+        case JsTrue  => JsLikeBoolean(true)
+        case JsNull  => JsLikeOption(None)
+        case JsArray(values) => JsLikeList(values.map(read))
       }
     }
 
-    override def write(obj: MData): JsValue = {
+    override def write(obj: JsLikeData): JsValue = {
       obj match {
-        case MInt(i)       => JsNumber(i)
-        case MDouble(d)    => JsNumber(d)
-        case MBoolean(b)   => JsBoolean(b)
-        case MString(s)    => JsString(s)
-        case MOption(d)    => d.fold(JsNull: JsValue)(d => write(d))
-        case MUnit         => JsObject(Map.empty[String, JsValue])
-        case MList(values) => JsArray(values.map(v => write(v)).toVector)
-        case MMap(map)     => JsObject(map.mapValues(v => write(v)))
+        case JsLikeInt(i)       => JsNumber(i)
+        case JsLikeDouble(d)    => JsNumber(d)
+        case JsLikeBoolean(b)   => JsBoolean(b)
+        case JsLikeString(s)    => JsString(s)
+        case JsLikeOption(d)    => d.fold(JsNull: JsValue)(d => write(d))
+        case JsLikeUnit         => JsObject(Map.empty[String, JsValue])
+        case JsLikeList(values) => JsArray(values.map(v => write(v)).toVector)
+        case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
     }
   }

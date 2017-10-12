@@ -11,16 +11,16 @@ class ArgTypeSpec extends FunSpec with Matchers {
 
   val rawToArg = Table(
     ("RawType", "argType"),
-    (typeOf[Int], MTInt),
-    (typeOf[Double], MTDouble),
-    (typeOf[String], MTString),
-    (typeOf[List[Int]], MTList(MTInt)),
-    (typeOf[Map[Int, String]], MTMap(MTInt, MTString)),
-    (typeOf[Option[Int]], MTOption(MTInt)),
-    (typeOf[Any], MTAny),
-    (typeOf[Any], MTAny),
-    (typeOf[AliasOption[Int]], MTOption(MTInt)),
-    (typeOf[Map[List[Option[String]], Int]], MTMap(MTList(MTOption(MTString)), MTInt))
+    (typeOf[Int], MInt),
+    (typeOf[Double], MDouble),
+    (typeOf[String], MString),
+    (typeOf[List[Int]], MList(MInt)),
+    (typeOf[Map[Int, String]], MMap(MInt, MString)),
+    (typeOf[Option[Int]], MOption(MInt)),
+    (typeOf[Any], MAny),
+    (typeOf[Any], MAny),
+    (typeOf[AliasOption[Int]], MOption(MInt)),
+    (typeOf[Map[List[Option[String]], Int]], MMap(MList(MOption(MString)), MInt))
   )
 
   it("it should extract argType from type") {

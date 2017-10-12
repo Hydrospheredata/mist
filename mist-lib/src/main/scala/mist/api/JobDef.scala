@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.args.MTOption
+import mist.api.args.MOption
 
 trait JobDefInstances extends ArgDescriptionInstances {
 
@@ -42,7 +42,7 @@ trait JobDefInstances extends ArgDescriptionInstances {
       }
     }
 
-    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MTOption(descr.`type`)))
+    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(descr.`type`)))
 }
 
 

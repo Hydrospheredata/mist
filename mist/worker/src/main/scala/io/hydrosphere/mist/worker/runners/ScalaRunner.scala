@@ -8,7 +8,7 @@ import io.hydrosphere.mist.utils.EitherOps
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.worker.NamedContext
 import mist.api.JobContext
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
 import scala.util.{Failure, Success}
@@ -18,7 +18,7 @@ class ScalaRunner(jobFile: File) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext):Either[Throwable, MData] = {
+    context: NamedContext):Either[Throwable, JsLikeData] = {
 
     val params = request.params
     import params._

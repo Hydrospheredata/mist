@@ -7,7 +7,7 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.worker.runners.python.wrappers._
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 import py4j.GatewayServer
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +29,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
   override def run(
     req: RunJobRequest,
     context: NamedContext
-  ): Either[Throwable, MData] = {
+  ): Either[Throwable, JsLikeData] = {
 
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
@@ -61,7 +61,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
         gatewayServer.shutdown()
       }
 
-      Try(MData.fromAny(entryPoint.dataWrapper.get)) match {
+      Try(JsLikeData.fromAny(entryPoint.dataWrapper.get)) match {
         case Success(data) => Right(data)
         case Failure(e) => Left(e)
       }

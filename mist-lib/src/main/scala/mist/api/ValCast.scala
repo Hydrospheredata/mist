@@ -18,18 +18,18 @@ trait ArgDescriptionInstances {
     override def apply(a: Any): Option[A] = f(a)
   }
 
-  implicit val forInt: ArgDescription[Int] = createInst(MTInt) {
+  implicit val forInt: ArgDescription[Int] = createInst(MInt) {
     case i: Int => Some(i)
     case _ => None
   }
 
-  implicit val forString: ArgDescription[String] = createInst(MTString) {
+  implicit val forString: ArgDescription[String] = createInst(MString) {
     case s: String => Some(s)
     case _ => None
   }
 
   implicit def forSeq[A](implicit u: ArgDescription[A]): ArgDescription[Seq[A]] =
-    createInst(MTList(u.`type`)) {
+    createInst(MList(u.`type`)) {
       case seq: Seq[_] =>
         val optA = seq.map(a => u.apply(a))
         if (optA.exists(_.isEmpty)) {

@@ -5,7 +5,7 @@ import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 
 object Messages {
 
@@ -30,7 +30,7 @@ object Messages {
     case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     case class JobFileDownloadingEvent(id: String, time: Long) extends UpdateStatusEvent
     case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class FinishedEvent(id: String, time: Long, result: MData) extends UpdateStatusEvent
+    case class FinishedEvent(id: String, time: Long, result: JsLikeData) extends UpdateStatusEvent
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
     case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent

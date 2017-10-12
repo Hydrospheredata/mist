@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 
 abstract class MistJob[A](implicit enc: Encoder[A])
   extends JobDefInstances
@@ -8,10 +8,10 @@ abstract class MistJob[A](implicit enc: Encoder[A])
 
   def defineJob: JobDef[A]
 
-  final def execute(ctx: JobContext): JobResult[MData] = {
+  final def execute(ctx: JobContext): JobResult[JsLikeData] = {
     defineJob.invoke(ctx) match {
       case JobSuccess(data) => JobSuccess(enc(data))
-      case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
+      case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
     }
   }
 

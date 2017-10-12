@@ -1,7 +1,7 @@
 package mist.api.internal
 
 import mist.api._
-import mist.api.data.MData
+import mist.api.data.JsLikeData
 import mist.api.jdsl.JMistJob
 
 import scala.annotation.tailrec
@@ -15,7 +15,7 @@ trait BaseJobInfo {
 
 trait BaseJobInstance extends BaseJobInfo {
 
-  def run(jobCtx: JobContext): Either[Throwable, MData]
+  def run(jobCtx: JobContext): Either[Throwable, JsLikeData]
 
 }
 
@@ -27,7 +27,7 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
     instance.defineJob.validate(params)
   }
 
-  override def run(ctx: JobContext): Either[Throwable, MData] = {
+  override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)
@@ -48,7 +48,7 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
     Right(params)
   }
 
-  override def run(ctx: JobContext): Either[Throwable, MData] = {
+  override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)

@@ -8,7 +8,7 @@ import org.apache.spark.api.java.JavaSparkContext
 import org.json4s.JValue
 import FuncOps._
 import BaseContexts._
-import mist.api.args.{ArgType, MTInt}
+import mist.api.args.{ArgType, MInt}
 import mist.api.data._
 
 case class Args1[T1](a1: ArgDef[T1]) {
@@ -28,13 +28,13 @@ case class Args2[T1, T2](a1: ArgDef[T1], a2: ArgDef[T2]) {
 }
 
 case class RetVal[T](value: T, encoder: Encoder[T]) {
-  def encoded(): MData = encoder(value)
+  def encoded(): JsLikeData = encoder(value)
 }
 
 trait RetVals {
 
   def intRetVal(i: JavaInt): RetVal[JavaInt] = RetVal(i, new Encoder[JavaInt] {
-    override def apply(a: JavaInt): MData = MInt(a)
+    override def apply(a: JavaInt): JsLikeData = JsLikeInt(a)
   })
 
   def stringRetVal(s: String): RetVal[String] = RetVal(s, DefaultEncoders.StringEncoder)
@@ -48,7 +48,7 @@ trait JArgsDef extends ArgDescriptionInstances {
   import JobDefInstances._
 
   implicit val jInt = new ArgDescription[JavaInt] {
-    override def `type`: ArgType = MTInt
+    override def `type`: ArgType = MInt
     override def apply(a: Any): Option[JavaInt] = a match {
       case i: Int => Some(new JavaInt(i))
       case _ => None
@@ -68,10 +68,10 @@ abstract class JMistJob[T] extends JArgsDef {
 
   def defineJob: JJobDef[T]
 
-  final def execute(ctx: JobContext): JobResult[MData] = {
+  final def execute(ctx: JobContext): JobResult[JsLikeData] = {
     defineJob.jobDef.invoke(ctx) match {
       case JobSuccess(v) => JobSuccess(v.encoded())
-      case f: JobFailure[_] => f.asInstanceOf[JobFailure[MData]]
+      case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
     }
   }
 }

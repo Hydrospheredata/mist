@@ -59,13 +59,12 @@ object HttpJobArg {
   import mist.api.args._
 
   def convert(argType: ArgType): HttpJobArg = {
-    //TODO:: hack!
-    val t = argType.getClass.getSimpleName.replace("$", "").replace("MT", "M")
+    val t = argType.getClass.getSimpleName.replace("$", "")
     val typeArgs = argType match {
-      case x @ (MTInt | MTDouble| MTString | MTAny) => Seq.empty
-      case x: MTMap => Seq(x.k, x.v).map(HttpJobArg.convert)
-      case x: MTList => Seq(HttpJobArg.convert(x.v))
-      case x: MTOption => Seq(HttpJobArg.convert(x.v))
+      case x @ (MInt | MDouble | MString | MAny) => Seq.empty
+      case x: MMap => Seq(x.k, x.v).map(HttpJobArg.convert)
+      case x: MList => Seq(HttpJobArg.convert(x.v))
+      case x: MOption => Seq(HttpJobArg.convert(x.v))
     }
     new HttpJobArg(t, typeArgs)
   }
