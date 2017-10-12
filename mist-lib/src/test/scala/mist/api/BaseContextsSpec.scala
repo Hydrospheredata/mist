@@ -33,7 +33,7 @@ class BaseContextsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
        Map(1 -> "2")
     })
     val res = spJob.invoke(testCtx("nums" -> (1 to 10)))
-    println(res)
+    res shouldBe JobSuccess(Map(1 -> "2"))
   }
 
   it("for only sc") {
@@ -41,7 +41,7 @@ class BaseContextsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
       5
     })
     val res = spJob.invoke(testCtx())
-    println(res)
+    res shouldBe JobSuccess(5)
   }
 
   def testCtx(params: (String, Any)*): JobContext = {
