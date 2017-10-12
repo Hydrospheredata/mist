@@ -31,6 +31,12 @@ case class JsLikeMap(map: Map[String, JsLikeData]) extends JsLikeData {
   override def toString: String = map.toString
 }
 
+object JsLikeMap {
+
+  def apply(fields: (String, JsLikeData)*): JsLikeMap = JsLikeMap(fields.toMap)
+
+}
+
 case class JsLikeList(list: Seq[JsLikeData]) extends JsLikeData {
   override def toString: String = list.toString
 }

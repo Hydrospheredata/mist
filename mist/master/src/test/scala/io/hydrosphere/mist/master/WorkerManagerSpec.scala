@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import mist.api.data._
+
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -58,7 +60,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
     eventually(timeout(Span(5, Seconds))) {
       info.promise.future.isCompleted shouldBe true
-      info.promise.future.value shouldBe Some(Success(Map("r" -> "ok")))
+      info.promise.future.value shouldBe Some(Success(JsLikeMap("r" -> JsLikeString("ok"))))
     }
   }
 
@@ -81,7 +83,7 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
 
     val probe = TestProbe()
     probe.send(manager, WorkerInitInfoReq("foo"))
-    
+
     probe.expectMsgType[WorkerInitInfo]
   }
 
@@ -119,7 +121,7 @@ class WorkerFixture extends Actor {
   override def receive: Actor.Receive = {
     case r @ RunJobRequest(id, params) =>
       sender() ! JobStarted(id)
-      sender() ! JobSuccess(id, Map("r" -> "ok"))
+      sender() ! JobSuccess(id, JsLikeMap("r" -> JsLikeString("ok")))
   }
 }
 

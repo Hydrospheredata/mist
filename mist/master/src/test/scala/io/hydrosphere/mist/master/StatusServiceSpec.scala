@@ -9,6 +9,7 @@ import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.logging.JobsLogger
 import io.hydrosphere.mist.master.store.JobRepository
+import mist.api.data._
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -97,13 +98,17 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
       (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled, endTime = Some(1))),
-      (FinishedEvent("id", 1, Map("1" -> 2)),
-        baseDetails.copy(status = Status.Finished, endTime = Some(1), jobResult = Some(Right(Map("1" -> 2))))),
-
+      (FinishedEvent("id", 1, JsLikeMap("1" -> JsLikeInt(2))),
+          baseDetails.copy(
+            status = Status.Finished,
+            endTime = Some(1),
+            jobResult =
+              Some(
+                Right(JsLikeMap("1" -> JsLikeInt(2)))
+              )
+            )),
       (FailedEvent("id", 1, "error"),
         baseDetails.copy(status = Status.Failed, endTime = Some(1), jobResult = Some(Left("error"))))
-
-
     )
 
     it("should correct update job details") {

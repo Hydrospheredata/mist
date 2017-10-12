@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import mist.api.data._
+
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest, Action}
 import io.hydrosphere.mist.master.models.JobStartResponse
 import org.scalatest._
@@ -18,13 +20,13 @@ class ExecutionInfoSpec extends FunSpec with Matchers {
   }
 
   it("should return jobresult") {
-    val promise = Promise[Map[String, Any]]
-    promise.success(Map("1" -> "2"))
+    val promise = Promise[JsLikeData]
+    promise.success(JsLikeMap("1" -> JsLikeString("2")))
 
     val execInfo = ExecutionInfo(req, promise, JobDetails.Status.Finished)
 
     execInfo.toJobResult.await shouldBe JobResult.success(
-      Map("1" -> "2")
+      JsLikeMap("1" -> JsLikeString("2"))
     )
 
   }
