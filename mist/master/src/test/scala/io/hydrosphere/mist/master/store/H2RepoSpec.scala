@@ -53,7 +53,7 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
   it should "decode failure" in {
     val details = fixtureJobDetails("failed").withFailure("Test Error")
     repo.update(details).await
-    println(repo.get("failed").await)
+    repo.get("failed").await shouldBe Some(details)
   }
 
   private def fixtureJobDetails(

@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.args._
+import mist.api.data._
 import mist.api.internal.BaseJobInstance
 import mist.api.JobContext
 
@@ -24,7 +25,6 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   var sc: SparkContext = _
 
   val jobInfo = RuntimeJobInfo("test", "test")
-  //def setupConf = SetupConfiguration(sc, Duration(10), jobInfo, None)
 
   def jobContext(params: (String, Any)*): JobContext =
     JobContext(SetupConfiguration(sc, Duration(10), jobInfo, None), params.toMap)
@@ -42,7 +42,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     //TODO:!!
     //instance.argumentsTypes shouldBe Map("numbers" -> MList(MInt))
     // valid params
-    instance.run(jobContext("numbers" -> List(1,2,4))) shouldBe Right(Map("r" -> List(2,4,8)))
+    instance.run(jobContext("numbers" -> List(1,2,4))) shouldBe
+      Right(JsLikeMap("r" -> JsLikeList(Seq(2,4,8).map(i => JsLikeInt(i)))))
     // invalid params
     instance.run(jobContext()).isLeft shouldBe true
   }
@@ -53,8 +54,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     //TODO!!!
     //instance.argumentsTypes shouldBe Map("p" -> MOption(MInt))
 
-    instance.run(jobContext("p" -> 1)) shouldBe Right(Map("r" -> 1))
-    instance.run(jobContext()) shouldBe Right(Map("r" -> 42))
+    instance.run(jobContext("p" -> 1)) shouldBe Right(JsLikeMap("r" -> JsLikeInt(1)))
+    instance.run(jobContext()) shouldBe Right(JsLikeMap("r" -> JsLikeInt(42)))
   }
 
   // issue #198
@@ -69,7 +70,7 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
       "Separator" -> "Separator"
     )
 
-    instance.run(jobContext(args: _*)) shouldBe Right(Map("isOk" -> true))
+    instance.run(jobContext(args: _*)) shouldBe Right(JsLikeMap("isOk" -> JsLikeBoolean(true)))
   }
 
   def instanceFor[A](action: Action)(implicit tag: ClassTag[A]): BaseJobInstance = {

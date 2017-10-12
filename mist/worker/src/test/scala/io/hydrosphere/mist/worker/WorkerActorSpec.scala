@@ -2,11 +2,14 @@ package io.hydrosphere.mist.worker
 
 import java.io.File
 
+import mist.api.data._
+
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
+import mist.api.data.JsLikeData
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -57,7 +60,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     forAll(workers) { (name, makeProps) =>
       it(s"should execute jobs in $name mode") {
-        val runner = SuccessRunnerSelector(Map("answer" -> 42))
+        val runner = SuccessRunnerSelector(JsLikeInt(42))
         val worker = createActor(makeProps(runner))
 
         val probe = TestProbe()
@@ -68,7 +71,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         probe.expectMsgType[JobStarted]
         probe.expectMsgPF(){
           case JobSuccess("id", r) =>
-            r shouldBe Map("answer" -> 42)
+            r shouldBe JsLikeInt(42)
         }
       }
 
@@ -88,10 +91,10 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
       it(s"should cancel job in $name mode") {
         val runnerSelector = RunnerSelector(new JobRunner {
-          override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, Map[String, Any]] = {
+          override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
             val sc = c.sparkContext
             val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-            Right(Map("r" -> "Ok"))
+            Right(JsLikeMap("r" -> JsLikeString("Ok")))
           }
         })
 
@@ -113,7 +116,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      Map("yoyo" -> "hey")
+      JsLikeMap("yoyo" -> JsLikeString("hey"))
     })
 
     val probe = TestProbe()
@@ -143,7 +146,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def selectRunner(file: File): JobRunner = r
     }
 
-  def SuccessRunnerSelector(r: => Map[String, Any]): RunnerSelector =
+  def SuccessRunnerSelector(r: => JsLikeData): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(file: File): JobRunner = SuccessRunner(r)
     }
@@ -153,15 +156,15 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def selectRunner(file: File): JobRunner = FailureRunner(error)
     }
 
-  def SuccessRunner(r: => Map[String, Any]): JobRunner =
+  def SuccessRunner(r: => JsLikeData): JobRunner =
     testRunner(Right(r))
 
   def FailureRunner(error: String): JobRunner =
     testRunner(Left(new RuntimeException(error)))
 
-  def testRunner(f: => Either[Throwable, Map[String, Any]]): JobRunner = {
+  def testRunner(f: => Either[Throwable, JsLikeData]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext): Either[Throwable, Map[String, Any]] = f
+      def run(p: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = f
     }
   }
 }
