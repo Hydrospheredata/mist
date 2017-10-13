@@ -45,11 +45,12 @@ trait ArgDef[A] { self =>
     }
   }
 
-  def validated(f: A => Boolean, description: Option[String] = None): ArgDef[A] = {
+  def validated(f: A => Boolean, reason: String = ""): ArgDef[A] = {
     self.flatMap(a => {
       if (f(a)) Extracted(a)
       else {
-        val message = s"Arg $self was rejected by validation rule" + description.map(s => ":" + s).getOrElse("")
+        val descr = if (reason.isEmpty) "" else " :" + reason
+        val message = s"Arg was rejected by validation rule" + descr
         Missing(message)
       }
     })
