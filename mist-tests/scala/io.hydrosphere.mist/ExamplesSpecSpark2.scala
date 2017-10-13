@@ -1,10 +1,11 @@
 package io.hydrosphere.mist
 
-import java.nio.file.{Path, Paths, Files}
+import java.nio.file.{Files, Path, Paths}
 
-import org.scalatest.{FunSpec, Matchers}
+import mist.api.data._
+import org.scalatest.{FunSpec, Inside, Matchers}
 
-class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers {
+class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers with Inside{
 
   val savePathDir = "./target/it-test/ml-data"
 
@@ -37,12 +38,15 @@ class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers {
 
       assert(serveR.success, serveR)
 
-      val data = serveR.payload("result").asInstanceOf[List[Map[String, Any]]]
-      data should contain allOf (
-        Map("feature" -> 0.1, "binarized_feature" -> 0),
-        Map("feature" -> 0.2, "binarized_feature" -> 0),
-        Map("feature" -> 6, "binarized_feature" -> 1)
-      )
+      inside(serveR.payload) {
+        case JsLikeMap(map) =>
+          val res = map.get("result").asInstanceOf[JsLikeList]
+          res.list should contain allOf (
+            JsLikeMap("feature" -> JsLikeDouble(0.1), "binarized_feature" -> JsLikeInt(0)),
+            JsLikeMap("feature" -> JsLikeDouble(0.2), "binarized_feature" -> JsLikeInt(0)),
+            JsLikeMap("feature" -> JsLikeDouble(6.0), "binarized_feature" -> JsLikeInt(1))
+          )
+      }
     }
   }
 

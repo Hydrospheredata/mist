@@ -29,6 +29,8 @@ case class JsLikeDouble(i: Double) extends JsLikeData {
 
 case class JsLikeMap(map: Map[String, JsLikeData]) extends JsLikeData {
   override def toString: String = map.toString
+  def fields: Seq[(String, JsLikeData)] = map.toSeq
+  def get(key: String): Option[JsLikeData] = map.get(key)
 }
 
 object JsLikeMap {

@@ -21,4 +21,4 @@ class JsLikeDataSpec extends FunSpec with Matchers {
     }
   }
 
- }
+}
