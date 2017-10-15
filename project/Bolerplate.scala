@@ -20,7 +20,10 @@ object Boilerplate {
   }
 
 
-  val templates: Seq[Template] = List(GenFuncInterfaces)
+  val templates: Seq[Template] = List(
+    GenFuncInterfaces, GenFuncSyntax,
+    GenJavaArgsClasses, GenJavaArgsMethods
+  )
 
   /** Returns a seq of the generated files.  As a side-effect, it actually generates them... */
   def gen(dir : File) = for(t <- templates) yield {
@@ -72,7 +75,7 @@ object Boilerplate {
          |trait FuncSyntax {
          |
          -  implicit class FuncSyntax${arity}[${`-T1..N`}, R](f: Func${arity}[${`T1..N`}, R]) {
-         -    def toScalaFunc(): Function${arity} = (${`a1:T1..aN:TN`}) => f.apply(${`a1..aN`})
+         -    def toScalaFunc: Function${arity}[${`T1..N`}, R]= (${`a1:T1..aN:TN`}) => f.apply(${`a1..aN`})
          -  }
          |
          |}
@@ -83,20 +86,50 @@ object Boilerplate {
   }
 
 
-//  object GenJavaArgsClasses extends JavaTemplate {
-//    val filename = "args.scala"
-//    def content(tv: JavaTemplateVals) = {
-//      import tv._
-//      block"""
-//         |package mist.api.jsdl
-//         |import mist.api.BaseContexts._
-//         |
-//         -case class Args${arity}[${`T1..N`}](${`ArgDef1..n`}}) {
-//         -  def onSparkContext[R](f: Func[${arity}])
-//         -}
-//      """
-//    }
-//  }
+  object GenJavaArgsClasses extends Template {
+    val filename = "args.scala"
+    override def range: Range.Inclusive = (2 to 21)
+    def content(tv: TemplateVals) = {
+      import tv._
+      block"""
+         |package mist.api.jdsl
+         |
+         |import org.apache.spark.api.java.JavaSparkContext
+         |import FuncSyntax._
+         |import mist.api.BaseContexts._
+         |import mist.api.ArgDef
+         |
+         -case class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
+         -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
+         -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
+         -    new JJobDef(job)
+         -  }
+         -}
+      """
+    }
+  }
+
+  object GenJavaArgsMethods extends Template {
+    val filename = "WithArgs.scala"
+    override def range: Range.Inclusive = (1 to 20)
+    def content(tv: TemplateVals) = {
+      import tv._
+      block"""
+         |package mist.api.jdsl
+         |
+         |import mist.api.ArgDef
+         |
+         |trait WithArgs {
+         |
+         -  def withArgs[${`T1..N`}](${`ArgDef1..n`}): Args${arity}[${`T1..N`}] =
+         -      Args${arity}(${`a1..aN`})
+         |
+         |}
+         |
+         |object WithArgs extends WithArgs
+       """
+    }
+  }
 
   trait Template { self =>
 
@@ -133,13 +166,20 @@ object Boilerplate {
     val synJavaTypes = (1 to arity) map (n => "T" + n)
     val synJavaVals  =  (1 to arity) map (n => "a" + n)
     val `T1..N`      = synJavaTypes.mkString(",")
+    val `T1..N-1`    = synJavaTypes.dropRight(1).mkString(",")
     val `-T1..N`     = synJavaTypes.map("-" + _).mkString(",")
     val `a1:T1..aN:TN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")
-    val `a1..aN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")
+    val `a1..aN`     = synJavaVals.mkString(",")
+    val `a1&aN`      = synJavaVals.mkString(" & ")
+    val `a1&aN-1`    = synJavaVals.dropRight(1).mkString(" & ")
 
     val `ArgDef1..n` = {
       val types = synJavaTypes.map(t => s"ArgDef[$t]")
-      (types zip synJavaVals).map({case (t, a) => a + ":" + t}).mkString(",")
+      (types zip synJavaVals).map({case (t, a) => a + ":" + t}).mkString(" ,")
+    }
+    val `ArgDef1..n-1` = {
+      val types = synJavaTypes.map(t => s"ArgDef[$t]")
+      (types zip synJavaVals).dropRight(1).map({case (t, a) => a + ":" + t}).mkString(" ,")
     }
   }
 

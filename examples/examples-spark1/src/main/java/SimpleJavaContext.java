@@ -1,8 +1,6 @@
 import mist.api.RetValues;
 import mist.api.jdsl.*;
 
-//import mist.api.JobDef;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,4 +15,6 @@ class SimpleJavaContext extends JMistJob<Integer> {
             return RetValues.of(5);
         });
     }
+
+
 }
