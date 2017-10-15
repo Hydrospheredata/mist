@@ -20,11 +20,14 @@ object Boilerplate {
   }
 
 
-  val templates: Seq[Template[_]] = List(GenJobClasses, GenJobInstances)
+  val templates: Seq[Template] = List(
+    GenFuncInterfaces, GenFuncSyntax,
+    GenJavaArgsClasses, GenJavaArgsMethods
+  )
 
   /** Returns a seq of the generated files.  As a side-effect, it actually generates them... */
   def gen(dir : File) = for(t <- templates) yield {
-    val tgtFile = dir / "io" / "hydrosphere" / "mist" / "api" / "v2" / t.filename
+    val tgtFile = dir / "mist" / "api" / "jsdl" / t.filename
     IO.write(tgtFile, t.body)
     tgtFile
   }
@@ -43,80 +46,97 @@ object Boilerplate {
 
     The block otherwise behaves as a standard interpolated string with regards to variable substitution.
   */
-  object GenJobClasses extends ScalaTemplate {
-    val filename = "jobs.scala"
-    override val range = 1 to 17
-    def content(tv: ScalaTemplateVals) = {
+
+  object GenFuncInterfaces extends Template {
+    val filename = "functions.scala"
+
+    def content(tv: TemplateVals) = {
       import tv._
       block"""
-         |package io.hydrosphere.mist.api.v2
+         |package mist.api.jdsl
          |
-         |
-         |import shapeless._
-         |import shapeless.{HList, ::, HNil}
-         |import shapeless.syntax.std.traversable._
-         |import shapeless.syntax.std.tuple._
-         |import org.apache.spark.SparkContext
-         |
-         -class JobArgs${arity}[${`A..N`}]
-         -     (${`a:Arg[A]..n:Arg[N]`}) {
-         -  def withContext[Out](func: (${`A..N`}, SparkContext) => JobResult[Out]): Job${arity}[${`A..N`}, Out] =
-         -    new Job${arity}(${`a..n`}, func)
+         -@FunctionalInterface
+         -trait Func${arity}[${`-T1..N`}, +R] extends java.io.Serializable {
+         -  @throws(classOf[Exception])
+         -  def apply(${`a1:T1..aN:TN`}): R
          -}
-         -
-         -class Job${arity}[${`A..N`}, Out]
-         -      (${`a:Arg[A]..n:Arg[N]`}, func: (${`A..N`}, SparkContext) => JobResult[Out])
-         -  extends JobP[Out] {
-         -
-         -  type RunArg = ${`A::N`}
-         -  val args = ${`a::n`}
-         -
-         -  override def run(map: Map[String, Any], sc: SparkContext): JobResult[Out] = {
-         -    val asList = args.toList
-         -    val z = asList.map(arg => arg.extract(map))
-         -    val hasMissing = z.exists({case opt:Option[_] => opt.isEmpty})
-         -    if (hasMissing) {
-         -       JobResult.failure(new RuntimeException("Missing Arg!"))
-         -    } else {
-         -       z.map(_.get) match {
-         -         case List(${`a..n`}) =>
-         -           val tuplez: ${`withSc(A..N)`}= ${`withSc(a..n)`}.asInstanceOf[${`withSc(A..N)`}]
-         -           func.tupled(tuplez)
-         -         case x => JobResult.failure(new RuntimeException("Wtf??"))
-         -       }
-         -    }
+         |
+      """
+    }
+  }
+
+  object GenFuncSyntax extends Template {
+    val filename = "functionsSyntax.scala"
+    def content(tv: TemplateVals) = {
+      import tv._
+      block"""
+         |package mist.api.jdsl
+         |
+         |trait FuncSyntax {
+         |
+         -  implicit class FuncSyntax${arity}[${`-T1..N`}, R](f: Func${arity}[${`T1..N`}, R]) {
+         -    def toScalaFunc: Function${arity}[${`T1..N`}, R]= (${`a1:T1..aN:TN`}) => f.apply(${`a1..aN`})
+         -  }
+         |
+         |}
+         |object FuncSyntax extends FuncSyntax
+      """
+    }
+
+  }
+
+
+  object GenJavaArgsClasses extends Template {
+    val filename = "args.scala"
+    override def range: Range.Inclusive = (2 to 21)
+    def content(tv: TemplateVals) = {
+      import tv._
+      block"""
+         |package mist.api.jdsl
+         |
+         |import org.apache.spark.api.java.JavaSparkContext
+         |import FuncSyntax._
+         |import mist.api.BaseContexts._
+         |import mist.api.ArgDef
+         |
+         -case class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
+         -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
+         -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
+         -    new JJobDef(job)
          -  }
          -}
-         -
       """
     }
   }
 
-  object GenJobInstances extends ScalaTemplate {
-    val filename = "jobInstances.scala"
-    override val range = 1 to 17
-    def content(tv: ScalaTemplateVals) = {
+  object GenJavaArgsMethods extends Template {
+    val filename = "WithArgs.scala"
+    override def range: Range.Inclusive = (1 to 20)
+    def content(tv: TemplateVals) = {
       import tv._
       block"""
-         |package io.hydrosphere.mist.api.v2
+         |package mist.api.jdsl
          |
-         |trait JobInstances {
+         |import mist.api.ArgDef
          |
-         -  def withArgs[${`A..N`}](${`a:Arg[A]..n:Arg[N]`}): JobArgs${arity}[${`A..N`}] =
-         -    new JobArgs${arity}(${`a..n`})
+         |trait WithArgs {
+         |
+         -  def withArgs[${`T1..N`}](${`ArgDef1..n`}): Args${arity}[${`T1..N`}] =
+         -      Args${arity}(${`a1..aN`})
+         |
          |}
          |
-         |object JobInstances extends JobInstances
-      """
+         |object WithArgs extends WithArgs
+       """
     }
   }
 
-  trait Template[Vals] {
+  trait Template { self =>
 
-    def createVals(arity: Int): Vals
+    def createVals(arity: Int): TemplateVals = new TemplateVals(arity)
 
     def filename: String
-    def content(tv: Vals): String
+    def content(tv: TemplateVals): String
     def range = 1 to 22
     def body: String = {
       val rawContents = range map { n => content(createVals(n)) split '\n' filterNot (_.isEmpty) }
@@ -127,11 +147,7 @@ object Boilerplate {
     }
   }
 
-  trait ScalaTemplate extends Template[ScalaTemplateVals] {
-    final override def createVals(n: Int) = new ScalaTemplateVals(n)
-  }
-
-  class ScalaTemplateVals(val arity: Int) {
+  class TemplateVals(val arity: Int) {
     val synTypes     = (0 until arity) map (n => (n+'A').toChar)
     val synVals      = (0 until arity) map (n => (n+'a').toChar)
     val synTypedVals = (synVals zip synTypes) map { case (v,t) => v + ":" + t}
@@ -147,11 +163,24 @@ object Boilerplate {
     val `(a..n)`     = if (arity == 1) "Tuple1(a)" else synVals.mkString("(", ", ", ")")
     val `a:A..n:N`   = synTypedVals mkString ", "
 
-    val `withSc(a..n)` = (synVals :+ "sc").mkString("(", ", ", ")")
-    val `withSc(A..N)` = (synTypes :+ "SparkContext").mkString("(", ", ", ")")
-    val synArgTypes = synTypes.map(t => s"Arg[$t]")
-    val `Arg[A]..Arg[N]` = synArgTypes.mkString(", ")
-    val `a:Arg[A]..n:Arg[N]` = (synVals zip synArgTypes) map { case (v, t) => v + ":" + t} mkString ", "
+    val synJavaTypes = (1 to arity) map (n => "T" + n)
+    val synJavaVals  =  (1 to arity) map (n => "a" + n)
+    val `T1..N`      = synJavaTypes.mkString(",")
+    val `T1..N-1`    = synJavaTypes.dropRight(1).mkString(",")
+    val `-T1..N`     = synJavaTypes.map("-" + _).mkString(",")
+    val `a1:T1..aN:TN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")
+    val `a1..aN`     = synJavaVals.mkString(",")
+    val `a1&aN`      = synJavaVals.mkString(" & ")
+    val `a1&aN-1`    = synJavaVals.dropRight(1).mkString(" & ")
+
+    val `ArgDef1..n` = {
+      val types = synJavaTypes.map(t => s"ArgDef[$t]")
+      (types zip synJavaVals).map({case (t, a) => a + ":" + t}).mkString(" ,")
+    }
+    val `ArgDef1..n-1` = {
+      val types = synJavaTypes.map(t => s"ArgDef[$t]")
+      (types zip synJavaVals).dropRight(1).map({case (t, a) => a + ":" + t}).mkString(" ,")
+    }
   }
 
 }
