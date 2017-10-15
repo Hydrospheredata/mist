@@ -4,7 +4,8 @@ import mist.api.data.JsLikeData
 
 abstract class MistJob[A](implicit enc: Encoder[A])
   extends JobDefInstances
-  with Contexts {
+  with Contexts
+  with MistExtrasDef {
 
   def defineJob: JobDef[A]
 

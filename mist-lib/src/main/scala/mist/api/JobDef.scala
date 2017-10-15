@@ -43,9 +43,7 @@ trait JobDefInstances extends ArgDescriptionInstances {
     }
 
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(descr.`type`)))
-}
-
-
+  }
 
   def arg[A](name: String)(implicit a: ArgDescription[A]): ArgDef[A] = new NamedArgDef[A](name)
 
@@ -57,6 +55,7 @@ trait JobDefInstances extends ArgDescriptionInstances {
     override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
     override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
   }
+
 }
 
 object JobDefInstances extends JobDefInstances
