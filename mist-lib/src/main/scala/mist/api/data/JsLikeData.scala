@@ -11,6 +11,10 @@ case object JsLikeUnit extends JsLikeData {
   override def toString: String = "{}"
 }
 
+case object JsLikeNull extends JsLikeData {
+  override def toString: String = "null"
+}
+
 case class JsLikeString(s: String) extends JsLikeData {
   override def toString: String = s
 }
@@ -19,16 +23,23 @@ case class JsLikeBoolean(b: Boolean) extends JsLikeData {
   override def toString: String = b.toString
 }
 
-case class JsLikeInt(i: Int) extends JsLikeData {
-  override def toString: String = i.toString
+case class JsLikeNumber(v: BigDecimal) extends JsLikeData {
+  override def toString: String = v.toString()
 }
 
-case class JsLikeDouble(i: Double) extends JsLikeData {
-  override def toString: String = i.toString
+object JsLikeNumber {
+  def apply(n: Int): JsLikeNumber = new JsLikeNumber(BigDecimal(n))
+  def apply(n: Long): JsLikeNumber = new JsLikeNumber(BigDecimal(n))
+  def apply(n: Double): JsLikeData = n match {
+    case n if n.isNaN      => JsLikeNull
+    case n if n.isInfinity => JsLikeNull
+    case _                 => new JsLikeNumber(BigDecimal(n))
+  }
+  def apply(n: BigInt): JsLikeNumber = new JsLikeNumber(BigDecimal(n))
 }
 
 case class JsLikeMap(map: Map[String, JsLikeData]) extends JsLikeData {
-  override def toString: String = map.toString
+  override def toString: String = map.mkString("{", ",", "}")
   def fields: Seq[(String, JsLikeData)] = map.toSeq
   def get(key: String): Option[JsLikeData] = map.get(key)
 }
@@ -40,21 +51,21 @@ object JsLikeMap {
 }
 
 case class JsLikeList(list: Seq[JsLikeData]) extends JsLikeData {
-  override def toString: String = list.toString
+  override def toString: String = list.mkString(",")
 }
 
-case class JsLikeOption(opt: Option[JsLikeData]) extends JsLikeData {
-  override def toString: String = opt.toString
-}
 
 object JsLikeData {
 
   def fromAny(a: Any): JsLikeData = a match {
-    case i: Int => JsLikeInt(i)
-    case s: String => JsLikeString(s)
-    case d: Double => JsLikeDouble(d)
+    case i: Int     => JsLikeNumber(i)
+    case d: Double  => JsLikeNumber(d)
+    case s: Short   => JsLikeNumber(s.toInt)
+    case f: Float   => JsLikeNumber(f.toDouble)
+    case l: Long    => JsLikeNumber(l)
+    case s: String  => JsLikeString(s)
     case b: Boolean => JsLikeBoolean(b)
-    case l: Seq[_] => JsLikeList(l.map(fromAny))
+    case l: Seq[_]  => JsLikeList(l.map(fromAny))
     case l: Array[_] => JsLikeList(l.map(fromAny))
     case m: Map[_, _] =>
       val norm = m.map({
@@ -62,10 +73,10 @@ object JsLikeData {
         case _ => throw new IllegalArgumentException(s"Can not convert $a to MData(map keys should be instance of String)")
       })
       JsLikeMap(norm)
-    case opt: Option[_] =>
-      val v = opt.map(fromAny)
-      JsLikeOption(v)
+    case opt: Option[_] if opt.isDefined => fromAny(opt.get)
+    case opt: Option[_] => JsLikeNull
 
+    case x if x == null => JsLikeNull
     case x => throw new IllegalArgumentException(s"Can convert $x to MData")
   }
 }

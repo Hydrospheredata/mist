@@ -60,25 +60,20 @@ trait MDataFormat {
       json match {
         case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
         case JsString(s) => JsLikeString(s)
-        case JsNumber(dec) => dec match {
-          case v if v.isValidInt => JsLikeInt(dec.intValue())
-          case v if v.isValidDouble => JsLikeDouble(dec.doubleValue())
-          case _ => throw new NotImplementedError("implemented only for int and double")
-        }
+        case JsNumber(d) => new JsLikeNumber(d)
         case JsFalse => JsLikeBoolean(false) //TODO MBoolean can has default false and true
         case JsTrue  => JsLikeBoolean(true)
-        case JsNull  => JsLikeOption(None)
+        case JsNull  => JsLikeNull
         case JsArray(values) => JsLikeList(values.map(read))
       }
     }
 
     override def write(obj: JsLikeData): JsValue = {
       obj match {
-        case JsLikeInt(i)       => JsNumber(i)
-        case JsLikeDouble(d)    => JsNumber(d)
+        case JsLikeNumber(d)    => JsNumber(d)
         case JsLikeBoolean(b)   => JsBoolean(b)
         case JsLikeString(s)    => JsString(s)
-        case JsLikeOption(d)    => d.fold(JsNull: JsValue)(d => write(d))
+        case JsLikeNull         => JsNull
         case JsLikeUnit         => JsObject(Map.empty[String, JsValue])
         case JsLikeList(values) => JsArray(values.map(v => write(v)).toVector)
         case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))

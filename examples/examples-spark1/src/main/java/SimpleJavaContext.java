@@ -16,5 +16,4 @@ class SimpleJavaContext extends JMistJob<Integer> {
         });
     }
 
-
 }

@@ -60,7 +60,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     forAll(workers) { (name, makeProps) =>
       it(s"should execute jobs in $name mode") {
-        val runner = SuccessRunnerSelector(JsLikeInt(42))
+        val runner = SuccessRunnerSelector(JsLikeNumber(42))
         val worker = createActor(makeProps(runner))
 
         val probe = TestProbe()
@@ -71,7 +71,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         probe.expectMsgType[JobStarted]
         probe.expectMsgPF(){
           case JobSuccess("id", r) =>
-            r shouldBe JsLikeInt(42)
+            r shouldBe JsLikeNumber(42)
         }
       }
 

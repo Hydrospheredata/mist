@@ -41,7 +41,7 @@ class WsApiSpec extends FunSpec
     val testSource = Source[UpdateStatusEvent](List(
       StartedEvent("1", 1),
       StartedEvent("2", 1),
-      FinishedEvent("1", 1, JsLikeMap("result" -> JsLikeInt(42)))
+      FinishedEvent("1", 1, JsLikeMap("result" -> JsLikeNumber(42)))
     ))
 
     val streamer = mock(classOf[EventsStreamer])

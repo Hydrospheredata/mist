@@ -61,7 +61,7 @@ class JobsLoader(val classLoader: ClassLoader) {
 
   private def loadClass(name: String): Try[Class[_]] = {
     try {
-      val clazz = Class.forName(name, true, classLoader)
+      val clazz = Class.forName(name, false, classLoader)
       Success(clazz)
     } catch {
       case e: Throwable => Failure(e)

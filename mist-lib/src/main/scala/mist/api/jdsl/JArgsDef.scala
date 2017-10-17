@@ -34,7 +34,7 @@ case class RetVal[T](value: T, encoder: Encoder[T]) {
 trait RetVals {
 
   def intRetVal(i: JavaInt): RetVal[JavaInt] = RetVal(i, new Encoder[JavaInt] {
-    override def apply(a: JavaInt): JsLikeData = JsLikeInt(a)
+    override def apply(a: JavaInt): JsLikeData = JsLikeNumber(a)
   })
 
   def stringRetVal(s: String): RetVal[String] = RetVal(s, DefaultEncoders.StringEncoder)

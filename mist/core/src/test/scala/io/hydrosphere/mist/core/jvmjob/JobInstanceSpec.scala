@@ -43,7 +43,7 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     //instance.argumentsTypes shouldBe Map("numbers" -> MList(MInt))
     // valid params
     instance.run(jobContext("numbers" -> List(1,2,4))) shouldBe
-      Right(JsLikeMap("r" -> JsLikeList(Seq(2,4,8).map(i => JsLikeInt(i)))))
+      Right(JsLikeMap("r" -> JsLikeList(Seq(2,4,8).map(i => JsLikeNumber(i)))))
     // invalid params
     instance.run(jobContext()).isLeft shouldBe true
   }
@@ -54,8 +54,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     //TODO!!!
     //instance.argumentsTypes shouldBe Map("p" -> MOption(MInt))
 
-    instance.run(jobContext("p" -> 1)) shouldBe Right(JsLikeMap("r" -> JsLikeInt(1)))
-    instance.run(jobContext()) shouldBe Right(JsLikeMap("r" -> JsLikeInt(42)))
+    instance.run(jobContext("p" -> 1)) shouldBe Right(JsLikeMap("r" -> JsLikeNumber(1)))
+    instance.run(jobContext()) shouldBe Right(JsLikeMap("r" -> JsLikeNumber(42)))
   }
 
   // issue #198

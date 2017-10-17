@@ -21,10 +21,10 @@ trait BaseJobInstance extends BaseJobInfo {
 
 class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
 
-  override def describe(): Seq[ArgInfo] = instance.defineJob.describe()
+  override def describe(): Seq[ArgInfo] = Seq.empty
 
   override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-    instance.defineJob.validate(params)
+    Right(params)
   }
 
   override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {

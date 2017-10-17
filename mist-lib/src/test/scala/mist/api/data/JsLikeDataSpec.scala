@@ -7,11 +7,11 @@ class JsLikeDataSpec extends FunSpec with Matchers {
 
   val rawToData = Table(
     ("raw", "data"),
-    (1, JsLikeInt(1)),
+    (1, JsLikeNumber(1)),
     ("str", JsLikeString("str")),
-    (1.2, JsLikeDouble(1.2)),
-    (List(1, 2), JsLikeList(Seq(JsLikeInt(1), JsLikeInt(2)))),
-    (Array(1, 2), JsLikeList(Seq(JsLikeInt(1), JsLikeInt(2)))),
+    (1.2, JsLikeNumber(1.2)),
+    (List(1, 2), JsLikeList(Seq(JsLikeNumber(1), JsLikeNumber(2)))),
+    (Array(1, 2), JsLikeList(Seq(JsLikeNumber(1), JsLikeNumber(2)))),
     (Map("key" -> "value"), JsLikeMap(Map("key" -> JsLikeString("value"))))
   )
 

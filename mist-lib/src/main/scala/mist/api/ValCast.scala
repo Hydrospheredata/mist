@@ -10,7 +10,7 @@ trait ArgDescription[A] {
   def apply(a: Any): Option[A]
 }
 
-//TODO: double, float, date?
+//TODO: float, date?
 trait ArgDescriptionInstances {
 
   def createInst[A](t: ArgType)(f: Any => Option[A]): ArgDescription[A] = new ArgDescription[A] {
@@ -20,6 +20,11 @@ trait ArgDescriptionInstances {
 
   implicit val forInt: ArgDescription[Int] = createInst(MInt) {
     case i: Int => Some(i)
+    case _ => None
+  }
+
+  implicit val forDouble: ArgDescription[Double] = createInst(MDouble) {
+    case d: Double => Some(d)
     case _ => None
   }
 
