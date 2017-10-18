@@ -22,7 +22,7 @@ import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
@@ -148,19 +148,6 @@ class MainService(
     }).map(_ => ())
   }
 
-  def loadFullJobInfo(endpoint: String, action: Action): Future[Option[FullJobInfo]] = {
-    val res = for {
-      endpointConfig <- OptionT(endpoints.get(endpoint))
-      fullInfo       <- OptionT.liftF(
-        askExtractor[FullJobInfo](GetJobInfo(endpointConfig.className, endpointConfig.path, action)))
-    } yield fullInfo.copy(defaultContext = endpointConfig.defaultContext)
-
-    res.value
-  }
-
-  private def askExtractor[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobExtractor, msg)
-  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
-
   private def runJobRaw(
     req: EndpointStartRequest,
     source: JobDetails.Source,
@@ -251,6 +238,7 @@ object MainService extends Logger {
     jobInfoProvider: JobInfoProviderService,
     artifactRepository: ArtifactRepository
   ): Future[MainService] = {
+    Await.result(jobInfoProvider.getJobInfo("simple-context"), Duration.Inf)
     val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider, artifactRepository)
     for {
       precreated <- contexts.precreated

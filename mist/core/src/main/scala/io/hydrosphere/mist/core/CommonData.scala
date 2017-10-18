@@ -104,6 +104,15 @@ object CommonData {
   val JobExecutorRegisterActorName = "job-executor-register"
   case class RegisterJobInfoProvider(ref: ActorRef)
 
-
-  case class GetJobInfo(className: String, jobPath: String, action: Action)
+  sealed trait JobInfoMessage {
+    val className: String
+    val jobPath: String
+  }
+  case class GetJobInfo(className: String, jobPath: String) extends JobInfoMessage
+  case class ValidateJobParameters(
+    className: String,
+    jobPath: String,
+    action: Action,
+    params: Map[String, Any]
+  ) extends JobInfoMessage
 }

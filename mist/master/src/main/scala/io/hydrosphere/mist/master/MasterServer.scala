@@ -123,7 +123,7 @@ object MasterServer extends Logger {
     for {
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
-      jobInfoProviderService =  new JobInfoProviderService(jobInfoProvider, endpointsStorage)
+      jobInfoProviderService =  new JobInfoProviderService(jobInfoProvider, endpointsStorage)(system.dispatcher)
       jobsService            =  runJobService(logService.getLogger)
       masterService          <- start("Main service", MainService.start(
                                                         jobsService,
