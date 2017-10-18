@@ -8,6 +8,7 @@ import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.models.EndpointConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -22,20 +23,27 @@ class JobInfoProviderService(
   def getJobInfo(id: String): Future[Option[FullJobInfo]] = {
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
-      jobInfo  <- OptionT(askInfoProvider[Option[FullJobInfo]](GetJobInfo(endpoint.className, endpoint.path)))
+      jobInfo  <- OptionT.liftF(askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, endpoint.path)))
     } yield jobInfo.copy(defaultContext = endpoint.defaultContext)
 
     f.value
+  }
+
+  def getJobInfo(endpoint: EndpointConfig): Future[FullJobInfo] = {
+    for {
+      info     <- askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, endpoint.path))
+      fullInfo =  info.copy(defaultContext = endpoint.defaultContext, name = endpoint.name)
+    } yield fullInfo
   }
 
   def validateJob(
     id: String,
     params: Map[String, Any],
     action: Action
-  ): Future[Option[Boolean]] = {
+  ): Future[Option[Unit]] = {
     val f = for {
       endpoint   <- OptionT(endpointStorage.get(id))
-      validated  <- OptionT(askInfoProvider[Option[Boolean]](ValidateJobParameters(
+      validated  <- OptionT.liftF(askInfoProvider[Unit](ValidateJobParameters(
         endpoint.className, endpoint.path, action, params
       )))
     } yield validated
@@ -43,7 +51,14 @@ class JobInfoProviderService(
     f.value
   }
 
+  def validateJob(endpoint: EndpointConfig, params: Map[String, Any], action: Action): Future[Unit] = {
+    askInfoProvider[Unit](ValidateJobParameters(
+      endpoint.className, endpoint.path, action, params
+    ))
+  }
+
   private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)
+
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
 
 }

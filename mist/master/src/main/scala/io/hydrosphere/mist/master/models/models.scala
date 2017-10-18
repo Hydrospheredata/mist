@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.models
 import java.util.UUID
 
 import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.JobDetails
 
 /** Specify how use context/workers */
@@ -51,7 +52,7 @@ case class EndpointStartRequest(
 
 case class JobStartRequest(
   id: String,
-  endpoint: EndpointConfig,
+  endpoint: FullJobInfo,
   context: ContextConfig,
   parameters: Map[String, Any],
   runMode: RunMode,
