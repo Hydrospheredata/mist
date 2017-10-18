@@ -14,6 +14,8 @@ trait JobDefInstances extends ArgDescriptionInstances {
     }
 
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, descr.`type`))
+
+    override def toString: String = s"(Named $name)"
   }
 
   class NamedArgWithDefault[A](name: String, default: A)(implicit descr: ArgDescription[A]) extends ArgDef[A] {

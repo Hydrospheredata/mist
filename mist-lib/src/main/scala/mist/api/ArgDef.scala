@@ -65,6 +65,7 @@ object ArgDef {
   def create[A](info: ArgInfo)(f: JobContext => ArgExtraction[A]): ArgDef[A] = new ArgDef[A] {
       def describe(): Seq[ArgInfo] = Seq(info)
       def extract(ctx: JobContext): ArgExtraction[A] = f(ctx)
+      override def toString: String = "Const"
   }
 
   def const[A](value: A): ArgDef[A] = create(InternalArgument)(_ => Extracted(value))
