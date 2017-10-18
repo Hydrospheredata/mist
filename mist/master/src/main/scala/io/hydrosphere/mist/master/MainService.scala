@@ -28,6 +28,7 @@ class MainService(
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
   val jobInfoProviderService: JobInfoProviderService,
+  //TODO: it is not used here anymore.
   val artifactRepository: ArtifactRepository
 ) extends Logger {
 
@@ -171,11 +172,15 @@ class MainService(
 
   def endpointsInfo: Future[Seq[FullJobInfo]] = for {
     configs <- endpoints.all
-    //TODO: we should wait until it loads here. so we don't fail when 1 endpoint failed
-    // possible solution is to wait for Try and when foldl
-
-    infos   <- Future.sequence(configs.map(jobInfoProviderService.getJobInfo))
-  } yield infos
+    infos   <- Future.sequence(configs.map(e => {
+      jobInfoProviderService.getJobInfo(e).map(Some.apply)
+        .recover {
+          case ex =>
+            logger.error(ex.getMessage, ex)
+            None
+        }
+    }))
+  } yield infos.flatten
 
 }
 
