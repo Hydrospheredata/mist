@@ -102,8 +102,8 @@ object CommonData {
   }
 
   val JobExecutorRegisterActorName = "job-executor-register"
-  case class RegisterJobExecutor(ref: ActorRef)
+  case class RegisterJobInfoProvider(ref: ActorRef)
 
 
-  case class ExtractJobInfo(className: String, jobPath: String, action: Action)
+  case class GetJobInfo(className: String, jobPath: String, action: Action)
 }

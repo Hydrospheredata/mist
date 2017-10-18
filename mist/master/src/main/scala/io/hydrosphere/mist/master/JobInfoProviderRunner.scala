@@ -2,13 +2,13 @@ package io.hydrosphere.mist.master
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props, ReceiveTimeout}
 import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.RegisterJobExecutor
+import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Future, Promise}
 import scala.sys.process.Process
 
-class JobExtractorRunner(
+class JobInfoProviderRunner(
   runTimeout: FiniteDuration,
   masterHost: String,
   clusterPort: Int,
@@ -17,9 +17,9 @@ class JobExtractorRunner(
 ) extends WithSparkSubmitArgs {
 
   def run()(implicit system: ActorSystem): Future[ActorRef] = {
-    val jobExtractor = WaitJobExecutorRef(runTimeout)(system)
+    val refWaiter = ActorRefWaiter(runTimeout)(system)
     val cmd =
-      Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-extractor",
+      Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-info-provider",
         "--master", masterHost,
         "--cluster-port", clusterPort.toString,
         "--http-port", httpPort.toString) ++
@@ -27,15 +27,15 @@ class JobExtractorRunner(
 
     val builder = Process(cmd)
     builder.run(false)
-    jobExtractor.waitRef()
+    refWaiter.waitRef()
   }
 }
 
-trait WaitJobExecutorRef {
+trait ActorRefWaiter {
   def waitRef(): Future[ActorRef]
 }
 
-object WaitJobExecutorRef {
+object ActorRefWaiter {
 
   class IdentityActor(pr: Promise[ActorRef], initTimeout: Duration) extends Actor {
 
@@ -44,17 +44,17 @@ object WaitJobExecutorRef {
     }
 
     override def receive: Receive = {
-      case RegisterJobExecutor(ref) =>
+      case RegisterJobInfoProvider(ref) =>
         pr.success(ref)
         context stop self
 
       case ReceiveTimeout =>
-        pr.failure(new IllegalStateException("Initialization of JobExtractor failed of timeout"))
+        pr.failure(new IllegalStateException("Initialization of JobInfoProvider failed of timeout"))
         context stop self
     }
   }
 
-  def apply(initTimeout: Duration)(implicit system: ActorSystem): WaitJobExecutorRef = new WaitJobExecutorRef {
+  def apply(initTimeout: Duration)(implicit system: ActorSystem): ActorRefWaiter = new ActorRefWaiter {
     override def waitRef(): Future[ActorRef] = {
       val pr = Promise[ActorRef]
       system.actorOf(Props(new IdentityActor(pr, initTimeout)), CommonData.JobExecutorRegisterActorName)
@@ -73,13 +73,13 @@ trait WithSparkSubmitArgs {
   }
 }
 
-object JobExtractorRunner {
+object JobInfoProviderRunner {
 
 
-  def create(config: JobExtractorConfig, masterHost: String, clusterPort: Int, httpPort: Int): JobExtractorRunner = {
+  def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int, httpPort: Int): JobInfoProviderRunner = {
     sys.env.get("SPARK_HOME") match {
       case Some(_) =>
-        new JobExtractorRunner(config.runTimeout, masterHost, clusterPort, httpPort, config.sparkSubmitOpts)
+        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, httpPort, config.sparkSubmitOpts)
       case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for running mist")
     }
 

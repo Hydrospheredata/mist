@@ -3,7 +3,7 @@ package io.hydrosphere.mist.job
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.RegisterJobExecutor
+import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
 
@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-case class JobExtractorArguments(
+case class JobInfoProviderArguments(
   masterHost: String = "localhost",
   httpPort: Int = 2004,
   clusterPort: Int = 2551,
@@ -21,8 +21,8 @@ case class JobExtractorArguments(
   def clusterAddr: String = s"$masterHost:$clusterPort"
 }
 
-object JobExtractorArguments {
-  val parser = new scopt.OptionParser[JobExtractorArguments]("mist-job-executor") {
+object JobInfoProviderArguments {
+  val parser = new scopt.OptionParser[JobInfoProviderArguments]("mist-job-executor") {
 
     override def errorOnUnknownArgument: Boolean = false
 
@@ -40,16 +40,16 @@ object JobExtractorArguments {
       .text("storage path where jobs will be downloaded")
   }
 
-  def parse(args: Seq[String]): Option[JobExtractorArguments] =
-    parser.parse(args, JobExtractorArguments())
+  def parse(args: Seq[String]): Option[JobInfoProviderArguments] =
+    parser.parse(args, JobInfoProviderArguments())
 
 }
 
 
-object JobExtractor extends App with Logger {
+object JobInfoProvider extends App with Logger {
 
   try {
-    val jobExtractorArguments = JobExtractorArguments.parse(args) match {
+    val jobExtractorArguments = JobInfoProviderArguments.parse(args) match {
       case Some(x) => x
       case None =>
         logger.error("Please provide master address through --master option")
@@ -65,15 +65,15 @@ object JobExtractor extends App with Logger {
       jobExtractorArguments.savePath
     )
 
-    val jobExtractor = system.actorOf(JobExtractorActor.props(artifactDownloader), "job-extractor")
+    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(artifactDownloader), "job-extractor")
 
-    val jobExecutorRegisterName =
+    val jobInfoProviderRegistererName =
       s"akka.tcp://mist@${jobExtractorArguments.clusterAddr}/user/${CommonData.JobExecutorRegisterActorName}"
-    system.actorSelection(jobExecutorRegisterName)
+    system.actorSelection(jobInfoProviderRegistererName)
       .resolveOne(10 second)
       .onComplete {
         case Success(ref) =>
-          ref ! RegisterJobExecutor(jobExtractor)
+          ref ! RegisterJobInfoProvider(jobInfoProviderRef)
         case Failure(ex) =>
           logger.error(ex.getMessage, ex)
           sys.exit(-1)

@@ -9,13 +9,14 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
-import io.hydrosphere.mist.core.CommonData.{Action, ExtractJobInfo}
+import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo}
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobClass}
 import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
@@ -31,7 +32,7 @@ class MainService(
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
-  val jobExtractor: ActorRef,
+  val jobInfoProviderService: JobInfoProviderService,
   val artifactRepository: ArtifactRepository
 ) extends Logger {
 
@@ -151,7 +152,7 @@ class MainService(
     val res = for {
       endpointConfig <- OptionT(endpoints.get(endpoint))
       fullInfo       <- OptionT.liftF(
-        askExtractor[FullJobInfo](ExtractJobInfo(endpointConfig.className, endpointConfig.path, action)))
+        askExtractor[FullJobInfo](GetJobInfo(endpointConfig.className, endpointConfig.path, action)))
     } yield fullInfo.copy(defaultContext = endpointConfig.defaultContext)
 
     res.value
@@ -247,10 +248,10 @@ object MainService extends Logger {
     endpoints: EndpointsStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
-    jobExtractor: ActorRef,
+    jobInfoProvider: JobInfoProviderService,
     artifactRepository: ArtifactRepository
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobExtractor, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider, artifactRepository)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

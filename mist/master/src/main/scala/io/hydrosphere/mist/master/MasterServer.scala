@@ -12,13 +12,14 @@ import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
+import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 import scala.util._
@@ -112,29 +113,30 @@ object MasterServer extends Logger {
 
     val security = bootstrapSecurity(config)
 
-    val jobExtractorRunner = JobExtractorRunner.create(
-      config.jobExtractorConfig,
+    val jobExtractorRunner = JobInfoProviderRunner.create(
+      config.jobInfoProviderConfig,
       config.cluster.host,
       config.cluster.port,
       config.http.port
     )
 
     for {
-      logService      <- start("LogsSystem", runLogService())
-      jobExtractor    <- start("JobExtractor", jobExtractorRunner.run())
-      jobsService     =  runJobService(logService.getLogger)
-      masterService   <- start("Main service", MainService.start(
-                                                  jobsService,
-                                                  endpointsStorage,
-                                                  contextsStorage,
-                                                  logsPaths,
-                                                  jobExtractor,
-                                                  artifactRepository
-                                               )
-                         )
-      _               =  runCliInterface(masterService)
-      httpBinding     <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
-      asyncInterfaces =  bootstrapAsyncInput(masterService, config)
+      logService             <- start("LogsSystem", runLogService())
+      jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
+      jobInfoProviderService =  new JobInfoProviderService(jobInfoProvider, endpointsStorage)
+      jobsService            =  runJobService(logService.getLogger)
+      masterService          <- start("Main service", MainService.start(
+                                                        jobsService,
+                                                        endpointsStorage,
+                                                        contextsStorage,
+                                                        logsPaths,
+                                                        jobInfoProviderService,
+                                                        artifactRepository
+                                                     )
+                             )
+      _                      =  runCliInterface(masterService)
+      httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
+      asyncInterfaces        =  bootstrapAsyncInput(masterService, config)
 
     } yield ServerInstance(
       Seq(Step.future("Http", httpBinding.unbind())) ++

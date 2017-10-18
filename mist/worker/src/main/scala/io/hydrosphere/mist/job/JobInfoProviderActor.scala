@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor._
 import akka.pattern._
 
-import io.hydrosphere.mist.core.CommonData.ExtractJobInfo
+import io.hydrosphere.mist.core.CommonData.GetJobInfo
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader}
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
 import mist.api.UserInputArgument
@@ -14,14 +14,14 @@ import org.apache.spark.util.SparkClassLoader
 
 import scala.util.{Failure, Success}
 
-class CachingJobExtractorActor(artifactDownloader: ArtifactDownloader) extends Actor with ActorLogging {
+class CachingJobInfoProviderActor(artifactDownloader: ArtifactDownloader) extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
 
   override def receive: Receive = cached(Map.empty)
 
   def cached(cache: Map[String, FullJobInfo]): Receive = {
-    case ExtractJobInfo(className, jobPath, action) =>
+    case GetJobInfo(className, jobPath, action) =>
       val f = for {
         file <- artifactDownloader.downloadArtifact(jobPath)
         jobInfo = {
@@ -61,10 +61,10 @@ class CachingJobExtractorActor(artifactDownloader: ArtifactDownloader) extends A
   }
 }
 
-object JobExtractorActor {
+object JobInfoProviderActor {
 
   def props(artifactDownloader: ArtifactDownloader): Props =
-    Props(new CachingJobExtractorActor(artifactDownloader))
+    Props(new CachingJobInfoProviderActor(artifactDownloader))
 
 }
 
