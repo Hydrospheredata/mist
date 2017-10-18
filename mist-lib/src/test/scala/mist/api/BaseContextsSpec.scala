@@ -8,7 +8,7 @@ class BaseContextsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
   val conf = new SparkConf()
     .setMaster("local[2]")
-    .setAppName("test")
+    .setAppName("mist-lib-test")
     .set("spark.driver.allowMultipleContexts", "true")
     .set("spark.ui.disabled", "true")
 

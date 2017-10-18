@@ -42,9 +42,9 @@ class ExamplesSpecSpark2 extends FunSpec with MistItTest with Matchers with Insi
         case JsLikeMap(map) =>
           val res = map.get("result").get.asInstanceOf[JsLikeList]
           res.list should contain allOf (
-            JsLikeMap("feature" -> JsLikeDouble(0.1), "binarized_feature" -> JsLikeInt(0)),
-            JsLikeMap("feature" -> JsLikeDouble(0.2), "binarized_feature" -> JsLikeInt(0)),
-            JsLikeMap("feature" -> JsLikeDouble(6.0), "binarized_feature" -> JsLikeInt(1))
+            JsLikeMap("feature" -> JsLikeNumber(0.1), "binarized_feature" -> JsLikeNumber(0)),
+            JsLikeMap("feature" -> JsLikeNumber(0.2), "binarized_feature" -> JsLikeNumber(0)),
+            JsLikeMap("feature" -> JsLikeNumber(6.0), "binarized_feature" -> JsLikeNumber(1))
           )
       }
     }
