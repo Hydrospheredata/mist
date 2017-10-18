@@ -194,7 +194,6 @@ object MainService extends Logger {
     jobInfoProvider: JobInfoProviderService,
     artifactRepository: ArtifactRepository
   ): Future[MainService] = {
-    Await.result(jobInfoProvider.getJobInfo("simple-context"), Duration.Inf)
     val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider, artifactRepository)
     for {
       precreated <- contexts.precreated

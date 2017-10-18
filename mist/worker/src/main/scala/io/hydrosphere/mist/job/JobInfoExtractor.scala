@@ -38,7 +38,7 @@ class JvmJobInfoExtractor extends JobInfoExtractor {
     }
   }
 
-  override def extractInstance(file: File, className: String, action: Action) =
+  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] =
     loadJobInstance(className, file, action)
 
   private def loadJobInstance(className: String, file: File, action: Action): Try[BaseJobInstance] = {

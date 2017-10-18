@@ -7,6 +7,7 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
 
@@ -16,24 +17,30 @@ import scala.reflect.ClassTag
 
 class JobInfoProviderService(
   jobInfoProvider: ActorRef,
-  endpointStorage: EndpointsStorage
+  endpointStorage: EndpointsStorage,
+  artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
   implicit val timeout = Timeout(5 seconds)
 
   def getJobInfo(id: String): Future[Option[FullJobInfo]] = {
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
-      jobInfo  <- OptionT.liftF(askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, endpoint.path)))
-    } yield jobInfo.copy(defaultContext = endpoint.defaultContext)
+      file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
+      jobInfo  <- OptionT.liftF(askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath)))
+    } yield jobInfo.copy(defaultContext = endpoint.defaultContext, path = endpoint.path)
 
     f.value
   }
 
   def getJobInfo(endpoint: EndpointConfig): Future[FullJobInfo] = {
-    for {
-      info     <- askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, endpoint.path))
-      fullInfo =  info.copy(defaultContext = endpoint.defaultContext, name = endpoint.name)
-    } yield fullInfo
+    artifactRepository.get(endpoint.path) match {
+      case Some(file) =>
+        askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath))
+          .map { info =>
+            info.copy(defaultContext = endpoint.defaultContext, name = endpoint.name)
+          }
+      case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${endpoint.path}"))
+    }
   }
 
   def validateJob(
@@ -43,18 +50,24 @@ class JobInfoProviderService(
   ): Future[Option[Unit]] = {
     val f = for {
       endpoint   <- OptionT(endpointStorage.get(id))
-      validated  <- OptionT.liftF(askInfoProvider[Unit](ValidateJobParameters(
-        endpoint.className, endpoint.path, action, params
+      file       <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
+      _ <- OptionT.liftF(askInfoProvider[Unit](ValidateJobParameters(
+        endpoint.className, file.getAbsolutePath, action, params
       )))
-    } yield validated
+    } yield ()
 
     f.value
   }
 
   def validateJob(endpoint: EndpointConfig, params: Map[String, Any], action: Action): Future[Unit] = {
-    askInfoProvider[Unit](ValidateJobParameters(
-      endpoint.className, endpoint.path, action, params
-    ))
+    artifactRepository.get(endpoint.path) match {
+      case Some(file) =>
+        askInfoProvider[Unit](ValidateJobParameters(
+          endpoint.className, file.getAbsolutePath, action, params
+        ))
+      case None => Future.failed(new IllegalArgumentException(s"file not exists by path ${endpoint.path}"))
+    }
+
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)

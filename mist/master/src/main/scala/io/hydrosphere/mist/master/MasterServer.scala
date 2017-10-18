@@ -116,14 +116,17 @@ object MasterServer extends Logger {
     val jobExtractorRunner = JobInfoProviderRunner.create(
       config.jobInfoProviderConfig,
       config.cluster.host,
-      config.cluster.port,
-      config.http.port
+      config.cluster.port
     )
 
     for {
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
-      jobInfoProviderService =  new JobInfoProviderService(jobInfoProvider, endpointsStorage)(system.dispatcher)
+      jobInfoProviderService =  new JobInfoProviderService(
+                                      jobInfoProvider,
+                                      endpointsStorage,
+                                      artifactRepository
+                                )(system.dispatcher)
       jobsService            =  runJobService(logService.getLogger)
       masterService          <- start("Main service", MainService.start(
                                                         jobsService,

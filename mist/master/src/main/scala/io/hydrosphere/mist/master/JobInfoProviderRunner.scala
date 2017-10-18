@@ -12,7 +12,6 @@ class JobInfoProviderRunner(
   runTimeout: FiniteDuration,
   masterHost: String,
   clusterPort: Int,
-  httpPort: Int,
   sparkSubmitConf: Map[String, String]
 ) extends WithSparkSubmitArgs {
 
@@ -21,8 +20,7 @@ class JobInfoProviderRunner(
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-info-provider",
         "--master", masterHost,
-        "--cluster-port", clusterPort.toString,
-        "--http-port", httpPort.toString) ++
+        "--cluster-port", clusterPort.toString) ++
         sparkSubmitArgs(sparkSubmitConf)
 
     val builder = Process(cmd)
@@ -76,10 +74,10 @@ trait WithSparkSubmitArgs {
 object JobInfoProviderRunner {
 
 
-  def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int, httpPort: Int): JobInfoProviderRunner = {
+  def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int): JobInfoProviderRunner = {
     sys.env.get("SPARK_HOME") match {
       case Some(_) =>
-        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, httpPort, config.sparkSubmitOpts)
+        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, config.sparkSubmitOpts)
       case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for running mist")
     }
 

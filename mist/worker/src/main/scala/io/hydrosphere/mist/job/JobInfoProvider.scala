@@ -5,7 +5,6 @@ import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.worker.runners.ArtifactDownloader
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -13,7 +12,6 @@ import scala.util.{Failure, Success}
 
 case class JobInfoProviderArguments(
   masterHost: String = "localhost",
-  httpPort: Int = 2004,
   clusterPort: Int = 2551,
   savePath: String = "/tmp"
 ) {
@@ -32,8 +30,6 @@ object JobInfoProviderArguments {
 
     opt[String]("master").action((x, a) => a.copy(masterHost = x))
       .text("host to master")
-    opt[Int]("http-port").action((x, a) => a.copy(httpPort = x))
-      .text("http port of master")
     opt[Int]("cluster-port").action((x, a) => a.copy(clusterPort = x))
       .text("cluster port of master")
     opt[String]("save-path").action((x, a) => a.copy(savePath = x))
@@ -59,13 +55,7 @@ object JobInfoProvider extends App with Logger {
     val system = ActorSystem("mist", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
-    val artifactDownloader = ArtifactDownloader.create(
-      jobExtractorArguments.masterHost,
-      jobExtractorArguments.httpPort,
-      jobExtractorArguments.savePath
-    )
-
-    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(artifactDownloader), "job-extractor")
+    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(), "job-extractor")
 
     val jobInfoProviderRegistererName =
       s"akka.tcp://mist@${jobExtractorArguments.clusterAddr}/user/${CommonData.JobExecutorRegisterActorName}"
