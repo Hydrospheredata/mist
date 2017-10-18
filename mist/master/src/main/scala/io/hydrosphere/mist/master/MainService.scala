@@ -3,11 +3,14 @@ package io.hydrosphere.mist.master
 import java.io.File
 import java.util.UUID
 
+import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.api.StreamingSupport
-import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.JobClass
+import io.hydrosphere.mist.core.CommonData.{Action, ExtractJobInfo}
+import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobClass}
 import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
@@ -19,6 +22,8 @@ import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
+import scala.concurrent.duration._
+import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 class MainService(
@@ -26,8 +31,11 @@ class MainService(
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
+  val jobExtractor: ActorRef,
   val artifactRepository: ArtifactRepository
 ) extends Logger {
+
+  implicit val timeout: Timeout = Timeout(5 seconds)
 
   def runJob(
     req: EndpointStartRequest,
@@ -139,6 +147,19 @@ class MainService(
     }).map(_ => ())
   }
 
+  def loadFullJobInfo(endpoint: String, action: Action): Future[Option[FullJobInfo]] = {
+    val res = for {
+      endpointConfig <- OptionT(endpoints.get(endpoint))
+      fullInfo       <- OptionT.liftF(
+        askExtractor[FullJobInfo](ExtractJobInfo(endpointConfig.className, endpointConfig.path, action)))
+    } yield fullInfo.copy(defaultContext = endpointConfig.defaultContext)
+
+    res.value
+  }
+
+  private def askExtractor[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobExtractor, msg)
+  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
+
   private def runJobRaw(
     req: EndpointStartRequest,
     source: JobDetails.Source,
@@ -226,9 +247,10 @@ object MainService extends Logger {
     endpoints: EndpointsStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
+    jobExtractor: ActorRef,
     artifactRepository: ArtifactRepository
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobExtractor, artifactRepository)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

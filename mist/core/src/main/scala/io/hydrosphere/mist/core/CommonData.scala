@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.core
 
+import akka.actor.ActorRef
 import mist.api.data.JsLikeData
 
 import scala.concurrent.duration.Duration
@@ -99,4 +100,10 @@ object CommonData {
       override def toString: String = "serve"
     }
   }
+
+  val JobExecutorRegisterActorName = "job-executor-register"
+  case class RegisterJobExecutor(ref: ActorRef)
+
+
+  case class ExtractJobInfo(className: String, jobPath: String, action: Action)
 }

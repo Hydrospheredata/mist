@@ -10,6 +10,7 @@ import io.hydrosphere.mist.master.models.ContextConfig
 import cats.syntax.option._
 
 import scala.collection.JavaConversions._
+
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -134,6 +135,27 @@ object ContextsSettings {
 
 }
 
+case class JobExtractorConfig(
+  runTimeout: FiniteDuration,
+  sparkSubmitOpts: Map[String, String]
+)
+object JobExtractorConfig {
+  import scala.collection.JavaConverters._
+
+  def apply(c: Config): JobExtractorConfig = {
+    JobExtractorConfig(
+      c.getScalaDuration("init-timeout") match {
+        case x: FiniteDuration => x
+        case _ =>
+          throw new IllegalArgumentException(s"Can not crate finite duration from mist.job-extractor.init-timeout")
+      },
+      c.getConfig("spark-submit").entrySet().asScala
+        .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
+        .toMap
+    )
+  }
+}
+
 case class SecurityConfig(
   keytab: String,
   principal: String,
@@ -167,6 +189,7 @@ case class MasterConfig(
   contextsPath: String,
   endpointsPath: String,
   security: Option[SecurityConfig],
+  jobExtractorConfig: JobExtractorConfig,
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
@@ -203,6 +226,7 @@ object MasterConfig {
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
+      jobExtractorConfig = JobExtractorConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       raw = config
     )

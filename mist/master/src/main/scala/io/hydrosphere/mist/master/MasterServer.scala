@@ -109,12 +109,29 @@ object MasterServer extends Logger {
       config.jobsSavePath
     )
 
+
     val security = bootstrapSecurity(config)
+
+    val jobExtractorRunner = JobExtractorRunner.create(
+      config.jobExtractorConfig,
+      config.cluster.host,
+      config.cluster.port,
+      config.http.port
+    )
 
     for {
       logService      <- start("LogsSystem", runLogService())
+      jobExtractor    <- start("JobExtractor", jobExtractorRunner.run())
       jobsService     =  runJobService(logService.getLogger)
-      masterService   <- start("Main service", MainService.start(jobsService, endpointsStorage, contextsStorage, logsPaths, artifactRepository))
+      masterService   <- start("Main service", MainService.start(
+                                                  jobsService,
+                                                  endpointsStorage,
+                                                  contextsStorage,
+                                                  logsPaths,
+                                                  jobExtractor,
+                                                  artifactRepository
+                                               )
+                         )
       _               =  runCliInterface(masterService)
       httpBinding     <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
       asyncInterfaces =  bootstrapAsyncInput(masterService, config)
