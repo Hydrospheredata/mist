@@ -4,9 +4,11 @@ import org.apache.spark.SparkContext
 
 object SimpleContextV2 extends MistJob[Array[Int]] {
 
+  import mist.api.args.WithArgsScala.ArgMagnet._
+
   override def defineJob = {
     withArgs(
-      arg[Seq[Int]]("numbers").validated(_.nonEmpty, "You shall not pass with empty numbers!"),
+      arg[Seq[Int]]("numbers"),
       arg[Int]("multiplier", 2)
     ).withMistExtras
      .onSparkContext((nums: Seq[Int], mult: Int, extras: MistExtras, sc: SparkContext) => {
