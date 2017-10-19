@@ -2,8 +2,6 @@ package mist.api
 
 import mist.api.args.{ArgCombiner, ToJobDef}
 
-import scala.reflect.ClassTag
-
 trait ArgExtraction[+A]
 case class Extracted[+A](value: A) extends ArgExtraction[A]
 case class Missing[+A](description: String) extends ArgExtraction[A]

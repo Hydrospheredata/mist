@@ -286,6 +286,16 @@ lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
   .settings(
     name := "mist-examples-spark1",
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+      }
+    },
     autoScalaLibrary := false
   )
 
@@ -301,6 +311,16 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
       scalaVersion.value match {
         case is2_11() => Seq("io.hydrosphere" %% "spark-ml-serving" % "0.1.2")
         case _ => Seq.empty
+      }
+    },
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
       }
     },
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
