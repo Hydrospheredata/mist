@@ -30,7 +30,6 @@ object ArgCombiner {
             case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[adj.Out]]
           }
         }
-        override def toString: String = s"From $a and $b"
      }
     }
   }

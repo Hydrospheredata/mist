@@ -73,13 +73,6 @@ object HttpV2Base {
     ).as(LimitOffsetQuery)
   }
 
-  val jobsQuery2 = {
-    parameters(
-      'limit.?(25),
-      'offset.?(0)
-    )
-  }
-
   val completeOpt = rejectEmptyResponse & complete _
 
   def completeTry[A : ToEntityMarshaller](f: => Try[A], errorCode: StatusCode): StandardRoute = {
