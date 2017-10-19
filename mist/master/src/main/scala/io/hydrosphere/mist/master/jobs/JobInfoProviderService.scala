@@ -36,7 +36,7 @@ class JobInfoProviderService(
     f.value
   }
 
-  def getJobInfo(endpoint: EndpointConfig): Future[FullJobInfo] = {
+  def getJobInfoByConfig(endpoint: EndpointConfig): Future[FullJobInfo] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath))
@@ -66,7 +66,7 @@ class JobInfoProviderService(
     f.value
   }
 
-  def validateJob(endpoint: EndpointConfig, params: Map[String, Any], action: Action): Future[Unit] = {
+  def validateJobByConfig(endpoint: EndpointConfig, params: Map[String, Any], action: Action): Future[Unit] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[Unit](ValidateJobParameters(

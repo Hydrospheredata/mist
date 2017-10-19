@@ -146,10 +146,10 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       name = "name",
       className = "MyJob"
     )
-    when(jobInfoProvider.getJobInfo(mockitoEq(epConf)))
+    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(epConf)))
       .thenSuccess(fullInfo)
 
-    when(jobInfoProvider.getJobInfo(mockitoEq(noMatterEpConf)))
+    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(noMatterEpConf)))
       .thenFailure(new RuntimeException("failed"))
 
     when(endpoints.all)

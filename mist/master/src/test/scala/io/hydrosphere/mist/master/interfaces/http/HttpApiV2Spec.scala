@@ -199,7 +199,7 @@ class HttpApiV2Spec extends FunSpec
       when(endpoints.update(any[EndpointConfig]))
         .thenSuccess(test)
 
-      when(jobInfoProvider.getJobInfo(any[EndpointConfig]))
+      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
         .thenSuccess(FullJobInfo(
           lang = "python",
           path = "test",
@@ -228,7 +228,7 @@ class HttpApiV2Spec extends FunSpec
       when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
       when(endpointsStorage.update(any[EndpointConfig]))
         .thenReturn(Future.successful(endpointConfig))
-      when(jobInfoProvider.getJobInfo(any[EndpointConfig]))
+      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
         .thenFailure(new Exception("test failure"))
 
       val route = HttpV2Routes.endpointsRoutes(master)

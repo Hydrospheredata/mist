@@ -170,7 +170,7 @@ object HttpV2Routes extends Logger {
       post { entity(as[EndpointConfig]) { req =>
         val res = for {
           updated      <- master.endpoints.update(req)
-          fullInfo     <- master.jobInfoProviderService.getJobInfo(updated)
+          fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
           endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
         } yield endpointInfo
 
@@ -187,7 +187,7 @@ object HttpV2Routes extends Logger {
           case Some(_) =>
             val res = for {
               updated      <- master.endpoints.update(req)
-              fullInfo     <- master.jobInfoProviderService.getJobInfo(updated)
+              fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
               endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
 

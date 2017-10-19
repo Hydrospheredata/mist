@@ -79,9 +79,9 @@ class MainService(
     )
 
     for {
-      info          <- jobInfoProviderService.getJobInfo(endpoint)
+      info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateJob(endpoint, req.parameters, action)
+      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters, action)
       runMode       =  selectRunMode(context, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -173,7 +173,7 @@ class MainService(
   def endpointsInfo: Future[Seq[FullJobInfo]] = for {
     configs <- endpoints.all
     infos   <- Future.sequence(configs.map(e => {
-      jobInfoProviderService.getJobInfo(e).map(Some.apply)
+      jobInfoProviderService.getJobInfoByConfig(e).map(Some.apply)
         .recover {
           case ex =>
             logger.error(ex.getMessage, ex)
