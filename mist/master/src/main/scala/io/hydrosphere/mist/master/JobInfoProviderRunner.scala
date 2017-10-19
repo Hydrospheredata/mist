@@ -12,20 +12,27 @@ class JobInfoProviderRunner(
   runTimeout: FiniteDuration,
   masterHost: String,
   clusterPort: Int,
-  sparkSubmitConf: Map[String, String]
-) extends WithSparkSubmitArgs {
+  sparkConf: Map[String, String]
+) extends WithSparkConfArgs {
 
   def run()(implicit system: ActorSystem): Future[ActorRef] = {
     val refWaiter = ActorRefWaiter(runTimeout)(system)
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-info-provider",
         "--master", masterHost,
-        "--cluster-port", clusterPort.toString) ++
-        sparkSubmitArgs(sparkSubmitConf)
+        "--cluster-port", clusterPort.toString)
 
-    val builder = Process(cmd)
+    val builder = Process(cmd, None, ("SPARK_CONF", sparkConfArgs(sparkConf).mkString(" ")))
     builder.run(false)
     refWaiter.waitRef()
+  }
+}
+
+trait WithSparkConfArgs {
+
+  def sparkConfArgs(sparkConf: Map[String, String]): Seq[String] = {
+    sparkConf.map { case (k, v) => s"$k==$v" }
+      .toSeq
   }
 }
 
@@ -62,22 +69,13 @@ object ActorRefWaiter {
 
 }
 
-trait WithSparkSubmitArgs {
-
-  def sparkSubmitArgs(sparkSubmitArgs: Map[String, String]): Seq[String] = {
-    sparkSubmitArgs.map { case (k, v) => Seq("--" + k, v) }
-      .toSeq
-      .flatten
-  }
-}
-
 object JobInfoProviderRunner {
 
 
   def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int): JobInfoProviderRunner = {
     sys.env.get("SPARK_HOME") match {
       case Some(_) =>
-        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, config.sparkSubmitOpts)
+        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, config.sparkConf)
       case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for running mist")
     }
 

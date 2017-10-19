@@ -14,6 +14,10 @@ function startJobInfoProvider() {
         (>&2 echo "You must specify SPARK_HOME env variable")
         exit 3
     fi
+    if [ "$SPARK_CONF" == "" ]
+    then
+        SPARK_CONF="spark.executor.memory=256m spark.driver.memory=512m"
+    fi
 
     export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
 
@@ -24,7 +28,8 @@ function startJobInfoProvider() {
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dmist.home=$MIST_HOME"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dlog4j.configuration=file:$LOGGER_CONF"
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
-    exec $SPARK_SUBMIT --class $MAIN_CLASS --driver-java-options "$DRIVER_JAVA_OPTIONS" $ASSEMBLY_JAR $ORIGIN_ARGS
+    echo "calling with $SPARK_CONF"
+    exec $SPARK_SUBMIT --class $MAIN_CLASS --conf $SPARK_CONF --driver-java-options "$DRIVER_JAVA_OPTIONS" $ASSEMBLY_JAR $ORIGIN_ARGS
 }
 
 startJobInfoProvider

@@ -27,7 +27,11 @@ class JobInfoProviderService(
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
       jobInfo  <- OptionT.liftF(askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath)))
-    } yield jobInfo.copy(defaultContext = endpoint.defaultContext, path = endpoint.path)
+    } yield jobInfo.copy(
+      defaultContext = endpoint.defaultContext,
+      path = endpoint.path,
+      name = endpoint.name
+    )
 
     f.value
   }
@@ -36,8 +40,11 @@ class JobInfoProviderService(
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath))
-          .map { info =>
-            info.copy(defaultContext = endpoint.defaultContext, name = endpoint.name)
+          .map { _.copy(
+              defaultContext = endpoint.defaultContext,
+              name = endpoint.name,
+              path=endpoint.path
+            )
           }
       case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${endpoint.path}"))
     }
@@ -71,7 +78,6 @@ class JobInfoProviderService(
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)
-
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
 
 }

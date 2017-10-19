@@ -137,7 +137,7 @@ object ContextsSettings {
 
 case class JobInfoProviderConfig(
   runTimeout: FiniteDuration,
-  sparkSubmitOpts: Map[String, String]
+  sparkConf: Map[String, String]
 )
 object JobInfoProviderConfig {
   import scala.collection.JavaConverters._
@@ -149,7 +149,7 @@ object JobInfoProviderConfig {
         case _ =>
           throw new IllegalArgumentException(s"Can not crate finite duration from mist.job-extractor.init-timeout")
       },
-      c.getConfig("spark-submit").entrySet().asScala
+      c.getConfig("spark-conf").entrySet().asScala
         .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
         .toMap
     )
