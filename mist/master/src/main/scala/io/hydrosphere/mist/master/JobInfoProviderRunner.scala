@@ -55,7 +55,7 @@ object ActorRefWaiter {
   def apply(initTimeout: Duration)(implicit system: ActorSystem): ActorRefWaiter = new ActorRefWaiter {
     override def waitRef(): Future[ActorRef] = {
       val pr = Promise[ActorRef]
-      system.actorOf(Props(new IdentityActor(pr, initTimeout)), CommonData.JobExecutorRegisterActorName)
+      system.actorOf(Props(new IdentityActor(pr, initTimeout)), CommonData.JobInfoProviderRegisterActorName)
       pr.future
     }
   }
