@@ -48,14 +48,13 @@ object JobInfoProvider extends App with Logger {
     val jobInfoProviderArguments = JobInfoProviderArguments.parse(args) match {
       case Some(x) => x
       case None =>
-        logger.error("Please provide master address through --master option")
         throw new IllegalStateException("please provide arguments")
     }
     val config = ConfigFactory.load("job-extractor")
     val system = ActorSystem("mist", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
-    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(), "job-info-provider")
+    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(JobInfoExtractor()), "job-info-provider")
 
     val jobInfoProviderRegistererName =
       s"akka.tcp://mist@${jobInfoProviderArguments.clusterAddr}/user/${CommonData.JobInfoProviderRegisterActorName}"
