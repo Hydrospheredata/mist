@@ -70,10 +70,7 @@ object JobInfoProvider extends App with Logger {
 
     system.awaitTermination()
 
-    sys.addShutdownHook {
-      logger.info("Shutdown job extractor")
-      system.shutdown()
-    }
+    sys.exit()
   } catch {
     case e: Exception =>
       logger.error(e.getMessage, e)

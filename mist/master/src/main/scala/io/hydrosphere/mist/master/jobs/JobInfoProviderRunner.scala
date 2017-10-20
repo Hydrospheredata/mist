@@ -1,8 +1,9 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.master.jobs
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props, ReceiveTimeout}
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
+import io.hydrosphere.mist.master.JobInfoProviderConfig
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Future, Promise}
@@ -31,7 +32,7 @@ class JobInfoProviderRunner(
 trait WithSparkConfArgs {
 
   def sparkConfArgs(sparkConf: Map[String, String]): Seq[String] = {
-    sparkConf.map { case (k, v) => s"$k==$v" }
+    sparkConf.map { case (k, v) => s"--conf $k=$v" }
       .toSeq
   }
 }

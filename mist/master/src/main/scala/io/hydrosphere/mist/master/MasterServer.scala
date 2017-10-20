@@ -1,18 +1,19 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
+import akka.pattern.gracefulStop
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
@@ -44,11 +45,11 @@ object Step {
 
 }
 
-case class ServerInstance(closeSteps: Seq[Step[Unit]])
+case class ServerInstance(closeSteps: Seq[Step[_]])
   extends Logger{
 
   def stop(): Future[Unit] = {
-    def execStep(step: Step[Unit]): Future[Unit] = {
+    def execStep(step: Step[_]): Future[Unit] = {
       val p = Promise[Unit]
       step.exec().onComplete {
         case Success(_) =>
@@ -145,6 +146,7 @@ object MasterServer extends Logger {
       Seq(Step.future("Http", httpBinding.unbind())) ++
       asyncInterfaces.map(i => Step.lift(s"Async interface: ${i.name}", i.close())) ++
       security.map(ps => Step.future("Security", ps.stop())) :+
+      Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
       Step.future("System", {
         materializer.shutdown()
         system.shutdown()
