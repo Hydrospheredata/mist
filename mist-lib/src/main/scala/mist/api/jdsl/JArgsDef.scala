@@ -4,6 +4,7 @@ import mist.api._
 import mist.api.ArgDef._
 import java.lang.{Integer => JavaInt}
 
+import mist.api.encoding.{Encoder, DefaultEncoders}
 import org.apache.spark.api.java.JavaSparkContext
 //import org.json4s.JValue
 //import FuncOps._

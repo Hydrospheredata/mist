@@ -25,21 +25,71 @@ trait BaseContexts {
 
   implicit class ContextsOps[A](args: ArgDef[A]) {
 
+    /**
+      * Define job execution function that takes current arguments and
+      * org.apache.spark.SparkContext
+      * Example:
+      * <pre>
+      * {@code
+      *   val args = withArgs(arg[Int]("one"), arg[Int]("two")
+      *   args.onSparkContext((one: Int, two: Int, spark: SparkContext) => ...)
+      * }
+      * </pre>
+      * @return
+      */
     def onSparkContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sparkContext), f)
 
+    /**
+      * Define job execution function that takes current arguments and
+      * org.apache.spark.streaming.StreamingContext
+      * Example:
+      * <pre>
+      * {@code
+      *   val args = withArgs(arg[Int]("one"), arg[Int]("two")
+      *   args.onStreamingContext((one: Int, two: Int, streamingCtx: StreamingContext) => ...)
+      * }
+      * </pre>
+      * @return
+      */
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(streamingContext), f)
 
+    /**
+      * Define job execution function that takes current arguments and
+      * org.apache.spark.sql.SQLContext
+      * Example:
+      * <pre>
+      * {@code
+      *
+      *  val args = withArgs(arg[Int]("one"), arg[Int]("two")
+      *  args.onSqlContext((one: Int, two: Int, sqlCtx: SQLContext) => ...)
+      * }
+      * </pre>
+      * @return
+      */
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sqlContext), f)
 
+    /**
+      * Define job execution function that takes current arguments and
+      * org.apache.spark.sql.hive.HiveContext
+      * Example:
+      * <pre>
+      * {@code
+      *
+      *  val args = withArgs(arg[Int]("one"), arg[Int]("two")
+      *  args.onHiveContext((one: Int, two: Int, hiveCtx: HiveContext) => ...)
+      * }
+      * </pre>
+      * @return
+      */
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],

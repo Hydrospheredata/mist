@@ -1,6 +1,6 @@
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import mist.api._
-import mist.api.DefaultEncoders._
+import mist.api.encoding.DataSetEncoding._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.ml.feature.Binarizer
 import org.apache.spark.sql.{Dataset, Row, SparkSession}

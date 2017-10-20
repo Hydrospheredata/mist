@@ -37,6 +37,21 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
+    (unmanagedSourceDirectories in Compile) ++= {
+      val dirs = (baseDirectory.value / "src" / "main") * "spark-*"
+      val current = Semver(sparkVersion.value)
+      val filtered = dirs.filter(f => {
+        val version = f.getName.replace("spark-", "")
+        val semver = Semver(version)
+        current.gteq(semver)
+      }).get
+      if (filtered.nonEmpty) {
+        val msg = s"Spark version is $current - add addition source directories:\n" +
+          filtered.map(f => "- " + f).mkString("\n")
+        sLog.value.info(msg)
+      }
+      filtered
+    },
     scalacOptions ++= commonScalacOptions,
     name := s"mist-lib-spark${sparkVersion.value}",
     libraryDependencies ++= {
