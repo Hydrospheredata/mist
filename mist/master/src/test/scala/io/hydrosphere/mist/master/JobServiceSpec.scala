@@ -3,9 +3,10 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.StatusMessages.{GetById, Register}
-import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode, EndpointConfig}
+import io.hydrosphere.mist.master.models.{EndpointConfig, JobStartRequest, RunMode}
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -26,7 +27,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val future = service.startJob(
         JobStartRequest(
           id = "id",
-          endpoint = EndpointConfig("name", "path", "className", "context"),
+          endpoint = FullJobInfo("name", path="path", className="className", defaultContext="context"),
           context = TestUtils.contextSettings.default,
           parameters = Map("1" -> 2),
           runMode = RunMode.Shared,

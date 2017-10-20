@@ -1,24 +1,26 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
+import akka.pattern.gracefulStop
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
+import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 import scala.util._
@@ -43,11 +45,11 @@ object Step {
 
 }
 
-case class ServerInstance(closeSteps: Seq[Step[Unit]])
+case class ServerInstance(closeSteps: Seq[Step[_]])
   extends Logger{
 
   def stop(): Future[Unit] = {
-    def execStep(step: Step[Unit]): Future[Unit] = {
+    def execStep(step: Step[_]): Future[Unit] = {
       val p = Promise[Unit]
       step.exec().onComplete {
         case Success(_) =>
@@ -109,20 +111,42 @@ object MasterServer extends Logger {
       config.jobsSavePath
     )
 
+
     val security = bootstrapSecurity(config)
 
+    val jobExtractorRunner = JobInfoProviderRunner.create(
+      config.jobInfoProviderConfig,
+      config.cluster.host,
+      config.cluster.port
+    )
+
     for {
-      logService      <- start("LogsSystem", runLogService())
-      jobsService     =  runJobService(logService.getLogger)
-      masterService   <- start("Main service", MainService.start(jobsService, endpointsStorage, contextsStorage, logsPaths, artifactRepository))
-      _               =  runCliInterface(masterService)
-      httpBinding     <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
-      asyncInterfaces =  bootstrapAsyncInput(masterService, config)
+      logService             <- start("LogsSystem", runLogService())
+      jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
+      jobInfoProviderService =  new JobInfoProviderService(
+                                      jobInfoProvider,
+                                      endpointsStorage,
+                                      artifactRepository
+                                )(system.dispatcher)
+      jobsService            =  runJobService(logService.getLogger)
+      masterService          <- start("Main service", MainService.start(
+                                                        jobsService,
+                                                        endpointsStorage,
+                                                        contextsStorage,
+                                                        logsPaths,
+                                                        jobInfoProviderService,
+                                                        artifactRepository
+                                                     )
+                             )
+      _                      =  runCliInterface(masterService)
+      httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
+      asyncInterfaces        =  bootstrapAsyncInput(masterService, config)
 
     } yield ServerInstance(
       Seq(Step.future("Http", httpBinding.unbind())) ++
       asyncInterfaces.map(i => Step.lift(s"Async interface: ${i.name}", i.close())) ++
       security.map(ps => Step.future("Security", ps.stop())) :+
+      Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
       Step.future("System", {
         materializer.shutdown()
         system.shutdown()
