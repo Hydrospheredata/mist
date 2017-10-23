@@ -5,8 +5,11 @@ import akka.http.scaladsl.model
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.ParameterDirectives
+import cats.data._
+import cats.implicits._
 import io.hydrosphere.mist.master.{JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.interfaces.http.HttpV2Base.completeOpt
 import io.hydrosphere.mist.master.models.DevJobStartRequestModel
 
 /**
@@ -36,7 +39,7 @@ object DevApi {
           handleExceptions(exceptionHandler) {
             val execInfo = masterService.devRun(req.toCommon, JobDetails.Source.Http)
             if (force)
-              complete(execInfo.flatMap(_.toJobResult))
+              complete(execInfo.map(_.toJobResult))
             else
               complete(execInfo.map(_.toJobStartResponse))
           }

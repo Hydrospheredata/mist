@@ -1,7 +1,7 @@
 package mist.api.internal
 
 import mist.api._
-import mist.api.data.JsLikeData
+import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.jdsl.JMistJob
 
 import scala.annotation.tailrec
@@ -62,6 +62,13 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
 }
 
 object JobInstance {
+  val NoOpInstance = new BaseJobInstance {
+    override def run(jobCtx: JobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+
+    override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = Right(Map.empty)
+
+    override def describe(): Seq[ArgInfo] = Seq()
+  }
 
   val ScalaJobClass = classOf[MistJob[_]]
   val JavaJobClass = classOf[JMistJob[_]]
