@@ -12,11 +12,10 @@ case class TestData(
   longF: Long
 )
 
-class SchemedRowEncoderSpec extends FunSpec with Matchers {
+class SchemedRowEncoderSpec extends FunSpec with Matchers with TestSparkContext {
 
   it("should encode") {
-    val sc = TestSparkContext.sc
-    val sqlCtx = new SQLContext(sc)
+    val sqlCtx = new SQLContext(spark)
 
     val df = sqlCtx.createDataFrame(
       Seq(TestData(1, "string", 1.1, 1L))

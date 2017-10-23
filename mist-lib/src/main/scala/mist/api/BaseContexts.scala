@@ -19,7 +19,20 @@ trait BaseContexts {
   })
 
   val sqlContext: ArgDef[SQLContext] = sparkContext.map(SQLContext.getOrCreate)
-  val hiveContext: ArgDef[HiveContext] = sparkContext.map(sc => new HiveContext(sc))
+
+  val hiveContext: ArgDef[HiveContext] = new ArgDef[HiveContext] {
+
+    var cache: HiveContext = null
+
+    override def extract(ctx: JobContext): ArgExtraction[HiveContext] = synchronized {
+      if (cache == null)
+        cache = new HiveContext(ctx.setupConfiguration.context)
+      Extracted(cache)
+    }
+
+    override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
+  }
+
   val javaSparkContext: ArgDef[JavaSparkContext] = sparkContext.map(sc => new JavaSparkContext(sc))
   val javaStreamingContext: ArgDef[JavaStreamingContext] = streamingContext.map(scc => new JavaStreamingContext(scc))
 

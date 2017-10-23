@@ -3,9 +3,9 @@ package mist.api
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.hive.HiveContext
-import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
+import org.scalatest.{FunSpec, Matchers}
 
-class BaseContextsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
+class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
   import BaseContexts._
   import JobDefInstances._
@@ -28,25 +28,38 @@ class BaseContextsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     res shouldBe JobSuccess(5)
   }
 
-  it("for only hive context") {
-    def pathToResource(path: String): String = {
-      this.getClass.getClassLoader.getResource(path).getPath
-    }
+  def pathToResource(path: String): String = {
+    this.getClass.getClassLoader.getResource(path).getPath
+  }
 
+  it("for only hive context") {
     val spJob = onHiveContext((hiveCtx: HiveContext) => {
       val df = hiveCtx.read.json(pathToResource("hive_job_data.json"))
       df.registerTempTable("temp")
       hiveCtx.sql("SELECT MAX(age) AS avg_age FROM temp")
         .take(1)(0).getLong(0)
     })
+    spJob.invoke(testCtx())
+    val res = spJob.invoke(testCtx())
+    res shouldBe JobSuccess(30)
+  }
 
+  it("allow more than one hive context") {
+    val spJob = onHiveContext((hiveCtx: HiveContext) => {
+      val df = hiveCtx.read.json(pathToResource("hive_job_data.json"))
+      df.registerTempTable("temp")
+      hiveCtx.sql("SELECT MAX(age) AS avg_age FROM temp")
+        .take(1)(0).getLong(0)
+    })
+    spJob.invoke(testCtx())
     val res = spJob.invoke(testCtx())
     res shouldBe JobSuccess(30)
   }
 
   def testCtx(params: (String, Any)*): JobContext = {
     val duration = org.apache.spark.streaming.Duration(10 * 1000)
-    val setupConf = SetupConfiguration(TestSparkContext.sc, duration, RuntimeJobInfo("test", "worker"), None)
+    val setupConf = SetupConfiguration(spark, duration, RuntimeJobInfo("test", "worker"), None)
     JobContext(setupConf, params.toMap)
   }
+
 }

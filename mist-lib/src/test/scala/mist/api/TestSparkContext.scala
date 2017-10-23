@@ -1,15 +1,23 @@
 package mist.api
 
 import org.apache.spark.{SparkConf, SparkContext}
+import org.scalatest.{BeforeAndAfterAll, Suite}
 
-object TestSparkContext {
+trait TestSparkContext extends BeforeAndAfterAll{this: Suite =>
 
-  lazy val sc: SparkContext = {
+  var spark: SparkContext = null
+
+  override def beforeAll(): Unit = {
     val conf = new SparkConf()
       .setMaster("local[2]")
       .setAppName("mist-lib-test")
       .set("spark.driver.allowMultipleContexts", "true")
       .set("spark.ui.disabled", "true")
-    new SparkContext(conf)
+    spark = new SparkContext(conf)
   }
+
+  override def afterAll(): Unit = {
+    spark.stop()
+  }
+
 }
