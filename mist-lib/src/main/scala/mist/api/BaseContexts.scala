@@ -20,6 +20,8 @@ trait BaseContexts {
 
   val sqlContext: ArgDef[SQLContext] = sparkContext.map(SQLContext.getOrCreate)
 
+  // HiveContext should be cached per jvm
+  // see #325
   val hiveContext: ArgDef[HiveContext] = new ArgDef[HiveContext] {
 
     var cache: HiveContext = null
