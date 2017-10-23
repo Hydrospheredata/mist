@@ -22,7 +22,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.6.2"),
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
@@ -143,7 +143,7 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
-lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.6.2") match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
 }

@@ -12,7 +12,7 @@ case class TestData(
   longF: Long
 )
 
-class DataFrameEncodingSpec extends FunSpec with Matchers {
+class SchemedRowEncoderSpec extends FunSpec with Matchers {
 
   it("should encode") {
     val sc = TestSparkContext.sc
@@ -22,7 +22,7 @@ class DataFrameEncodingSpec extends FunSpec with Matchers {
       Seq(TestData(1, "string", 1.1, 1L))
     )
 
-    val encoder = new ShemedRowEncoder(df.schema)
+    val encoder = new SchemedRowEncoder(df.schema)
     val data = encoder.encode(df.queryExecution.toRdd.collect()(0))
 
     data shouldBe JsLikeMap(

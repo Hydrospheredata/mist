@@ -7,7 +7,7 @@ trait DataFrameEncoding {
 
   implicit val dataFrameEncoder = new Encoder[DataFrame] {
     override def apply(df: DataFrame): JsLikeData = {
-      val rowEncoder = new ShemedRowEncoder(df.schema)
+      val rowEncoder = new SchemedRowEncoder(df.schema)
       val data = df.queryExecution.toRdd.mapPartitions(iter => {
         new Iterator[JsLikeData] {
           override def hasNext: Boolean = iter.hasNext

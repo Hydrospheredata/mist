@@ -11,16 +11,14 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 
 // based on org.apache.spark.sql.catalyst.json.JacksonGenerator
-class ShemedRowEncoder(schema: StructType) extends Serializable {
+class SchemedRowEncoder(schema: StructType) extends Serializable {
+
+  import SchemedRowEncoder._
 
   type SG = SpecializedGetters
 
-  val dateFormat = FastDateFormat.getInstance("yyyy-MM-dd", Locale.US)
-  val timestampFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSZZ", Locale.US)
-
-  private val fieldsConverters = schema.fields.map(f => converter(f.dataType))
-
   def encode(row: InternalRow): JsLikeData = {
+    val fieldsConverters = schema.fields.map(f => converter(f.dataType))
     val fields = schema.fields
     val converted =
       for {
@@ -33,29 +31,7 @@ class ShemedRowEncoder(schema: StructType) extends Serializable {
     JsLikeMap(converted.toMap)
   }
 
-  private def convertRow(row: InternalRow, st: StructType): JsLikeData = {
-    val fieldsConverters = st.fields.map(f => converter(f.dataType))
-    convertRow(row, st, fieldsConverters)
-  }
-
-  private def convertRow(
-    row: InternalRow,
-    st: StructType,
-    fieldsConverters: Array[(SG, Int) => JsLikeData]): JsLikeData = {
-
-    val fields = st.fields
-    val converted =
-      for {
-        i <- fields.indices
-        field = fields(i)
-      } yield {
-        val data = if (!row.isNullAt(i)) fieldsConverters(i)(row, i) else JsLikeNull
-        field.name -> data
-      }
-    JsLikeMap(converted.toMap)
-  }
-
-  def converter(d: DataType): (SG, Int) => JsLikeData = d match {
+  private def converter(d: DataType): (SG, Int) => JsLikeData = d match {
     case NullType =>    (g: SG, i: Int) => JsLikeNull
     case BooleanType => (g: SG, i: Int) => JsLikeBoolean(g.getBoolean(i))
     case ByteType =>    (g: SG, i: Int) => JsLikeNumber(g.getByte(i).toInt)
@@ -88,7 +64,8 @@ class ShemedRowEncoder(schema: StructType) extends Serializable {
 
     case st: StructType => (g: SG, i: Int) => {
       val row = g.getStruct(i, st.length)
-      convertRow(row, st)
+      val encoder = new SchemedRowEncoder(st)
+      encoder.encode(row)
     }
 
     case at: ArrayType => (g: SG, i: Int) => {
@@ -122,3 +99,9 @@ class ShemedRowEncoder(schema: StructType) extends Serializable {
 
 }
 
+object SchemedRowEncoder {
+
+  val dateFormat = FastDateFormat.getInstance("yyyy-MM-dd", Locale.US)
+  val timestampFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSSZZ", Locale.US)
+
+}
