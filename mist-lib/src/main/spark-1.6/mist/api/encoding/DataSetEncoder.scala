@@ -12,7 +12,7 @@ import org.apache.spark.sql.types._
 
 import mist.api.data._
 
-trait DatasetEncoder {
+trait DatasetEncoding {
 
   // based on org.apache.spark.sql.catalyst.json.JacksonGenerator
   // TODO: UserDefinedType ??
@@ -31,6 +31,7 @@ trait DatasetEncoder {
       })
       JsLikeList(data.collect().toSeq)
     }
+  }
 }
 
-object DatasetEncoder extends DatasetEncoder
+object DatasetEncoding extends DatasetEncoding
