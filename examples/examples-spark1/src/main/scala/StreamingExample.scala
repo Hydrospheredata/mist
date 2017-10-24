@@ -27,7 +27,7 @@ object StreamingExample extends MistJob[Unit]{
         rddQueue.synchronized {
           rddQueue += ssc.sparkContext.makeRDD(1 to 1000, 10)
         }
-        Thread.sleep(100)
+        Thread.sleep(1000)
       })
       ssc.stop()
     })
