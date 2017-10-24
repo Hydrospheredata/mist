@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class SimpleJavaContext extends JMistJob<Integer> {
+class JavaSparkContextExample extends JMistJob<Integer> {
 
     @Override
     public JJobDef<Integer> defineJob() {

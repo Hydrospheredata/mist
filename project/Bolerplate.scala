@@ -96,11 +96,26 @@ object Boilerplate {
          |
          |import org.apache.spark.api.java.JavaSparkContext
          |import FuncSyntax._
-         |import mist.api.BaseContexts._
+         |import mist.api.BaseContextsArgs._
          |import mist.api.ArgDef
          |
+         -/**
+         -  * ${arity} required arguments for job definition
+         -  */
          -case class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
+         -
+         -  /**
+         -    * Define job execution that use JavaSparkContext for invocation
+         -    */
          -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
+         -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
+         -    new JJobDef(job)
+         -  }
+         -
+         -  /**
+         -    * Define job execution that use JavaStreamingContext for invocation
+         -    */
+         -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
          -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
          -    new JJobDef(job)
          -  }
@@ -121,6 +136,9 @@ object Boilerplate {
          |
          |trait WithArgs {
          |
+         -  /**
+         -    * Declare ${arity} required arguments for job
+         -    */
          -  def withArgs[${`T1..N`}](${`ArgDef1..n`}): Args${arity}[${`T1..N`}] =
          -      Args${arity}(${`a1..aN`})
          |
