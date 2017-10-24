@@ -36,7 +36,6 @@ class JobDefInstancesSpec extends FunSpec with Matchers {
   }
 
   it("for spark context") {
-    import DefaultEncoders._
     import BaseContexts._
 
     val spJob: JobDef[Array[Int]] = arg[Seq[Int]]("nums").onSparkContext(

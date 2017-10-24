@@ -1,10 +1,10 @@
 import mist.api._
-import mist.api.DefaultEncoders._
+import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
 object SimpleContextV2 extends MistJob[Array[Int]] {
 
-  import mist.api.args.WithArgsScala.ArgMagnet._
+  import mist.api.args.WithArgsScala.ArgMagnet
 
   override def defineJob = {
     withArgs(

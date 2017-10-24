@@ -2,6 +2,7 @@ package mist.api
 
 import mist.api.args.WithArgsScala
 import mist.api.data.JsLikeData
+import mist.api.encoding.Encoder
 
 /**
   * Scala api - root class for jobs definition
