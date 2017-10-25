@@ -1,8 +1,8 @@
 package mist.api.jdsl
 
-import org.apache.spark.api.java.JavaSparkContext
 import mist.api.BaseContexts._
-import FuncSyntax._
+import mist.api.jdsl.FuncSyntax._
+import org.apache.spark.api.java.JavaSparkContext
 
 trait JJobDefinition extends WithArgs {
 

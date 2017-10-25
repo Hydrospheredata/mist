@@ -22,7 +22,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.6.2"),
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
@@ -37,6 +37,21 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
+    (unmanagedSourceDirectories in Compile) ++= {
+      val dirs = (baseDirectory.value / "src" / "main") * "spark-*"
+      val current = Semver(sparkVersion.value)
+      val filtered = dirs.filter(f => {
+        val version = f.getName.replace("spark-", "")
+        val semver = Semver(version)
+        current.gteq(semver)
+      }).get
+      if (filtered.nonEmpty) {
+        val msg = s"Spark version is $current - add addition source directories:\n" +
+          filtered.map(f => "- " + f).mkString("\n")
+        sLog.value.info(msg)
+      }
+      filtered
+    },
     scalacOptions ++= commonScalacOptions,
     name := s"mist-lib-spark${sparkVersion.value}",
     libraryDependencies ++= {
@@ -128,7 +143,7 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
-lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
+lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.6.2") match {
   case versionRegex("1", minor) => examplesSpark1
   case _ => examplesSpark2
 }

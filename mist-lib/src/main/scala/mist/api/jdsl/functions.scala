@@ -1,7 +1,5 @@
 package mist.api.jdsl
 
-import org.apache.spark.api.java.JavaSparkContext
-
 //@SerialVersionUID(1L)
 //trait Func1[-T1, +R] extends java.io.Serializable {
 //  @throws(classOf[Exception])

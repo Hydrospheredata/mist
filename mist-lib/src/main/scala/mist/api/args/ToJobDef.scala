@@ -1,7 +1,7 @@
 package mist.api.args
 
 import mist.api._
-import shapeless.{HList, HNil}
+import shapeless.HList
 import shapeless.ops.function.FnToProduct
 
 trait ToJobDef[In, F] extends Serializable {

@@ -1,13 +1,11 @@
 package mist.api.jdsl
 
-import mist.api._
-import mist.api.ArgDef._
 import java.lang.{Integer => JavaInt}
 
-import org.apache.spark.api.java.JavaSparkContext
+import mist.api._
+import mist.api.encoding.{DefaultEncoders, Encoder}
 //import org.json4s.JValue
 //import FuncOps._
-import BaseContexts._
 import mist.api.args.{ArgType, MInt}
 import mist.api.data._
 
