@@ -219,6 +219,38 @@ Glosssary:
   </tbody>
 </table>
 
+**Artifacts**
+<table>
+  <thead>
+    <tr>
+      <td>Method</td>
+      <td>Path</td>
+      <td>Params</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/artifacts</td>
+      <td>None</td>
+      <td>list of all artifacts</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/artifacts/{id}</td>
+      <td>None</td>
+      <td>artifact info</td>
+    </tr>
+     <tr>
+      <td>POST</td>
+      <td>/v2/api/artifacts</td>
+      <td>file: Multipart form data</td>
+      <td>upload new artifact</td>
+    </tr>  
+  </tbody>
+</table>
+
 
 Note: Mist always has default context settings, you can obtain it by "default" id.
 
