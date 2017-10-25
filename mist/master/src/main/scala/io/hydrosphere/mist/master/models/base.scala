@@ -23,6 +23,3 @@ case class EndpointConfig(
   className: String,
   defaultContext: String
 ) extends NamedConfig
-
-
-case class FullEndpointInfo(config: EndpointConfig)
