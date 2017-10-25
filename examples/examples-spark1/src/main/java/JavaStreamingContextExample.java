@@ -8,10 +8,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-class JavaStreamingContextExample extends JMistJob<Integer> {
+class JavaStreamingContextExample extends JMistJob<Void> {
 
     @Override
-    public JJobDef<Integer> defineJob() {
+    public JJobDef<Void> defineJob() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();
@@ -37,7 +37,7 @@ class JavaStreamingContextExample extends JMistJob<Integer> {
             jsc.awaitTerminationOrTimeout(10 * 1000);
             jsc.stop();
 
-            return RetValues.of(5);
+            return RetValues.empty();
         });
     }
 }

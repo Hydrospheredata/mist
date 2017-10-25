@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class JavaSparkContextExample extends JMistJob<Integer> {
+class JavaSparkContextExample extends JMistJob<List<Integer>> {
 
     @Override
-    public JJobDef<Integer> defineJob() {
+    public JJobDef<List<Integer>> defineJob() {
         return withArgs(intArg("num")).onSparkContext((num, sc) -> {
             List<Integer> nums = Stream.of(0, 10).collect(Collectors.toList());
             List<Integer> result = sc.parallelize(nums).map(x -> x * 2).collect();
-            return RetValues.of(5);
+            return RetValues.of(result);
         });
     }
 

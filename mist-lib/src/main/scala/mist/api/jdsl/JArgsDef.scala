@@ -1,9 +1,14 @@
 package mist.api.jdsl
 
+import java.{lang, util}
 import java.lang.{Integer => JavaInt}
+import java.math.BigInteger
+import java.util.Optional
 
 import mist.api._
+import mist.api.data.JsLikeData.SJIterable
 import mist.api.encoding.{DefaultEncoders, Encoder}
+
 //import org.json4s.JValue
 //import FuncOps._
 import mist.api.args.{ArgType, MInt}
@@ -24,18 +29,19 @@ import mist.api.data._
 //    new JJobDef(job)
 //  }
 //}
-
 case class RetVal[T](value: T, encoder: Encoder[T]) {
   def encoded(): JsLikeData = encoder(value)
 }
 
 trait RetVals {
 
-  def intRetVal(i: JavaInt): RetVal[JavaInt] = RetVal(i, new Encoder[JavaInt] {
-    override def apply(a: JavaInt): JsLikeData = JsLikeNumber(a)
+  def fromAny[T](t: T): RetVal[T] = RetVal(t, new Encoder[T] {
+    override def apply(a: T): JsLikeData = JsLikeData.fromAny(a)
   })
 
-  def stringRetVal(s: String): RetVal[String] = RetVal(s, DefaultEncoders.StringEncoder)
+  def empty(): RetVal[Void] = RetVal(null, new Encoder[Void] {
+    override def apply(a: Void): JsLikeData = JsLikeUnit
+  })
 
 }
 
@@ -47,13 +53,15 @@ trait JArgsDef extends ArgDescriptionInstances {
 
   implicit val jInt = new ArgDescription[JavaInt] {
     override def `type`: ArgType = MInt
+
     override def apply(a: Any): Option[JavaInt] = a match {
       case i: Int => Some(new JavaInt(i))
       case _ => None
     }
-}
+  }
 
   def intArg(name: String): ArgDef[Integer] = arg[Integer](name)
+
   def stringArg(name: String): ArgDef[String] = arg[String](name)
 
 //  def withArgs[T1](a1: ArgDef[T1]): Args1[T1] = Args1(a1)
