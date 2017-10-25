@@ -9,7 +9,7 @@ object StageDist {
   lazy val stageActions = taskKey[Seq[StageAction]]("Actions to build stage")
   lazy val basicStage = taskKey[File]("Build stage for basic distributive")
   lazy val dockerStage = taskKey[File]("Build stage for docker distributive")
-  lazy val packageTar = taskKey[File]("Package stage to zip")
+  lazy val packageTar = taskKey[File]("Package stage to tar")
 
   lazy val settings = Seq(
     stageDirectory := target.value / name.value,

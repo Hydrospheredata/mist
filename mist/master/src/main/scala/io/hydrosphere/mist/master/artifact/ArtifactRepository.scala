@@ -1,9 +1,10 @@
 package io.hydrosphere.mist.master.artifact
 
 import java.io.File
-import java.nio.file.{StandardCopyOption, CopyOption, Files, Paths}
+import java.nio.file.{Files, Paths}
 import java.util.concurrent.Executors
 
+import io.hydrosphere.mist.master.data
 import io.hydrosphere.mist.master.models.EndpointConfig
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -98,7 +99,7 @@ object ArtifactRepository {
       .collect { case (key, Success(file)) => key -> file }
 
     val defaultArtifactRepo = new DefaultArtifactRepository(defaultJobsPath)(ec)
-    val fsArtifactRepo = new FsArtifactRepository(storagePath)(ec)
+    val fsArtifactRepo = new FsArtifactRepository(data.checkDirectory(storagePath).toString)(ec)
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 

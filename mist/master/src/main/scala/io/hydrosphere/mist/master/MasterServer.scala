@@ -11,7 +11,6 @@ import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.interfaces.async._
-import io.hydrosphere.mist.master.interfaces.cli.CliResponder
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
@@ -138,7 +137,6 @@ object MasterServer extends Logger {
                                                         artifactRepository
                                                      )
                              )
-      _                      =  runCliInterface(masterService)
       httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
       asyncInterfaces        =  bootstrapAsyncInput(masterService, config)
 
@@ -210,13 +208,6 @@ object MasterServer extends Logger {
     }).map(startInterface(_, "Kafka"))
 
     Seq(mqtt, kafka).flatten
-  }
-
-  private def runCliInterface(masterService: MainService)
-    (implicit sys: ActorSystem): ActorRef = {
-    sys.actorOf(
-      CliResponder.props(masterService, masterService.jobService.workerManager),
-      name = CliResponder.Name)
   }
 
 

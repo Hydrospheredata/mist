@@ -1,6 +1,6 @@
 ## Configuration
 
-_See full configuration [here](https://github.com/Hydrospheredata/mist/blob/master/src/main/resources/master.conf)_
+_See full configuration [here](https://github.com/Hydrospheredata/mist/blob/master/mist/master/src/main/resources/master.conf)_
 
 Configuration files are in [HOCON format](https://github.com/typesafehub/config/blob/master/HOCON.md)
 
