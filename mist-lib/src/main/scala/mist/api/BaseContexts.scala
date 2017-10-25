@@ -133,7 +133,7 @@ trait BaseContexts {
     tjd(sqlContext, f)
 
   /**
-    * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as argument.
+    * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
     */
   def onHiveContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[HiveContext, F, Out]): JobDef[Out] =
     tjd(hiveContext, f)
