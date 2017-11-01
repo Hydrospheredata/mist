@@ -32,7 +32,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
-      val entryPoint = new PythonEntryPoint(req, context)
+      val entryPoint = new PythonEntryPoint(req.copy(params = req.params.copy(filePath = jobFile.toString)), context)
 
       val gatewayServer: GatewayServer = new GatewayServer(entryPoint, 0)
       try {
