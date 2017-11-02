@@ -2,9 +2,7 @@ package io.hydrosphere.mist
 
 import org.scalatest.{FunSpec, Matchers}
 
-class ExamplesSpecSpark1 extends FunSpec with MistItTest with Matchers {
-
-  if (isSpark1) {
+class ExamplesSpecSpark extends FunSpec with MistItTest with Matchers {
     val interface = MistHttpInterface("localhost", 2004)
 
     it("run simple context") {
@@ -15,6 +13,5 @@ class ExamplesSpecSpark1 extends FunSpec with MistItTest with Matchers {
 
       result.success shouldBe true
     }
-  }
 
 }

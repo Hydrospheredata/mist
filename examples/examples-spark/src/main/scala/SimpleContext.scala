@@ -6,6 +6,7 @@ object SimpleContext extends MistJob with Logging {
     * Abstract method must be overridden
     *
     * @param numbers list of int to process
+    * @param multiplier optional multiplier for list. Default value is 2
     * @return result of the job
     */
   def execute(numbers: List[Int], multiplier: Option[Int]): Map[String, Any] = {
