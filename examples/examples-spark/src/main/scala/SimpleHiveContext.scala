@@ -5,7 +5,7 @@ object SimpleHiveContext extends MistJob with SQLSupport with HiveSupport {
   /** Contains implementation of spark job with [[org.apache.spark.sql.HiveContext]]
     * Abstract method must be overridden
     *
-    * @param parameters user parameters
+    * @param file json file path
     * @return result of the job
     */
   def execute(file: String): Map[String, Any] = {

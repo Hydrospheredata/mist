@@ -114,10 +114,6 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
-lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "1.5.2") match {
-  case versionRegex("1", minor) => examplesSpark1
-  case _ => examplesSpark2
-}
 
 lazy val root = project.in(file("."))
   .aggregate(mistLib, core, master, worker)
@@ -146,8 +142,8 @@ lazy val root = project.in(file("."))
         CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
-        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
-          .as(s"mist-examples-spark$sparkMajor.jar"),
+        CpFile(sbt.Keys.`package`.in(examplesSpark, Compile).value)
+          .as(s"mist-examples-spark.jar"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
@@ -266,51 +262,14 @@ lazy val root = project.in(file("."))
 
 addCommandAlias("testAll", ";test;it:test")
 
-lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
+lazy val examplesSpark = project.in(file("examples/examples-spark"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    name := "mist-examples-spark1",
+    name := "mist-examples-spark",
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     autoScalaLibrary := false
   )
-
-lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
-  .dependsOn(mistLib)
-  .settings(commonSettings: _*)
-  .settings(
-    name := "mist-examples-spark2",
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
-    // examplesspark2 works only for 2.11
-    libraryDependencies ++= {
-      val is2_11 = """2\.11\..""".r
-      scalaVersion.value match {
-        case is2_11() => Seq("io.hydrosphere" %% "spark-ml-serving" % "0.1.2")
-        case _ => Seq.empty
-      }
-    },
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
-    assembledMappings in assembly := {
-      // hack - there is no options how to exclude all dependecies that comes
-      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
-      def isServingLib(f: File): Boolean = {
-        val name = f.getName
-        name.startsWith("spark-ml-serving_2.11")
-      }
-      def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.11/classes")
-
-      val x = (fullClasspath in assembly).value
-      val filtered = x.seq.filter(v => {
-        val file = v.data
-        isServingLib(file) || isProjectClasses(file)
-      })
-      val s = (streams in assembly).value
-      Assembly.assembleMappings(filtered, Nil, (assemblyOption in assembly).value, s.log)
-    },
-    sbt.Keys.`package` in Compile := (assembly in assembly).value
-
-  )
-
 
 lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
