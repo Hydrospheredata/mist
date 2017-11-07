@@ -5,6 +5,7 @@ import mist.api.jdsl.RetVals;
 import mist.api.jdsl.RetVals$;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 
 public class RetValues {
@@ -27,12 +28,12 @@ public class RetValues {
         return instance.fromAny(Optional.empty());
     }
 
-    public static <T, U extends Iterable<? extends T>> RetVal<U> of(U it) {
+    public static <T> RetVal<List<T>> of(List<T> it) {
         return instance.fromAny(it);
     }
 
     @SafeVarargs
-    public static <T> RetVal<Iterable<T>> of(T... ts) {
+    public static <T> RetVal<List<T>> of(T... ts) {
         return instance.fromAny(java.util.Arrays.asList(ts));
     }
 
