@@ -91,19 +91,43 @@ object Boilerplate {
     override def range: Range.Inclusive = (2 to 21)
     def content(tv: TemplateVals) = {
       import tv._
+      val extrasMethod = {
+        if (arity != 21) {
+          block"""
+            -
+            -  def withMistExtras(): Args${arity}[${`T1..N-1`}, MistExtras] =
+            -    new Args${arity}[${`T1..N-1`}, MistExtras](${`a1..aN-1`}, MistExtras.mistExtras)
+          """
+        } else ""
+      }
       block"""
          |package mist.api.jdsl
          |
          |import org.apache.spark.api.java.JavaSparkContext
+         |import org.apache.spark.streaming.api.java.JavaStreamingContext
          |import FuncSyntax._
-         |import mist.api.BaseContexts._
+         |import mist.api.MistExtras
+         |import mist.api.BaseContextsArgs._
          |import mist.api.ArgDef
          |
-         -case class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
+         -class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
+         -
+         -  /**
+         -    * Define job execution that use JavaSparkContext for invocation
+         -    */
          -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JJobDef[R] = {
          -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
          -    new JJobDef(job)
          -  }
+         -
+         -  /**
+         -    * Define job execution that use JavaStreamingContext for invocation
+         -    */
+         -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal[R]]): JJobDef[R] = {
+         -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
+         -    new JJobDef(job)
+         -  }
+         ${extrasMethod}
          -}
       """
     }
@@ -121,8 +145,11 @@ object Boilerplate {
          |
          |trait WithArgs {
          |
+         -  /**
+         -    * Declare ${arity} required arguments for job
+         -    */
          -  def withArgs[${`T1..N`}](${`ArgDef1..n`}): Args${arity}[${`T1..N`}] =
-         -      Args${arity}(${`a1..aN`})
+         -    new Args${arity}(${`a1..aN`})
          |
          |}
          |
@@ -170,6 +197,7 @@ object Boilerplate {
     val `-T1..N`     = synJavaTypes.map("-" + _).mkString(",")
     val `a1:T1..aN:TN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")
     val `a1..aN`     = synJavaVals.mkString(",")
+    val `a1..aN-1`   = synJavaVals.dropRight(1).mkString(",")
     val `a1&aN`      = synJavaVals.mkString(" & ")
     val `a1&aN-1`    = synJavaVals.dropRight(1).mkString(" & ")
 

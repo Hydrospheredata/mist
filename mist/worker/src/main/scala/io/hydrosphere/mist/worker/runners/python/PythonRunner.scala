@@ -61,7 +61,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
         gatewayServer.shutdown()
       }
 
-      Try(JsLikeData.fromAny(entryPoint.dataWrapper.get)) match {
+      Try(JsLikeData.fromScala(entryPoint.dataWrapper.get)) match {
         case Success(data) => Right(data)
         case Failure(e) => Left(e)
       }

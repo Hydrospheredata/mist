@@ -21,11 +21,12 @@ trait BaseJobInstance extends BaseJobInfo {
 
 class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
 
-  override def describe(): Seq[ArgInfo] = Seq.empty
+  private val jobDef = instance.defineJob
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-    Right(params)
-  }
+  override def describe(): Seq[ArgInfo] = jobDef.describe()
+
+  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = jobDef.validate(params)
+
 
   override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
     try {
@@ -42,11 +43,11 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
 
 class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
 
-  override def describe(): Seq[ArgInfo] = Seq.empty
+  private val jobDef = instance.defineJob.jobDef
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
-    Right(params)
-  }
+  override def describe(): Seq[ArgInfo] = jobDef.describe()
+
+  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = jobDef.validate(params)
 
   override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
     try {

@@ -8,7 +8,10 @@ import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.api.java.JavaStreamingContext
 
-trait BaseContexts {
+/**
+  * Arguments for constructing contexts
+  */
+object BaseContextsArgs {
 
   val sparkContext: ArgDef[SparkContext] = ArgDef.create(InternalArgument)(ctx => Extracted(ctx.setupConfiguration.context))
   val streamingContext: ArgDef[StreamingContext] = ArgDef.create(InternalArgument)(ctx => {
@@ -38,19 +41,48 @@ trait BaseContexts {
   val javaSparkContext: ArgDef[JavaSparkContext] = sparkContext.map(sc => new JavaSparkContext(sc))
   val javaStreamingContext: ArgDef[JavaStreamingContext] = streamingContext.map(scc => new JavaStreamingContext(scc))
 
+}
+
+/**
+  * Provide context combinators to complete job definition, that can take some
+  * another arguments + spark computational context.
+  * <p>
+  * Available contexts:
+  * <ul>
+  *   <li>org.apache.spark.SparkContext</li>
+  *   <li>org.apache.spark.streaming.StreamingContext</li>
+  *   <li>org.apache.spark.sql.SQLContext</li>
+  *   <li>org.apache.spark.sql.hive.HiveContext</li>
+  * </ul>
+  *</p>
+  *
+  * There are two ways how to define job using that standard combinators:
+  * <p>
+  *   For job which doesn't require any external argument except context
+  *   use one of bellow functions:
+  *   <ul>
+  *     <li>onSparkContext((spark: SparkContext) => {...})</li>
+  *     <li>onStreamingContext((ssc: StreamingContext) => {...})</li>
+  *     <li>onSqlContext((sqlCtx: SQLContext) => {...})</li>
+  *     <li>onHiveContext((hiveCtx: HiveContext) => {...})</li>
+  *   </ul>
+  *   In case when you have arguments you can call that functions on them
+  *   {{{
+  *     withArgs(arg[Int]("x") & arg[String]("str")).onSparkContext(
+  *       (x: Int, str: String, sc: SparkContext) => {
+  *         ...
+  *     })
+  *   }}}
+  * </p>
+  */
+trait BaseContexts {
+
+  import BaseContextsArgs._
+
   implicit class ContextsOps[A](args: ArgDef[A]) {
 
     /**
-      * Define job execution function that takes current arguments and
-      * org.apache.spark.SparkContext
-      * Example:
-      * <pre>
-      * {@code
-      *   val args = withArgs(arg[Int]("one"), arg[Int]("two")
-      *   args.onSparkContext((one: Int, two: Int, spark: SparkContext) => ...)
-      * }
-      * </pre>
-      * @return
+      * Define job execution function that takes current arguments and org.apache.spark.SparkContext
       */
     def onSparkContext[F, Cmb, Out](f: F)(
       implicit
@@ -58,16 +90,7 @@ trait BaseContexts {
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sparkContext), f)
 
     /**
-      * Define job execution function that takes current arguments and
-      * org.apache.spark.streaming.StreamingContext
-      * Example:
-      * <pre>
-      * {@code
-      *   val args = withArgs(arg[Int]("one"), arg[Int]("two")
-      *   args.onStreamingContext((one: Int, two: Int, streamingCtx: StreamingContext) => ...)
-      * }
-      * </pre>
-      * @return
+      * Define job execution function that takes current arguments and org.apache.spark.streaming.StreamingContext
       */
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
@@ -75,17 +98,7 @@ trait BaseContexts {
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(streamingContext), f)
 
     /**
-      * Define job execution function that takes current arguments and
-      * org.apache.spark.sql.SQLContext
-      * Example:
-      * <pre>
-      * {@code
-      *
-      *  val args = withArgs(arg[Int]("one"), arg[Int]("two")
-      *  args.onSqlContext((one: Int, two: Int, sqlCtx: SQLContext) => ...)
-      * }
-      * </pre>
-      * @return
+      * Define job execution function that takes current arguments and org.apache.spark.sql.SQLContext
       */
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
@@ -93,17 +106,7 @@ trait BaseContexts {
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sqlContext), f)
 
     /**
-      * Define job execution function that takes current arguments and
-      * org.apache.spark.sql.hive.HiveContext
-      * Example:
-      * <pre>
-      * {@code
-      *
-      *  val args = withArgs(arg[Int]("one"), arg[Int]("two")
-      *  args.onHiveContext((one: Int, two: Int, hiveCtx: HiveContext) => ...)
-      * }
-      * </pre>
-      * @return
+      * Define job execution function that takes current arguments and org.apache.spark.sql.hive.HiveContext
       */
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
@@ -111,15 +114,27 @@ trait BaseContexts {
       tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(hiveContext), f)
   }
 
+  /**
+    * Define job execution function that takes only org.apache.spark.SparkContext as an argument.
+    */
   def onSparkContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[SparkContext, F, Out]): JobDef[Out] =
     tjd(sparkContext, f)
 
+  /**
+    * Define job execution function that takes only org.apache.spark.streaming.StreamingContext as an argument.
+    */
   def onStreamingContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[StreamingContext, F, Out]): JobDef[Out] =
     tjd(streamingContext, f)
 
+  /**
+    * Define job execution function that takes only org.apache.spark.sql.SQLContext as an argument.
+    */
   def onSqlContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[SQLContext, F, Out]): JobDef[Out] =
     tjd(sqlContext, f)
 
+  /**
+    * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
+    */
   def onHiveContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[HiveContext, F, Out]): JobDef[Out] =
     tjd(hiveContext, f)
 

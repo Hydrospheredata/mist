@@ -1,13 +1,11 @@
 import mist.api._
 import mist.api.encoding.DataFrameEncoding._
+import mist.api.args.WithArgsScala.ArgMagnet
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.hive.HiveContext
 
-object SimpleHiveContextV2 extends MistJob[DataFrame]{
+object HiveContextExample extends MistJob[DataFrame]{
 
-  /**
-    * Expects path to json file with int age columns
-    */
   def defineJob = {
     withArgs(arg[String]("file")).onHiveContext((file: String, hiveCtx: HiveContext) => {
       val df = hiveCtx.read.json(file)

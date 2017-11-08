@@ -2,13 +2,12 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object SimpleContextV2 extends MistJob[Array[Int]] {
-
+object SparkContextExample extends MistJob[Array[Int]] {
   import mist.api.args.WithArgsScala.ArgMagnet
 
   override def defineJob = {
     withArgs(
-      arg[Seq[Int]]("numbers"),
+      arg[Seq[Int]]("numbers") &
       arg[Int]("multiplier", 2)
     ).withMistExtras
      .onSparkContext((nums: Seq[Int], mult: Int, extras: MistExtras, sc: SparkContext) => {
