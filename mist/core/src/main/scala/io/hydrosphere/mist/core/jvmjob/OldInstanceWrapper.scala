@@ -11,7 +11,7 @@ class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {
   override def run(jobCtx: JobContext): Either[Throwable, JsLikeData] = {
     oldInstance.run(jobCtx.setupConfiguration, jobCtx.params) match {
       case l: Left[_, _] => l.asInstanceOf[Either[Throwable, JsLikeData]]
-      case Right(anyMap) => Try(JsLikeData.fromAny(anyMap)) match {
+      case Right(anyMap) => Try(JsLikeData.fromScala(anyMap)) match {
         case Success(data) => Right(data)
         case Failure(e) => Left(e)
       }
