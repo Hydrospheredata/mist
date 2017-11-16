@@ -1,9 +1,7 @@
 import mist.api.RetValues;
 import mist.api.jdsl.JJobDef;
 import mist.api.jdsl.JMistJob;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.streaming.Time;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -32,7 +30,6 @@ class JavaStreamingContextExample extends JMistJob<Void> {
                     List<scala.Tuple2<Integer, Integer>> values = rdd.collect();
                     String msg = "time:" + time + ", length:" + values.size() + ", collection:" + values;
                     extras.logger().info(msg);
-                    return null;
                });
 
             jsc.start();

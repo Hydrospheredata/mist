@@ -30,6 +30,7 @@ lazy val commonSettings = Seq(
     }),
 
   is2_10 := scalaVersion.value.startsWith("2.10"),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   version := "0.13.3"
 )
 

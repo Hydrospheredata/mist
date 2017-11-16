@@ -4,15 +4,16 @@
 [![Docker Hub Pulls](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)](https://img.shields.io/docker/pulls/hydrosphere/mist.svg)
 # Hydrosphere Mist
 
-[Hydrosphere](http://hydrosphere.io) Mist is a Multi-tenancy and Multi-user Spark server.
+[Hydrosphere](http://hydrosphere.io) Mist is a serverless proxy for Spark cluster.
 
 Main features:
-* **Serverless**. Get abstracted from resource isolation, sharing and auto-scaling. 
+* **Spark Function as a Service**. Deploy Spark functions rather than nodetebooks or scripts.
+* Decoupling of user API from Spark settings, cluster provisioning, resource isolation, sharing and auto-scaling. 
 * **REST** HTTP & Messaging (MQTT, Kafka) API for Scala & Python Spark jobs.
 * Compatibility with EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark distributions.
-* Spark **MLLib serving** that has been moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project
+* Spark **MLLib serving** that has been moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [ML Lambda](https://github.com/Hydrospheredata/hydro-serving) project
 
-It implements Spark Compute as a Service and creates a unified API layer for building enterprise solutions and services on top of a big data stack.
+It creates a unified API layer for building enterprise solutions and services on top of a Spark functions.
 
 ![Mist use cases](http://hydrosphere.io/wp-content/uploads/2016/06/Mist-scheme-1050x576.png)
 
@@ -27,6 +28,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 ## More Features
 
 - Spark Contexts orchestration - Cluster of Spark Clusters: manages multiple Spark contexts in separate JVMs or Dockers
+- Seamless Spark cluster on-demand provisioning, autoscaling and termination
 ![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
 - Realtime low latency serving/scoring for ML Lib models. Moved to [spark-ml-serving](https://github.com/Hydrospheredata/spark-ml-serving) library and [hydro-serving](https://github.com/Hydrospheredata/hydro-serving) project
 ![Mist Local Serving](http://dv9c7babquml0.cloudfront.net/docs-images/mist-model-serving.jpg)
