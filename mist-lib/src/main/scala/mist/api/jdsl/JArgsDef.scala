@@ -1,5 +1,8 @@
 package mist.api.jdsl
 
+import java.util
+import java.util.Optional
+
 import mist.api._
 import mist.api.args.{ArgType, MInt, _}
 import mist.api.data._
@@ -54,10 +57,10 @@ trait JArgsDef extends ArgDescriptionInstances {
   def stringArg(name: String, defaultValue: String): ArgDef[String] = arg[String](name, defaultValue)(forString)
 
   private def createOptArg[T](name: String)(implicit desc: ArgDescription[T]): ArgDef[ju.Optional[T]] = {
-    new ArgDef[ju.Optional[T]] {
+    new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(desc.`type`)))
 
-      override def extract(ctx: JobContext) = {
+      override def extract(ctx: JobContext): ArgExtraction[Optional[T]] = {
         ctx.params.get(name) match {
           case Some(x) => desc.apply(x) match {
             case Some(a) => Extracted(ju.Optional.of(a))
@@ -72,10 +75,10 @@ trait JArgsDef extends ArgDescriptionInstances {
   def optDouble(name: String): ArgDef[ju.Optional[jl.Double]] = createOptArg(name)(jDouble)
   def optString(name: String): ArgDef[ju.Optional[String]] = createOptArg(name)(forString)
 
-  private def createListArg[T](name: String)(implicit desc: ArgDescription[T]) = new ArgDef[ju.List[T]]{
+  private def createListArg[T](name: String)(implicit desc: ArgDescription[T]) = new UserArg[ju.List[T]]{
     override def describe() = Seq(UserInputArgument(name, MList(desc.`type`)))
 
-    override def extract(ctx: JobContext) = ctx.params.get(name) match {
+    override def extract(ctx: JobContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
       case Some(x) => x match {
         case a: ju.List[_] =>
           val optL = a.asScala
@@ -92,9 +95,7 @@ trait JArgsDef extends ArgDescriptionInstances {
   def doubleList(name: String): ArgDef[ju.List[jl.Double]] = createListArg(name)
   def stringList(name: String): ArgDef[ju.List[jl.String]] = createListArg(name)
 
-  val allArgs: ArgDef[ju.Map[String, Any]] = new ArgDef[ju.Map[String, Any]] {
-    override def describe() = Seq(InternalArgument)
-
+  val allArgs: ArgDef[ju.Map[String, Any]] = new SystemArg[ju.Map[String, Any]] {
     override def extract(ctx: JobContext) = Extracted(ctx.params.asJava)
   }
 }

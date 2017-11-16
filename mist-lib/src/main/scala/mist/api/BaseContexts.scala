@@ -13,26 +13,35 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext
   */
 object BaseContextsArgs {
 
-  val sparkContext: ArgDef[SparkContext] = ArgDef.create(InternalArgument)(ctx => Extracted(ctx.setupConfiguration.context))
-  val streamingContext: ArgDef[StreamingContext] = ArgDef.create(InternalArgument)(ctx => {
-    val conf = ctx.setupConfiguration
-    Extracted(
+
+  val sparkContext: ArgDef[SparkContext] = ArgDef.createWithFullCtx {
+    c => c.setupConf.context
+  }
+
+  val streamingContext: ArgDef[StreamingContext] = ArgDef.createWithFullCtx {
+    ctx => {
+      val conf = ctx.setupConf
       StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
-    )
-  })
+    }
+  }
 
   val sqlContext: ArgDef[SQLContext] = sparkContext.map(SQLContext.getOrCreate)
 
   // HiveContext should be cached per jvm
   // see #325
-  val hiveContext: ArgDef[HiveContext] = new ArgDef[HiveContext] {
+  val hiveContext: ArgDef[HiveContext] = new SystemArg[HiveContext] {
 
-    var cache: HiveContext = null
+    var cache: HiveContext = _
 
     override def extract(ctx: JobContext): ArgExtraction[HiveContext] = synchronized {
-      if (cache == null)
-        cache = new HiveContext(ctx.setupConfiguration.context)
-      Extracted(cache)
+      ctx match {
+        case c: FullJobContext =>
+          if (cache == null)
+            cache = new HiveContext(c.setupConf.context)
+          Extracted(cache)
+        case _ =>
+          Missing(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullJobContext.getClass.getSimpleName}")
+      }
     }
 
     override def describe(): Seq[ArgInfo] = Seq(InternalArgument)

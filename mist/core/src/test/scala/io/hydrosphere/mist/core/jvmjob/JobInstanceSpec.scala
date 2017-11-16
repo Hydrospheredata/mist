@@ -3,15 +3,13 @@ package io.hydrosphere.mist.core.jvmjob
 import mist.api.args._
 import mist.api.data._
 import mist.api.internal.BaseJobInstance
-import mist.api.JobContext
-
+import mist.api.{JobContext, FullJobContext}
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
-
 import org.apache.spark.{SparkConf, SparkContext}
-
 import org.apache.spark.streaming.Duration
+
 import scala.reflect.ClassTag
 
 class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
@@ -26,8 +24,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
   val jobInfo = RuntimeJobInfo("test", "test")
 
-  def jobContext(params: (String, Any)*): JobContext =
-    JobContext(SetupConfiguration(sc, Duration(10), jobInfo, None), params.toMap)
+  def jobContext(params: (String, Any)*): FullJobContext =
+    FullJobContext(SetupConfiguration(sc, Duration(10), jobInfo, None), params.toMap)
 
   override def beforeAll = {
     sc = new SparkContext(conf)

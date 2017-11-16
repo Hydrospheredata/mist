@@ -14,7 +14,6 @@ object ToJobDef {
 
   type Aux[In, F, Out0] = ToJobDef[In, F] { type Out = Out0 }
 
-  //TODO: how to validate params without full ctx??
   implicit def hListEncoded[In <: HList, F, Res](
     implicit fntp: FnToProduct.Aux[F, In => Res]
   ): Aux[In, F, Res] = new ToJobDef[In, F] {
@@ -28,9 +27,7 @@ object ToJobDef {
           case Missing(msg) =>
             val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
             JobResult.failure(e)
-        }, args.describe(),
-          (params: Map[String, Any]) => Right(params)
-        )
+        }, args.describe(), args.validate)
       }
   }
 
@@ -47,9 +44,7 @@ object ToJobDef {
           case Missing(msg) =>
               val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
               JobResult.failure(e)
-        }, args.describe(),
-          (params: Map[String, Any]) => Right(params)
-        )
+        }, args.describe(), args.validate)
       }
   }
 }

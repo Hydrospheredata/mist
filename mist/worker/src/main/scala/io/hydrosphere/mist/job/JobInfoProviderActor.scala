@@ -36,7 +36,7 @@ class SimpleJobInfoProviderActor(
         val message = instance match {
           case Success(i) => i.validateParams(params) match {
               case Right(_) => Status.Success(())
-              case Left(ex) => Status.Failure(ex)
+              case Left(err) => Status.Failure(err)
             }
           case Failure(ex) => Status.Failure(ex)
         }

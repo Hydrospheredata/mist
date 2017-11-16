@@ -101,8 +101,49 @@ class ArgDefSpec extends FunSpec with Matchers {
       allArgs.extract(testCtx()) shouldBe Extracted(Map.empty)
     }
   }
+  describe("ArgDef - validate") {
+
+    it("should fail validation on invalid params") {
+      val argTest = arg[Int]("test")
+      val res = argTest.validate(Map("missing" -> 42))
+      res.isLeft shouldBe true
+    }
+
+    it("should success validation on valid params") {
+      val argTest = arg[Int]("test")
+      val res = argTest.validate(Map("test" -> 42))
+      res shouldBe Right(())
+    }
+
+    it("should skip system arg definition") {
+      val res = allArgs.validate(Map.empty)
+      res.isRight shouldBe true
+    }
+
+    it("should validate .validated rules") {
+      val argTest = arg[Int]("test").validated(n => n > 41)
+      val res = argTest.validate(Map("test" -> 40))
+      res.isLeft shouldBe true
+    }
+    it("should pass validation on .validates rules") {
+      val argTest = arg[Int]("test").validated(n => n > 41)
+      val res = argTest.validate(Map("test" -> 42))
+      res.isRight shouldBe true
+    }
+    it("should validate after arg combine") {
+      val argTest = arg[Int]("test") & arg[Int]("test2")
+      argTest.validate(Map("test" -> 42, "test2" -> 40)).isRight shouldBe true
+      argTest.validate(Map("test" -> 42, "missing" -> 0)).isLeft shouldBe true
+      argTest.validate(Map("missing" -> 0, "test2" -> 40)).isLeft shouldBe true
+      argTest.validate(Map.empty).isLeft shouldBe true
+    }
+    it("should validate .validated rules after arg combine") {
+      val argTest = arg[Int]("test").validated(n => n > 40) & arg[Int]("test2")
+      argTest.validate(Map("test"-> 39, "test2" -> 42)).isLeft shouldBe true
+    }
+  }
 
   def testCtx(params: (String, Any)*): JobContext = {
-    JobContext(null, params.toMap)
+    JobContext(params.toMap)
   }
 }

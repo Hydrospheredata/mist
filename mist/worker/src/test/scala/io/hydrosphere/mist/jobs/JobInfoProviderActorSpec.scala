@@ -9,7 +9,7 @@ import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParam
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.job.{JobInfo, JobInfoExtractor, JobInfoProviderActor}
-import mist.api.{ArgInfo, JobContext, UserInputArgument}
+import mist.api.{ArgInfo, UserInputArgument, FullJobContext}
 import mist.api.args.MInt
 import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.internal.BaseJobInstance
@@ -133,9 +133,9 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   def TestJobInstance(validationResult: Either[Throwable, Map[String, Any]]): BaseJobInstance = new BaseJobInstance {
-    override def run(jobCtx: JobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+    override def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
 
-    override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = validationResult
+    override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = validationResult
 
     override def describe(): Seq[ArgInfo] = Seq.empty
   }

@@ -26,11 +26,21 @@ object ArgCombiner {
               val out = adj(ae :: be :: HNil)
               Extracted(out)
             case (Missing(errB), Missing(errA)) => Missing(errA + ", " + errB)
-            case (x @ Missing(err1), _ ) => x.asInstanceOf[Missing[adj.Out]]
-            case (_, x @ Missing(err2)) => x.asInstanceOf[Missing[adj.Out]]
+            case (x@Missing(_), _) => x.asInstanceOf[Missing[adj.Out]]
+            case (_, x@Missing(_)) => x.asInstanceOf[Missing[adj.Out]]
           }
         }
-     }
+
+        override def validate(params: Map[String, Any]): Either[Throwable, Any] = {
+          (a.validate(params), b.validate(params)) match {
+            case (Right(_), Right(_)) => Right(())
+            case (Left(errA), Left(errB)) =>
+              Left(new IllegalArgumentException(errA.getLocalizedMessage + "\n" + errB.getLocalizedMessage))
+            case (Left(errA), Right(_)) => Left(errA)
+            case (Right(_), Left(errB)) => Left(errB)
+          }
+        }
+      }
     }
   }
 

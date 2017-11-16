@@ -11,13 +11,13 @@ class WithArgsScalaSpec extends FunSpec with Matchers {
 
   it("should apply tuples") {
     val result = withArgs(const("a"), const("b"), const("c"), const(5), const("last"))
-    val extraction = result.extract(JobContext(null, Map.empty))
+    val extraction = result.extract(JobContext(Map.empty))
     extraction shouldBe Extracted("a" :: "b" :: "c" :: 5 :: "last" :: HNil)
   }
 
   it("should apply single element") {
     val result = withArgs(const("a"))
-    val extraction = result.extract(JobContext(null, Map.empty))
+    val extraction = result.extract(JobContext(Map.empty))
     extraction shouldBe Extracted("a")
   }
 
