@@ -81,6 +81,7 @@ trait UserArg[A] extends ArgDef[A] { self =>
       case Missing(err) => Left(new IllegalArgumentException(err))
     }
 }
+
 trait SystemArg[A] extends ArgDef[A] {
   override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
   override def validate(params: Map[String, Any]): Either[Throwable, Any] =

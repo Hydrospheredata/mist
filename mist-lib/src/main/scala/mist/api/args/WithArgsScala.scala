@@ -1,8 +1,10 @@
 package mist.api.args
 
-import mist.api.ArgDef
-import shapeless.ops.hlist.LeftReducer
-import shapeless.{Generic, HList, Poly2}
+import mist.api.{ArgDef, UserArg}
+import shapeless.ops.hlist.{LeftReducer, SubtypeUnifier}
+import shapeless.{Generic, HList, Lub, Poly2}
+
+import scala.annotation.implicitNotFound
 
 /**
   * Scala dsl to start job definition like `withArgs(a,b...n).onSparkContext(..`
@@ -30,6 +32,7 @@ object WithArgsScala extends WithArgsScala {
   }
 
   object ArgMagnet {
+
     implicit def toMagnet[A](value: A)(implicit toArgDef: ToArgDef[A]): ArgMagnet {type Out = toArgDef.Out} = {
       new ArgMagnet {
         type Out = toArgDef.Out
@@ -38,23 +41,44 @@ object WithArgsScala extends WithArgsScala {
     }
   }
 
-  sealed trait ToArgDef[A] {
+  sealed trait ToArgDef[-A] {
     type Out
     def apply(a: A): Out
   }
 
+  /**
+    * Tricks:
+    * We need to allow extending ArgDef :
+    * class MyArg[A] extends ArgDef[A] { ....
+    *
+    * But there is problem with implicits - I couldn't find a way how to define ArgCombiner
+    * thats supports ArgDef in covariant way
+    *
+    * Instances:
+    * - single - bound an argument to ArgDef[]
+    * - forTuple - reduce function uses `single` conversion to refine that arguments are ArgDef's
+    */
   object ToArgDef {
-    implicit def single[A]: ToArgDef[ArgDef[A]] {type Out = ArgDef[A]} =
+
+    type Aux[-A, Out0] = ToArgDef[A] { type Out = Out0 }
+
+    def apply[A](implicit tad: ToArgDef[A]): ToArgDef[A] = tad
+
+    implicit def single[A]: Aux[ArgDef[A], ArgDef[A]] =
       new ToArgDef[ArgDef[A]] {
-       type Out = ArgDef[A]
-       def apply(a: ArgDef[A]): ArgDef[A] = a
-    }
+        type Out = ArgDef[A]
+        def apply(a: ArgDef[A]): ArgDef[A] = a
+      }
 
     object reducer extends Poly2 {
-      implicit def reduce[A, B, Out]
-      (implicit cmb: ArgCombiner.Aux[A, B, Out]): Case.Aux[ArgDef[A], ArgDef[B], ArgDef[Out]] = {
-        at[ArgDef[A], ArgDef[B]] {(a: ArgDef[A], b: ArgDef[B]) =>
-          cmb(a, b)
+      implicit def reduce[A, B, Out, X, Y]
+      (implicit
+        toArg1: ToArgDef.Aux[A, ArgDef[X]],
+        toArg2: ToArgDef.Aux[B, ArgDef[Y]],
+        cmb: ArgCombiner.Aux[X, Y, Out]
+      ): Case.Aux[A, B, ArgDef[Out]] = {
+        at[A, B] {(a: A, b: B) =>
+          cmb(toArg1(a), toArg2(b))
         }
       }
     }
