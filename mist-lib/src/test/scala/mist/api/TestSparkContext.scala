@@ -5,7 +5,7 @@ import org.scalatest.{BeforeAndAfterAll, Suite}
 
 trait TestSparkContext extends BeforeAndAfterAll{this: Suite =>
 
-  var spark: SparkContext = null
+  var spark: SparkContext = _
 
   override def beforeAll(): Unit = {
     val conf = new SparkConf()

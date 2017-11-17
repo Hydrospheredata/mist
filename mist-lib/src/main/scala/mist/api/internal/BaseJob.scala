@@ -10,12 +10,12 @@ trait BaseJobInfo {
 
   def describe(): Seq[ArgInfo]
 
-  def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]]
+  def validateParams(params: Map[String, Any]): Either[Throwable, Any]
 }
 
 trait BaseJobInstance extends BaseJobInfo {
 
-  def run(jobCtx: JobContext): Either[Throwable, JsLikeData]
+  def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData]
 
 }
 
@@ -25,10 +25,11 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = jobDef.validate(params)
+  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
+    jobDef.validate(params)
 
 
-  override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullJobContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)
@@ -38,7 +39,6 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
       case e: Throwable => Left(e)
     }
   }
-
 }
 
 class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
@@ -47,9 +47,10 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = jobDef.validate(params)
+  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
+    jobDef.validate(params)
 
-  override def run(ctx: JobContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullJobContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)
@@ -64,9 +65,10 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
 
 object JobInstance {
   val NoOpInstance = new BaseJobInstance {
-    override def run(jobCtx: JobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
 
-    override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = Right(Map.empty)
+    override def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+
+    override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = Right(Map.empty)
 
     override def describe(): Seq[ArgInfo] = Seq()
   }

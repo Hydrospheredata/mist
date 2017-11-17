@@ -4,7 +4,9 @@ import mist.api.args.MOption
 
 trait JobDefInstances extends ArgDescriptionInstances {
 
-  class NamedArgDef[A](name: String)(implicit descr: ArgDescription[A]) extends ArgDef[A] {
+  class NamedArgDef[A](name: String)(implicit descr: ArgDescription[A]) extends UserArg[A] {
+
+    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, descr.`type`))
 
     override def extract(ctx: JobContext): ArgExtraction[A] = {
       ctx.params.get(name).flatMap(a => descr(a)) match {
@@ -12,12 +14,10 @@ trait JobDefInstances extends ArgDescriptionInstances {
         case None => Missing(s"Argument $name is missing or has incorrect type")
       }
     }
-
-    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, descr.`type`))
   }
 
-  class NamedArgWithDefault[A](name: String, default: A)(implicit descr: ArgDescription[A]) extends ArgDef[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = {
+  class NamedArgWithDefault[A](name: String, default: A)(implicit descr: ArgDescription[A]) extends UserArg[A] {
+    def extract(ctx: JobContext): ArgExtraction[A] = {
       ctx.params.get(name) match {
         case Some(any) => descr(any) match {
           case Some(v) => Extracted(v)
@@ -27,11 +27,12 @@ trait JobDefInstances extends ArgDescriptionInstances {
       }
     }
 
-    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, descr.`type`))
+    def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, descr.`type`))
+
   }
 
-  class OptionalNamedArgDef[A](name: String)(implicit descr: ArgDescription[A]) extends ArgDef[Option[A]] {
-    override def extract(ctx: JobContext): ArgExtraction[Option[A]] = {
+  class OptionalNamedArgDef[A](name: String)(implicit descr: ArgDescription[A]) extends UserArg[Option[A]] {
+    def extract(ctx: JobContext): ArgExtraction[Option[A]] = {
       ctx.params.get(name) match {
         case Some(any) =>
           descr(any) match {
@@ -42,17 +43,16 @@ trait JobDefInstances extends ArgDescriptionInstances {
       }
     }
 
-    override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(descr.`type`)))
+    def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(descr.`type`)))
   }
 
-  def arg[A](name: String)(implicit a: ArgDescription[A]): ArgDef[A] = new NamedArgDef[A](name)
+  def arg[A](name: String)(implicit a: ArgDescription[A]): UserArg[A] = new NamedArgDef[A](name)
 
-  def arg[A](name: String, default: A)(implicit a: ArgDescription[A]): ArgDef[A] = new NamedArgWithDefault[A](name, default)
+  def arg[A](name: String, default: A)(implicit a: ArgDescription[A]): UserArg[A] = new NamedArgWithDefault[A](name, default)
 
-  def optArg[A](name: String)(implicit a: ArgDescription[A]): ArgDef[Option[A]] = new OptionalNamedArgDef[A](name)
+  def optArg[A](name: String)(implicit a: ArgDescription[A]): UserArg[Option[A]] = new OptionalNamedArgDef[A](name)
 
-  val allArgs: ArgDef[Map[String, Any]] = new ArgDef[Map[String, Any]] {
-    override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
+  val allArgs: ArgDef[Map[String, Any]] = new SystemArg[Map[String, Any]] {
     override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
   }
 
@@ -66,7 +66,7 @@ trait JobDef[A] { self =>
 
   def describe(): Seq[ArgInfo]
 
-  def validate(params: Map[String, Any]): Either[Throwable, Map[String, Any]]
+  def validate(params: Map[String, Any]): Either[Throwable, Any]
 
 }
 
@@ -75,7 +75,7 @@ object JobDef {
   def instance[A](
     f: JobContext => JobResult[A],
     descr: => Seq[ArgInfo],
-    validateF: Map[String, Any] => Either[Throwable, Map[String, Any]]
+    validateF: Map[String, Any] => Either[Throwable, Any]
   ): JobDef[A] = new JobDef[A] {
 
     override def describe(): Seq[ArgInfo] = descr
@@ -88,6 +88,6 @@ object JobDef {
       }
     }
 
-    override def validate(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = validateF(params)
+    override def validate(params: Map[String, Any]): Either[Throwable, Any] = validateF(params)
   }
 }

@@ -47,7 +47,7 @@ class JobDefInstancesSpec extends FunSpec with Matchers {
 
 
   def testCtx(params: (String, Any)*): JobContext = {
-    JobContext(null, params.toMap)
+    JobContext(params.toMap)
   }
 
 }

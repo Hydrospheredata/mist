@@ -13,17 +13,15 @@ class MistExtras(
 
 object MistExtras {
 
-  val mistExtras: ArgDef[MistExtras] = ArgDef.create(InternalArgument)(ctx => {
-    val jobId = ctx.setupConfiguration.info.id
-    val workerId = ctx.setupConfiguration.info.workerId
-    val extras = new MistExtras(
+  val mistExtras: ArgDef[MistExtras] = SystemArg(ctx => {
+    val jobId = ctx.setupConf.info.id
+    val workerId = ctx.setupConf.info.workerId
+    Extracted(new MistExtras(
       jobId = jobId,
       workerId = workerId,
-      logger = new MLogger(jobId, ctx.setupConfiguration.loggingConf)
-    )
-    Extracted(extras)
+      logger = new MLogger(jobId, ctx.setupConf.loggingConf)
+    ))
   })
-
 }
 
 /**
