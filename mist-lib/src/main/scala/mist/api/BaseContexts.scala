@@ -14,14 +14,15 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext
 object BaseContextsArgs {
 
 
-  val sparkContext: ArgDef[SparkContext] = ArgDef.createWithFullCtx {
-    c => c.setupConf.context
+  val sparkContext: ArgDef[SparkContext] = SystemArg {
+    c => Extracted(c.setupConf.context)
   }
 
-  val streamingContext: ArgDef[StreamingContext] = ArgDef.createWithFullCtx {
+  val streamingContext: ArgDef[StreamingContext] = SystemArg {
     ctx => {
       val conf = ctx.setupConf
-      StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
+      val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
+      Extracted(ssc)
     }
   }
 

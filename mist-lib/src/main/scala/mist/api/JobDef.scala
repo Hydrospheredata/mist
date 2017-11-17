@@ -46,11 +46,11 @@ trait JobDefInstances extends ArgDescriptionInstances {
     def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(descr.`type`)))
   }
 
-  def arg[A](name: String)(implicit a: ArgDescription[A]): ArgDef[A] = new NamedArgDef[A](name)
+  def arg[A](name: String)(implicit a: ArgDescription[A]): UserArg[A] = new NamedArgDef[A](name)
 
-  def arg[A](name: String, default: A)(implicit a: ArgDescription[A]): ArgDef[A] = new NamedArgWithDefault[A](name, default)
+  def arg[A](name: String, default: A)(implicit a: ArgDescription[A]): UserArg[A] = new NamedArgWithDefault[A](name, default)
 
-  def optArg[A](name: String)(implicit a: ArgDescription[A]): ArgDef[Option[A]] = new OptionalNamedArgDef[A](name)
+  def optArg[A](name: String)(implicit a: ArgDescription[A]): UserArg[Option[A]] = new OptionalNamedArgDef[A](name)
 
   val allArgs: ArgDef[Map[String, Any]] = new SystemArg[Map[String, Any]] {
     override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)

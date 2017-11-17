@@ -13,14 +13,14 @@ class MistExtras(
 
 object MistExtras {
 
-  val mistExtras: ArgDef[MistExtras] = ArgDef.createWithFullCtx(ctx => {
+  val mistExtras: ArgDef[MistExtras] = SystemArg(ctx => {
     val jobId = ctx.setupConf.info.id
     val workerId = ctx.setupConf.info.workerId
-    new MistExtras(
+    Extracted(new MistExtras(
       jobId = jobId,
       workerId = workerId,
       logger = new MLogger(jobId, ctx.setupConf.loggingConf)
-    )
+    ))
   })
 }
 

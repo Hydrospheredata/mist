@@ -47,16 +47,16 @@ trait JArgsDef extends ArgDescriptionInstances {
     }
   }
 
-  def intArg(name: String): ArgDef[jl.Integer] = arg[jl.Integer](name)(jInt)
-  def intArg(name: String, defaultValue: jl.Integer): ArgDef[jl.Integer] = arg[jl.Integer](name, defaultValue)(jInt)
+  def intArg(name: String): UserArg[jl.Integer] = arg[jl.Integer](name)(jInt)
+  def intArg(name: String, defaultValue: jl.Integer): UserArg[jl.Integer] = arg[jl.Integer](name, defaultValue)(jInt)
 
-  def doubleArg(name: String): ArgDef[jl.Double] = arg[jl.Double](name)(jDouble)
-  def doubleArg(name: String, defaultValue: jl.Double): ArgDef[jl.Double] = arg[jl.Double](name, defaultValue)(jDouble)
+  def doubleArg(name: String): UserArg[jl.Double] = arg[jl.Double](name)(jDouble)
+  def doubleArg(name: String, defaultValue: jl.Double): UserArg[jl.Double] = arg[jl.Double](name, defaultValue)(jDouble)
 
-  def stringArg(name: String): ArgDef[String] = arg[String](name)(forString)
-  def stringArg(name: String, defaultValue: String): ArgDef[String] = arg[String](name, defaultValue)(forString)
+  def stringArg(name: String): UserArg[String] = arg[String](name)(forString)
+  def stringArg(name: String, defaultValue: String): UserArg[String] = arg[String](name, defaultValue)(forString)
 
-  private def createOptArg[T](name: String)(implicit desc: ArgDescription[T]): ArgDef[ju.Optional[T]] = {
+  private def createOptArg[T](name: String)(implicit desc: ArgDescription[T]): UserArg[ju.Optional[T]] = {
     new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(desc.`type`)))
 
@@ -71,9 +71,9 @@ trait JArgsDef extends ArgDescriptionInstances {
       }
     }
   }
-  def optInt(name: String): ArgDef[ju.Optional[jl.Integer]] = createOptArg(name)(jInt)
-  def optDouble(name: String): ArgDef[ju.Optional[jl.Double]] = createOptArg(name)(jDouble)
-  def optString(name: String): ArgDef[ju.Optional[String]] = createOptArg(name)(forString)
+  def optInt(name: String): UserArg[ju.Optional[jl.Integer]] = createOptArg(name)(jInt)
+  def optDouble(name: String): UserArg[ju.Optional[jl.Double]] = createOptArg(name)(jDouble)
+  def optString(name: String): UserArg[ju.Optional[String]] = createOptArg(name)(forString)
 
   private def createListArg[T](name: String)(implicit desc: ArgDescription[T]) = new UserArg[ju.List[T]]{
     override def describe() = Seq(UserInputArgument(name, MList(desc.`type`)))
@@ -91,9 +91,9 @@ trait JArgsDef extends ArgDescriptionInstances {
       case None => Missing(s"Argument $name could not be found in ctx params")
     }
   }
-  def intList(name: String): ArgDef[ju.List[jl.Integer]] = createListArg(name)
-  def doubleList(name: String): ArgDef[ju.List[jl.Double]] = createListArg(name)
-  def stringList(name: String): ArgDef[ju.List[jl.String]] = createListArg(name)
+  def intList(name: String): UserArg[ju.List[jl.Integer]] = createListArg(name)
+  def doubleList(name: String): UserArg[ju.List[jl.Double]] = createListArg(name)
+  def stringList(name: String): UserArg[ju.List[jl.String]] = createListArg(name)
 
   val allArgs: ArgDef[ju.Map[String, Any]] = new SystemArg[ju.Map[String, Any]] {
     override def extract(ctx: JobContext) = Extracted(ctx.params.asJava)

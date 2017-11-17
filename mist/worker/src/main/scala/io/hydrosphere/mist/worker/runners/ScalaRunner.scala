@@ -4,10 +4,9 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.JobsLoader
-import io.hydrosphere.mist.utils.EitherOps
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.worker.NamedContext
-import mist.api.{JobContext, FullJobContext}
+import mist.api.JobContext
 import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
@@ -36,7 +35,8 @@ class ScalaRunner(jobFile: File) extends JobRunner {
       for {
         inst      <- instance
         setupConf =  context.setupConfiguration(request.id)
-        result    <- inst.run(FullJobContext(setupConf, params.arguments))
+        _         <- inst.validateParams(params.arguments)
+        result    <- inst.run(JobContext(setupConf, params.arguments))
       } yield result
     }
   }

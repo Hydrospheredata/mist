@@ -22,7 +22,7 @@ trait ArgDef[A] { self =>
 
   def extract(ctx: JobContext): ArgExtraction[A]
 
-  def validate(params: Map[String, Any]): Either[Throwable, Any]
+  private[api] def validate(params: Map[String, Any]): Either[Throwable, Any]
 
   def combine[B](other: ArgDef[B])
       (implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
@@ -37,17 +37,28 @@ trait ArgDef[A] { self =>
 
       override def extract(ctx: JobContext): ArgExtraction[B] = self.extract(ctx).map(f)
 
-      override def validate(params: Map[String, Any]): Either[Throwable, Any] =
-        self.validate(params)
+      override def validate(params: Map[String, Any]): Either[Throwable, Any] = self.validate(params)
 
     }
   }
+  def apply[F, R](f: F)(implicit tjd: ToJobDef.Aux[A, F, R]): JobDef[R] = tjd(self, f)
+}
 
-  def validated(f: A => Boolean, reason: String = "Validation failed"): ArgDef[A] = {
+trait UserArg[A] extends ArgDef[A] { self =>
+
+  def validated(f: A => Boolean, reason: String = "Validation failed"): UserArg[A] = {
     new UserArg[A] {
       override def describe(): Seq[ArgInfo] = self.describe()
 
-      override def extract(ctx: JobContext): ArgExtraction[A] = self.extract(ctx)
+      override def extract(ctx: JobContext): ArgExtraction[A] =
+        self.extract(ctx).flatMap(a => {
+          if (f(a)) Extracted(a)
+          else {
+            val descr = if (reason.isEmpty) "" else " :" + reason
+            val message = s"Arg was rejected by validation rule" + descr
+            Missing(message)
+          }
+        })
 
       override def validate(params: Map[String, Any]): Either[Throwable, Any] =
         extract(JobContext(params)) match {
@@ -64,37 +75,39 @@ trait ArgDef[A] { self =>
     }
   }
 
-  def apply[F, R](f: F)(implicit tjd: ToJobDef.Aux[A, F, R]): JobDef[R] = tjd(self, f)
-
+  override private[mist] def validate(params: Map[String, Any]): Either[Throwable, Any] =
+    extract(JobContext(params)) match {
+      case Extracted(_) => Right(())
+      case Missing(err) => Left(new IllegalArgumentException(err))
+    }
 }
-
-trait UserArg[A] extends ArgDef[A] {
-  override def validate(params: Map[String, Any]): Either[Throwable, Any] = extract(JobContext(params)) match {
-    case Extracted(_) => Right(())
-    case Missing(err) => Left(new IllegalArgumentException(err))
-  }
-}
-
 trait SystemArg[A] extends ArgDef[A] {
   override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
   override def validate(params: Map[String, Any]): Either[Throwable, Any] =
     Right(())
 }
 
+object SystemArg {
+  def apply[A](f: => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
+    override def extract(ctx: JobContext): ArgExtraction[A] = f
+  }
+
+  def apply[A](f: FullJobContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
+    override def extract(ctx: JobContext): ArgExtraction[A] = ctx match {
+      case c: FullJobContext => f(c)
+      case _ =>
+        val desc = s"Unknown type of job context ${ctx.getClass.getSimpleName} " +
+          s"expected ${FullJobContext.getClass.getSimpleName}"
+        Missing(desc)
+    }
+  }
+}
+
 object ArgDef {
 
-  def create[A](f: JobContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = f(ctx)
-  }
+  def const[A](value: A): ArgDef[A] = SystemArg(Extracted(value))
 
-  def createWithFullCtx[A](f: FullJobContext => A): ArgDef[A] = ArgDef.create {
-    case c: FullJobContext => Extracted(f(c))
-    case ctx => Missing(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullJobContext.getClass.getSimpleName}")
-  }
-
-  def const[A](value: A): ArgDef[A] = create(_ => Extracted(value))
-
-  def missing[A](message: String): ArgDef[A] = create(_ => Missing(message))
+  def missing[A](message: String): ArgDef[A] = SystemArg(Missing(message))
 
 }
 
