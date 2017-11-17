@@ -3,7 +3,6 @@ import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.sql.SQLContext
 
 object SQLContextExample extends MistJob[Array[Int]]{
-  import mist.api.args.WithArgsScala.ArgMagnet
 
   override def defineJob: JobDef[Array[Int]] = {
     withArgs(arg[String]("file")).onSqlContext((file: String, sqlCtx: SQLContext) => {
