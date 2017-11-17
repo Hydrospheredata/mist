@@ -26,7 +26,6 @@ trait WithArgsScala {
 
 object WithArgsScala extends WithArgsScala {
 
-  @implicitNotFound("Can't convert input to ArgsDefenition")
   trait ArgMagnet {
     type Out
     def apply(): Out
