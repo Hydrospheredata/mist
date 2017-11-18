@@ -7,7 +7,6 @@ import shapeless.HNil
 class WithArgsScalaSpec extends FunSpec with Matchers {
 
   import ArgDef._
-  import WithArgsScala.ArgMagnet._
   import WithArgsScala._
 
   it("should apply tuples") {
@@ -27,6 +26,13 @@ class WithArgsScalaSpec extends FunSpec with Matchers {
     val result = withArgs((arg[Int]("n"): UserArg[Int], arg[Int]("m")))
     val extraction = result.extract(JobContext(Map("n" -> 5, "m" -> 10)))
     extraction shouldBe Extracted(5 :: 10 :: HNil)
+  }
+
+  it("should work with signle user arg") {
+    import mist.api.JobDefInstances._
+    val result = withArgs(arg[Int]("n"): UserArg[Int])
+    val extraction = result.extract(JobContext(Map("n" -> 5, "m" -> 10)))
+    extraction shouldBe Extracted(5)
   }
 
 }

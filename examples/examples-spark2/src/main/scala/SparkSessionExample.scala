@@ -3,11 +3,10 @@ import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.sql.SparkSession
 
 object SparkSessionExample extends MistJob[Array[Int]]{
-  import mist.api.args.WithArgsScala.ArgMagnet
 
   override def defineJob: JobDef[Array[Int]] = {
      withArgs(
-       arg[Seq[Int]]("numbers") &
+       arg[Seq[Int]]("numbers"),
        arg[Int]("multiplier", 2)
       ).withMistExtras
        .onSparkSession((nums: Seq[Int], mult: Int, extras: MistExtras, spark: SparkSession) => {

@@ -1,6 +1,5 @@
 import mist.api._
 import mist.api.encoding.DataFrameEncoding._
-import mist.api.args.WithArgsScala.ArgMagnet
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.hive.HiveContext
 

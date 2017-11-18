@@ -6,7 +6,6 @@ import org.apache.spark.streaming.StreamingContext
 import scala.collection.mutable
 
 object StreamingExample extends MistJob[Unit]{
-  import mist.api.args.WithArgsScala.ArgMagnet
 
   override def defineJob: JobDef[Unit] = {
     withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
