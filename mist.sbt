@@ -47,7 +47,7 @@ lazy val mistLib = project.in(file("mist-lib"))
         current.gteq(semver)
       }).get
       if (filtered.nonEmpty) {
-        val msg = s"Spark version is $current - add addition source directories:\n" +
+        val msg = s"Spark version is $current - add source directories:\n" +
           filtered.map(f => "- " + f).mkString("\n")
         sLog.value.info(msg)
       }

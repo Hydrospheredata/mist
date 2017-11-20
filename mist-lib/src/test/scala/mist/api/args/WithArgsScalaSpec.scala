@@ -28,7 +28,7 @@ class WithArgsScalaSpec extends FunSpec with Matchers {
     extraction shouldBe Extracted(5 :: 10 :: HNil)
   }
 
-  it("should work with signle user arg") {
+  it("should work with single user arg") {
     import mist.api.JobDefInstances._
     val result = withArgs(arg[Int]("n"): UserArg[Int])
     val extraction = result.extract(JobContext(Map("n" -> 5, "m" -> 10)))
