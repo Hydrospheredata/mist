@@ -6,29 +6,30 @@ import java.util.Optional
 import mist.api._
 import mist.api.args.{ArgType, MInt, _}
 import mist.api.data._
-import mist.api.encoding.Encoder
 
-case class RetVal[T](value: T, encoder: Encoder[T]) {
-  def encoded(): JsLikeData = encoder(value)
+class JUserArg[A](underlying: UserArg[A]) {
+
+  def validated(f: Func1[A, java.lang.Boolean], reason: String): JUserArg[A] =
+    new JUserArg(underlying.validated((a: A) => f(a), reason))
+
+  def validated(f: Func1[A, java.lang.Boolean]): JUserArg[A] =
+    new JUserArg(underlying.validated((a: A) => f(a)))
+
+  def map[B](f: Func1[A, B]): JUserArg[B] = {
+    val x = underlying.map((a: A) => f(a))
+    new JUserArg[B](underlying.map((a: A) => f(a)))
+  }
+
+  def asScala: UserArg[A] = underlying
 }
 
-trait RetVals {
-
-  def fromAny[T](t: T): RetVal[T] = RetVal(t, new Encoder[T] {
-    override def apply(a: T): JsLikeData = JsLikeData.fromJava(a)
-  })
-
-  def empty(): RetVal[Void] = RetVal(null, new Encoder[Void] {
-    override def apply(a: Void): JsLikeData = JsLikeUnit
-  })
-
-}
-
-object RetVals extends RetVals
 
 trait JArgsDef extends ArgDescriptionInstances {
+
   import java.{lang => jl, util => ju}
+
   import mist.api.JobDefInstances._
+
   import scala.collection.JavaConverters._
 
   implicit val jInt = new ArgDescription[jl.Integer] {
@@ -47,14 +48,29 @@ trait JArgsDef extends ArgDescriptionInstances {
     }
   }
 
-  def intArg(name: String): UserArg[jl.Integer] = arg[jl.Integer](name)(jInt)
-  def intArg(name: String, defaultValue: jl.Integer): UserArg[jl.Integer] = arg[jl.Integer](name, defaultValue)(jInt)
+  private def namedArg[A](name: String): JUserArg[A] =
+    new NamedArgDef[A](name) with JUserArg[A]
 
-  def doubleArg(name: String): UserArg[jl.Double] = arg[jl.Double](name)(jDouble)
-  def doubleArg(name: String, defaultValue: jl.Double): UserArg[jl.Double] = arg[jl.Double](name, defaultValue)(jDouble)
+  private def namedArg[A](name: String, default: A): JUserArg[A] =
+    new NamedArgWithDefault[A](name, default) with JUserArg[A]
 
-  def stringArg(name: String): UserArg[String] = arg[String](name)(forString)
-  def stringArg(name: String, defaultValue: String): UserArg[String] = arg[String](name, defaultValue)(forString)
+  private def optArg[A](name: String): JUserArg[ju.Optional[A]] = {
+    val x = new OptionalNamedArgDef[A](name).map({
+      case Some(v) => Optional.of(v)
+      case None => Optional.empty()
+    })
+
+    val x = new OptionalNamedArgDef[A](name).map() with JUserArg[ju.Optional[A]]
+  }
+
+  def intArg(name: String): JUserArg[jl.Integer] = namedArg(name)
+  def intArg(name: String, defaultValue: jl.Integer): JUserArg[jl.Integer] = namedArg(name, defaultValue)
+
+  def doubleArg(name: String): JUserArg[jl.Double] = namedArg(name)
+  def doubleArg(name: String, defaultValue: jl.Double): JUserArg[jl.Double] = namedArg(name)
+
+  def stringArg(name: String): JUserArg[String] = namedArg(name)
+  def stringArg(name: String, defaultValue: String): JUserArg[String] = namedArg(name, defaultValue)
 
   private def createOptArg[T](name: String)(implicit desc: ArgDescription[T]): UserArg[ju.Optional[T]] = {
     new UserArg[ju.Optional[T]] {
