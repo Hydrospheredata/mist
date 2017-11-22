@@ -6,29 +6,33 @@ import java.util.Optional
 import mist.api._
 import mist.api.args.{ArgType, MInt, _}
 import mist.api.data._
-import mist.api.encoding.Encoder
 
-case class RetVal[T](value: T, encoder: Encoder[T]) {
-  def encoded(): JsLikeData = encoder(value)
+/**
+  * Wrap UserArg to support validated method for java
+  */
+trait JArg[A] {
+
+  def asScala: ArgDef[A]
 }
 
-trait RetVals {
+class JUserArg[A](underlying: UserArg[A]) extends JArg[A] {
 
-  def fromAny[T](t: T): RetVal[T] = RetVal(t, new Encoder[T] {
-    override def apply(a: T): JsLikeData = JsLikeData.fromJava(a)
-  })
+  def validated(f: Func1[A, java.lang.Boolean], reason: String): JUserArg[A] =
+    new JUserArg(underlying.validated((a: A) => f(a), reason))
 
-  def empty(): RetVal[Void] = RetVal(null, new Encoder[Void] {
-    override def apply(a: Void): JsLikeData = JsLikeUnit
-  })
+  def validated(f: Func1[A, java.lang.Boolean]): JUserArg[A] =
+    new JUserArg(underlying.validated((a: A) => f(a)))
 
+  def asScala: UserArg[A] = underlying
 }
 
-object RetVals extends RetVals
 
 trait JArgsDef extends ArgDescriptionInstances {
+
   import java.{lang => jl, util => ju}
+
   import mist.api.JobDefInstances._
+
   import scala.collection.JavaConverters._
 
   implicit val jInt = new ArgDescription[jl.Integer] {
@@ -47,17 +51,23 @@ trait JArgsDef extends ArgDescriptionInstances {
     }
   }
 
-  def intArg(name: String): UserArg[jl.Integer] = arg[jl.Integer](name)(jInt)
-  def intArg(name: String, defaultValue: jl.Integer): UserArg[jl.Integer] = arg[jl.Integer](name, defaultValue)(jInt)
+  private def namedArg[A](name: String)(implicit d: ArgDescription[A]): JUserArg[A] =
+    new JUserArg[A](new NamedArgDef[A](name))
 
-  def doubleArg(name: String): UserArg[jl.Double] = arg[jl.Double](name)(jDouble)
-  def doubleArg(name: String, defaultValue: jl.Double): UserArg[jl.Double] = arg[jl.Double](name, defaultValue)(jDouble)
+  private def namedArg[A](name: String, default: A)(implicit d: ArgDescription[A]): JUserArg[A] =
+    new JUserArg[A](new NamedArgWithDefault[A](name, default))
 
-  def stringArg(name: String): UserArg[String] = arg[String](name)(forString)
-  def stringArg(name: String, defaultValue: String): UserArg[String] = arg[String](name, defaultValue)(forString)
+  def intArg(name: String): JUserArg[jl.Integer] = namedArg(name)
+  def intArg(name: String, defaultValue: jl.Integer): JUserArg[jl.Integer] = namedArg(name, defaultValue)
 
-  private def createOptArg[T](name: String)(implicit desc: ArgDescription[T]): UserArg[ju.Optional[T]] = {
-    new UserArg[ju.Optional[T]] {
+  def doubleArg(name: String): JUserArg[jl.Double] = namedArg(name)
+  def doubleArg(name: String, defaultValue: jl.Double): JUserArg[jl.Double] = namedArg(name)
+
+  def stringArg(name: String): JUserArg[String] = namedArg(name)
+  def stringArg(name: String, defaultValue: String): JUserArg[String] = namedArg(name, defaultValue)
+
+  private def optArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.Optional[T]] = {
+    val arg = new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(desc.`type`)))
 
       override def extract(ctx: JobContext): ArgExtraction[Optional[T]] = {
@@ -70,33 +80,42 @@ trait JArgsDef extends ArgDescriptionInstances {
         }
       }
     }
+    new JUserArg[Optional[T]](arg)
   }
-  def optInt(name: String): UserArg[ju.Optional[jl.Integer]] = createOptArg(name)(jInt)
-  def optDouble(name: String): UserArg[ju.Optional[jl.Double]] = createOptArg(name)(jDouble)
-  def optString(name: String): UserArg[ju.Optional[String]] = createOptArg(name)(forString)
 
-  private def createListArg[T](name: String)(implicit desc: ArgDescription[T]) = new UserArg[ju.List[T]]{
-    override def describe() = Seq(UserInputArgument(name, MList(desc.`type`)))
+  def optInt(name: String): JUserArg[ju.Optional[jl.Integer]] = optArg(name)
+  def optDouble(name: String): JUserArg[ju.Optional[jl.Double]] = optArg(name)
+  def optString(name: String): JUserArg[ju.Optional[String]] = optArg(name)
 
-    override def extract(ctx: JobContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
-      case Some(x) => x match {
-        case a: ju.List[_] =>
-          val optL = a.asScala
-            .map(a => desc.apply(a))
+  private def listArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.List[T]] = {
+    val arg = new UserArg[ju.List[T]] {
+      override def describe() = Seq(UserInputArgument(name, MList(desc.`type`)))
 
-          if (optL.exists(_.isEmpty)) {
-            Missing(s"Invalid type of list $name values could not resolve to type ${desc.`type`}")
-          } else Extracted(optL.map(_.get).asJava)
+      override def extract(ctx: JobContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
+        case Some(x) => x match {
+          case seq: Seq[_] =>
+            val optL = seq.map(a => desc.apply(a))
+
+            if (optL.exists(_.isEmpty)) {
+              Missing(s"Invalid type of list $name values could not resolve to type ${desc.`type`}")
+            } else Extracted(optL.map(_.get).asJava)
+          case _ => Missing(s"Invalid type of list $name values could not resolve to type ${desc.`type`}")
+        }
+        case None => Missing(s"Argument $name could not be found in ctx params")
       }
-      case None => Missing(s"Argument $name could not be found in ctx params")
     }
+    new JUserArg[ju.List[T]](arg)
   }
-  def intList(name: String): UserArg[ju.List[jl.Integer]] = createListArg(name)
-  def doubleList(name: String): UserArg[ju.List[jl.Double]] = createListArg(name)
-  def stringList(name: String): UserArg[ju.List[jl.String]] = createListArg(name)
 
-  val allArgs: ArgDef[ju.Map[String, Any]] = new SystemArg[ju.Map[String, Any]] {
-    override def extract(ctx: JobContext) = Extracted(ctx.params.asJava)
+  def intList(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
+  def doubleList(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
+  def stringList(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
+
+  val allArgs: JArg[ju.Map[String, Any]] = {
+    val arg = JobDefInstances.allArgs.map(_.asJava)
+    new JArg[ju.Map[String, Any]] {
+      override def asScala: ArgDef[ju.Map[String, Any]] = arg
+    }
   }
 }
 

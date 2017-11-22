@@ -148,8 +148,8 @@ object Boilerplate {
          -  /**
          -    * Declare ${arity} required arguments for job
          -    */
-         -  def withArgs[${`T1..N`}](${`ArgDef1..n`}): Args${arity}[${`T1..N`}] =
-         -    new Args${arity}(${`a1..aN`})
+         -  def withArgs[${`T1..N`}](${`JArg1..n`}): Args${arity}[${`T1..N`}] =
+         -    new Args${arity}(${`a1..aN_asScala`})
          |
          |}
          |
@@ -197,12 +197,17 @@ object Boilerplate {
     val `-T1..N`     = synJavaTypes.map("-" + _).mkString(",")
     val `a1:T1..aN:TN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")
     val `a1..aN`     = synJavaVals.mkString(",")
+    val `a1..aN_asScala` = synJavaVals.map(a => a + ".asScala").mkString(",")
     val `a1..aN-1`   = synJavaVals.dropRight(1).mkString(",")
     val `a1&aN`      = synJavaVals.mkString(" & ")
     val `a1&aN-1`    = synJavaVals.dropRight(1).mkString(" & ")
 
     val `ArgDef1..n` = {
       val types = synJavaTypes.map(t => s"ArgDef[$t]")
+      (types zip synJavaVals).map({case (t, a) => a + ":" + t}).mkString(" ,")
+    }
+    val `JArg1..n` = {
+      val types = synJavaTypes.map(t => s"JArg[$t]")
       (types zip synJavaVals).map({case (t, a) => a + ":" + t}).mkString(" ,")
     }
     val `ArgDef1..n-1` = {
