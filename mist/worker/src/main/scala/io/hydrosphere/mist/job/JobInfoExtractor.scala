@@ -4,7 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader}
-import mist.api.UserInputArgument
+import mist.api.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
 import org.apache.spark.util.SparkClassLoader
@@ -34,7 +34,10 @@ class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtract
         lang = lang,
         execute = instance.describe().collect { case x: UserInputArgument => x },
         isServe = !executeJobInstance.isSuccess,
-        className = className
+        className = className,
+        tags = instance.describe()
+          .collect { case InternalArgument(t) => t }
+          .flatten
       ))
     }
   }

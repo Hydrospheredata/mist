@@ -54,6 +54,8 @@ trait JobDefInstances extends ArgDescriptionInstances {
 
   val allArgs: ArgDef[Map[String, Any]] = new SystemArg[Map[String, Any]] {
     override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
+
+    override def describe(): Seq[ArgInfo] = Seq(InternalArgument())
   }
 
 }

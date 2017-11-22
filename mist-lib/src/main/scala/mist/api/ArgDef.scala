@@ -87,17 +87,19 @@ trait UserArg[A] extends ArgDef[A] { self =>
 }
 
 trait SystemArg[A] extends ArgDef[A] {
-  override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
   override def validate(params: Map[String, Any]): Either[Throwable, Any] =
     Right(())
 }
 
 object SystemArg {
-  def apply[A](f: => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
+
+  def apply[A](tags: Seq[String], f: => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
     override def extract(ctx: JobContext): ArgExtraction[A] = f
+
+    override def describe() = Seq(InternalArgument(tags))
   }
 
-  def apply[A](f: FullJobContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
+  def apply[A](tags: Seq[String], f: FullJobContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
     override def extract(ctx: JobContext): ArgExtraction[A] = ctx match {
       case c: FullJobContext => f(c)
       case _ =>
@@ -105,14 +107,16 @@ object SystemArg {
           s"expected ${FullJobContext.getClass.getSimpleName}"
         Missing(desc)
     }
+
+    override def describe() = Seq(InternalArgument(tags))
   }
 }
 
 object ArgDef {
 
-  def const[A](value: A): ArgDef[A] = SystemArg(Extracted(value))
+  def const[A](value: A): ArgDef[A] = SystemArg(Seq.empty, Extracted(value))
 
-  def missing[A](message: String): ArgDef[A] = SystemArg(Missing(message))
+  def missing[A](message: String): ArgDef[A] = SystemArg(Seq.empty, Missing(message))
 
 }
 

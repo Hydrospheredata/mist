@@ -13,7 +13,7 @@ class MistExtras(
 
 object MistExtras {
 
-  val mistExtras: ArgDef[MistExtras] = SystemArg(ctx => {
+  val mistExtras: ArgDef[MistExtras] = SystemArg(Seq.empty, ctx => {
     val jobId = ctx.setupConf.info.id
     val workerId = ctx.setupConf.info.workerId
     Extracted(new MistExtras(

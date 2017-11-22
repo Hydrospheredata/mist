@@ -2,8 +2,14 @@ package mist.api
 import mist.api.args._
 
 sealed trait ArgInfo
-case object InternalArgument extends ArgInfo
+case class InternalArgument(tags: Seq[String] = Seq.empty) extends ArgInfo
 case class UserInputArgument(name: String, t: ArgType) extends ArgInfo
+
+object ArgInfo {
+  val StreamingContextTag = "streaming"
+  val SqlContextTag = "sql"
+  val HiveContextTag = "hive"
+}
 
 trait ArgDescription[A] {
   def `type`: ArgType

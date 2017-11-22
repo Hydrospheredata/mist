@@ -14,19 +14,22 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext
 object BaseContextsArgs {
 
 
-  val sparkContext: ArgDef[SparkContext] = SystemArg {
+  val sparkContext: ArgDef[SparkContext] = SystemArg(
+    Seq.empty,
     c => Extracted(c.setupConf.context)
-  }
+  )
 
-  val streamingContext: ArgDef[StreamingContext] = SystemArg {
+  val streamingContext: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
     ctx => {
       val conf = ctx.setupConf
       val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
       Extracted(ssc)
     }
-  }
+  )
 
-  val sqlContext: ArgDef[SQLContext] = sparkContext.map(SQLContext.getOrCreate)
+  val sqlContext: ArgDef[SQLContext] = SystemArg(Seq(ArgInfo.SqlContextTag),
+    ctx => sparkContext.map(SQLContext.getOrCreate).extract(ctx)
+  )
 
   // HiveContext should be cached per jvm
   // see #325
@@ -45,11 +48,13 @@ object BaseContextsArgs {
       }
     }
 
-    override def describe(): Seq[ArgInfo] = Seq(InternalArgument)
+    override def describe(): Seq[ArgInfo] = Seq(InternalArgument(
+      Seq(ArgInfo.HiveContextTag, ArgInfo.SqlContextTag)))
   }
 
   val javaSparkContext: ArgDef[JavaSparkContext] = sparkContext.map(sc => new JavaSparkContext(sc))
-  val javaStreamingContext: ArgDef[JavaStreamingContext] = streamingContext.map(scc => new JavaStreamingContext(scc))
+  val javaStreamingContext: ArgDef[JavaStreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
+    ctx => streamingContext.map(scc => new JavaStreamingContext(scc)).extract(ctx))
 
 }
 

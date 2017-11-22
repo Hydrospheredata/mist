@@ -11,21 +11,6 @@ import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
-  def loadJobClass(className: String): Try[JobClass] = {
-    loadClass(className).map({
-      case clz if mist.api.internal.JobInstance.isScalaInstance(clz) =>
-        JobClass(clz, execute = Option(mist.api.internal.JobInstance.loadScala(clz)), serve = None)
-      case clz if mist.api.internal.JobInstance.isJavaInstance(clz) =>
-        JobClass(clz, execute = Option(mist.api.internal.JobInstance.loadJava(clz)), serve = None)
-      case clz =>
-        new JobClass(
-          clazz = clz,
-          execute = loadJobInstance(clz, Action.Execute),
-          serve = loadJobInstance(clz, Action.Serve)
-        )
-    })
-  }
-
   def loadJobInstance(className: String, action: Action): Try[BaseJobInstance] = {
     loadClass(className).flatMap({
       case clz if mist.api.internal.JobInstance.isScalaInstance(clz) =>
@@ -59,14 +44,8 @@ class JobsLoader(val classLoader: ClassLoader) {
     case Action.Serve => "serve"
   }
 
-  private def loadClass(name: String): Try[Class[_]] = {
-    try {
-      val clazz = Class.forName(name, false, classLoader)
-      Success(clazz)
-    } catch {
-      case e: Throwable => Failure(e)
-    }
-  }
+  private def loadClass(name: String): Try[Class[_]] =
+    Try(Class.forName(name, false, classLoader))
 }
 
 object JobsLoader {

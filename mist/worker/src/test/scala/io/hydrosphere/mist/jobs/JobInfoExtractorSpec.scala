@@ -88,17 +88,17 @@ class JobInfoExtractorSpec extends FunSpecLike
       when(scalaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(javaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(oldJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
@@ -145,7 +145,7 @@ class JobInfoExtractorSpec extends FunSpecLike
       when(oldInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(jobsLoader.loadJobInstance(any[String], mockitoEq(Action.Serve)))
         .thenReturn(Success(oldInstance))
