@@ -19,6 +19,7 @@ class ArgTypeSpec extends FunSpec with Matchers {
     (typeOf[Option[Int]], MOption(MInt)),
     (typeOf[Any], MAny),
     (typeOf[Any], MAny),
+    (typeOf[Boolean], MBoolean),
     (typeOf[AliasOption[Int]], MOption(MInt)),
     (typeOf[Map[List[Option[String]], Int]], MMap(MList(MOption(MString)), MInt))
   )

@@ -1,6 +1,7 @@
 package mist.api.args
 
 sealed trait ArgType
+case object MBoolean extends ArgType
 case object MInt extends ArgType
 case object MString extends ArgType
 case object MDouble extends ArgType
@@ -19,6 +20,7 @@ object ArgType {
     t.typeSymbol.fullName match {
       case "scala.Int" => MInt
       case "scala.Double" => MDouble
+      case "scala.Boolean" => MBoolean
       case "java.lang.String" => MString
       case "scala.Any" => MAny
       case "scala.Option" => MOption(fromType(ref.args.head))

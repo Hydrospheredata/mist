@@ -38,7 +38,6 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   it("should execute") {
     val instance = instanceFor[MultiplyJob.type](Action.Execute)
     //TODO:!!
-    //instance.argumentsTypes shouldBe Map("numbers" -> MList(MInt))
     // valid params
     instance.run(jobContext("numbers" -> List(1,2,4))) shouldBe
       Right(JsLikeMap("r" -> JsLikeList(Seq(2,4,8).map(i => JsLikeNumber(i)))))
