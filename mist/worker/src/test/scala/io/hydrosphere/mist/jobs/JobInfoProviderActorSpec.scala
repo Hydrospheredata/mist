@@ -138,5 +138,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = validationResult
 
     override def describe(): Seq[ArgInfo] = Seq.empty
+
+    override def tags(): Seq[String] = Seq.empty
   }
 }
