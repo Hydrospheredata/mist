@@ -1,5 +1,8 @@
 package io.hydrosphere.mist.core
 
+import akka.actor.ActorRef
+import mist.api.data.JsLikeData
+
 import scala.concurrent.duration.Duration
 
 object CommonData {
@@ -75,7 +78,7 @@ object CommonData {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
+  case class JobSuccess(id: String, result: JsLikeData) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
   sealed trait GetRunInitInfo
@@ -97,4 +100,19 @@ object CommonData {
       override def toString: String = "serve"
     }
   }
+
+  val JobInfoProviderRegisterActorName = "job-info-provider-register"
+  case class RegisterJobInfoProvider(ref: ActorRef)
+
+  sealed trait JobInfoMessage {
+    val className: String
+    val jobPath: String
+  }
+  case class GetJobInfo(className: String, jobPath: String) extends JobInfoMessage
+  case class ValidateJobParameters(
+    className: String,
+    jobPath: String,
+    action: Action,
+    params: Map[String, Any]
+  ) extends JobInfoMessage
 }

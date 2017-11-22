@@ -12,6 +12,7 @@ resolvers ++= Seq(
   "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
 
+lazy val is2_10: SettingKey[Boolean] = settingKey[Boolean]("Scala version")
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
@@ -21,13 +22,15 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "1.5.2"),
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "2.1.0"),
   scalaVersion := (
     sparkVersion.value match {
       case versionRegex("1", minor) => "2.10.6"
       case _ => "2.11.8"
     }),
 
+  is2_10 := scalaVersion.value.startsWith("2.10"),
+  javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   version := "0.13.3"
 )
 
@@ -35,7 +38,34 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
   .settings(
+    (unmanagedSourceDirectories in Compile) ++= {
+      val dirs = (baseDirectory.value / "src" / "main") * "spark-*"
+      val current = Semver(sparkVersion.value)
+      val filtered = dirs.filter(f => {
+        val version = f.getName.replace("spark-", "")
+        val semver = Semver(version)
+        current.gteq(semver)
+      }).get
+      if (filtered.nonEmpty) {
+        val msg = s"Spark version is $current - add source directories:\n" +
+          filtered.map(f => "- " + f).mkString("\n")
+        sLog.value.info(msg)
+      }
+      filtered
+    },
+    scalacOptions ++= commonScalacOptions,
     name := s"mist-lib-spark${sparkVersion.value}",
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+      }
+    },
+    sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       Library.Akka.streams,
@@ -114,6 +144,10 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
+lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "2.1.0") match {
+  case versionRegex("1", minor) => examplesSpark1
+  case _ => examplesSpark2
+}
 
 lazy val root = project.in(file("."))
   .aggregate(mistLib, core, master, worker)
@@ -127,18 +161,23 @@ lazy val root = project.in(file("."))
 
     stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
     stageActions := {
-
+      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
+      val routes = {
+        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
+          .as("router.conf")
+          .to("configs")
+      }
       Seq(
         CpFile("bin"),
         MkDir("configs"),
         CpFile("configs/default.conf").to("configs"),
         CpFile("configs/logging").to("configs"),
-        CpFile("configs/router-examples-spark.conf").as("router.conf").to("configs"),
+        routes,
         CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
-        CpFile(sbt.Keys.`package`.in(examplesSpark, Compile).value)
-          .as(s"mist-examples-spark.jar"),
+        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
+          .as(s"mist-examples-spark$sparkMajor.jar"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
@@ -257,14 +296,71 @@ lazy val root = project.in(file("."))
 
 addCommandAlias("testAll", ";test;it:test")
 
-lazy val examplesSpark = project.in(file("examples/examples-spark"))
+lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    name := "mist-examples-spark",
+    name := "mist-examples-spark1",
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+      }
+    },
     autoScalaLibrary := false
   )
+
+lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
+  .dependsOn(mistLib)
+  .settings(commonSettings: _*)
+  .settings(
+    name := "mist-examples-spark2",
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    // examplesspark2 works only for 2.11
+    libraryDependencies ++= {
+      val is2_11 = """2\.11\..""".r
+      scalaVersion.value match {
+        case is2_11() => Seq("io.hydrosphere" %% "spark-ml-serving" % "0.1.2")
+        case _ => Seq.empty
+      }
+    },
+    libraryDependencies ++= {
+      if (is2_10.value ) {
+        Seq(
+          "com.chuusai" %% "shapeless" % "2.3.2",
+          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+        )
+      } else {
+        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+      }
+    },
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
+    assembledMappings in assembly := {
+      // hack - there is no options how to exclude all dependecies that comes
+      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
+      def isServingLib(f: File): Boolean = {
+        val name = f.getName
+        name.startsWith("spark-ml-serving_2.11")
+      }
+      def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.11/classes")
+
+      val x = (fullClasspath in assembly).value
+      val filtered = x.seq.filter(v => {
+        val file = v.data
+        isServingLib(file) || isProjectClasses(file)
+      })
+      val s = (streams in assembly).value
+      Assembly.assembleMappings(filtered, Nil, (assemblyOption in assembly).value, s.log)
+    },
+    sbt.Keys.`package` in Compile := (assembly in assembly).value
+
+  )
+
 
 lazy val commonAssemblySettings = Seq(
   mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {

@@ -1,33 +1,38 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
 import java.util.UUID
 
+import akka.actor._
+import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.api.StreamingSupport
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.JobClass
-import io.hydrosphere.mist.core.{JobInfo, JvmJobInfo}
+import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future, Promise}
+import scala.util.{Failure, Success}
 
 class MainService(
   val jobService: JobService,
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
+  val jobInfoProviderService: JobInfoProviderService,
+  //TODO: it is not used here anymore.
   val artifactRepository: ArtifactRepository
 ) extends Logger {
+
+  implicit val timeout: Timeout = Timeout(5 seconds)
 
   def runJob(
     req: EndpointStartRequest,
@@ -73,20 +78,14 @@ class MainService(
       defaultContext = req.context
     )
 
-    def getInfo(endpoint: EndpointConfig): FullEndpointInfo =
-      loadEndpointInfo(endpoint) match {
-        case Success(fullInfo) => fullInfo
-        case Failure(e) => throw e
-      }
-
     for {
+      info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      fullInfo      =  getInfo(endpoint)
-      _             <- validate(fullInfo.info, req.parameters, action)
-      runMode       =  selectRunMode(context, req.workerId, fullInfo)
+      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters, action)
+      runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
-        endpoint = endpoint,
+        endpoint = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
@@ -97,23 +96,18 @@ class MainService(
     } yield executionInfo
   }
 
-  private def selectRunMode(config: ContextConfig, workerId: Option[String], fullInfo: FullEndpointInfo): RunMode = {
-    def isStreamingJob(jobClass: JobClass) =
-      jobClass.supportedClasses().contains(classOf[StreamingSupport])
-
-    def workerModeFromContextConfig = config.workerMode match {
+  private def selectRunMode(
+    config: ContextConfig,
+    info: FullJobInfo,
+    workerId: Option[String]
+  ): RunMode =
+    if (info.isStreamingJob) ExclusiveContext(workerId)
+    else config.workerMode match {
       case "exclusive" => ExclusiveContext(workerId)
       case "shared" => Shared
       case _ =>
         throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
     }
-
-    fullInfo.info match {
-      case JvmJobInfo(jobClass) if isStreamingJob(jobClass) =>
-        ExclusiveContext(workerId)
-      case _ => workerModeFromContextConfig
-    }
-  }
 
   def recoverJobs(): Future[Unit] = {
 
@@ -144,15 +138,13 @@ class MainService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      fullInfo       <- OptionT(endpointInfo(req.endpointId))
-      endpoint       =  fullInfo.config
-      jobInfo        =  fullInfo.info
-      _              <- OptionT.liftF(validate(jobInfo, req.parameters, action))
-      context        <- OptionT.liftF(selectContext(req, endpoint))
-      runMode        =  selectRunMode(context, req.runSettings.workerId, fullInfo)
-      jobStartReq    =  JobStartRequest(
+      info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
+      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters, action))
+      context      <- OptionT.liftF(selectContext(req, info.defaultContext))
+      runMode      =  selectRunMode(context, info, req.runSettings.workerId)
+      jobStartReq  =  JobStartRequest(
         id = req.id,
-        endpoint = endpoint,
+        endpoint = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
@@ -160,62 +152,28 @@ class MainService(
         externalId = req.externalId,
         action = action
       )
-      executionInfo  <- OptionT.liftF(jobService.startJob(jobStartReq))
+      executionInfo <- OptionT.liftF(jobService.startJob(jobStartReq))
     } yield executionInfo
 
     out.value
   }
 
-  private def selectContext(req: EndpointStartRequest, endpoint: EndpointConfig): Future[ContextConfig] = {
-    val name = req.runSettings.contextId.getOrElse(endpoint.defaultContext)
+  private def selectContext(req: EndpointStartRequest, context: String): Future[ContextConfig] = {
+    val name = req.runSettings.contextId.getOrElse(context)
     contexts.getOrDefault(name)
   }
 
-  def validate(jobInfo: JobInfo, params: Map[String, Any], action: Action): Future[Unit] = {
-    jobInfo.validateAction(params, action) match {
-      case Left(e) => Future.failed(e)
-      case Right(_) => Future.successful(())
-    }
-  }
-
-  def loadEndpointInfo(e: EndpointConfig): Try[FullEndpointInfo] = for {
-    file     <- artifactByKey(e.path)
-    jobInfo  <- JobInfo.load(e.name, file, e.className)
-    fullInfo  = FullEndpointInfo(e, jobInfo)
-  } yield fullInfo
-
-  private def artifactByKey(filePath: String): Try[File] = {
-    artifactRepository.get(filePath) match {
-      case Some(file) => Success(file)
-      case None => Failure(new IllegalArgumentException(s"file not found by key $filePath"))
-    }
-  }
-
-  def endpointsInfo: Future[Seq[FullEndpointInfo]] = for {
+  def endpointsInfo: Future[Seq[FullJobInfo]] = for {
     configs <- endpoints.all
-    fullInfo = configs.map(loadEndpointInfo)
-      .foldLeft(List.empty[FullEndpointInfo]) {
-        case (list, Success(x)) => list :+ x
-        case (list, Failure(ex)) =>
-          logger.error(ex.getMessage, ex)
-          list
-      }
-  } yield fullInfo
-
-  def endpointInfo(id: String): Future[Option[FullEndpointInfo]] = {
-    val res = for {
-      endpoint <- OptionT(endpoints.get(id))
-      fullInfo <- OptionT.liftF(loadInfoByEndpoint(endpoint))
-    } yield fullInfo
-
-    res.value
-  }
-
-  private def loadInfoByEndpoint(endpoint: EndpointConfig): Future[FullEndpointInfo] =
-    loadEndpointInfo(endpoint) match {
-      case Success(i) => Future.successful(i)
-      case Failure(ex) => Future.failed(ex)
-    }
+    infos   <- Future.sequence(configs.map(e => {
+      jobInfoProviderService.getJobInfoByConfig(e).map(Some.apply)
+        .recover {
+          case ex =>
+            logger.error(ex.getMessage, ex)
+            None
+        }
+    }))
+  } yield infos.flatten
 
 }
 
@@ -226,9 +184,10 @@ object MainService extends Logger {
     endpoints: EndpointsStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
+    jobInfoProvider: JobInfoProviderService,
     artifactRepository: ArtifactRepository
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider, artifactRepository)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

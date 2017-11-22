@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master
 
+import mist.api.data.{JsLikeData, JsLikeUnit}
+
 /** Used for packing results for response
   *
   * @param success boolean flag of success
@@ -8,12 +10,12 @@ package io.hydrosphere.mist.master
   */
 case class JobResult(
   success: Boolean,
-  payload: Map[String, Any],
+  payload: JsLikeData,
   errors: List[String])
 
 object JobResult {
 
-  def success(payload: Map[String, Any]): JobResult = {
+  def success(payload: JsLikeData): JobResult = {
     JobResult(
       success = true,
       payload = payload,
@@ -23,7 +25,7 @@ object JobResult {
   def failure(errors: List[String]): JobResult = {
     JobResult(
       success = false,
-      payload = Map.empty,
+      payload = JsLikeUnit,
       errors = errors)
   }
 

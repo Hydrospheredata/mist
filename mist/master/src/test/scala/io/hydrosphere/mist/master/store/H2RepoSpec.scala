@@ -50,6 +50,12 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
     runningJobs.await.size shouldBe 2
   }
 
+  it should "decode failure" in {
+    val details = fixtureJobDetails("failed").withFailure("Test Error")
+    repo.update(details).await
+    repo.get("failed").await shouldBe Some(details)
+  }
+
   private def fixtureJobDetails(
     jobId: String,
     status: JobDetails.Status = JobDetails.Status.Initialized): JobDetails = {

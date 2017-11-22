@@ -5,17 +5,18 @@ import java.io.File
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
-import io.hydrosphere.mist.core.{JvmJobInfo, MockitoSugar, PyJobInfo}
+import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models._
-import org.mockito.Mockito.{doReturn, spy}
-import org.scalatest.concurrent.ScalaFutures
+import org.mockito.Matchers.{eq => mockitoEq}
+import org.mockito.Mockito.spy
 import org.scalatest.{FunSpecLike, Matchers}
 
-import scala.concurrent.Future
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
@@ -29,23 +30,30 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
-    val artifactRepo = mock[ArtifactRepository]
+    val jobInfoProviderService = mock[JobInfoProviderService]
 
-    when(endpoints.get(any[String]))
-      .thenSuccess(Some(EndpointConfig("name", "path.py", "MyJob", "namespace")))
+    val artifactRepo = mock[ArtifactRepository]
 
     when(contexts.getOrDefault(any[String]))
       .thenSuccess(TestUtils.contextSettings.default)
 
-    when(artifactRepo.get(any[String]))
-      .thenReturn(Some(new File("path.py")))
+    when(jobInfoProviderService.getJobInfo(any[String]))
+      .thenSuccess(Some(FullJobInfo(
+        name = "name",
+        path = "path.py",
+        className = "MyJob",
+        defaultContext = "namespace"
+      )))
+
+    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]], any[Action]))
+      .thenSuccess(Some(()))
 
     when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
-        req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
-        status = JobDetails.Status.Queued
-      ))
+      req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
+      status = JobDetails.Status.Queued
+    ))
 
-    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepo)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProviderService, artifactRepo)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -58,28 +66,24 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
-    val jvmMock = mock[JvmJobInfo]
+    val jobInfoProvider = mock[JobInfoProviderService]
 
-    val info = FullEndpointInfo(
-      EndpointConfig("name", "path", "MyJob", "namespace"),
-      jvmMock
-    )
-    when(jvmMock.validateAction(any[Map[String, Any]], any[Action]))
-      .thenReturn(Left(new IllegalArgumentException("INVALID")))
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepo)
 
-    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepo)
-
-    val spiedMasterService = spy(service)
-
-    doReturn(Future.successful(Some(info)))
-      .when(spiedMasterService)
-      .endpointInfo(any[String])
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+      .thenFailure(new IllegalArgumentException("INVALID"))
+    when(jobInfoProvider.getJobInfo(any[String]))
+      .thenSuccess(Some(FullJobInfo(
+        lang = FullJobInfo.PythonLang,
+        name = "test"
+      )))
 
     val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
-    val f = spiedMasterService.runJob(req, JobDetails.Source.Http)
 
-    ScalaFutures.whenReady(f.failed) { ex =>
-      ex shouldBe a[IllegalArgumentException]
+    val f = service.runJob(req, JobDetails.Source.Http)
+
+    intercept[IllegalArgumentException] {
+      Await.result(f, 30 seconds)
     }
 
   }
@@ -89,15 +93,18 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepository)
-    val spiedService = spy(service)
-    val fullInfo = FullEndpointInfo(
-      EndpointConfig("name", "path", "MyJob", "namespace"),
-      PyJobInfo
-    )
-    doReturn(Future.successful(Some(fullInfo)))
-      .when(spiedService)
-      .endpointInfo(any[String])
+    val jobInfoProvider = mock[JobInfoProviderService]
+
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+      .thenSuccess(Some(()))
+
+    when(jobInfoProvider.getJobInfo(any[String]))
+      .thenSuccess(Some(FullJobInfo(
+        lang = FullJobInfo.PythonLang,
+        name = "test"
+      )))
 
     when(contexts.getOrDefault(any[String]))
       .thenSuccess(ContextConfig(
@@ -113,32 +120,37 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
-    val runInfo = spiedService.runJob(req, JobDetails.Source.Http)
-
-    ScalaFutures.whenReady(runInfo.failed) {ex =>
-      ex shouldBe an[IllegalArgumentException]
+    val runInfo = service.runJob(req, JobDetails.Source.Http)
+    intercept[IllegalArgumentException] {
+      Await.result(runInfo, 30 seconds)
     }
 
   }
+
   it("should return only existing endpoint jobs") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val service = new MainService(jobService, endpoints, contexts, logs, artifactRepository)
+    val jobInfoProvider = mock[JobInfoProviderService]
+
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
     val spiedService = spy(service)
     val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
     val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
-    val fullInfo = FullEndpointInfo(epConf, PyJobInfo)
+    val fullInfo = FullJobInfo(
+      lang = "python",
+      defaultContext = "foo",
+      path = "path",
+      name = "name",
+      className = "MyJob"
+    )
+    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(epConf)))
+      .thenSuccess(fullInfo)
 
-    doReturn(Success(fullInfo))
-      .when(spiedService)
-      .loadEndpointInfo(epConf)
-
-    doReturn(Failure(new RuntimeException("failed")))
-      .when(spiedService)
-      .loadEndpointInfo(noMatterEpConf)
+    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(noMatterEpConf)))
+      .thenFailure(new RuntimeException("failed"))
 
     when(endpoints.all)
       .thenSuccess(Seq(epConf, noMatterEpConf))

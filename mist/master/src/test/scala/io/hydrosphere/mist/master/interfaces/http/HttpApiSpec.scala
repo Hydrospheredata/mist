@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import mist.api.data._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
@@ -122,7 +123,7 @@ class HttpApiSpec extends FunSpec with Matchers with MockitoSugar with Scalatest
     val api = new HttpApi(master).route
     when(master.forceJobRun(any[EndpointStartRequest], any[JobDetails.Source], any[Action]))
       .thenReturn(Future.successful(Some(
-        JobResult.success(Map("yoyo" -> "hello"))
+        JobResult.success(JsLikeMap("yoyo" -> JsLikeString("asd")))
       )))
 
     Post("/api/my-job", Map("Hello" -> "123")) ~> api ~> check {

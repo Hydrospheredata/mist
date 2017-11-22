@@ -10,6 +10,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.{JobDetails, JobResult, WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
+import mist.api.data._
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -51,22 +52,38 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
   }
 }
 
+trait MDataFormat {
 
-trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat {
+  implicit val mDataFormat = new RootJsonFormat[JsLikeData] {
+    //TODO: MORE TYPES!!!
+    override def read(json: JsValue): JsLikeData = {
+      json match {
+        case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
+        case JsString(s) => JsLikeString(s)
+        case JsNumber(d) => new JsLikeNumber(d)
+        case JsFalse => JsLikeBoolean(false) //TODO MBoolean can has default false and true
+        case JsTrue  => JsLikeBoolean(true)
+        case JsNull  => JsLikeNull
+        case JsArray(values) => JsLikeList(values.map(read))
+      }
+    }
 
-//  implicit object EitherJobResultSupport extends RootJsonFormat[Either[String, Map[String, Any]]] {
-//    override def write(obj: Either[String, Map[String, Any]]): JsValue = obj match {
-//      case Right(s: String) => JsString(s)
-//      case Left(m) => mapFormat[String, Any].write(m)
-//    }
-//
-//    override def read(json: JsValue): Either[String, Map[String, Any]] = json match {
-//      case JsString(str) => Right(str)
-//      case _: JsObject => Left(mapFormat[String, Any].read(json))
-//      case _ => throw DeserializationException("Either[Map, String] can be only string or object")
-//    }
-//  }
+    override def write(obj: JsLikeData): JsValue = {
+      obj match {
+        case JsLikeNumber(d)    => JsNumber(d)
+        case JsLikeBoolean(b)   => JsBoolean(b)
+        case JsLikeString(s)    => JsString(s)
+        case JsLikeNull         => JsNull
+        case JsLikeUnit         => JsObject(Map.empty[String, JsValue])
+        case JsLikeList(values) => JsArray(values.map(v => write(v)).toVector)
+        case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))
+      }
+    }
+  }
+}
 
+
+trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with MDataFormat {
 
   implicit object JobStatusSupport extends RootJsonFormat[JobDetails.Status] {
     override def write(obj: JobDetails.Status): JsValue = JsString(obj.toString)

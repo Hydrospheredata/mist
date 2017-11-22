@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.EitherOps
 import EitherOps._
+import mist.api.args.ArgType
 
 import scala.reflect.runtime.universe._
 
@@ -77,6 +78,6 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
   private def arguments: Seq[(String, Type)] =
     method.paramss.head.map(s => s.name.toString -> s.typeSignature)
 
-  def argumentsTypes: Map[String, JobArgType] =
-    arguments.toMap.mapValues(JobArgType.fromType)
+  def argumentsTypes: Map[String, ArgType] =
+    arguments.toMap.mapValues(ArgType.fromType)
 }
