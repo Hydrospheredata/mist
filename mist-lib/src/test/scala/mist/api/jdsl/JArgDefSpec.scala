@@ -20,12 +20,17 @@ class JArgDefSpec extends FunSpec with Matchers {
 
   val expected = Table[JUserArg[_], Seq[(String, Any)], ArgExtraction[_]](
     ("arg", "data", "expected"),
+    (booleanArg("b"),        Seq("b" -> true), Extracted(true)),
+    (booleanArg("b", false), Seq.empty,        Extracted(false)),
+    (booleanArg("b"),        Seq.empty,        miss),
+    (optBoolean("b"),        Seq("b" -> true), Extracted(java.util.Optional.of(true))),
+    (optBoolean("b"),        Seq.empty,        Extracted(java.util.Optional.empty())),
+
     (intArg("n"),    Seq("n" -> 2),  Extracted(2)),
     (intArg("n", 0), Seq.empty,      Extracted(0)),
     (intArg("n"),    Seq.empty,      miss),
     (optInt("n"),    Seq("n" -> 42), Extracted(java.util.Optional.of(42))),
     (optInt("n"),    Seq.empty,      Extracted(java.util.Optional.empty())),
-
 
     (stringArg("s"),          Seq("s" -> "value"),  Extracted("value")),
     (stringArg("s", "value"), Seq.empty,            Extracted("value")),
@@ -43,7 +48,9 @@ class JArgDefSpec extends FunSpec with Matchers {
 
     (doubleList("doubles"), Seq("doubles" -> Seq(1.1,2.2,3.3)), Extracted(javaList(1.1, 2.2, 3.3))),
 
-    (stringList("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(javaList("a", "b", "c")))
+    (stringList("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(javaList("a", "b", "c"))),
+
+    (stringList("boolean"), Seq("boolean" -> Seq(true, false)), Extracted(javaList(true, false)))
   )
 
   it("should extract expected result") {

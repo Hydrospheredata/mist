@@ -43,10 +43,19 @@ trait JArgsDef extends ArgDescriptionInstances {
       case _ => None
     }
   }
+
   implicit val jDouble = new ArgDescription[jl.Double] {
     override def `type`: ArgType = MDouble
     override def apply(a: Any): Option[jl.Double] = a match {
       case d: jl.Double => Some(new jl.Double(d))
+      case _ => None
+    }
+  }
+
+  implicit val jBoolean = new ArgDescription[jl.Boolean] {
+    override def `type`: ArgType = MBoolean
+    override def apply(a: Any): Option[jl.Boolean] = a match {
+      case b: jl.Boolean => Some(b)
       case _ => None
     }
   }
@@ -66,6 +75,9 @@ trait JArgsDef extends ArgDescriptionInstances {
   def stringArg(name: String): JUserArg[String] = namedArg(name)
   def stringArg(name: String, defaultValue: String): JUserArg[String] = namedArg(name, defaultValue)
 
+  def booleanArg(name: String): JUserArg[jl.Boolean] = namedArg(name)
+  def booleanArg(name: String, defaultValue: jl.Boolean): JUserArg[jl.Boolean] = namedArg(name, defaultValue)
+
   private def optArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.Optional[T]] = {
     val arg = new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(desc.`type`)))
@@ -83,6 +95,7 @@ trait JArgsDef extends ArgDescriptionInstances {
     new JUserArg[Optional[T]](arg)
   }
 
+  def optBoolean(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg(name)
   def optInt(name: String): JUserArg[ju.Optional[jl.Integer]] = optArg(name)
   def optDouble(name: String): JUserArg[ju.Optional[jl.Double]] = optArg(name)
   def optString(name: String): JUserArg[ju.Optional[String]] = optArg(name)
@@ -107,6 +120,7 @@ trait JArgsDef extends ArgDescriptionInstances {
     new JUserArg[ju.List[T]](arg)
   }
 
+  def booleanList(name: String): JUserArg[ju.List[jl.Boolean]] = listArg(name)
   def intList(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
   def doubleList(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
   def stringList(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
