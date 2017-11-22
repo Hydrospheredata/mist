@@ -82,7 +82,7 @@ class MainService(
       info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
       _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters, action)
-      runMode       =  selectRunMode(context, req.workerId)
+      runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
         endpoint = info,
@@ -96,25 +96,18 @@ class MainService(
     } yield executionInfo
   }
 
-  private def selectRunMode(config: ContextConfig, workerId: Option[String]): RunMode = {
-    //TODO: add support for streaming context
-    //    def isStreamingJob(jobClass: JobClass) =
-    //      jobClass.supportedClasses().contains(classOf[StreamingSupport])
-
-    //    def workerModeFromContextConfig =
-    config.workerMode match {
+  private def selectRunMode(
+    config: ContextConfig,
+    info: FullJobInfo,
+    workerId: Option[String]
+  ): RunMode =
+    if (info.isStreamingJob) ExclusiveContext(workerId)
+    else config.workerMode match {
       case "exclusive" => ExclusiveContext(workerId)
       case "shared" => Shared
       case _ =>
         throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
     }
-
-    //    fullInfo.info match {
-    //      case JvmJobInfo(jobClass) if isStreamingJob(jobClass) =>
-    //        ExclusiveContext(workerId)
-    //      case _ => workerModeFromContextConfig
-    //    }
-  }
 
   def recoverJobs(): Future[Unit] = {
 
@@ -148,7 +141,7 @@ class MainService(
       info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
       _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters, action))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
-      runMode      =  selectRunMode(context, req.runSettings.workerId)
+      runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
         id = req.id,
         endpoint = info,

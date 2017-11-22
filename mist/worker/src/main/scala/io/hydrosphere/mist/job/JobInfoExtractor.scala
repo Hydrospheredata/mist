@@ -30,11 +30,13 @@ class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtract
         case _: JavaJobInstance => FullJobInfo.JavaLang
         case _ => FullJobInfo.ScalaLang
       }
+
       JobInfo(instance, FullJobInfo(
         lang = lang,
         execute = instance.describe().collect { case x: UserInputArgument => x },
         isServe = !executeJobInstance.isSuccess,
-        className = className
+        className = className,
+        tags = instance.tags()
       ))
     }
   }

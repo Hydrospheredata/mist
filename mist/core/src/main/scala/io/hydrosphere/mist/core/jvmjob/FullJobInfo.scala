@@ -13,7 +13,9 @@ case class FullJobInfo(
   path: String = "",
   className: String = "",
   defaultContext: String = "default"
-)
+) {
+  def isStreamingJob: Boolean = tags.contains("streaming")
+}
 
 case object FullJobInfo {
   val PythonLang = "python"
