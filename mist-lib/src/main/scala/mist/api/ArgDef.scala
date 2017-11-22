@@ -41,7 +41,11 @@ trait ArgDef[A] { self =>
 
     }
   }
-  def apply[F, R](f: F)(implicit tjd: ToJobDef.Aux[A, F, R]): JobDef[R] = tjd(self, f)
+
+  def apply[F, R](f: F, tags: Seq[String] = Seq.empty)
+    (implicit tjd: ToJobDef.Aux[A, F, R]): JobDef[R] =
+    tjd(self, f, tags)
+
 }
 
 trait UserArg[A] extends ArgDef[A] { self =>

@@ -124,7 +124,7 @@ object Boilerplate {
          -    * Define job execution that use JavaStreamingContext for invocation
          -    */
          -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal[R]]): JJobDef[R] = {
-         -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
+         -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc, Seq("streaming"))
          -    new JJobDef(job)
          -  }
          ${extrasMethod}

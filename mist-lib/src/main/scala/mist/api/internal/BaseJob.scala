@@ -11,6 +11,8 @@ trait BaseJobInfo {
   def describe(): Seq[ArgInfo]
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Any]
+
+  def tags(): Seq[String]
 }
 
 trait BaseJobInstance extends BaseJobInfo {
@@ -39,6 +41,8 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
       case e: Throwable => Left(e)
     }
   }
+
+  override def tags(): Seq[String] = jobDef.tags()
 }
 
 class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
@@ -61,6 +65,7 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
     }
   }
 
+  override def tags(): Seq[String] = jobDef.tags()
 }
 
 object JobInstance {
@@ -70,7 +75,10 @@ object JobInstance {
 
     override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = Right(Map.empty)
 
-    override def describe(): Seq[ArgInfo] = Seq()
+    override def describe(): Seq[ArgInfo] = Seq.empty
+
+    override def tags(): Seq[String] = Seq.empty
+
   }
 
   val ScalaJobClass = classOf[MistJob[_]]

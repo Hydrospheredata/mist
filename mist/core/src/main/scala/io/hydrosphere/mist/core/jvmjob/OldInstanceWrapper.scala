@@ -29,4 +29,7 @@ class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {
     }
   }
 
+  //TODO: it is not clear how to do it the right way
+  override def tags(): Seq[String] = ???
+
 }

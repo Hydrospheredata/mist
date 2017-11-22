@@ -11,6 +11,7 @@ import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
+  //TODO: remove unused method
   def loadJobClass(className: String): Try[JobClass] = {
     loadClass(className).map({
       case clz if mist.api.internal.JobInstance.isScalaInstance(clz) =>

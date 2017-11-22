@@ -105,7 +105,7 @@ trait BaseContexts {
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
-      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(streamingContext), f)
+      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(streamingContext), f, Seq("streaming"))
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.SQLContext
@@ -113,7 +113,7 @@ trait BaseContexts {
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
-      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sqlContext), f)
+      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sqlContext), f, Seq("sql"))
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.hive.HiveContext
@@ -121,7 +121,7 @@ trait BaseContexts {
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],
-      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(hiveContext), f)
+      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(hiveContext), f, Seq("hive"))
   }
 
   /**
@@ -134,19 +134,19 @@ trait BaseContexts {
     * Define job execution function that takes only org.apache.spark.streaming.StreamingContext as an argument.
     */
   def onStreamingContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[StreamingContext, F, Out]): JobDef[Out] =
-    tjd(streamingContext, f)
+    tjd(streamingContext, f, Seq("streaming"))
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SQLContext as an argument.
     */
   def onSqlContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[SQLContext, F, Out]): JobDef[Out] =
-    tjd(sqlContext, f)
+    tjd(sqlContext, f, Seq("sql"))
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
     */
   def onHiveContext[F, Out](f: F)(implicit tjd: ToJobDef.Aux[HiveContext, F, Out]): JobDef[Out] =
-    tjd(hiveContext, f)
+    tjd(hiveContext, f, Seq("hive"))
 
 }
 

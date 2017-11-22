@@ -3,7 +3,7 @@ package io.hydrosphere.mist.core.jvmjob
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.core.jvmjob.JobClass._
 import mist.api.internal.BaseJobInstance
-
+//TODO: move logic to JobInstance. and remove the file
 case class JobClass(
   clazz: Class[_],
   execute: Option[BaseJobInstance],

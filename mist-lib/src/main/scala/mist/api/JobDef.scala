@@ -68,6 +68,7 @@ trait JobDef[A] { self =>
 
   def validate(params: Map[String, Any]): Either[Throwable, Any]
 
+  def tags(): Seq[String]
 }
 
 object JobDef {
@@ -75,7 +76,8 @@ object JobDef {
   def instance[A](
     f: JobContext => JobResult[A],
     descr: => Seq[ArgInfo],
-    validateF: Map[String, Any] => Either[Throwable, Any]
+    validateF: Map[String, Any] => Either[Throwable, Any],
+    tag: Seq[String]
   ): JobDef[A] = new JobDef[A] {
 
     override def describe(): Seq[ArgInfo] = descr
@@ -89,5 +91,7 @@ object JobDef {
     }
 
     override def validate(params: Map[String, Any]): Either[Throwable, Any] = validateF(params)
+
+    override def tags(): Seq[String] = tag
   }
 }

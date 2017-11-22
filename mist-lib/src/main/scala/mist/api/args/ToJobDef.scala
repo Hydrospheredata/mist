@@ -7,7 +7,7 @@ import shapeless.ops.function.FnToProduct
 trait ToJobDef[In, F] extends Serializable {
   type Out
 
-  def apply(args: ArgDef[In], f: F): JobDef[Out]
+  def apply(args: ArgDef[In], f: F, tags: Seq[String] = Seq.empty): JobDef[Out]
 }
 
 object ToJobDef {
@@ -19,7 +19,7 @@ object ToJobDef {
   ): Aux[In, F, Res] = new ToJobDef[In, F] {
 
       type Out = Res
-      def apply(args: ArgDef[In], f: F): JobDef[Res] = {
+      def apply(args: ArgDef[In], f: F, tags: Seq[String]): JobDef[Res] = {
         JobDef.instance(ctx => args.extract(ctx) match {
           case Extracted(a) =>
             val result = fntp(f)(a)
@@ -27,7 +27,7 @@ object ToJobDef {
           case Missing(msg) =>
             val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
             JobResult.failure(e)
-        }, args.describe(), args.validate)
+        }, args.describe(), args.validate, tags)
       }
   }
 
@@ -36,7 +36,7 @@ object ToJobDef {
     norm: Normalizer.Aux[In, HIn],
     fntp: FnToProduct.Aux[F, HIn => Res]): Aux[In, F, Res] = new ToJobDef[In, F] {
       type Out = Res
-      def apply(args: ArgDef[In], f: F): JobDef[Res] = {
+      def apply(args: ArgDef[In], f: F, tags: Seq[String]): JobDef[Res] = {
         JobDef.instance(ctx => args.extract(ctx) match {
           case Extracted(a) =>
               val result = fntp(f)(norm(a))
@@ -44,7 +44,7 @@ object ToJobDef {
           case Missing(msg) =>
               val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
               JobResult.failure(e)
-        }, args.describe(), args.validate)
+        }, args.describe(), args.validate, tags)
       }
   }
 }
