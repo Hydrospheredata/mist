@@ -160,8 +160,33 @@ class JobInfoExtractorSpec extends FunSpecLike
         isServe = true,
         className = "TestClass"
       )
+    }
+
+    it("should get tags from internal arguments"){
+      val javaJobInstance = mock[JavaJobInstance]
+      val jobsLoader = mock[JobsLoader]
+
+      when(jobsLoader.loadJobInstance(mockitoEndsWith("Java"), any[Action]))
+        .thenReturn(Success(javaJobInstance))
+
+      when(javaJobInstance.describe())
+        .thenReturn(Seq(
+          UserInputArgument("num", MInt),
+          InternalArgument(Seq("testTag"))
+        ))
+      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+
+      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
+      res.isSuccess shouldBe true
+      res.get.info shouldBe FullJobInfo(
+        lang = "java",
+        execute = Seq(UserInputArgument("num", MInt)),
+        className = "TestJava",
+        tags = Seq("testTag")
+      )
 
     }
+
   }
   describe("PyJobInfoExtractor") {
     it("should create py job info extractor") {

@@ -10,9 +10,12 @@ import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
+import mist.api.ArgInfo
+import org.mockito.ArgumentCaptor
 import org.mockito.Matchers.{eq => mockitoEq}
-import org.mockito.Mockito.spy
+import org.mockito.Mockito.{spy, times, verify}
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Await
@@ -161,4 +164,86 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
 
+  it("should select exclusive run mode on streaming jobs") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStoragePaths]
+    val artifactRepository = mock[ArtifactRepository]
+    val jobInfoProvider = mock[JobInfoProviderService]
+
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+      .thenSuccess(Some(()))
+
+    when(jobInfoProvider.getJobInfo(any[String]))
+      .thenSuccess(Some(FullJobInfo(
+        lang = FullJobInfo.PythonLang,
+        name = "test",
+        tags = Seq(ArgInfo.StreamingContextTag)
+      )))
+
+    when(contexts.getOrDefault(any[String]))
+      .thenSuccess(ContextConfig(
+        "default",
+        Map.empty,
+        Duration.Inf,
+        20,
+        precreated = false,
+        "",
+        "shared",
+        1 seconds
+      ))
+    when(jobService.startJob(any[JobStartRequest]))
+      .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
+
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
+    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
+    verify(jobService, times(1)).startJob(argCapture.capture())
+    argCapture.getValue.runMode shouldBe ExclusiveContext(None)
+  }
+
+
+  it("should select run mode from context config when job is not streaming") {
+    val endpoints = mock[EndpointsStorage]
+    val contexts = mock[ContextsStorage]
+    val jobService = mock[JobService]
+    val logs = mock[LogStoragePaths]
+    val artifactRepository = mock[ArtifactRepository]
+    val jobInfoProvider = mock[JobInfoProviderService]
+
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+      .thenSuccess(Some(()))
+
+    when(jobInfoProvider.getJobInfo(any[String]))
+      .thenSuccess(Some(FullJobInfo(
+        lang = FullJobInfo.PythonLang,
+        name = "test",
+        tags = Seq(ArgInfo.SqlContextTag)
+      )))
+
+    when(contexts.getOrDefault(any[String]))
+      .thenSuccess(ContextConfig(
+        "default",
+        Map.empty,
+        Duration.Inf,
+        20,
+        precreated = false,
+        "",
+        "shared",
+        1 seconds
+      ))
+    when(jobService.startJob(any[JobStartRequest]))
+      .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
+
+    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
+    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
+    verify(jobService, times(1)).startJob(argCapture.capture())
+    argCapture.getValue.runMode shouldBe Shared
+  }
 }
