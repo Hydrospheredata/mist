@@ -6,16 +6,13 @@ import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
-import mist.api._
-import mist.api.args.{MInt, ToJobDef}
-import mist.api.data.{JsLikeData, JsLikeNull, JsLikeNumber}
-import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance, ScalaJobInstance}
-import mist.api.jdsl._
-import org.mockito.Mockito._
+import mist.api.args.{InternalArgument, MInt, UserInputArgument}
+import mist.api.internal.{JavaJobInstance, JobInstance, ScalaJobInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
+import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 class JobInfoExtractorSpec extends FunSpecLike
   with Matchers

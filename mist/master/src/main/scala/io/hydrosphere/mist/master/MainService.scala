@@ -16,8 +16,7 @@ import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
-import mist.api.ArgInfo
-
+import mist.api.args.ArgInfo
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}

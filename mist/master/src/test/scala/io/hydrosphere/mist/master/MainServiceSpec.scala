@@ -12,7 +12,7 @@ import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
-import mist.api.ArgInfo
+import mist.api.args.ArgInfo
 import org.mockito.ArgumentCaptor
 import org.mockito.Matchers.{eq => mockitoEq}
 import org.mockito.Mockito.{spy, times, verify}

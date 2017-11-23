@@ -2,7 +2,8 @@ package mist.api.jdsl
 
 import java.util
 
-import mist.api.{ArgExtraction, Extracted, JobContext, Missing}
+import mist.api.args.{ArgExtraction, Extracted, Missing}
+import mist.api.JobContext
 import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
 

@@ -6,7 +6,7 @@ import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.EitherOps
 import EitherOps._
 import io.hydrosphere.mist.core.jvmjob.JobInstance._
-import mist.api.{ArgInfo, InternalArgument, UserInputArgument}
+import mist.api.args.{ArgInfo, InternalArgument, UserInputArgument}
 import mist.api.args.ArgType
 
 import scala.reflect.runtime.universe._

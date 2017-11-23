@@ -1,6 +1,7 @@
 package mist.api
 
-import mist.api.ArgDef._
+import mist.api.args.{Extracted, Missing}
+import mist.api.args.ArgDef.{ const, missing }
 import org.scalatest.{FunSpec, Matchers}
 import shapeless.HNil
 

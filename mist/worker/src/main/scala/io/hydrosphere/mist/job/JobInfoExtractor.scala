@@ -4,7 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader}
-import mist.api.{InternalArgument, UserInputArgument}
+import mist.api.args.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
 import org.apache.spark.util.SparkClassLoader

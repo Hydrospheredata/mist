@@ -3,7 +3,7 @@ package io.hydrosphere.mist.core.jvmjob
 import mist.api.args._
 import mist.api.data._
 import mist.api.internal.BaseJobInstance
-import mist.api.{FullJobContext, InternalArgument, JobContext}
+import mist.api.{FullJobContext}
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}

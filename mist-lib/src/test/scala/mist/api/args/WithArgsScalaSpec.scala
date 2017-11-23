@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.{ArgDef, Extracted, JobContext, UserArg}
+import mist.api.JobContext
 import org.scalatest.{FunSpec, Matchers}
 import shapeless.HNil
 

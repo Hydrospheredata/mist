@@ -9,7 +9,8 @@ import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParam
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.job.{JobInfo, JobInfoExtractor, JobInfoProviderActor}
-import mist.api.{ArgInfo, UserInputArgument, FullJobContext}
+import mist.api.args.{ArgInfo, UserInputArgument}
+import mist.api.FullJobContext
 import mist.api.args.MInt
 import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.internal.BaseJobInstance

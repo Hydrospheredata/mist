@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.core.jvmjob
 
-import mist.api.UserInputArgument
+import mist.api.args.UserInputArgument
 
 case class FullJobInfo(
   name: String = "",

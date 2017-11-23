@@ -1,6 +1,17 @@
-package mist.api
+package mist.api.args
 
-import mist.api.args.{ArgCombiner, ToJobDef}
+import mist.api.{FullJobContext, JobContext, JobDef}
+
+
+sealed trait ArgInfo
+case class InternalArgument(tags: Seq[String] = Seq.empty) extends ArgInfo
+case class UserInputArgument(name: String, t: ArgType) extends ArgInfo
+
+object ArgInfo {
+  val StreamingContextTag = "streaming"
+  val SqlContextTag = "sql"
+  val HiveContextTag = "hive"
+}
 
 trait ArgExtraction[+A] { self =>
 
@@ -113,10 +124,8 @@ object SystemArg {
 }
 
 object ArgDef {
-
   def const[A](value: A): ArgDef[A] = SystemArg(Seq.empty, Extracted(value))
 
   def missing[A](message: String): ArgDef[A] = SystemArg(Seq.empty, Missing(message))
-
 }
 

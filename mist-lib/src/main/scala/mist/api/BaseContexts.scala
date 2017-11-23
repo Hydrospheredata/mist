@@ -1,6 +1,9 @@
 package mist.api
 
-import mist.api.args.{ArgCombiner, ToJobDef}
+import mist.api.args.{
+  ArgDef, SystemArg, Extracted, ArgInfo,
+  ArgExtraction, Missing, InternalArgument, ArgCombiner, ToJobDef
+}
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
@@ -12,7 +15,6 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext
   * Arguments for constructing contexts
   */
 object BaseContextsArgs {
-
 
   val sparkContext: ArgDef[SparkContext] = SystemArg(
     Seq.empty,

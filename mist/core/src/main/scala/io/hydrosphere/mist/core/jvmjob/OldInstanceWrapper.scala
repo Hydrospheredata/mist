@@ -2,8 +2,8 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.data.JsLikeData
 import mist.api.internal.BaseJobInstance
-import mist.api.{ArgInfo, FullJobContext, data => mdata}
-
+import mist.api.{FullJobContext, data => mdata}
+import mist.api.args.ArgInfo
 import scala.util._
 
 class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {

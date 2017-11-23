@@ -1,6 +1,7 @@
 package mist.api.internal
 
 import mist.api._
+import mist.api.args.ArgInfo
 import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.jdsl.JMistJob
 

@@ -108,7 +108,7 @@ object Boilerplate {
          |import FuncSyntax._
          |import mist.api.MistExtras
          |import mist.api.BaseContextsArgs._
-         |import mist.api.ArgDef
+         |import mist.api.args.ArgDef
          |
          -class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
          -
@@ -141,7 +141,7 @@ object Boilerplate {
       block"""
          |package mist.api.jdsl
          |
-         |import mist.api.ArgDef
+         |import mist.api.args.ArgDef
          |
          |trait WithArgs {
          |
