@@ -6,16 +6,13 @@ import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
-import mist.api._
-import mist.api.args.{MInt, ToJobDef}
-import mist.api.data.{JsLikeData, JsLikeNull, JsLikeNumber}
-import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance, ScalaJobInstance}
-import mist.api.jdsl._
-import org.mockito.Mockito._
+import mist.api.args.{InternalArgument, MInt, UserInputArgument}
+import mist.api.internal.{JavaJobInstance, JobInstance, ScalaJobInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
+import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 class JobInfoExtractorSpec extends FunSpecLike
   with Matchers
@@ -88,17 +85,17 @@ class JobInfoExtractorSpec extends FunSpecLike
       when(scalaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(javaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(oldJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
@@ -145,7 +142,7 @@ class JobInfoExtractorSpec extends FunSpecLike
       when(oldInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
-          InternalArgument
+          InternalArgument()
         ))
       when(jobsLoader.loadJobInstance(any[String], mockitoEq(Action.Serve)))
         .thenReturn(Success(oldInstance))
@@ -160,8 +157,33 @@ class JobInfoExtractorSpec extends FunSpecLike
         isServe = true,
         className = "TestClass"
       )
+    }
+
+    it("should get tags from internal arguments"){
+      val javaJobInstance = mock[JavaJobInstance]
+      val jobsLoader = mock[JobsLoader]
+
+      when(jobsLoader.loadJobInstance(mockitoEndsWith("Java"), any[Action]))
+        .thenReturn(Success(javaJobInstance))
+
+      when(javaJobInstance.describe())
+        .thenReturn(Seq(
+          UserInputArgument("num", MInt),
+          InternalArgument(Seq("testTag"))
+        ))
+      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+
+      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
+      res.isSuccess shouldBe true
+      res.get.info shouldBe FullJobInfo(
+        lang = "java",
+        execute = Seq(UserInputArgument("num", MInt)),
+        className = "TestJava",
+        tags = Seq("testTag")
+      )
 
     }
+
   }
   describe("PyJobInfoExtractor") {
     it("should create py job info extractor") {

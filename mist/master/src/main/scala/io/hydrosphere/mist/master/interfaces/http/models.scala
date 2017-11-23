@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.models.ContextConfig
-import mist.api.UserInputArgument
+import mist.api.args.UserInputArgument
 
 import scala.concurrent.duration.Duration
 

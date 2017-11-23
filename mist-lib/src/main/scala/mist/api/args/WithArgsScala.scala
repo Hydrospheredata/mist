@@ -1,6 +1,5 @@
 package mist.api.args
 
-import mist.api.ArgDef
 import shapeless.ops.hlist.LeftReducer
 import shapeless.{Generic, HList, Poly2}
 

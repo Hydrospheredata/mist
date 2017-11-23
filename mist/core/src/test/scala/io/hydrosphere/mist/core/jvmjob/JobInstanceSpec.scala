@@ -3,7 +3,7 @@ package io.hydrosphere.mist.core.jvmjob
 import mist.api.args._
 import mist.api.data._
 import mist.api.internal.BaseJobInstance
-import mist.api.{JobContext, FullJobContext}
+import mist.api.{FullJobContext}
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
@@ -68,6 +68,16 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     )
 
     instance.run(jobContext(args: _*)) shouldBe Right(JsLikeMap("isOk" -> JsLikeBoolean(true)))
+  }
+
+  it("should have internal arguments according to job mixins") {
+    val inst = instanceFor[AllMixinsJob.type](Action.Execute)
+    val internalArgs = inst.describe().collect { case x: InternalArgument => x }
+    internalArgs should contain allElementsOf Seq(
+      InternalArgument(Seq("streaming")),
+      InternalArgument(Seq("sql")),
+      InternalArgument(Seq("sql", "hive"))
+    )
   }
 
   def instanceFor[A](action: Action)(implicit tag: ClassTag[A]): BaseJobInstance = {

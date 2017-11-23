@@ -3,7 +3,7 @@ package mist.api
 import org.apache.spark.SparkContext
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
-
+import mist.api.args.{Extracted, Missing, ArgDef, ArgExtraction}
 class JobDefInstancesSpec extends FunSpec with Matchers {
 
   import JobDefInstances._

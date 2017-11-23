@@ -1,9 +1,4 @@
-package mist.api
-import mist.api.args._
-
-sealed trait ArgInfo
-case object InternalArgument extends ArgInfo
-case class UserInputArgument(name: String, t: ArgType) extends ArgInfo
+package mist.api.args
 
 trait ArgDescription[A] {
   def `type`: ArgType
