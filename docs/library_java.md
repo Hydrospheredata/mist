@@ -33,6 +33,28 @@ public class JavaPiExample extends JMistJob<Double> {
 }
 ```
 
+#### Build
+
+Add Mist as dependency in your `build.sbt`:
+
+Maven dependency:
+
+```xml
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist-lib-spark1_2.10</artifactId>
+    <version>0.13.0</version>
+</dependency>
+// or if you use spark >= 2.0
+<dependency>
+    <groupId>io.hydrosphere</groupId>
+    <artifactId>mist-lib-spark2_2.11</artifactId>
+    <version>0.13.0</version>
+</dependency>
+```
+
+#### Overview
+
 Speaking generally - `JMistJob[A]` represents an interface that provides
 function over one of available spark contexts (SparkContext, SparkSession, StreamingContext).
 
@@ -122,3 +144,5 @@ public class Hello extends JMistJob<Void> {
 }
 ```
 
+### Next
+- [Run your Mist Job](/docs/run-job.md)
