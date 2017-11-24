@@ -83,9 +83,9 @@ trait JArgsDef extends ArgDescriptionInstances {
     new JUserArg[Optional[T]](arg)
   }
 
-  def optInt(name: String): JUserArg[ju.Optional[jl.Integer]] = optArg(name)
-  def optDouble(name: String): JUserArg[ju.Optional[jl.Double]] = optArg(name)
-  def optString(name: String): JUserArg[ju.Optional[String]] = optArg(name)
+  def optIntArg(name: String): JUserArg[ju.Optional[jl.Integer]] = optArg(name)
+  def optDoubleArg(name: String): JUserArg[ju.Optional[jl.Double]] = optArg(name)
+  def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg(name)
 
   private def listArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.List[T]] = {
     val arg = new UserArg[ju.List[T]] {
@@ -107,9 +107,9 @@ trait JArgsDef extends ArgDescriptionInstances {
     new JUserArg[ju.List[T]](arg)
   }
 
-  def intList(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
-  def doubleList(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
-  def stringList(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
+  def intListArg(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
+  def doubleListArg(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
+  def stringListArg(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
 
   val allArgs: JArg[ju.Map[String, Any]] = {
     val arg = JobDefInstances.allArgs.map(_.asJava)

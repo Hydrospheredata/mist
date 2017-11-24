@@ -1,6 +1,4 @@
-import mist.api.RetValues;
-import mist.api.jdsl.JJobDef;
-import mist.api.jdsl.JMistJob;
+import mist.api.jdsl.*;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.util.ArrayList;

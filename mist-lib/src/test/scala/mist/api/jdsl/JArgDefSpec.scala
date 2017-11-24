@@ -23,27 +23,27 @@ class JArgDefSpec extends FunSpec with Matchers {
     (intArg("n"),    Seq("n" -> 2),  Extracted(2)),
     (intArg("n", 0), Seq.empty,      Extracted(0)),
     (intArg("n"),    Seq.empty,      miss),
-    (optInt("n"),    Seq("n" -> 42), Extracted(java.util.Optional.of(42))),
-    (optInt("n"),    Seq.empty,      Extracted(java.util.Optional.empty())),
+    (optIntArg("n"),    Seq("n" -> 42), Extracted(java.util.Optional.of(42))),
+    (optIntArg("n"),    Seq.empty,      Extracted(java.util.Optional.empty())),
 
 
     (stringArg("s"),          Seq("s" -> "value"),  Extracted("value")),
     (stringArg("s", "value"), Seq.empty,            Extracted("value")),
     (stringArg("s"),          Seq.empty,            miss),
-    (optString("s"),          Seq("s" -> "yoyo"),   Extracted(java.util.Optional.of("yoyo"))),
-    (optString("s"),          Seq.empty,            Extracted(java.util.Optional.empty())),
+    (optStringArg("s"),          Seq("s" -> "yoyo"),   Extracted(java.util.Optional.of("yoyo"))),
+    (optStringArg("s"),          Seq.empty,            Extracted(java.util.Optional.empty())),
 
     (doubleArg("d"),      Seq("d" -> 2.4),  Extracted(2.4)),
     (doubleArg("d", 2.2), Seq.empty,        Extracted(2.2)),
     (doubleArg("d"),      Seq.empty,        miss),
-    (optDouble("d"),      Seq("d" -> 42.1), Extracted(java.util.Optional.of(42.1))),
-    (optDouble("d"),      Seq.empty,        Extracted(java.util.Optional.empty())),
+    (optDoubleArg("d"),      Seq("d" -> 42.1), Extracted(java.util.Optional.of(42.1))),
+    (optDoubleArg("d"),      Seq.empty,        Extracted(java.util.Optional.empty())),
 
-    (intList("ints"),       Seq("ints" -> Seq(1,2,3)), Extracted(javaList(1, 2, 3))),
+    (intListArg("ints"),       Seq("ints" -> Seq(1,2,3)), Extracted(javaList(1, 2, 3))),
 
-    (doubleList("doubles"), Seq("doubles" -> Seq(1.1,2.2,3.3)), Extracted(javaList(1.1, 2.2, 3.3))),
+    (doubleListArg("doubles"), Seq("doubles" -> Seq(1.1,2.2,3.3)), Extracted(javaList(1.1, 2.2, 3.3))),
 
-    (stringList("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(javaList("a", "b", "c")))
+    (stringListArg("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(javaList("a", "b", "c")))
   )
 
   it("should extract expected result") {

@@ -1,4 +1,3 @@
-import mist.api.RetValues;
 import mist.api.jdsl.JJobDef;
 import mist.api.jdsl.JMistJob;
 import org.apache.spark.api.java.JavaPairRDD;
