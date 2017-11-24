@@ -1,8 +1,5 @@
-import mist.api.jdsl.JJobDef;
-import mist.api.jdsl.JMistJob;
-import org.apache.spark.api.java.JavaPairRDD;
+import mist.api.jdsl.*;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.streaming.Time;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
