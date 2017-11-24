@@ -4,7 +4,7 @@ import java.time.LocalDateTime
 
 import io.hydrosphere.mist.core.jvmjob.FullJobInfo
 import io.hydrosphere.mist.master.models.ContextConfig
-import mist.api.UserInputArgument
+import mist.api.args.UserInputArgument
 
 import scala.concurrent.duration.Duration
 
@@ -55,7 +55,7 @@ object HttpJobArg {
   def convert(argType: ArgType): HttpJobArg = {
     val t = argType.getClass.getSimpleName.replace("$", "")
     val typeArgs = argType match {
-      case x@(MInt | MDouble | MString | MAny) => Seq.empty
+      case x@(MBoolean | MInt | MDouble | MString | MAny) => Seq.empty
       case x: MMap => Seq(x.k, x.v).map(HttpJobArg.convert)
       case x: MList => Seq(HttpJobArg.convert(x.v))
       case x: MOption => Seq(HttpJobArg.convert(x.v))

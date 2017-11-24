@@ -2,8 +2,8 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.data.JsLikeData
 import mist.api.internal.BaseJobInstance
-import mist.api.{ArgInfo, FullJobContext, UserInputArgument, data => mdata}
-
+import mist.api.{FullJobContext, data => mdata}
+import mist.api.args.ArgInfo
 import scala.util._
 
 class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {
@@ -18,9 +18,7 @@ class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {
     }
   }
 
-  override def describe(): Seq[ArgInfo] = {
-    oldInstance.argumentsTypes.map({case (name, t) => UserInputArgument(name, t)}).toSeq
-  }
+  override def describe(): Seq[ArgInfo] = oldInstance.arguments
 
   override def validateParams(params: Map[String, Any]): Either[Throwable, Map[String, Any]] = {
     oldInstance.validateParams(params) match {

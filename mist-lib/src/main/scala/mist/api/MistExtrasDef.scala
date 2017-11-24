@@ -1,7 +1,5 @@
 package mist.api
-
-import mist.api.args.ArgCombiner
-
+import mist.api.args.{ArgDef, Extracted, SystemArg, ArgCombiner}
 /**
   * Access to mist-specific job parameters + logger
   */
@@ -13,7 +11,7 @@ class MistExtras(
 
 object MistExtras {
 
-  val mistExtras: ArgDef[MistExtras] = SystemArg(ctx => {
+  val mistExtras: ArgDef[MistExtras] = SystemArg(Seq.empty, ctx => {
     val jobId = ctx.setupConf.info.id
     val workerId = ctx.setupConf.info.workerId
     Extracted(new MistExtras(

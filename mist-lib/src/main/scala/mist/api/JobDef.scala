@@ -1,6 +1,10 @@
 package mist.api
 
-import mist.api.args.MOption
+import mist.api.args.{
+  ArgDescriptionInstances, MOption, ArgDescription, UserArg,
+  ArgInfo, UserInputArgument, ArgExtraction, Extracted, Missing,
+  ArgDef, SystemArg, InternalArgument
+}
 
 trait JobDefInstances extends ArgDescriptionInstances {
 
@@ -54,6 +58,8 @@ trait JobDefInstances extends ArgDescriptionInstances {
 
   val allArgs: ArgDef[Map[String, Any]] = new SystemArg[Map[String, Any]] {
     override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
+
+    override def describe(): Seq[ArgInfo] = Seq(InternalArgument())
   }
 
 }

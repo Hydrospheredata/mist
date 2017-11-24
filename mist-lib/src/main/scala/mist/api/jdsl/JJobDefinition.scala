@@ -1,6 +1,7 @@
 package mist.api.jdsl
 
-import mist.api.{BaseContextsArgs, MistExtras}
+import mist.api.BaseContextsArgs
+import mist.api.MistExtras
 import mist.api.jdsl.FuncSyntax._
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.streaming.api.java.JavaStreamingContext

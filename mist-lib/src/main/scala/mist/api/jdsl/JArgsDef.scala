@@ -43,10 +43,19 @@ trait JArgsDef extends ArgDescriptionInstances {
       case _ => None
     }
   }
+
   implicit val jDouble = new ArgDescription[jl.Double] {
     override def `type`: ArgType = MDouble
     override def apply(a: Any): Option[jl.Double] = a match {
       case d: jl.Double => Some(new jl.Double(d))
+      case _ => None
+    }
+  }
+
+  implicit val jBoolean = new ArgDescription[jl.Boolean] {
+    override def `type`: ArgType = MBoolean
+    override def apply(a: Any): Option[jl.Boolean] = a match {
+      case b: jl.Boolean => Some(b)
       case _ => None
     }
   }
@@ -61,10 +70,13 @@ trait JArgsDef extends ArgDescriptionInstances {
   def intArg(name: String, defaultValue: jl.Integer): JUserArg[jl.Integer] = namedArg(name, defaultValue)
 
   def doubleArg(name: String): JUserArg[jl.Double] = namedArg(name)
-  def doubleArg(name: String, defaultValue: jl.Double): JUserArg[jl.Double] = namedArg(name)
+  def doubleArg(name: String, defaultValue: jl.Double): JUserArg[jl.Double] = namedArg(name, defaultValue)
 
   def stringArg(name: String): JUserArg[String] = namedArg(name)
   def stringArg(name: String, defaultValue: String): JUserArg[String] = namedArg(name, defaultValue)
+
+  def booleanArg(name: String): JUserArg[jl.Boolean] = namedArg(name)
+  def booleanArg(name: String, defaultValue: jl.Boolean): JUserArg[jl.Boolean] = namedArg(name, defaultValue)
 
   private def optArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.Optional[T]] = {
     val arg = new UserArg[ju.Optional[T]] {
@@ -86,6 +98,7 @@ trait JArgsDef extends ArgDescriptionInstances {
   def optIntArg(name: String): JUserArg[ju.Optional[jl.Integer]] = optArg(name)
   def optDoubleArg(name: String): JUserArg[ju.Optional[jl.Double]] = optArg(name)
   def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg(name)
+  def optBooleanArg(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg(name)
 
   private def listArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.List[T]] = {
     val arg = new UserArg[ju.List[T]] {
@@ -110,6 +123,7 @@ trait JArgsDef extends ArgDescriptionInstances {
   def intListArg(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
   def doubleListArg(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
   def stringListArg(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
+  def booleanListArg(name: String): JUserArg[ju.List[jl.Boolean]] = listArg(name)
 
   val allArgs: JArg[ju.Map[String, Any]] = {
     val arg = JobDefInstances.allArgs.map(_.asJava)
@@ -120,18 +134,4 @@ trait JArgsDef extends ArgDescriptionInstances {
 }
 
 object JArgsDef extends JArgsDef
-
-class JJobDef[T](val jobDef: JobDef[RetVal[T]])
-
-abstract class JMistJob[T] extends JArgsDef with JJobDefinition {
-
-  def defineJob: JJobDef[T]
-
-  final def execute(ctx: JobContext): JobResult[JsLikeData] = {
-    defineJob.jobDef.invoke(ctx) match {
-      case JobSuccess(v) => JobSuccess(v.encoded())
-      case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
-    }
-  }
-}
 

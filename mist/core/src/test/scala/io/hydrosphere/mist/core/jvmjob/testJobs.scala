@@ -37,3 +37,15 @@ object ManyArgJob extends MistJob {
   }
 }
 
+object AllMixinsJob extends MistJob
+  with StreamingSupport
+  with SQLSupport
+  with HiveSupport {
+
+  def execute(): Map[String, Any] = {
+    val ssc = streamingContext
+    ssc.start()
+    ssc.stop(stopSparkContext = false)
+    Map("result" -> "ok")
+  }
+}

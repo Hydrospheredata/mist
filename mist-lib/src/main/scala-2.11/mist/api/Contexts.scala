@@ -1,14 +1,19 @@
 package mist.api
 
-import mist.api.args.{ArgCombiner, ToJobDef}
+import mist.api.args.{ArgCombiner, ArgDef, SystemArg, ToJobDef, ArgInfo}
 import mist.api.BaseContextsArgs._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkSessionUtils
 
 object SessionArgs {
 
-  val sparkSession: ArgDef[SparkSession] = sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, false))
-  val sparkSessionWithHive: ArgDef[SparkSession] = sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, true))
+  val sparkSession: ArgDef[SparkSession] = SystemArg(Seq(ArgInfo.SqlContextTag),
+    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, false)).extract(ctx)
+  )
+
+  val sparkSessionWithHive: ArgDef[SparkSession] = SystemArg(
+    Seq(ArgInfo.SqlContextTag, ArgInfo.HiveContextTag),
+    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, true)).extract(ctx))
 }
 
 trait Contexts extends BaseContexts {

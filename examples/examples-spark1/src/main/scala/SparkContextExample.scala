@@ -1,4 +1,5 @@
 import mist.api._
+import mist.api.MistExtras
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
