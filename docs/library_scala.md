@@ -66,7 +66,7 @@ There are following basic methods do define an argument:
 - `arg[T](name: String): ArgDef[A]` - required argument by name
 - `arg[A](name: String, default: A): ArgDef[A]` - if argument is missed, request function will fallback to default value
 - `optArg[A](name: String): ArgDef[Option[A]]` - function will receive `Option[T]`
-- `allArgs: ArgDef[Map[String, Any]]` - takes all arguments presented in request as `Map[String, Any]` 
+- `allArgs: ArgDef[Map[String, Any]]` - takes all arguments presented in request as `Map[String, Any]`
 
 By default library supports following argument types:
 - `Boolean`
@@ -122,6 +122,30 @@ object NoArgsJob extends MistJob[Int] {
 
 ```
 
+#### Validation
+
+For example for calculating pi using dartboard method n should be at least positive number.
+For that purpose `ArgDef[A]` has special methods to validate arguments:
+- `validated(f: A => Boolean)`
+- `validated(f: A => Boolean, explanation: String)`
+
+```scala
+import mist.api._
+import mist.api.encoding.DefaultEncoders._
+import org.apache.spark.SparkContext
+
+object PiExample extends MistJob[Double] {
+
+  override def defineJob: JobDef[Double] = {
+    withArgs(
+      arg[Int]("samples").validated(n => n > 0, "Samples value should be positive")
+    ).onSparkContext((n: Int, sc: SparkContext) => {
+       ...
+    })
+  }
+}
+```
+
 #### Encoding
 
 Mist should be able to return result back to call site (http request, async interfaces) and it requires
@@ -143,7 +167,7 @@ It supports:
 Every job invocation on Mist has unique id and performs on some worker. It can be usefull in some situtaions
 to known that information at job side.
 Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your jobs.
-This thing together is called `MistExtras`. Example:
+This things together are called `MistExtras`. Example:
 
 ```scala
 import mist.api._
@@ -156,7 +180,7 @@ object HelloWorld extends MistJob[Unit] {
     withArgs(arg[Int]("samples"))
       .withMistExtras
       .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
-         // import jobId, workerId, logger to scope
+         // import jobId, workerId, logger into scope
          import extras._ 
          logger.info(s"Hello from $jobId")
     })
