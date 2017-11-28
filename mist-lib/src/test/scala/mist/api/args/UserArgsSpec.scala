@@ -4,14 +4,16 @@ import mist.api.JobContext
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+case class Z(hz: String, yoyo: Int)
+case class ComplexCase(abc: Int, hehe: String, x: Boolean, z: Z)
+case class Test(a: String, b: Int, z: Boolean, l: Long)
+
 class UserArgsSpec extends FunSpec with Matchers {
 
   import ArgsInstances._
 
   describe("complex case class") {
 
-    case class Z(hz: String, yoyo: Int)
-    case class ComplexCase(abc: Int, hehe: String, x: Boolean, z: Z)
 
     it("should extract") {
       val params = Map(
@@ -49,7 +51,6 @@ class UserArgsSpec extends FunSpec with Matchers {
   }
 
   describe("case class plain") {
-    case class Test(a: String, b: Int, z: Boolean, l: Long)
 
     it("should extract") {
       val params = Map(
