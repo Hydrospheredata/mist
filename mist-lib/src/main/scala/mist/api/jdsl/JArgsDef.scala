@@ -34,31 +34,6 @@ trait JArgsDef {
 
   import scala.collection.JavaConverters._
 
-//  implicit val jInt = new ArgDescription[jl.Integer] {
-//    override def `type`: ArgType = MInt
-//
-//    override def apply(a: Any): Option[jl.Integer] = a match {
-//      case i: Int => Some(new jl.Integer(i))
-//      case _ => None
-//    }
-//  }
-//
-//  implicit val jDouble = new ArgDescription[jl.Double] {
-//    override def `type`: ArgType = MDouble
-//    override def apply(a: Any): Option[jl.Double] = a match {
-//      case d: jl.Double => Some(new jl.Double(d))
-//      case _ => None
-//    }
-//  }
-//
-//  implicit val jBoolean = new ArgDescription[jl.Boolean] {
-//    override def `type`: ArgType = MBoolean
-//    override def apply(a: Any): Option[jl.Boolean] = a match {
-//      case b: jl.Boolean => Some(b)
-//      case _ => None
-//    }
-//  }
-
   private def namedArg[A](name: String)(implicit d: PlainExtractor[A]): JUserArg[A] =
     new JUserArg[A](arg[A](name))
 
