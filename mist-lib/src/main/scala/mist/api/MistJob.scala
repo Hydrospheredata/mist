@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.args.WithArgsScala
+import mist.api.args.{ArgsInstances, WithArgsScala}
 import mist.api.data.JsLikeData
 import mist.api.encoding.Encoder
 
@@ -26,7 +26,7 @@ import mist.api.encoding.Encoder
   * </pre>
   */
 abstract class MistJob[A](implicit enc: Encoder[A])
-  extends JobDefInstances
+  extends ArgsInstances
   with Contexts
   with MistExtrasDef
   with WithArgsScala {
