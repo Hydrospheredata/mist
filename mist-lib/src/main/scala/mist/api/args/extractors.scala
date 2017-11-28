@@ -75,7 +75,7 @@ trait LowPrioPlainExtractor {
     }
 }
 
-trait ComplexPlainExtractor extends LowPrioPlainExtractor {
+trait OptSeqPlainExtractor extends LowPrioPlainExtractor {
 
   implicit def optionExt[A](implicit tP: TypedPrimitive[A]): PlainExtractor[Option[A]] = {
     create(MOption(tP.`type`)) {
@@ -103,7 +103,7 @@ trait ComplexPlainExtractor extends LowPrioPlainExtractor {
   }
 }
 
-object PlainExtractor extends ComplexPlainExtractor
+object PlainExtractor extends OptSeqPlainExtractor
 
 /**
   * Support case class extraction
@@ -200,7 +200,6 @@ object LabeledExtractor {
 
   implicit def labelled[A, H <: HList](
     implicit
-    ev: A <:< Product,
     labGen: LabelledGeneric.Aux[A, H],
     ext: LabeledExtractor[H]
   ): LabeledExtractor[A] = new LabeledExtractor[A] {
