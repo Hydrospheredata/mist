@@ -25,16 +25,16 @@ import mist.api.encoding.Encoder
   * }
   * </pre>
   */
-abstract class MistJob[A](implicit enc: Encoder[A])
+abstract class MistFn[A](implicit enc: Encoder[A])
   extends ArgsInstances
   with Contexts
   with MistExtrasDef
   with WithArgsScala {
 
-  def defineJob: JobDef[A]
+  def handler: FnDef[A]
 
-  final def execute(ctx: JobContext): JobResult[JsLikeData] = {
-    defineJob.invoke(ctx) match {
+  final def execute(ctx: FnContext): JobResult[JsLikeData] = {
+    handler.invoke(ctx) match {
       case JobSuccess(data) => JobSuccess(enc(data))
       case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
     }

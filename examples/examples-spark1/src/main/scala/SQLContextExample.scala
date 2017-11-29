@@ -2,9 +2,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.sql.SQLContext
 
-object SQLContextExample extends MistJob[Array[Int]]{
+object SQLContextExample extends MistFn[Array[Int]]{
 
-  override def defineJob: JobDef[Array[Int]] = {
+  override def handler: FnDef[Array[Int]] = {
     withArgs(arg[String]("file")).onSqlContext((file: String, sqlCtx: SQLContext) => {
       val df = sqlCtx.read.json(file)
       df.registerTempTable("people")

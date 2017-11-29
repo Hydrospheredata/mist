@@ -2,13 +2,13 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.data.JsLikeData
 import mist.api.internal.BaseJobInstance
-import mist.api.{FullJobContext, data => mdata}
+import mist.api.{FullFnContext, data => mdata}
 import mist.api.args.ArgInfo
 import scala.util._
 
 class OldInstanceWrapper(oldInstance: JobInstance) extends BaseJobInstance {
 
-  override def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData] = {
+  override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = {
     oldInstance.run(jobCtx.setupConf, jobCtx.params) match {
       case l: Left[_, _] => l.asInstanceOf[Either[Throwable, JsLikeData]]
       case Right(anyMap) => Try(JsLikeData.fromScala(anyMap)) match {

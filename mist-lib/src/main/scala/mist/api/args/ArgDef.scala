@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.{FullJobContext, JobContext, JobDef}
+import mist.api.{FullFnContext, FnContext, FnDef}
 
 
 sealed trait ArgInfo
@@ -39,7 +39,7 @@ trait ArgDef[A] { self =>
 
   def describe(): Seq[ArgInfo]
 
-  def extract(ctx: JobContext): ArgExtraction[A]
+  def extract(ctx: FnContext): ArgExtraction[A]
 
   private[api] def validate(params: Map[String, Any]): Either[Throwable, Any]
 
@@ -54,14 +54,14 @@ trait ArgDef[A] { self =>
 
       override def describe(): Seq[ArgInfo] = self.describe()
 
-      override def extract(ctx: JobContext): ArgExtraction[B] = self.extract(ctx).map(f)
+      override def extract(ctx: FnContext): ArgExtraction[B] = self.extract(ctx).map(f)
 
       override def validate(params: Map[String, Any]): Either[Throwable, Any] = self.validate(params)
 
     }
   }
 
-  def apply[F, R](f: F)(implicit tjd: ToJobDef.Aux[A, F, R]): JobDef[R] = tjd(self, f)
+  def apply[F, R](f: F)(implicit tjd: ToFnDef.Aux[A, F, R]): FnDef[R] = tjd(self, f)
 }
 
 trait SystemArg[A] extends ArgDef[A] {
@@ -72,17 +72,17 @@ trait SystemArg[A] extends ArgDef[A] {
 object SystemArg {
 
   def apply[A](tags: Seq[String], f: => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = f
+    override def extract(ctx: FnContext): ArgExtraction[A] = f
 
     override def describe() = Seq(InternalArgument(tags))
   }
 
-  def apply[A](tags: Seq[String], f: FullJobContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
-    override def extract(ctx: JobContext): ArgExtraction[A] = ctx match {
-      case c: FullJobContext => f(c)
+  def apply[A](tags: Seq[String], f: FullFnContext => ArgExtraction[A]): ArgDef[A] = new SystemArg[A] {
+    override def extract(ctx: FnContext): ArgExtraction[A] = ctx match {
+      case c: FullFnContext => f(c)
       case _ =>
         val desc = s"Unknown type of job context ${ctx.getClass.getSimpleName} " +
-          s"expected ${FullJobContext.getClass.getSimpleName}"
+          s"expected ${FullFnContext.getClass.getSimpleName}"
         Missing(desc)
     }
 

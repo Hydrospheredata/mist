@@ -1,13 +1,13 @@
 package mist.api.args
 
-import mist.api.JobContext
+import mist.api.FnContext
 
 trait ArgsInstances {
 
   class NamedUserArg[A](name: String)(implicit pe: PlainExtractor[A]) extends UserArg[A] {
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, pe.`type`))
 
-    override def extract(ctx: JobContext): ArgExtraction[A] = {
+    override def extract(ctx: FnContext): ArgExtraction[A] = {
       pe.extract(ctx.params.get(name))
     }
   }
@@ -15,7 +15,7 @@ trait ArgsInstances {
   class NamedUserArgWithDefault[A](name: String, default: A)(implicit pe: PlainExtractor[A]) extends UserArg[A] {
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(pe.`type`)))
 
-    override def extract(ctx: JobContext): ArgExtraction[A] = {
+    override def extract(ctx: FnContext): ArgExtraction[A] = {
       ctx.params.get(name) match {
         case s if s.isDefined => pe.extract(s)
         case none => Extracted(default)
@@ -33,12 +33,12 @@ trait ArgsInstances {
     new UserArg[A] {
       override def describe(): Seq[ArgInfo] = le.info
 
-      override def extract(ctx: JobContext) = le.extract(ctx.params)
+      override def extract(ctx: FnContext) = le.extract(ctx.params)
     }
   }
 
   val allArgs: ArgDef[Map[String, Any]] = new SystemArg[Map[String, Any]] {
-    override def extract(ctx: JobContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
+    override def extract(ctx: FnContext): ArgExtraction[Map[String, Any]] = Extracted(ctx.params)
 
     override def describe(): Seq[ArgInfo] = Seq(InternalArgument())
   }

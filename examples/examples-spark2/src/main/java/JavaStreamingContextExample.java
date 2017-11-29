@@ -1,6 +1,6 @@
 import mist.api.RetValues;
-import mist.api.jdsl.JJobDef;
-import mist.api.jdsl.JMistJob;
+import mist.api.jdsl.JFnDef;
+import mist.api.jdsl.JMistFn;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.util.ArrayList;
@@ -8,10 +8,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-class JavaStreamingContextExample extends JMistJob<Void> {
+class JavaStreamingContextExample extends JMistFn<Void> {
 
     @Override
-    public JJobDef<Void> defineJob() {
+    public JFnDef<Void> handler() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();

@@ -2,9 +2,9 @@ package mist.api
 
 import mist.api.args._
 
-trait JobDef[A] { self =>
+trait FnDef[A] { self =>
 
-  def invoke(ctx: JobContext): JobResult[A]
+  def invoke(ctx: FnContext): JobResult[A]
 
   def describe(): Seq[ArgInfo]
 
@@ -12,17 +12,17 @@ trait JobDef[A] { self =>
 
 }
 
-object JobDef {
+object FnDef {
 
   def instance[A](
-    f: JobContext => JobResult[A],
+    f: FnContext => JobResult[A],
     descr: => Seq[ArgInfo],
     validateF: Map[String, Any] => Either[Throwable, Any]
-  ): JobDef[A] = new JobDef[A] {
+  ): FnDef[A] = new FnDef[A] {
 
     override def describe(): Seq[ArgInfo] = descr
 
-    override def invoke(ctx: JobContext): JobResult[A] = {
+    override def invoke(ctx: FnContext): JobResult[A] = {
       try {
         f(ctx)
       } catch {

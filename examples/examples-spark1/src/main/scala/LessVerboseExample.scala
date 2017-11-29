@@ -11,11 +11,11 @@ case class Args(
   def mult: Int = multiplier.getOrElse(2)
 }
 
-object LessVerboseExample extends MistJob[Array[Int]] {
+object LessVerboseExample extends MistFn[Array[Int]] {
 
   import MistExtras._
 
-  override def defineJob = (arg[Args] & mistExtras).onSparkContext(
+  override def handler = (arg[Args] & mistExtras).onSparkContext(
     (args: Args, extras: MistExtras, sc: SparkContext) => {
       import extras._
 

@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.args.{ArgCombiner, ArgDef, SystemArg, ToJobDef, ArgInfo}
+import mist.api.args.{ArgCombiner, ArgDef, SystemArg, ToFnDef, ArgInfo}
 import mist.api.BaseContextsArgs._
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkSessionUtils
@@ -25,25 +25,25 @@ trait Contexts extends BaseContexts {
     def onSparkSession[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sparkSession), f)
+      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(sparkSession), f)
 
     def onSparkSessionWithHive[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      tjd: ToJobDef.Aux[Cmb, F, Out]): JobDef[Out] = tjd(args.combine(sparkSessionWithHive), f)
+      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(sparkSessionWithHive), f)
   }
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession as an argument.
     */
-  def onSparkSession[F, Out](f: F)(implicit tjd: ToJobDef.Aux[SparkSession, F, Out]): JobDef[Out] =
+  def onSparkSession[F, Out](f: F)(implicit tjd: ToFnDef.Aux[SparkSession, F, Out]): FnDef[Out] =
     tjd(sparkSession, f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession
     * with enabled hive as an argument.
     */
-  def onSparkSessionWithHive[F, Out](f: F)(implicit tjd: ToJobDef.Aux[SparkSession, F, Out]): JobDef[Out] =
+  def onSparkSessionWithHive[F, Out](f: F)(implicit tjd: ToFnDef.Aux[SparkSession, F, Out]): FnDef[Out] =
     tjd(sparkSessionWithHive, f)
 }
 

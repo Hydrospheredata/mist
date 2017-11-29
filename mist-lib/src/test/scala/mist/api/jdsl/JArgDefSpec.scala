@@ -3,7 +3,7 @@ package mist.api.jdsl
 import java.util
 
 import mist.api.args.{ArgExtraction, Extracted, Missing}
-import mist.api.JobContext
+import mist.api.FnContext
 import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
@@ -56,7 +56,7 @@ class JArgDefSpec extends FunSpec with Matchers {
 
   it("should extract expected result") {
     forAll(expected) { (arg, params, expected) =>
-      val ctx = JobContext(params.toMap)
+      val ctx = FnContext(params.toMap)
       val result = arg.asScala.extract(ctx)
       (expected, result) match {
         case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr
@@ -71,11 +71,11 @@ class JArgDefSpec extends FunSpec with Matchers {
       override def apply(a1: java.lang.Integer): java.lang.Boolean = a1 > 2
     }).asScala
 
-    arg.extract(JobContext(Map("a" -> 5))) shouldBe Extracted(5)
-    arg.extract(JobContext(Map("a" -> 1))) shouldBe a[Missing[_]]
+    arg.extract(FnContext(Map("a" -> 5))) shouldBe Extracted(5)
+    arg.extract(FnContext(Map("a" -> 1))) shouldBe a[Missing[_]]
   }
 
-  def testCtx(params: (String, Any)*): JobContext = {
-    JobContext(params.toMap)
+  def testCtx(params: (String, Any)*): FnContext = {
+    FnContext(params.toMap)
   }
 }

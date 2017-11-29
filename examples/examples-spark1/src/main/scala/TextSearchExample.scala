@@ -2,9 +2,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object TextSearchExample extends MistJob[Array[String]]{
+object TextSearchExample extends MistFn[Array[String]]{
 
-  override def defineJob: JobDef[Array[String]] = {
+  override def handler: FnDef[Array[String]] = {
     withArgs(
       arg[String]("filePath"),
       arg[Seq[String]]("filters")
