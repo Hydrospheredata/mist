@@ -10,10 +10,10 @@ import mist.api.jdsl.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JavaPiExample extends JMistJob<Double> {
+public class JavaPiExample extends JMistFn<Double> {
 
     @Override
-    public JJobDef<Double> defineJob() {
+    public JJobDef<Double> handler() {
         return withArgs(intArg("samples")).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);
             for (int i = 0; i < n ; i++) {
@@ -55,7 +55,7 @@ Maven dependency:
 
 #### Overview
 
-Speaking generally - `JMistJob[A]` represents an interface that provides
+Speaking generally - `JMistFn[A]` represents an interface that provides
 function over one of available spark contexts (SparkContext, SparkSession, StreamingContext).
 
 #### Arguments
@@ -104,7 +104,7 @@ import mist.api.jdsl.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NoArgsExample extends JMistJob<Integer> {
+public class NoArgsExample extends JMistFn<Integer> {
 
     @Override
     public JJobDef<Integer> defineJob() {
@@ -131,7 +131,7 @@ This thing together is called `MistExtras`. Example:
 import io.hydrosphere.mist.api.MLogger;
 import mist.api.jdsl.*;
 
-public class Hello extends JMistJob<Void> {
+public class Hello extends JMistFn<Void> {
 
     @Override
     public JJobDef<Integer> defineJob() {

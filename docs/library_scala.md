@@ -9,9 +9,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object PiExample extends MistJob[Double] {
+object PiExample extends MistFn[Double] {
 
-  override def defineJob: JobDef[Double] = {
+  override def handler: JobDef[Double] = {
     withArgs(arg[Int]("samples")).onSparkContext((n: Int, sc: SparkContext) => {
       val count = sc.parallelize(1 to n).filter(_ => {
         val x = math.random
@@ -54,7 +54,7 @@ Maven dependency:
 
 #### Overview
 
-Speaking generally - `MistJob[A]` represents an interface that provides
+Speaking generally - `MistFn[A]` represents an interface that provides
 function over one of available spark contexts (SparkContext, SQLContext, ..., SparkSession).
 Here `A` is a function result type, that mist can *automatically* convert to json(see Encoders).
 
@@ -65,7 +65,6 @@ So for example: `arg[Int]("n")` means that request's json object should contain 
 There are following basic methods do define an argument:
 - `arg[T](name: String): ArgDef[A]` - required argument by name
 - `arg[A](name: String, default: A): ArgDef[A]` - if argument is missed, request function will fallback to default value
-- `optArg[A](name: String): ArgDef[Option[A]]` - function will receive `Option[T]`
 - `allArgs: ArgDef[Map[String, Any]]` - takes all arguments presented in request as `Map[String, Any]`
 
 By default library supports following argument types:
@@ -74,6 +73,7 @@ By default library supports following argument types:
 - `Double`
 - `String`
 - `Seq[A]` (where A should be one from supported types)
+- `Option[A]` (where A should be one from supported types)
 
 To define function of several arguments we should be able to combine them.
 For that purpose there is method `withArgs`, it accepts from 1 to 21 argument and returns `ArgDef`.
@@ -113,9 +113,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object NoArgsJob extends MistJob[Int] {
+object NoArgsJob extends MistFn[Int] {
 
-  override def defineJob: JobDef[Int] = {
+  override def handler: JobDef[Int] = {
     onSparkContext((sc: SparkContext) => 42 )
   }
 }
@@ -134,9 +134,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object PiExample extends MistJob[Double] {
+object PiExample extends MistFn[Double] {
 
-  override def defineJob: JobDef[Double] = {
+  override def handler: JobDef[Double] = {
     withArgs(
       arg[Int]("samples").validated(n => n > 0, "Samples value should be positive")
     ).onSparkContext((n: Int, sc: SparkContext) => {
@@ -174,9 +174,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object HelloWorld extends MistJob[Unit] {
+object HelloWorld extends MistFn[Unit] {
 
-  override def defineJob: JobDef[Unit] = {
+  override def handler: JobDef[Unit] = {
     withArgs(arg[Int]("samples"))
       .withMistExtras
       .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
