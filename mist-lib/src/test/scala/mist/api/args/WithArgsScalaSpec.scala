@@ -22,14 +22,14 @@ class WithArgsScalaSpec extends FunSpec with Matchers {
   }
 
   it("should work with user args") {
-    import mist.api.JobDefInstances._
+    import ArgsInstances._
     val result = withArgs((arg[Int]("n"): UserArg[Int], arg[Int]("m")))
     val extraction = result.extract(JobContext(Map("n" -> 5, "m" -> 10)))
     extraction shouldBe Extracted(5 :: 10 :: HNil)
   }
 
   it("should work with single user arg") {
-    import mist.api.JobDefInstances._
+    import ArgsInstances._
     val result = withArgs(arg[Int]("n"): UserArg[Int])
     val extraction = result.extract(JobContext(Map("n" -> 5, "m" -> 10)))
     extraction shouldBe Extracted(5)

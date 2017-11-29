@@ -8,7 +8,7 @@ import org.scalatest.{FunSpec, Matchers}
 class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
   import BaseContexts._
-  import JobDefInstances._
+  import mist.api.args.ArgsInstances._
 
   it("for spark context") {
    val spJob = arg[Seq[Int]]("nums").onSparkContext(
