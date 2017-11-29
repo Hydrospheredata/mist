@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.JobContext
+import mist.api.FnContext
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
@@ -22,7 +22,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "x" -> false,
         "z" -> Map("hz" -> "asdsad", "yoyo" -> 1)
       )
-      val r = arg[ComplexCase].extract(JobContext(params))
+      val r = arg[ComplexCase].extract(FnContext(params))
       r shouldBe Extracted(ComplexCase(1, "ads", false, Z("asdsad", 1)))
     }
 
@@ -33,7 +33,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "x" -> false,
         "z" -> Map(1 -> "asdsad", 2 -> 1)
       )
-      val r = arg[ComplexCase].extract(JobContext(params))
+      val r = arg[ComplexCase].extract(FnContext(params))
       r.isMissing shouldBe true
     }
 
@@ -44,7 +44,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "x" -> false,
         "z" -> 50
       )
-      val r = arg[ComplexCase].extract(JobContext(params))
+      val r = arg[ComplexCase].extract(FnContext(params))
       r.isMissing shouldBe true
     }
 
@@ -59,7 +59,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "z" -> false,
         "l" -> 10L
       )
-      val r = arg[Test].extract(JobContext(params))
+      val r = arg[Test].extract(FnContext(params))
       r shouldBe Extracted(Test("A", 1, false, 10L))
     }
   }
@@ -68,8 +68,8 @@ class UserArgsSpec extends FunSpec with Matchers {
 
     it("named arg") {
       val myArg = arg[Int]("a")
-      myArg.extract(JobContext(Map("a" -> 5))) shouldBe Extracted(5)
-      myArg.extract(JobContext(Map.empty)).isMissing shouldBe true
+      myArg.extract(FnContext(Map("a" -> 5))) shouldBe Extracted(5)
+      myArg.extract(FnContext(Map.empty)).isMissing shouldBe true
     }
 
     def miss: Missing[Nothing] = Missing("")
@@ -110,7 +110,7 @@ class UserArgsSpec extends FunSpec with Matchers {
 
     it("should extract expected result") {
       forAll(expected) { (arg, params, expected) =>
-        val ctx = JobContext(params.toMap)
+        val ctx = FnContext(params.toMap)
         val result = arg.extract(ctx)
         (expected, result) match {
           case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr
@@ -163,7 +163,7 @@ class UserArgsSpec extends FunSpec with Matchers {
     }
   }
 
-  def testCtx(params: (String, Any)*): JobContext = {
-    JobContext(params.toMap)
+  def testCtx(params: (String, Any)*): FnContext = {
+    FnContext(params.toMap)
   }
 }

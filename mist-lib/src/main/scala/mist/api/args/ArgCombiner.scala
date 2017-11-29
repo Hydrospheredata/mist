@@ -20,7 +20,7 @@ object ArgCombiner {
       new ArgDef[adj.Out] {
         def describe(): Seq[ArgInfo] = a.describe() ++ b.describe()
 
-        def extract(ctx: JobContext): ArgExtraction[adj.Out] = {
+        def extract(ctx: FnContext): ArgExtraction[adj.Out] = {
           (b.extract(ctx), a.extract(ctx)) match {
             case (Extracted(be), Extracted(ae)) =>
               val out = adj(ae :: be :: HNil)

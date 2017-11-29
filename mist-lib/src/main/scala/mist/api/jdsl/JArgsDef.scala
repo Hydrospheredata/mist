@@ -56,7 +56,7 @@ trait JArgsDef {
     val arg = new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(tP.`type`)))
 
-      override def extract(ctx: JobContext): ArgExtraction[Optional[T]] = {
+      override def extract(ctx: FnContext): ArgExtraction[Optional[T]] = {
         ctx.params.get(name) match {
           case Some(x) => tP.extract(x) match {
             case Extracted(a)  => Extracted(ju.Optional.of(a))
@@ -78,7 +78,7 @@ trait JArgsDef {
     val arg = new UserArg[ju.List[T]] {
       override def describe() = Seq(UserInputArgument(name, MList(tP.`type`)))
 
-      override def extract(ctx: JobContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
+      override def extract(ctx: FnContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
         case Some(x) => x match {
           case seq: Seq[_] =>
             val elems = seq.map(a => tP.extract(a))

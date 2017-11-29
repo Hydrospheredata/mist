@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.{JobContext, JobDef, JobFailure, JobSuccess}
+import mist.api.{FnContext, FnDef, JobFailure, JobSuccess}
 import org.scalatest.{FunSpec, Matchers}
 import shapeless._
 
@@ -38,13 +38,13 @@ class ArgDefSpec extends FunSpec with Matchers {
   describe("job def") {
 
     it("should describe job") {
-      val job42: JobDef[Int] = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
+      val job42: FnDef[Int] = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
       val res = job42.invoke(testCtx())
       res shouldBe JobSuccess(42)
     }
 
     it("should apply arguments in correct order") {
-      val hello: JobDef[String] = const("W") & const("o") & const("r") & const("l") & const("d") apply {
+      val hello: FnDef[String] = const("W") & const("o") & const("r") & const("l") & const("d") apply {
         (a: String, b: String, c: String, d: String, e: String) =>
           s"Hello $a$b$c$d$e"
       }
@@ -52,25 +52,25 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
 
     it("shouldn't work with missing args") {
-      val invalid: JobDef[String] = const("valid") & missing[Int]("msg") & const("last") apply {
+      val invalid: FnDef[String] = const("valid") & missing[Int]("msg") & const("last") apply {
         (a: String, b: Int, c: String) => "wtf?"
       }
       invalid.invoke(testCtx()) shouldBe a[JobFailure[_]]
     }
 
     it("should fail on error") {
-      val broken: JobDef[Int] = const("a")({(a: String) => throw new RuntimeException("broken") })
+      val broken: FnDef[Int] = const("a")({(a: String) => throw new RuntimeException("broken") })
       broken.invoke(testCtx()) shouldBe a[JobFailure[_]]
     }
 
     it("should work with one arg") {
-      val jobDef: JobDef[String] = const("single") { (a: String) => a }
+      val jobDef: FnDef[String] = const("single") { (a: String) => a }
       val res = jobDef.invoke(testCtx())
       res shouldBe JobSuccess("single")
     }
   }
 
-  def testCtx(params: (String, Any)*): JobContext = {
-    JobContext(params.toMap)
+  def testCtx(params: (String, Any)*): FnContext = {
+    FnContext(params.toMap)
   }
 }

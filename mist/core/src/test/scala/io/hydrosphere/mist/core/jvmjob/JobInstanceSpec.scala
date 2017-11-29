@@ -3,7 +3,7 @@ package io.hydrosphere.mist.core.jvmjob
 import mist.api.args._
 import mist.api.data._
 import mist.api.internal.BaseJobInstance
-import mist.api.{FullJobContext}
+import mist.api.{FullFnContext}
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import io.hydrosphere.mist.core.CommonData.Action
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
@@ -24,8 +24,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
   val jobInfo = RuntimeJobInfo("test", "test")
 
-  def jobContext(params: (String, Any)*): FullJobContext =
-    FullJobContext(SetupConfiguration(sc, Duration(10), jobInfo, None), params.toMap)
+  def jobContext(params: (String, Any)*): FullFnContext =
+    FullFnContext(SetupConfiguration(sc, Duration(10), jobInfo, None), params.toMap)
 
   override def beforeAll = {
     sc = new SparkContext(conf)

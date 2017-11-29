@@ -21,7 +21,7 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
   }
 
   it("for only sc") {
-    val spJob: JobDef[Int] = onSparkContext((sc: SparkContext) => {
+    val spJob: FnDef[Int] = onSparkContext((sc: SparkContext) => {
       5
     })
     val res = spJob.invoke(testCtx())
@@ -56,10 +56,10 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
     res shouldBe JobSuccess(30)
   }
 
-  def testCtx(params: (String, Any)*): JobContext = {
+  def testCtx(params: (String, Any)*): FnContext = {
     val duration = org.apache.spark.streaming.Duration(10 * 1000)
     val setupConf = SetupConfiguration(spark, duration, RuntimeJobInfo("test", "worker"), None)
-    JobContext(setupConf, params.toMap)
+    FnContext(setupConf, params.toMap)
   }
 
 }

@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.JobContext
+import mist.api.FnContext
 
 trait UserArg[A] extends ArgDef[A] { self=>
 
@@ -8,7 +8,7 @@ trait UserArg[A] extends ArgDef[A] { self=>
     new UserArg[A] {
       override def describe(): Seq[ArgInfo] = self.describe()
 
-      override def extract(ctx: JobContext): ArgExtraction[A] =
+      override def extract(ctx: FnContext): ArgExtraction[A] =
         self.extract(ctx).flatMap(a => {
           if (f(a)) Extracted(a)
           else {
@@ -19,7 +19,7 @@ trait UserArg[A] extends ArgDef[A] { self=>
         })
 
       override def validate(params: Map[String, Any]): Either[Throwable, Any] =
-        extract(JobContext(params)) match {
+        extract(FnContext(params)) match {
           case Extracted(a) => self.validate(params) match {
             case Right(_) => if (f(a)) Right(()) else {
               val descr = if (reason.isEmpty) "" else " :" + reason
@@ -34,7 +34,7 @@ trait UserArg[A] extends ArgDef[A] { self=>
   }
 
   override private[mist] def validate(params: Map[String, Any]): Either[Throwable, Any] =
-    extract(JobContext(params)) match {
+    extract(FnContext(params)) match {
       case Extracted(_) => Right(())
       case Missing(err) => Left(new IllegalArgumentException(err))
     }
