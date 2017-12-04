@@ -7,7 +7,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -98,7 +98,7 @@ class MainService(
 
   private def selectRunMode(
     config: ContextConfig,
-    info: FullJobInfo,
+    info: JobInfoData,
     workerId: Option[String]
   ): RunMode = {
     if (info.tags.contains(ArgInfo.StreamingContextTag)) ExclusiveContext(workerId)
@@ -164,7 +164,7 @@ class MainService(
     contexts.getOrDefault(name)
   }
 
-  def endpointsInfo: Future[Seq[FullJobInfo]] = for {
+  def endpointsInfo: Future[Seq[JobInfoData]] = for {
     configs <- endpoints.all
     infos   <- Future.sequence(configs.map(e => {
       jobInfoProviderService.getJobInfoByConfig(e).map(Some.apply)

@@ -9,7 +9,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -200,7 +200,7 @@ class HttpApiV2Spec extends FunSpec
         .thenSuccess(test)
 
       when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
-        .thenSuccess(FullJobInfo(
+        .thenSuccess(JobInfoData(
           lang = "python",
           path = "test",
           defaultContext = "foo",

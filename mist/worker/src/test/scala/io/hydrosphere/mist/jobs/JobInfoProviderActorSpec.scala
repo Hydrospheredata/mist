@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorSystem, Status}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetCacheSize, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.job.{Cache, JobInfo, JobInfoExtractor, JobInfoProviderActor}
 import mist.api.args.{ArgInfo, UserInputArgument}
 import mist.api.FullJobContext
@@ -47,7 +47,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test"
@@ -56,7 +56,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProvider = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       testProbe.send(jobInfoProvider, GetJobInfo("Test", jobPath))
-      testProbe.expectMsg(FullJobInfo(
+      testProbe.expectMsg(JobInfoData(
         lang = "scala",
         execute = Seq(UserInputArgument("test", MInt)),
         className = "Test"
@@ -92,7 +92,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
           TestJobInstance(Right(Map.empty)),
-          FullJobInfo()
+          JobInfoData()
         )))
 
       val testProbe = TestProbe()
@@ -129,12 +129,12 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
           TestJobInstance(Right(Map.empty)),
-          FullJobInfo()
+          JobInfoData()
         )))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
           TestJobInstance(Left(new IllegalArgumentException("invalid"))),
-          FullJobInfo()
+          JobInfoData()
         )))
 
       val testProbe = TestProbe()
@@ -148,7 +148,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test"
@@ -158,7 +158,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
       testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath))
-      testProbe.expectMsgType[FullJobInfo]
+      testProbe.expectMsgType[JobInfoData]
       testProbe.send(jobInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
     }
@@ -167,7 +167,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test"
@@ -177,7 +177,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
       testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath))
-      testProbe.expectMsgType[FullJobInfo]
+      testProbe.expectMsgType[JobInfoData]
       testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath))
       verify(jobInfoExtractor, times(1)).extractInfo(any[File], any[String])
     }
@@ -187,7 +187,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
           instance = TestJobInstance(Right(Map.empty)),
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test"
@@ -197,7 +197,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
       testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath))
-      testProbe.expectMsgType[FullJobInfo]
+      testProbe.expectMsgType[JobInfoData]
       testProbe.send(jobInfoProviderActor, ValidateJobParameters("Test", jobPath, Action.Execute, Map.empty))
       testProbe.expectMsgType[Status.Success]
 
@@ -208,7 +208,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test",
@@ -219,7 +219,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
       testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath))
-      testProbe.expectMsgType[FullJobInfo]
+      testProbe.expectMsgType[JobInfoData]
       testProbe.send(jobInfoProviderActor, ValidateJobParameters("Test", jobPath, Action.Execute, Map.empty))
       testProbe.expectMsgType[Status.Failure]
     }
@@ -229,7 +229,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Success(JobInfo(
           instance = TestJobInstance(Right(Map.empty)),
-          info = FullJobInfo(
+          data = JobInfoData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt)),
             className = "Test"

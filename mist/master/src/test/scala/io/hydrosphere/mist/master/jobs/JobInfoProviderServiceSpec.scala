@@ -7,7 +7,7 @@ import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
@@ -54,11 +54,11 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         "test", jobPath, "Test", "foo"
       ))
       probe.expectMsgType[GetJobInfo]
-      probe.reply(FullJobInfo(lang="scala", className="Test"))
+      probe.reply(JobInfoData(lang="scala", className="Test"))
 
       val result = Await.result(f, Duration.Inf)
 
-      result shouldBe FullJobInfo(
+      result shouldBe JobInfoData(
         name="test",
         lang="scala",
         path=jobPath,
@@ -183,12 +183,12 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val f = jobInfoProviderService.getJobInfo("test")
 
       probe.expectMsgType[GetJobInfo]
-      probe.reply(FullJobInfo(lang="scala", className="Test"))
+      probe.reply(JobInfoData(lang="scala", className="Test"))
 
       val result = Await.result(f, Duration.Inf)
 
       result shouldBe defined
-      result.get shouldBe FullJobInfo(
+      result.get shouldBe JobInfoData(
         name="test",
         lang="scala",
         path=jobPath,

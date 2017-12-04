@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
@@ -41,7 +41,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(TestUtils.contextSettings.default)
 
     when(jobInfoProviderService.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
+      .thenSuccess(Some(JobInfoData(
         name = "name",
         path = "path.py",
         className = "MyJob",
@@ -76,8 +76,8 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test"
       )))
 
@@ -104,8 +104,8 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test"
       )))
 
@@ -142,7 +142,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val spiedService = spy(service)
     val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
     val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
-    val fullInfo = FullJobInfo(
+    val fullInfo = JobInfoData(
       lang = "python",
       defaultContext = "foo",
       path = "path",
@@ -178,8 +178,8 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test",
         tags = Seq(ArgInfo.StreamingContextTag)
       )))
@@ -220,8 +220,8 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test",
         tags = Seq(ArgInfo.SqlContextTag)
       )))

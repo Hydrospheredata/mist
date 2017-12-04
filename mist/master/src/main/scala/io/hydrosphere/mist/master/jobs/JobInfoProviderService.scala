@@ -6,7 +6,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
@@ -22,11 +22,11 @@ class JobInfoProviderService(
 )(implicit ec: ExecutionContext) {
   implicit val timeout = Timeout(5 seconds)
 
-  def getJobInfo(id: String): Future[Option[FullJobInfo]] = {
+  def getJobInfo(id: String): Future[Option[JobInfoData]] = {
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      jobInfo  <- OptionT.liftF(askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath)))
+      jobInfo  <- OptionT.liftF(askInfoProvider[JobInfoData](GetJobInfo(endpoint.className, file.getAbsolutePath)))
     } yield jobInfo.copy(
       defaultContext = endpoint.defaultContext,
       path = endpoint.path,
@@ -36,10 +36,10 @@ class JobInfoProviderService(
     f.value
   }
 
-  def getJobInfoByConfig(endpoint: EndpointConfig): Future[FullJobInfo] = {
+  def getJobInfoByConfig(endpoint: EndpointConfig): Future[JobInfoData] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
-        askInfoProvider[FullJobInfo](GetJobInfo(endpoint.className, file.getAbsolutePath))
+        askInfoProvider[JobInfoData](GetJobInfo(endpoint.className, file.getAbsolutePath))
           .map { _.copy(
               defaultContext = endpoint.defaultContext,
               name = endpoint.name,

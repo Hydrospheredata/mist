@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 
 import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import org.apache.commons.codec.digest.DigestUtils
 
 import scala.concurrent.duration._
@@ -18,7 +18,7 @@ trait Cache[K, V] { self =>
   def size: Int
   def removeItem(k: K): Cache[K, V]
   def evictAll: Cache[K, V]
-  
+
   def +(e: (K, V)): Cache[K, V] = self.put(e._1, e._2)
   def -(k: K): Cache[K, V] = self.removeItem(k)
 
@@ -87,7 +87,7 @@ class JobInfoProviderActor(
 
         infoE match {
           case Right(i) =>
-            sender() ! i.info
+            sender() ! i.data
             context become cached(cache + (key -> i))
           case Left(ex) =>
             sender() ! Status.Failure(ex)
@@ -95,7 +95,7 @@ class JobInfoProviderActor(
       } else sender() ! Status.Failure(new IllegalArgumentException(s"File should exists in path ${r.jobPath}"))
 
     case req@ValidateJobParameters(_, _, action, params) =>
-      def validJobInfo(info: FullJobInfo): Boolean = {
+      def validJobInfo(info: JobInfoData): Boolean = {
         action match {
           case Action.Execute => !info.isServe
           case Action.Serve   => info.isServe
@@ -106,9 +106,9 @@ class JobInfoProviderActor(
       if (file.exists() && file.isFile) {
         val key = cacheKey(req)
         val infoE = cache.get(key) match {
-          case Some(jobInfo) if validJobInfo(jobInfo.info) => Right(jobInfo)
+          case Some(jobInfo) if validJobInfo(jobInfo.data) => Right(jobInfo)
           case Some(jobInfo) =>
-            val actionStored = if (jobInfo.info.isServe) "serve" else "execute"
+            val actionStored = if (jobInfo.data.isServe) "serve" else "execute"
             val message = s"Incorrect job info stored by action $action but required $actionStored"
             Left(new IllegalArgumentException(message))
           case None => jobInfo(req)
