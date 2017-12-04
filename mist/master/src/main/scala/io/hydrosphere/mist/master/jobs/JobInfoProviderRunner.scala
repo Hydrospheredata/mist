@@ -11,6 +11,7 @@ import scala.sys.process.Process
 
 class JobInfoProviderRunner(
   runTimeout: FiniteDuration,
+  cacheEntryTtl: FiniteDuration,
   masterHost: String,
   clusterPort: Int,
   sparkConf: Map[String, String]
@@ -21,7 +22,8 @@ class JobInfoProviderRunner(
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-info-provider",
         "--master", masterHost,
-        "--cluster-port", clusterPort.toString)
+        "--cluster-port", clusterPort.toString,
+        "--cache-entry-ttl", cacheEntryTtl.toMillis.toString)
 
     val builder = Process(cmd, None, ("SPARK_CONF", sparkConfArgs(sparkConf).mkString(" ")))
     builder.run(false)
@@ -76,7 +78,7 @@ object JobInfoProviderRunner {
   def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int): JobInfoProviderRunner = {
     sys.env.get("SPARK_HOME") match {
       case Some(_) =>
-        new JobInfoProviderRunner(config.runTimeout, masterHost, clusterPort, config.sparkConf)
+        new JobInfoProviderRunner(config.runTimeout, config.cacheEntryTtl, masterHost, clusterPort, config.sparkConf)
       case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for running mist")
     }
 

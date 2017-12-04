@@ -13,7 +13,8 @@ import scala.util.{Failure, Success}
 case class JobInfoProviderArguments(
   masterHost: String = "localhost",
   clusterPort: Int = 2551,
-  savePath: String = "/tmp"
+  savePath: String = "/tmp",
+  cacheEntryTtl: FiniteDuration = 3600 seconds
 ) {
 
   def clusterAddr: String = s"$masterHost:$clusterPort"
@@ -34,6 +35,8 @@ object JobInfoProviderArguments {
       .text("cluster port of master")
     opt[String]("save-path").action((x, a) => a.copy(savePath = x))
       .text("storage path where jobs will be downloaded")
+    opt[Long]("cache-entry-ttl").action((x, a) => a.copy(cacheEntryTtl = x milliseconds))
+      .text("Cache entry ttl value in milliseconds")
   }
 
   def parse(args: Seq[String]): Option[JobInfoProviderArguments] =
@@ -54,7 +57,11 @@ object JobInfoProvider extends App with Logger {
     val system = ActorSystem("mist", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
-    val jobInfoProviderRef = system.actorOf(JobInfoProviderActor.props(JobInfoExtractor()), "job-info-provider")
+    val jobInfoProviderRef = system.actorOf(
+      JobInfoProviderActor.props(
+        JobInfoExtractor(),
+        jobInfoProviderArguments.cacheEntryTtl
+      ),"job-info-provider")
 
     val jobInfoProviderRegistererName =
       s"akka.tcp://mist@${jobInfoProviderArguments.clusterAddr}/user/${CommonData.JobInfoProviderRegisterActorName}"
