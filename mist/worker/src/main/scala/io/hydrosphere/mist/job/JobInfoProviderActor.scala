@@ -84,6 +84,7 @@ class JobInfoProviderActor(
     case r: GetJobInfo =>
       jobInfoFromCache(cache, r) match {
         case Right(entry@(_, i)) =>
+          println(entry)
           sender() ! i.data
           context become cached(cache + entry)
         case Left(err) =>
@@ -111,11 +112,13 @@ class JobInfoProviderActor(
             log.error(err, err.getMessage)
             acc
         }
-      sender() ! jobInfoDatas
+
+      sender() ! jobInfoDatas.map(_._2.data)
 
       val updatedCache = jobInfoDatas.foldLeft(cache) {
-        case (c, (key, item)) => c + (key -> item)
+        case (c, entry) => c + entry
       }
+
       context become cached(updatedCache)
 
     case GetCacheSize =>
@@ -136,7 +139,7 @@ class JobInfoProviderActor(
       cache.get(key) match {
         case Some(info) => Right((key, info))
         case None => jobInfo(req) match {
-          case Right(i) => Right((key, i))
+          case Right(info) => Right((key, info))
           case Left(err) => Left(err)
         }
       }

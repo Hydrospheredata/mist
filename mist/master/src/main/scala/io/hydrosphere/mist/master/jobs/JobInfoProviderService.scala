@@ -20,7 +20,7 @@ class JobInfoProviderService(
   endpointStorage: EndpointsStorage,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
-  implicit val timeout = Timeout(5 seconds)
+  implicit val timeout = Timeout(25 seconds)
 
   def getJobInfo(id: String): Future[Option[JobInfoData]] = {
     val f = for {
@@ -81,9 +81,9 @@ class JobInfoProviderService(
         .map(f => GetJobInfo(e.className, f.getAbsolutePath))
     }
     for {
-      all      <- endpointStorage.all
-      requests =  all.flatMap(toJobInfoRequest)
-      data     <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests))
+      endpoints      <- endpointStorage.all
+      requests       =  endpoints.flatMap(toJobInfoRequest).toList
+      data           <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests))
     } yield data
   }
 

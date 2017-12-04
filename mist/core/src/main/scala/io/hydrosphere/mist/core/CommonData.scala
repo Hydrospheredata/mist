@@ -121,7 +121,8 @@ object CommonData {
   ) extends InfoRequest
 
   case class GetAllJobInfo(
-    requests: Seq[GetJobInfo]
+    //TODO: find out why akka messages requires List but fails for Seq
+    requests: List[GetJobInfo]
   ) extends JobInfoMessage
 
   case object EvictCache extends JobInfoMessage
