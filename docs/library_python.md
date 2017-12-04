@@ -1,4 +1,4 @@
-###### Mist Python Spark Job 
+###### Python DSL 
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources/mist), extend MistJob class and implement method `def execute(self)`: 
 

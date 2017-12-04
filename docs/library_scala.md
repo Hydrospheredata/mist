@@ -1,7 +1,13 @@
 ### Scala DSL
 
-Mist Library provides a way of writing job functions that could be run on Mist.
-`MistJob[A]` is a start point of job definition.
+Definitions:
+
+*Mist Function* is a functional framework that defines particular Spark calculation. Mist Function is a deployable unit for Mist proxy.
+ 
+*Job* - a Spark job triggered by Mist Function.
+
+Mist Library provides a DSL for Mist Functions that could be deployed and executed in Mist.
+`MistFn[A]` is a base interface for function definition.
 
 `PiExample.scala`:
 ```scala
@@ -11,7 +17,7 @@ import org.apache.spark.SparkContext
 
 object PiExample extends MistFn[Double] {
 
-  override def handler: JobDef[Double] = {
+  override def handle: Handle[Double] = {
     withArgs(arg[Int]("samples")).onSparkContext((n: Int, sc: SparkContext) => {
       val count = sc.parallelize(1 to n).filter(_ => {
         val x = math.random
@@ -60,8 +66,8 @@ Here `A` is a function result type, that mist can *automatically* convert to jso
 
 #### Arguments
 
-Internally library dsl is based on `ArgDef[A]` - its goal is to describe argument type and how to extract it from a request.
-So for example: `arg[Int]("n")` means that request's json object should contain key `n` with a value that can be converted to integer.
+Internally library DSL is based on `ArgDef[A]` - its goal is to describe argument type and how to extract it from a request.
+For example: `arg[Int]("n")` means that request's json object should has key `n` with a value that can be converted to integer.
 There are following basic methods do define an argument:
 - `arg[T](name: String): ArgDef[A]` - required argument by name
 - `arg[A](name: String, default: A): ArgDef[A]` - if argument is missed, request function will fallback to default value
@@ -75,8 +81,7 @@ By default library supports following argument types:
 - `Seq[A]` (where A should be one from supported types)
 - `Option[A]` (where A should be one from supported types)
 
-To define function of several arguments we should be able to combine them.
-For that purpose there is method `withArgs`, it accepts from 1 to 21 argument and returns `ArgDef`.
+Method `withArgs` accepts from 1 to 21 argument and returns `ArgDef`.
 ```scala
 val one = withArgs(arg[Int]("n"))
 
@@ -87,16 +92,16 @@ val three = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag"))
 
 #### Contexts
 
-Next to complete job definition we should obtain spark and write function's body.
-One of the goals of Mist is to manage spark contexts, so you shouldn't care about context's instantiation.
-There are following methods of `ArgDef` to do that:
+Next to complete Mist Function definition we should inject Spark Context.
+Mist provides managed Spark Contexts, so developer does not care about context's lifecycle and settings.
+There are following methods of `ArgDef` to define Spark Context:
 - `onSparkContext`
 - `onStreamingContext`
 - `onSqlContext`
 - `onHiveContext`
 - `onSparkSession` (for spark >= 2.0.0)
 
-They are just takes function, that takes `n+1` arguments where n is count of combined argument plus spark context at end.
+It accepts function with `n+1` arguments where `n` is count of combined argument plus `SparkContext` at end.
 ```scala
 val fromOne = withArgs(arg[Int]("n")).onSparkContext((n: Int, sc: SparkContext) => { ... })
 
@@ -106,16 +111,16 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
     .onSparkContext((n: Int, s: String, b: Boolean, sc: SparkContext) => { ... })
 ```
 
-If your job doesn't require any arguments, there are similar methods available from `MistJob`
+If your function doesn't require any arguments, there are similar methods available from `MistFn`
 ```scala
 
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object NoArgsJob extends MistFn[Int] {
+object NoArgsHandler extends MistFn[Int] {
 
-  override def handler: JobDef[Int] = {
+  override def handle: Handle[Int] = {
     onSparkContext((sc: SparkContext) => 42 )
   }
 }
@@ -136,7 +141,7 @@ import org.apache.spark.SparkContext
 
 object PiExample extends MistFn[Double] {
 
-  override def handler: JobDef[Double] = {
+  override def handle: Handle[Double] = {
     withArgs(
       arg[Int]("samples").validated(n => n > 0, "Samples value should be positive")
     ).onSparkContext((n: Int, sc: SparkContext) => {
@@ -148,7 +153,7 @@ object PiExample extends MistFn[Double] {
 
 #### Encoding
 
-Mist should be able to return result back to call site (http request, async interfaces) and it requires
+Mist should be able to return result back to the client (http request, async interfaces) and it requires
 that result should be serialized to json. Scala api ensures that it's possible during compilation,
 (there should be an instance of `Encoder` that performs serialization).
 There are implementations for common result types:
@@ -164,10 +169,10 @@ It supports:
 
 #### Mist extras
 
-Every job invocation on Mist has unique id and performs on some worker. It can be usefull in some situtaions
-to known that information at job side.
-Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your jobs.
-This things together are called `MistExtras`. Example:
+Every function invocation on Mist has unique id and associated worker. It could be useful in some cases
+to have that extra information in a function body.
+Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
+These utilities are called `MistExtras`. Example:
 
 ```scala
 import mist.api._
@@ -176,7 +181,7 @@ import org.apache.spark.SparkContext
 
 object HelloWorld extends MistFn[Unit] {
 
-  override def handler: JobDef[Unit] = {
+  override def handle: Handle[Unit] = {
     withArgs(arg[Int]("samples"))
       .withMistExtras
       .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
@@ -189,4 +194,4 @@ object HelloWorld extends MistFn[Unit] {
 ```
 
 ### Next
-- [Run your Mist Job](/docs/run-job.md)
+- [Run your Mist Function](/docs/run-job.md)
