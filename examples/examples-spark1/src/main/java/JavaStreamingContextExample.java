@@ -6,10 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-class JavaStreamingContextExample extends JMistJob<Void> {
+class JavaStreamingContextExample extends JMistFn<Void> {
 
     @Override
-    public JJobDef<Void> defineJob() {
+    public JHandle<Void> handle() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();

@@ -6,9 +6,9 @@ import org.apache.spark.streaming.StreamingContext
 
 import scala.collection.mutable
 
-object StreamingExample extends MistJob[Unit]{
+object StreamingExample extends MistFn[Unit]{
 
-  override def defineJob: JobDef[Unit] = {
+  override def handle: Handle[Unit] = {
     withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
       import extras._
 

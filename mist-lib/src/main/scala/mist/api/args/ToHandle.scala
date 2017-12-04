@@ -4,23 +4,23 @@ import mist.api._
 import shapeless.HList
 import shapeless.ops.function.FnToProduct
 
-trait ToJobDef[In, F] extends Serializable {
+trait ToHandle[In, F] extends Serializable {
   type Out
 
-  def apply(args: ArgDef[In], f: F): JobDef[Out]
+  def apply(args: ArgDef[In], f: F): Handle[Out]
 }
 
-object ToJobDef {
+object ToHandle {
 
-  type Aux[In, F, Out0] = ToJobDef[In, F] { type Out = Out0 }
+  type Aux[In, F, Out0] = ToHandle[In, F] { type Out = Out0 }
 
   implicit def hListEncoded[In <: HList, F, Res](
     implicit fntp: FnToProduct.Aux[F, In => Res]
-  ): Aux[In, F, Res] = new ToJobDef[In, F] {
+  ): Aux[In, F, Res] = new ToHandle[In, F] {
 
       type Out = Res
-      def apply(args: ArgDef[In], f: F): JobDef[Res] = {
-        JobDef.instance(ctx => args.extract(ctx) match {
+      def apply(args: ArgDef[In], f: F): Handle[Res] = {
+        Handle.instance(ctx => args.extract(ctx) match {
           case Extracted(a) =>
             val result = fntp(f)(a)
             JobResult.success(result)
@@ -34,10 +34,10 @@ object ToJobDef {
   implicit def oneArgEncoded[In, HIn, F, Res](
     implicit
     norm: Normalizer.Aux[In, HIn],
-    fntp: FnToProduct.Aux[F, HIn => Res]): Aux[In, F, Res] = new ToJobDef[In, F] {
+    fntp: FnToProduct.Aux[F, HIn => Res]): Aux[In, F, Res] = new ToHandle[In, F] {
       type Out = Res
-      def apply(args: ArgDef[In], f: F): JobDef[Res] = {
-        JobDef.instance(ctx => args.extract(ctx) match {
+      def apply(args: ArgDef[In], f: F): Handle[Res] = {
+        Handle.instance(ctx => args.extract(ctx) match {
           case Extracted(a) =>
               val result = fntp(f)(norm(a))
               JobResult.success(result)

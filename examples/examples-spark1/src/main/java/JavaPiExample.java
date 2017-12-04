@@ -3,10 +3,10 @@ import mist.api.jdsl.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JavaPiExample extends JMistJob<Double> {
+public class JavaPiExample extends JMistFn<Double> {
 
     @Override
-    public JJobDef<Double> defineJob() {
+    public JHandle<Double> handle() {
         return withArgs(intArg("samples")).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);
             for (int i = 0; i < n ; i++) {

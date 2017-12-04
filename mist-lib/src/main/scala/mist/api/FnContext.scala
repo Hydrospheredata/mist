@@ -2,20 +2,20 @@ package mist.api
 
 import io.hydrosphere.mist.api.SetupConfiguration
 
-sealed trait JobContext{
+sealed trait FnContext{
   val params: Map[String, Any]
 }
 
-case class FullJobContext(
+case class FullFnContext(
   setupConf: SetupConfiguration,
   params: Map[String, Any]
-) extends JobContext
+) extends FnContext
 
-object JobContext {
-  def apply(userParams: Map[String, Any]): JobContext = new JobContext {
+object FnContext {
+  def apply(userParams: Map[String, Any]): FnContext = new FnContext {
     override val params: Map[String, Any] = userParams
   }
 
   def apply(setupConf: SetupConfiguration, params: Map[String, Any]) =
-    FullJobContext(setupConf, params)
+    FullFnContext(setupConf, params)
 }

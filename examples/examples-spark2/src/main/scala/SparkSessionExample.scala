@@ -3,9 +3,9 @@ import mist.api.MistExtras
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.sql.SparkSession
 
-object SparkSessionExample extends MistJob[Array[Int]]{
+object SparkSessionExample extends MistFn[Array[Int]]{
 
-  override def defineJob: JobDef[Array[Int]] = {
+  override def handle: Handle[Array[Int]] = {
      withArgs(
        arg[Seq[Int]]("numbers"),
        arg[Int]("multiplier", 2)

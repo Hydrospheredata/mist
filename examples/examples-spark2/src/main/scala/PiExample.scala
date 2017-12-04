@@ -2,9 +2,9 @@ import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object PiExample extends MistJob[Double] {
+object PiExample extends MistFn[Double] {
 
-  override def defineJob: JobDef[Double] = {
+  override def handle = {
     withArgs(arg[Int]("samples")).onSparkContext((n: Int, sc: SparkContext) => {
       val count = sc.parallelize(1 to n).filter(_ => {
         val x = math.random

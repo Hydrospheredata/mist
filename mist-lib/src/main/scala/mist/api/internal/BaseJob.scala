@@ -3,7 +3,7 @@ package mist.api.internal
 import mist.api._
 import mist.api.args.ArgInfo
 import mist.api.data.{JsLikeData, JsLikeNull}
-import mist.api.jdsl.JMistJob
+import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
 
@@ -16,13 +16,13 @@ trait BaseJobInfo {
 
 trait BaseJobInstance extends BaseJobInfo {
 
-  def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData]
+  def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
 
 }
 
-class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
+class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
 
-  private val jobDef = instance.defineJob
+  private val jobDef = instance.handle
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
@@ -30,7 +30,7 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
     jobDef.validate(params)
 
 
-  override def run(ctx: FullJobContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)
@@ -42,16 +42,16 @@ class ScalaJobInstance(instance: MistJob[_]) extends BaseJobInstance {
   }
 }
 
-class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
+class JavaJobInstance(instance: JMistFn[_]) extends BaseJobInstance {
 
-  private val jobDef = instance.defineJob.jobDef
+  private val jobDef = instance.handle.underlying
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
   override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
     jobDef.validate(params)
 
-  override def run(ctx: FullJobContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
         case f: JobFailure[_] => Left(f.e)
@@ -67,21 +67,21 @@ class JavaJobInstance(instance: JMistJob[_]) extends BaseJobInstance {
 object JobInstance {
   val NoOpInstance = new BaseJobInstance {
 
-    override def run(jobCtx: FullJobContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+    override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
 
     override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = Right(Map.empty)
 
     override def describe(): Seq[ArgInfo] = Seq()
   }
 
-  val ScalaJobClass = classOf[MistJob[_]]
-  val JavaJobClass = classOf[JMistJob[_]]
+  val ScalaJobClass = classOf[MistFn[_]]
+  val JavaJobClass = classOf[JMistFn[_]]
 
   def isScalaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
   def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
 
   def loadScala(clazz: Class[_]): ScalaJobInstance = {
-    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistJob[_]]
+    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn[_]]
     new ScalaJobInstance(i)
   }
 
@@ -89,7 +89,7 @@ object JobInstance {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new JavaJobInstance(i.asInstanceOf[JMistJob[_]])
+    new JavaJobInstance(i.asInstanceOf[JMistFn[_]])
   }
 
   @tailrec

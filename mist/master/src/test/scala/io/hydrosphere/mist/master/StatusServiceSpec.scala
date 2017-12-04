@@ -72,7 +72,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
     status ! StartedEvent("id", System.currentTimeMillis())
 
-    eventually(timeout(Span(1, Seconds))) {
+    eventually(timeout(Span(3, Seconds))) {
       verify(store).update(any[JobDetails])
     }
 

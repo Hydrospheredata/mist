@@ -4,8 +4,7 @@ import java.util
 import java.util.Optional
 
 import mist.api._
-import mist.api.args.{ArgType, MInt, _}
-import mist.api.data._
+import mist.api.args._
 
 /**
   * Wrap UserArg to support validated method for java
@@ -27,44 +26,19 @@ class JUserArg[A](underlying: UserArg[A]) extends JArg[A] {
 }
 
 
-trait JArgsDef extends ArgDescriptionInstances {
+trait JArgsDef {
 
   import java.{lang => jl, util => ju}
 
-  import mist.api.JobDefInstances._
+  import mist.api.args.ArgsInstances._
 
   import scala.collection.JavaConverters._
 
-  implicit val jInt = new ArgDescription[jl.Integer] {
-    override def `type`: ArgType = MInt
+  private def namedArg[A](name: String)(implicit d: PlainExtractor[A]): JUserArg[A] =
+    new JUserArg[A](arg[A](name))
 
-    override def apply(a: Any): Option[jl.Integer] = a match {
-      case i: Int => Some(new jl.Integer(i))
-      case _ => None
-    }
-  }
-
-  implicit val jDouble = new ArgDescription[jl.Double] {
-    override def `type`: ArgType = MDouble
-    override def apply(a: Any): Option[jl.Double] = a match {
-      case d: jl.Double => Some(new jl.Double(d))
-      case _ => None
-    }
-  }
-
-  implicit val jBoolean = new ArgDescription[jl.Boolean] {
-    override def `type`: ArgType = MBoolean
-    override def apply(a: Any): Option[jl.Boolean] = a match {
-      case b: jl.Boolean => Some(b)
-      case _ => None
-    }
-  }
-
-  private def namedArg[A](name: String)(implicit d: ArgDescription[A]): JUserArg[A] =
-    new JUserArg[A](new NamedArgDef[A](name))
-
-  private def namedArg[A](name: String, default: A)(implicit d: ArgDescription[A]): JUserArg[A] =
-    new JUserArg[A](new NamedArgWithDefault[A](name, default))
+  private def namedArg[A](name: String, default: A)(implicit d: PlainExtractor[A]): JUserArg[A] =
+    new JUserArg[A](arg[A](name, default))
 
   def intArg(name: String): JUserArg[jl.Integer] = namedArg(name)
   def intArg(name: String, defaultValue: jl.Integer): JUserArg[jl.Integer] = namedArg(name, defaultValue)
@@ -78,15 +52,15 @@ trait JArgsDef extends ArgDescriptionInstances {
   def booleanArg(name: String): JUserArg[jl.Boolean] = namedArg(name)
   def booleanArg(name: String, defaultValue: jl.Boolean): JUserArg[jl.Boolean] = namedArg(name, defaultValue)
 
-  private def optArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.Optional[T]] = {
+  private def optArg[T](name: String)(implicit tP: TypedPrimitive[T]): JUserArg[ju.Optional[T]] = {
     val arg = new UserArg[ju.Optional[T]] {
-      override def describe() = Seq(UserInputArgument(name, MOption(desc.`type`)))
+      override def describe() = Seq(UserInputArgument(name, MOption(tP.`type`)))
 
-      override def extract(ctx: JobContext): ArgExtraction[Optional[T]] = {
+      override def extract(ctx: FnContext): ArgExtraction[Optional[T]] = {
         ctx.params.get(name) match {
-          case Some(x) => desc.apply(x) match {
-            case Some(a) => Extracted(ju.Optional.of(a))
-            case None    => Missing(s"invalid type of $name - $x")
+          case Some(x) => tP.extract(x) match {
+            case Extracted(a)  => Extracted(ju.Optional.of(a))
+            case m: Missing[_] => m.asInstanceOf[Missing[Optional[T]]]
           }
           case None => Extracted(ju.Optional.empty())
         }
@@ -100,19 +74,19 @@ trait JArgsDef extends ArgDescriptionInstances {
   def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg(name)
   def optBooleanArg(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg(name)
 
-  private def listArg[T](name: String)(implicit desc: ArgDescription[T]): JUserArg[ju.List[T]] = {
+  private def listArg[T](name: String)(implicit tP: TypedPrimitive[T]): JUserArg[ju.List[T]] = {
     val arg = new UserArg[ju.List[T]] {
-      override def describe() = Seq(UserInputArgument(name, MList(desc.`type`)))
+      override def describe() = Seq(UserInputArgument(name, MList(tP.`type`)))
 
-      override def extract(ctx: JobContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
+      override def extract(ctx: FnContext): ArgExtraction[util.List[T]] = ctx.params.get(name) match {
         case Some(x) => x match {
           case seq: Seq[_] =>
-            val optL = seq.map(a => desc.apply(a))
+            val elems = seq.map(a => tP.extract(a))
 
-            if (optL.exists(_.isEmpty)) {
-              Missing(s"Invalid type of list $name values could not resolve to type ${desc.`type`}")
-            } else Extracted(optL.map(_.get).asJava)
-          case _ => Missing(s"Invalid type of list $name values could not resolve to type ${desc.`type`}")
+            if (elems.exists(_.isMissing)) {
+              Missing(s"Invalid type of list $name values could not resolve to type ${tP.`type`}")
+            } else Extracted(elems.collect({case Extracted(v) => v}).asJava)
+          case _ => Missing(s"Invalid type of list $name values could not resolve to type ${tP.`type`}")
         }
         case None => Missing(s"Argument $name could not be found in ctx params")
       }
@@ -126,7 +100,7 @@ trait JArgsDef extends ArgDescriptionInstances {
   def booleanListArg(name: String): JUserArg[ju.List[jl.Boolean]] = listArg(name)
 
   val allArgs: JArg[ju.Map[String, Any]] = {
-    val arg = JobDefInstances.allArgs.map(_.asJava)
+    val arg = ArgsInstances.allArgs.map(_.asJava)
     new JArg[ju.Map[String, Any]] {
       override def asScala: ArgDef[ju.Map[String, Any]] = arg
     }
