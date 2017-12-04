@@ -163,7 +163,7 @@ object HttpV2Routes extends Logger {
 
     path( root / "endpoints" ) {
       get { complete {
-        master.endpointsInfo.map(_.map(HttpEndpointInfoV2.convert))
+        master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" ) {

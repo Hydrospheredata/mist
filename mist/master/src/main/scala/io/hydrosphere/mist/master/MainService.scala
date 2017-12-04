@@ -81,7 +81,7 @@ class MainService(
     for {
       info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters, action)
+      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters)
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -140,7 +140,7 @@ class MainService(
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
       info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
-      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters, action))
+      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(

@@ -5,7 +5,7 @@ import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
+import io.hydrosphere.mist.core.CommonData.{Action, GetAllJobInfo, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
@@ -52,29 +52,39 @@ class JobInfoProviderService(
 
   def validateJob(
     id: String,
-    params: Map[String, Any],
-    action: Action
+    params: Map[String, Any]
   ): Future[Option[Unit]] = {
     val f = for {
       endpoint   <- OptionT(endpointStorage.get(id))
       file       <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
       _ <- OptionT.liftF(askInfoProvider[Unit](ValidateJobParameters(
-        endpoint.className, file.getAbsolutePath, action, params
+        endpoint.className, file.getAbsolutePath, params
       )))
     } yield ()
 
     f.value
   }
 
-  def validateJobByConfig(endpoint: EndpointConfig, params: Map[String, Any], action: Action): Future[Unit] = {
+  def validateJobByConfig(endpoint: EndpointConfig, params: Map[String, Any]): Future[Unit] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[Unit](ValidateJobParameters(
-          endpoint.className, file.getAbsolutePath, action, params
+          endpoint.className, file.getAbsolutePath, params
         ))
       case None => Future.failed(new IllegalArgumentException(s"file not exists by path ${endpoint.path}"))
     }
+  }
 
+  def allJobInfos: Future[Seq[JobInfoData]] = {
+    def toJobInfoRequest(e: EndpointConfig): Option[GetJobInfo] = {
+      artifactRepository.get(e.path)
+        .map(f => GetJobInfo(e.className, f.getAbsolutePath))
+    }
+    for {
+      all      <- endpointStorage.all
+      requests =  all.flatMap(toJobInfoRequest)
+      data     <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests))
+    } yield data
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)

@@ -12,14 +12,20 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 
-trait Cache[K, V] { self =>
+trait Cache[K, V] {
+  self =>
   def get(k: K): Option[V]
+
   def put(k: K, v: V): Cache[K, V]
+
   def size: Int
+
   def removeItem(k: K): Cache[K, V]
+
   def evictAll: Cache[K, V]
 
   def +(e: (K, V)): Cache[K, V] = self.put(e._1, e._2)
+
   def -(k: K): Cache[K, V] = self.removeItem(k)
 
   protected def now: Long = System.currentTimeMillis()
@@ -76,57 +82,41 @@ class JobInfoProviderActor(
 
   def cached(cache: Cache[String, JobInfo]): Receive = {
     case r: GetJobInfo =>
-      val file = new File(r.jobPath)
-      if (file.exists() && file.isFile) {
-        val key = cacheKey(r)
-        val infoE = cache.get(key) match {
-          case Some(i) =>
-            Right(i)
-          case None => jobInfo(r)
-        }
-
-        infoE match {
-          case Right(i) =>
-            sender() ! i.data
-            context become cached(cache + (key -> i))
-          case Left(ex) =>
-            sender() ! Status.Failure(ex)
-        }
-      } else sender() ! Status.Failure(new IllegalArgumentException(s"File should exists in path ${r.jobPath}"))
-
-    case req@ValidateJobParameters(_, _, action, params) =>
-      def validJobInfo(info: JobInfoData): Boolean = {
-        action match {
-          case Action.Execute => !info.isServe
-          case Action.Serve   => info.isServe
-        }
+      jobInfoFromCache(cache, r) match {
+        case Right(entry@(_, i)) =>
+          sender() ! i.data
+          context become cached(cache + entry)
+        case Left(err) =>
+          sender() ! Status.Failure(err)
       }
 
-      val file = new File(req.jobPath)
-      if (file.exists() && file.isFile) {
-        val key = cacheKey(req)
-        val infoE = cache.get(key) match {
-          case Some(jobInfo) if validJobInfo(jobInfo.data) => Right(jobInfo)
-          case Some(jobInfo) =>
-            val actionStored = if (jobInfo.data.isServe) "serve" else "execute"
-            val message = s"Incorrect job info stored by action $action but required $actionStored"
-            Left(new IllegalArgumentException(message))
-          case None => jobInfo(req)
+    case req@ValidateJobParameters(_, _, params) =>
+      val message = jobInfoFromCache(cache, req) match {
+        case Right(entry@(_, item)) => item.instance.validateParams(params) match {
+          case Right(_) =>
+            context become cached(cache + entry)
+            Status.Success(())
+          case Left(err) => Status.Failure(err)
         }
+        case Left(err) => Status.Failure(err)
+      }
+      sender() ! message
 
-        infoE match {
-          case Right(jobInfo) =>
-            val message = jobInfo.instance.validateParams(params) match {
-              case Right(_) => Status.Success(())
-              case Left(ex) => Status.Failure(ex)
-            }
-            sender() ! message
-            context become cached(cache + (key -> jobInfo))
-
-          case Left(ex) =>
-            sender() ! Status.Failure(ex)
+    case GetAllJobInfo(requests) =>
+      val jobInfoDatas = requests
+        .map(req => jobInfoFromCache(cache, req))
+        .foldLeft(Seq.empty[(String, JobInfo)]) {
+          case (acc, Right(item)) => acc :+ item
+          case (acc, Left(err)) =>
+            log.error(err, err.getMessage)
+            acc
         }
-      } else sender() ! Status.Failure(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
+      sender() ! jobInfoDatas
+
+      val updatedCache = jobInfoDatas.foldLeft(cache) {
+        case (c, (key, item)) => c + (key -> item)
+      }
+      context become cached(updatedCache)
 
     case GetCacheSize =>
       sender() ! cache.size
@@ -136,7 +126,24 @@ class JobInfoProviderActor(
 
   }
 
-  private def jobInfo(req: JobInfoMessage): Either[Throwable, JobInfo] = {
+  private def jobInfoFromCache(
+    cache: Cache[String, JobInfo],
+    req: InfoRequest
+  ): Either[Throwable, (String, JobInfo)] = {
+    val file = new File(req.jobPath)
+    if (file.exists() && file.isFile) {
+      val key = cacheKey(req)
+      cache.get(key) match {
+        case Some(info) => Right((key, info))
+        case None => jobInfo(req) match {
+          case Right(i) => Right((key, i))
+          case Left(err) => Left(err)
+        }
+      }
+    } else Left(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
+  }
+
+  private def jobInfo(req: InfoRequest): Either[Throwable, JobInfo] = {
     import req._
     jobInfoExtractor.extractInfo(new File(jobPath), className) match {
       case Success(info) =>
@@ -146,7 +153,7 @@ class JobInfoProviderActor(
     }
   }
 
-  private def cacheKey(req: JobInfoMessage): String = {
+  private def cacheKey(req: InfoRequest): String = {
     val path = Paths.get(req.jobPath)
     val sha1 = DigestUtils.sha1Hex(Files.newInputStream(path))
     s"${req.className}_$sha1"
@@ -157,7 +164,6 @@ class JobInfoProviderActor(
 object JobInfoProviderActor {
 
   def props(jobInfoExtractor: JobInfoExtractor, ttl: FiniteDuration = 3600 seconds): Props =
-    //TODO: replace hardcoded values
     Props(new JobInfoProviderActor(jobInfoExtractor, ttl))
 
 }

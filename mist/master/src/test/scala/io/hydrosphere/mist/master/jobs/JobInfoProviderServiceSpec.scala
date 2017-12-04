@@ -78,7 +78,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Success(()))
@@ -116,7 +116,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       intercept[IllegalArgumentException] {
         Await.result(f, Duration.Inf)
@@ -154,7 +154,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -211,7 +211,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Success(()))
@@ -276,7 +276,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -340,7 +340,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 
