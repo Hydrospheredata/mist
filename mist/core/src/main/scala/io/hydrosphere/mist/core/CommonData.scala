@@ -115,4 +115,9 @@ object CommonData {
     action: Action,
     params: Map[String, Any]
   ) extends JobInfoMessage
+
+
+  case object EvictCache
+  case object GetCacheSize
+
 }

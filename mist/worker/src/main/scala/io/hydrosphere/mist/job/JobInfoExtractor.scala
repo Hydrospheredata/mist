@@ -18,7 +18,6 @@ case class JobInfo(
 
 trait JobInfoExtractor {
   def extractInfo(file: File, className: String): Try[JobInfo]
-  def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance]
 }
 
 class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtractor {
@@ -42,7 +41,7 @@ class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtract
     }
   }
 
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] = {
+  private def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] = {
     jobsLoader(file).loadJobInstance(className, action)
   }
 
@@ -70,9 +69,6 @@ class PythonJobInfoExtractor extends JobInfoExtractor {
       lang = FullJobInfo.PythonLang,
       className = className
     )))
-
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] =
-    Success(JobInstance.NoOpInstance)
 }
 
 class BaseJobInfoExtractor(
@@ -83,10 +79,6 @@ class BaseJobInfoExtractor(
   override def extractInfo(file: File, className: String): Try[JobInfo] =
     selectExtractor(file)
       .extractInfo(file, className)
-
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] =
-    selectExtractor(file)
-      .extractInstance(file, className, action)
 
   private def selectExtractor(file: File): JobInfoExtractor =
     FilenameUtils.getExtension(file.getAbsolutePath) match {
