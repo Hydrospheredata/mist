@@ -1,18 +1,20 @@
 package io.hydrosphere.mist.master.jobs
 
+import java.io.File
+
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{Action, GetAllJobInfo, GetJobInfo, ValidateJobParameters}
+import io.hydrosphere.mist.core.CommonData.{GetAllJobInfo, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
 class JobInfoProviderService(
@@ -20,18 +22,14 @@ class JobInfoProviderService(
   endpointStorage: EndpointsStorage,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
-  implicit val timeout = Timeout(25 seconds)
+  implicit val timeout = Timeout(5 seconds)
 
   def getJobInfo(id: String): Future[Option[JobInfoData]] = {
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      jobInfo  <- OptionT.liftF(askInfoProvider[JobInfoData](GetJobInfo(endpoint.className, file.getAbsolutePath)))
-    } yield jobInfo.copy(
-      defaultContext = endpoint.defaultContext,
-      path = endpoint.path,
-      name = endpoint.name
-    )
+      jobInfo  <- OptionT.liftF(askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file)))
+    } yield jobInfo
 
     f.value
   }
@@ -39,13 +37,7 @@ class JobInfoProviderService(
   def getJobInfoByConfig(endpoint: EndpointConfig): Future[JobInfoData] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
-        askInfoProvider[JobInfoData](GetJobInfo(endpoint.className, file.getAbsolutePath))
-          .map { _.copy(
-              defaultContext = endpoint.defaultContext,
-              name = endpoint.name,
-              path=endpoint.path
-            )
-          }
+        askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file))
       case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${endpoint.path}"))
     }
   }
@@ -57,9 +49,7 @@ class JobInfoProviderService(
     val f = for {
       endpoint   <- OptionT(endpointStorage.get(id))
       file       <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      _ <- OptionT.liftF(askInfoProvider[Unit](ValidateJobParameters(
-        endpoint.className, file.getAbsolutePath, params
-      )))
+      _ <- OptionT.liftF(askInfoProvider[Unit](createValidateParamsMsg(endpoint, file, params)))
     } yield ()
 
     f.value
@@ -68,9 +58,7 @@ class JobInfoProviderService(
   def validateJobByConfig(endpoint: EndpointConfig, params: Map[String, Any]): Future[Unit] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
-        askInfoProvider[Unit](ValidateJobParameters(
-          endpoint.className, file.getAbsolutePath, params
-        ))
+        askInfoProvider[Unit](createValidateParamsMsg(endpoint, file, params))
       case None => Future.failed(new IllegalArgumentException(s"file not exists by path ${endpoint.path}"))
     }
   }
@@ -78,16 +66,37 @@ class JobInfoProviderService(
   def allJobInfos: Future[Seq[JobInfoData]] = {
     def toJobInfoRequest(e: EndpointConfig): Option[GetJobInfo] = {
       artifactRepository.get(e.path)
-        .map(f => GetJobInfo(e.className, f.getAbsolutePath))
+        .map(f => createGetInfoMsg(e, f))
     }
     for {
       endpoints      <- endpointStorage.all
       requests       =  endpoints.flatMap(toJobInfoRequest).toList
       data           <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests))
     } yield data
+
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
 
+  private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(
+    endpoint.className,
+    file.getAbsolutePath,
+    endpoint.name,
+    endpoint.path,
+    endpoint.defaultContext
+  )
+
+  private def createValidateParamsMsg(
+    endpoint: EndpointConfig,
+    file: File,
+    params: Map[String, Any]
+  ): ValidateJobParameters = ValidateJobParameters(
+    endpoint.className,
+    file.getAbsolutePath,
+    endpoint.name,
+    endpoint.path,
+    endpoint.defaultContext,
+    params
+  )
 }

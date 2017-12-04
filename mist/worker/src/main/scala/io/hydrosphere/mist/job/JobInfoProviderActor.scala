@@ -91,7 +91,8 @@ class JobInfoProviderActor(
           sender() ! Status.Failure(err)
       }
 
-    case req@ValidateJobParameters(_, _, params) =>
+    case req: ValidateJobParameters =>
+      import req._
       val message = jobInfoFromCache(cache, req) match {
         case Right(entry@(_, item)) => item.instance.validateParams(params) match {
           case Right(_) =>
@@ -150,7 +151,11 @@ class JobInfoProviderActor(
     import req._
     jobInfoExtractor.extractInfo(new File(jobPath), className) match {
       case Success(info) =>
-        Right(info)
+        Right(info.copy(data = info.data.copy(
+          defaultContext = req.defaultContext,
+          name=req.name,
+          path=req.originalPath
+        )))
       case Failure(ex) =>
         Left(ex)
     }

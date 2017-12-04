@@ -105,18 +105,28 @@ object CommonData {
   case class RegisterJobInfoProvider(ref: ActorRef)
 
   sealed trait JobInfoMessage
+
   sealed trait InfoRequest extends JobInfoMessage {
     val className: String
     val jobPath: String
+    val name: String
+    val originalPath: String
+    val defaultContext: String
   }
   case class GetJobInfo(
     className: String,
-    jobPath: String
+    jobPath: String,
+    name: String,
+    originalPath: String,
+    defaultContext: String
   ) extends InfoRequest
 
   case class ValidateJobParameters(
     className: String,
     jobPath: String,
+    name: String,
+    originalPath: String,
+    defaultContext: String,
     params: Map[String, Any]
   ) extends InfoRequest
 
