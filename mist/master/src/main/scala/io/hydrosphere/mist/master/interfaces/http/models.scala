@@ -101,9 +101,9 @@ object HttpEndpointInfoV2 {
       name = info.name,
       path = info.path,
       className = info.className,
+      tags = info.tags,
       defaultContext = info.defaultContext,
       execute = info.execute
-        .collect { case a: UserInputArgument => a }
         .map(a => a.name -> HttpJobArg.convert(a.t))
         .toMap,
       lang = info.lang
