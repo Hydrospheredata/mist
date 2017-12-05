@@ -43,6 +43,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   describe("Actor") {
+
     it("should get job info when file is found") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))

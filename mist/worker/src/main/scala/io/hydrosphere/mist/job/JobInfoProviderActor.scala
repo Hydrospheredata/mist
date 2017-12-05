@@ -77,7 +77,6 @@ class JobInfoProviderActor(
     case r: GetJobInfo =>
       jobInfoFromCache(cache, r) match {
         case Right(entry@(_, i)) =>
-          println(entry)
           sender() ! i.data
           context become cached(cache + entry)
         case Left(err) =>

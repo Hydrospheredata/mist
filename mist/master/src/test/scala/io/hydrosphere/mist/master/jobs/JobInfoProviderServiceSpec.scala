@@ -54,7 +54,13 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         "test", jobPath, "Test", "foo"
       ))
       probe.expectMsgType[GetJobInfo]
-      probe.reply(JobInfoData(lang="scala", className="Test"))
+      probe.reply(JobInfoData(
+        name="test",
+        path=jobPath,
+        defaultContext="foo",
+        lang="scala",
+        className="Test"
+      ))
 
       val result = Await.result(f, Duration.Inf)
 
@@ -183,7 +189,13 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val f = jobInfoProviderService.getJobInfo("test")
 
       probe.expectMsgType[GetJobInfo]
-      probe.reply(JobInfoData(lang="scala", className="Test"))
+      probe.reply(JobInfoData(
+        name="test",
+        path=jobPath,
+        defaultContext="foo",
+        lang="scala",
+        className="Test"
+      ))
 
       val result = Await.result(f, Duration.Inf)
 

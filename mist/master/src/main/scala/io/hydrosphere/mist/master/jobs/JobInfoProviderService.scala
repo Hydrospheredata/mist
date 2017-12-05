@@ -82,9 +82,9 @@ class JobInfoProviderService(
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any, t: Timeout): Future[T] =
     ref.ask(msg)(t).mapTo[T]
 
-  private def askInfoProvider[T: ClassTag](msg: Any)(implicit t: Timeout): Future[T] =
+  private def askInfoProvider[T: ClassTag](msg: Any): Future[T] =
     typedAsk[T](jobInfoProvider, msg)
-  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any)(implicit t: Timeout): Future[T] =
+  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] =
     ref.ask(msg).mapTo[T]
 
   private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(

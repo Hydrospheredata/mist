@@ -27,7 +27,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         jobsSavePath = "/tmp",
         artifactRepositoryPath = "/tmp",
         srcConfigPath = "",
-        jobInfoProviderConfig = JobInfoProviderConfig(1 seconds, Map.empty)
+        jobInfoProviderConfig = JobInfoProviderConfig(1 seconds, 2 seconds, Map.empty)
       )
 
       val name = "worker-name"
