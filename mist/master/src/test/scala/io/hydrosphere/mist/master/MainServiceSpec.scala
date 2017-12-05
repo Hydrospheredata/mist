@@ -130,40 +130,6 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
 
-  it("should return only existing endpoint jobs") {
-    val endpoints = mock[EndpointsStorage]
-    val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
-    val logs = mock[LogStoragePaths]
-    val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
-
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
-    val spiedService = spy(service)
-    val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
-    val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
-    val fullInfo = JobInfoData(
-      lang = "python",
-      defaultContext = "foo",
-      path = "path",
-      name = "name",
-      className = "MyJob"
-    )
-    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(epConf)))
-      .thenSuccess(fullInfo)
-
-    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(noMatterEpConf)))
-      .thenFailure(new RuntimeException("failed"))
-
-    when(endpoints.all)
-      .thenSuccess(Seq(epConf, noMatterEpConf))
-
-    val endpointsInfo = spiedService.endpointsInfo.await
-    endpointsInfo.size shouldBe 1
-    endpointsInfo should contain allElementsOf Seq(fullInfo)
-
-  }
-
   it("should select exclusive run mode on streaming jobs") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]

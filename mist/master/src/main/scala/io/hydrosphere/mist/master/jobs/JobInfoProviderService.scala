@@ -22,7 +22,8 @@ class JobInfoProviderService(
   endpointStorage: EndpointsStorage,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
-  implicit val timeout = Timeout(5 seconds)
+  val timeoutDuration = 5 seconds
+  implicit val commonTimeout = Timeout(timeoutDuration)
 
   def getJobInfo(id: String): Future[Option[JobInfoData]] = {
     val f = for {
@@ -71,13 +72,20 @@ class JobInfoProviderService(
     for {
       endpoints      <- endpointStorage.all
       requests       =  endpoints.flatMap(toJobInfoRequest).toList
-      data           <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests))
+      timeout        =  Timeout(timeoutDuration * requests.size)
+      data           <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests), timeout)
     } yield data
-
   }
 
-  private def askInfoProvider[T: ClassTag](msg: Any): Future[T] = typedAsk[T](jobInfoProvider, msg)
-  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
+  private def askInfoProvider[T: ClassTag](msg: Any, t: Timeout): Future[T] =
+    typedAsk[T](jobInfoProvider, msg, t)
+  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any, t: Timeout): Future[T] =
+    ref.ask(msg)(t).mapTo[T]
+
+  private def askInfoProvider[T: ClassTag](msg: Any)(implicit t: Timeout): Future[T] =
+    typedAsk[T](jobInfoProvider, msg)
+  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any)(implicit t: Timeout): Future[T] =
+    ref.ask(msg).mapTo[T]
 
   private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(
     endpoint.className,

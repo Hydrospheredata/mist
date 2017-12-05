@@ -164,18 +164,6 @@ class MainService(
     contexts.getOrDefault(name)
   }
 
-  def endpointsInfo: Future[Seq[JobInfoData]] = for {
-    configs <- endpoints.all
-    infos   <- Future.sequence(configs.map(e => {
-      jobInfoProviderService.getJobInfoByConfig(e).map(Some.apply)
-        .recover {
-          case ex =>
-            logger.error(ex.getMessage, ex)
-            None
-        }
-    }))
-  } yield infos.flatten
-
 }
 
 object MainService extends Logger {
