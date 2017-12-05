@@ -1,7 +1,13 @@
 ### Java DSL
 
-Mist Library provides a way of writing job functions that could be run on Mist.
-`JMistJob[A]` is a start point of job definition.
+Definitions:
+
+*Mist Function* is a functional framework that defines particular Spark calculation. Mist Function is a deployable unit for Mist proxy.
+ 
+*Job* - a Spark job triggered by Mist Function.
+
+Mist Library provides a DSL for Mist Functions that could be deployed and executed in Mist.
+`JMistFn[A]` is a base interface for function definition.
 
 `JavaPiExample.java`:
 ```java
@@ -13,7 +19,7 @@ import java.util.List;
 public class JavaPiExample extends JMistFn<Double> {
 
     @Override
-    public JJobDef<Double> handler() {
+    public JHandle<Double> handle() {
         return withArgs(intArg("samples")).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);
             for (int i = 0; i < n ; i++) {
@@ -60,8 +66,8 @@ function over one of available spark contexts (SparkContext, SparkSession, Strea
 
 #### Arguments
 
-Internally library dsl is based on `ArgDef[A]` - its goal is to describe argument type and how to extract it from a request.
-So for example: `intArg("n")` means that request's json object should contain key `n` with a value that can be converted to integer.
+Internally library dsl is based on `Jarg[A]` - its goal is to describe argument type and how to extract it from a request.
+So for example: `intArg("n")` means that request's json object should has key `n` with a value that can be converted to integer.
 There are following basic methods do define an argument (they have similar names for different types: intArg/stringArg/doubleArg/booleanArg).
 For example for integer:
 - `intArg(String name)` -  required argument by name
@@ -69,8 +75,7 @@ For example for integer:
 - `optIntArg(String name)` - function will receive `Optional<Integer>`
 - `intListArg(String name)` - function will receive `List<Integer>`
 
-To define function of several arguments we should be able to combine them.
-For that purpose there is method `withArgs`, it accepts from 1 to 21 argument and returns `ArgDef`.
+Method `withArgs` accepts from 1 to 21 argument and returns `ArgsN`.
 ```java
 Args1 one = withArgs(intArg("n"))
 
@@ -81,23 +86,23 @@ Args3 three = withArgs(intArg("n"), stringArg"str"), booleanArg("flag"))
 
 #### Contexts
 
-Next to complete job definition we should obtain spark and write function's body.
-One of the goals of Mist is to manage spark contexts, so you shouldn't care about context's instantiation.
-There are following methods of `ArgsN` to do that:
+Next to complete Mist Function definition we should inject Spark Context.
+Mist provides managed Spark Contexts, so developer does not care about context's lifecycle and settings.
+There are following methods of `ArgsN` to define Spark Context:
 - `onSparkContext`
 - `onStreamingContext`
 
-They are just takes function, that takes `n+1` arguments where n is count of combined argument plus spark context at end.
+It accepts function with `n+1` arguments where `n` is count of combined argument plus `SparkContext` at end.
 ```java
-JJobDef<?> fromOne = withArgs(intArg("n")).onSparkContext((n, sc) -> { ... })
+JHandle<?> fromOne = withArgs(intArg("n")).onSparkContext((n, sc) -> { ... })
 
-JJobDef<?> fromTwo = withArgs(intArg("n"), stringArg("str")).onSparkContext((n, s, sc) -> { ... })
+JHandle<?> fromTwo = withArgs(intArg("n"), stringArg("str")).onSparkContext((n, s, sc) -> { ... })
 
-JJobDef<?> fromThree = withArgs(intArg("n"), stringArg("str"), booleanArg("flag"))
+JHandle<?> fromThree = withArgs(intArg("n"), stringArg("str"), booleanArg("flag"))
     .onSparkContext((n, s, b, sc) -> { ... })
 ```
 
-If your job doesn't require any arguments, there are similar methods available from `JMistJob`
+If your job doesn't require any arguments, there are similar methods available from `JMistFn`
 ```java
 import mist.api.jdsl.*;
 
@@ -107,25 +112,50 @@ import java.util.List;
 public class NoArgsExample extends JMistFn<Integer> {
 
     @Override
-    public JJobDef<Integer> defineJob() {
+    public JHandle<Integer> handle() {
         return onSparkContext((sc) -> RetValues.of(42));
+    }
+}
+```
+
+#### Validation
+
+For example for calculating pi using dartboard method n should be at least positive number.
+For that purpose `JArg<A>` has special methods to validate arguments:
+- `validated(f: A => Boolean)`
+- `validated(f: A => Boolean, explanation: String)`
+
+```java
+import mist.api.jdsl.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class JavaPiExample extends JMistFn<Double> {
+
+    @Override
+    public JHandle<Double> handle() {
+        JArg<Integer> samples = intArg("samples").validated(s -> s > 0, "Samples must be positive");
+        return withArgs(samples).onSparkContext((n, sc) -> {
+          ...
+        });
     }
 }
 ```
 
 #### Encoding
 
-Mist should be able to return result back to call site (http request, async interfaces) and it requires
-that result should be serialized to json. For that purposes function should return an instance of `RetValue`.
+Mist should be able to return result back to the client (http request, async interfaces) and it requires
+that result should be serialized to json.For that purposes function should return an instance of `RetValue`.
 There are a lot of helper methonds in `mist.api.jdsl.RetValues`
 
 
 #### Mist extras
 
-Every job invocation on Mist has unique id and performs on some worker. It can be usefull in some situtaions
-to known that information at job side.
-Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your jobs.
-This thing together is called `MistExtras`. Example:
+Every function invocation on Mist has unique id and associated worker. It could be useful in some cases
+to have that extra information in a function body.
+Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
+These utilities are called `MistExtras`. Example:
 
 ```java
 import io.hydrosphere.mist.api.MLogger;
@@ -134,7 +164,7 @@ import mist.api.jdsl.*;
 public class Hello extends JMistFn<Void> {
 
     @Override
-    public JJobDef<Integer> defineJob() {
+    public JHandle<Integer> handle() {
         return withArgs(intArg("samples")).withMistExtras().onSparkContext((n, extras, sc) -> {
            MLogger logger = extras.logger();
            logger.info("Hello from job:" + extras.jobId());

@@ -1,4 +1,7 @@
-import mist.api.jdsl.*;
+import mist.api.jdsl.JArg;
+import mist.api.jdsl.JHandle;
+import mist.api.jdsl.JMistFn;
+import mist.api.jdsl.RetValues;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +10,7 @@ public class JavaPiExample extends JMistFn<Double> {
 
     @Override
     public JHandle<Double> handle() {
-        JArg<Integer> samples = intArg("samples").validated(s -> s > 0, "Samples should be positive");
+        JArg<Integer> samples = intArg("samples").validated(s -> s > 0, "Samples must be positive");
         return withArgs(samples).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);
             for (int i = 0; i < n ; i++) {

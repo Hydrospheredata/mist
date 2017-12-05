@@ -5,7 +5,8 @@ import org.apache.spark.SparkContext
 object PiExample extends MistFn[Double] {
 
   override def handle = {
-    withArgs(arg[Int]("samples")).onSparkContext((n: Int, sc: SparkContext) => {
+    val samples = arg[Int]("samples").validated(_ > 0, "Samples should be positive")
+    withArgs(samples).onSparkContext((n: Int, sc: SparkContext) => {
       val count = sc.parallelize(1 to n).filter(_ => {
         val x = math.random
         val y = math.random
