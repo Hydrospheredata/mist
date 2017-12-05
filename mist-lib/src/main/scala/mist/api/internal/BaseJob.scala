@@ -22,7 +22,7 @@ trait BaseJobInstance extends BaseJobInfo {
 
 class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
 
-  private val jobDef = instance.handler
+  private val jobDef = instance.handle
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
@@ -44,7 +44,7 @@ class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
 
 class JavaJobInstance(instance: JMistFn[_]) extends BaseJobInstance {
 
-  private val jobDef = instance.handler.jobDef
+  private val jobDef = instance.handle.underlying
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 

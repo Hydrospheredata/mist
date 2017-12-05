@@ -8,8 +8,7 @@ import mist.api.encoding.Encoder
   * Scala api - root class for jobs definition
   *
   * Example:
-  * <pre>
-  * {@code
+  * {{{
   *
   * import mist.api._
   * import mist.api.DefaultEncoders._
@@ -22,8 +21,7 @@ import mist.api.encoding.Encoder
   *     })
   *   }
   * }
-  * }
-  * </pre>
+  * }}}
   */
 abstract class MistFn[A](implicit enc: Encoder[A])
   extends ArgsInstances
@@ -31,10 +29,10 @@ abstract class MistFn[A](implicit enc: Encoder[A])
   with MistExtrasDef
   with WithArgsScala {
 
-  def handler: FnDef[A]
+  def handle: Handle[A]
 
   final def execute(ctx: FnContext): JobResult[JsLikeData] = {
-    handler.invoke(ctx) match {
+    handle.invoke(ctx) match {
       case JobSuccess(data) => JobSuccess(enc(data))
       case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
     }

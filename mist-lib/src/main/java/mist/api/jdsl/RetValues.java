@@ -1,4 +1,4 @@
-package mist.api;
+package mist.api.jdsl;
 
 import mist.api.jdsl.RetVal;
 import mist.api.jdsl.RetVals;

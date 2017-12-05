@@ -7,7 +7,7 @@ import org.apache.spark.sql.{Dataset, SparkSession}
 
 object BinarizerJobTrainV2 extends MistFn[Unit]{
 
-  override def handler = {
+  override def handle = {
     arg[String]("savePath").onSparkSession((path: String, spark: SparkSession) => {
 
       val data = Array((0, 0.1), (1, 0.8), (2, 0.2))
@@ -28,7 +28,7 @@ object BinarizerJobTrainV2 extends MistFn[Unit]{
 
 object BinarizerJobServeV2 extends MistFn[Dataset[_]]{
 
-  override def handler = {(
+  override def handle = {(
     arg[String]("savePath") &
     arg[Seq[Double]]("features"))
     .onSparkSession((path: String, features: Seq[Double], spark: SparkSession) => {

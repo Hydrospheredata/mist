@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 
 object SparkSessionExample extends MistFn[Array[Int]]{
 
-  override def handler: FnDef[Array[Int]] = {
+  override def handle: Handle[Array[Int]] = {
      withArgs(
        arg[Seq[Int]]("numbers"),
        arg[Int]("multiplier", 2)

@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 object StreamingExample extends MistFn[Unit]{
 
-  override def handler: FnDef[Unit] = {
+  override def handle: Handle[Unit] = {
     withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
       import extras._
 

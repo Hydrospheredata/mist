@@ -1,6 +1,4 @@
-import mist.api.RetValues;
-import mist.api.jdsl.JFnDef;
-import mist.api.jdsl.JMistFn;
+import mist.api.jdsl.*;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.util.ArrayList;
@@ -11,7 +9,7 @@ import java.util.Queue;
 class JavaStreamingContextExample extends JMistFn<Void> {
 
     @Override
-    public JFnDef<Void> handler() {
+    public JHandle<Void> handle() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();

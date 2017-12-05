@@ -5,7 +5,7 @@ import org.apache.spark.SparkContext
 
 object SparkContextExample extends MistFn[Array[Int]] {
 
-  override def handler = {
+  override def handle = {
     withArgs(
       arg[Seq[Int]]("numbers"),
       arg[Int]("multiplier", 2)

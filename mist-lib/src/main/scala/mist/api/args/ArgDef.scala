@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.{FullFnContext, FnContext, FnDef}
+import mist.api.{FullFnContext, FnContext, Handle}
 
 
 sealed trait ArgInfo
@@ -61,7 +61,7 @@ trait ArgDef[A] { self =>
     }
   }
 
-  def apply[F, R](f: F)(implicit tjd: ToFnDef.Aux[A, F, R]): FnDef[R] = tjd(self, f)
+  def apply[F, R](f: F)(implicit tjd: ToHandle.Aux[A, F, R]): Handle[R] = tjd(self, f)
 }
 
 trait SystemArg[A] extends ArgDef[A] {

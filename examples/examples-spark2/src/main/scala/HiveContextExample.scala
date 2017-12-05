@@ -5,7 +5,7 @@ import org.apache.spark.sql.hive.HiveContext
 
 object HiveContextExample extends MistFn[DataFrame]{
 
-  def handler = {
+  def handle = {
     withArgs(arg[String]("file")).onHiveContext((file: String, hiveCtx: HiveContext) => {
       val df = hiveCtx.read.json(file)
       df.registerTempTable("people")

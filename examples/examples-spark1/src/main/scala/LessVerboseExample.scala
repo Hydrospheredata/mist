@@ -15,7 +15,7 @@ object LessVerboseExample extends MistFn[Array[Int]] {
 
   import MistExtras._
 
-  override def handler = (arg[Args] & mistExtras).onSparkContext(
+  override def handle = (arg[Args] & mistExtras).onSparkContext(
     (args: Args, extras: MistExtras, sc: SparkContext) => {
       import extras._
 

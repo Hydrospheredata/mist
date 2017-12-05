@@ -2,7 +2,7 @@ package mist.api
 
 import mist.api.args.{
   ArgDef, SystemArg, Extracted, ArgInfo,
-  ArgExtraction, Missing, InternalArgument, ArgCombiner, ToFnDef
+  ArgExtraction, Missing, InternalArgument, ArgCombiner, ToHandle
 }
 import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
@@ -104,7 +104,7 @@ trait BaseContexts {
     def onSparkContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
-      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(sparkContext), f)
+      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sparkContext), f)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.streaming.StreamingContext
@@ -112,7 +112,7 @@ trait BaseContexts {
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
-      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(streamingContext), f)
+      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(streamingContext), f)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.SQLContext
@@ -120,7 +120,7 @@ trait BaseContexts {
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
-      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(sqlContext), f)
+      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sqlContext), f)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.hive.HiveContext
@@ -128,31 +128,31 @@ trait BaseContexts {
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],
-      tjd: ToFnDef.Aux[Cmb, F, Out]): FnDef[Out] = tjd(args.combine(hiveContext), f)
+      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(hiveContext), f)
   }
 
   /**
     * Define job execution function that takes only org.apache.spark.SparkContext as an argument.
     */
-  def onSparkContext[F, Out](f: F)(implicit tjd: ToFnDef.Aux[SparkContext, F, Out]): FnDef[Out] =
+  def onSparkContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[SparkContext, F, Out]): Handle[Out] =
     tjd(sparkContext, f)
 
   /**
     * Define job execution function that takes only org.apache.spark.streaming.StreamingContext as an argument.
     */
-  def onStreamingContext[F, Out](f: F)(implicit tjd: ToFnDef.Aux[StreamingContext, F, Out]): FnDef[Out] =
+  def onStreamingContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[StreamingContext, F, Out]): Handle[Out] =
     tjd(streamingContext, f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SQLContext as an argument.
     */
-  def onSqlContext[F, Out](f: F)(implicit tjd: ToFnDef.Aux[SQLContext, F, Out]): FnDef[Out] =
+  def onSqlContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[SQLContext, F, Out]): Handle[Out] =
     tjd(sqlContext, f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
     */
-  def onHiveContext[F, Out](f: F)(implicit tjd: ToFnDef.Aux[HiveContext, F, Out]): FnDef[Out] =
+  def onHiveContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[HiveContext, F, Out]): Handle[Out] =
     tjd(hiveContext, f)
 
 }

@@ -4,7 +4,7 @@ import org.apache.spark.SparkContext
 
 object TextSearchExample extends MistFn[Array[String]]{
 
-  override def handler: FnDef[Array[String]] = {
+  override def handle: Handle[Array[String]] = {
     withArgs(
       arg[String]("filePath"),
       arg[Seq[String]]("filters")

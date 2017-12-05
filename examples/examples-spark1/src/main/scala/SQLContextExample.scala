@@ -4,7 +4,7 @@ import org.apache.spark.sql.SQLContext
 
 object SQLContextExample extends MistFn[Array[Int]]{
 
-  override def handler: FnDef[Array[Int]] = {
+  override def handle: Handle[Array[Int]] = {
     withArgs(arg[String]("file")).onSqlContext((file: String, sqlCtx: SQLContext) => {
       val df = sqlCtx.read.json(file)
       df.registerTempTable("people")

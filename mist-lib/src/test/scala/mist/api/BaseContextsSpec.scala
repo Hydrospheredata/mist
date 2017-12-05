@@ -21,7 +21,7 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
   }
 
   it("for only sc") {
-    val spJob: FnDef[Int] = onSparkContext((sc: SparkContext) => {
+    val spJob: Handle[Int] = onSparkContext((sc: SparkContext) => {
       5
     })
     val res = spJob.invoke(testCtx())
