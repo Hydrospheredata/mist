@@ -12,20 +12,13 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 
-trait Cache[K, V] {
-  self =>
+trait Cache[K, V] { self =>
   def get(k: K): Option[V]
-
   def put(k: K, v: V): Cache[K, V]
-
   def size: Int
-
   def removeItem(k: K): Cache[K, V]
-
   def evictAll: Cache[K, V]
-
   def +(e: (K, V)): Cache[K, V] = self.put(e._1, e._2)
-
   def -(k: K): Cache[K, V] = self.removeItem(k)
 
   protected def now: Long = System.currentTimeMillis()

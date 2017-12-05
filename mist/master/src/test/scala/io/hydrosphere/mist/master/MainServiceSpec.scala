@@ -48,7 +48,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         defaultContext = "namespace"
       )))
 
-    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
@@ -73,7 +73,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepo)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getJobInfo(any[String]))
       .thenSuccess(Some(JobInfoData(
@@ -100,7 +100,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
@@ -174,7 +174,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
@@ -216,7 +216,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))

@@ -297,7 +297,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(None)
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
