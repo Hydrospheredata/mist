@@ -10,7 +10,7 @@ trait TestSparkContext extends BeforeAndAfterAll{this: Suite =>
   override def beforeAll(): Unit = {
     val conf = new SparkConf()
       .setMaster("local[2]")
-      .setAppName("mist-lib-test")
+      .setAppName("mist-lib-test" + this.getClass.getSimpleName)
       .set("spark.driver.allowMultipleContexts", "true")
       .set("spark.ui.disabled", "true")
     spark = new SparkContext(conf)

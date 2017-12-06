@@ -73,7 +73,27 @@ lazy val mistLib = project.in(file("mist-lib"))
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
     )
+//    assemblyShadeRules in assembly := Seq(
+//      ShadeRule.rename("shapeless.**" -> "shadeshapless.@1").inAll
+//    ),
+    //addArtifact(artifact in (Compile, assembly), assembly),
+//    assemblyExcludedJars in assembly := {
+//      val cp = (fullClasspath in assembly).value
+//      cp filter {c => !c.data.getName.contains("shapeless")}
+//    },
+//    artifact in Compile := {
+//      (artifact in(Compile, assembly)).value
+//    }
+    //sbt.Keys.`packageBin` in Compile := (assembly in assembly).value
   )
+
+lazy val publishMistLib = project
+    .settings(commonSettings: _*)
+    .settings(PublishSettings.settings: _*)
+    .settings(
+      name := s"mist-lib-spark${sparkVersion.value}",
+      packageBin in Compile := (assembly in (mistLib, Compile)).value
+    )
 
 lazy val core = project.in(file("mist/core"))
   .dependsOn(mistLib)
