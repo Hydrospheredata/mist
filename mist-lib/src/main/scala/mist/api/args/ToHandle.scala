@@ -1,8 +1,8 @@
 package mist.api.args
 
 import mist.api._
-import shapeless.HList
-import shapeless.ops.function.FnToProduct
+import shadedshapeless.HList
+import shadedshapeless.ops.function.FnToProduct
 
 trait ToHandle[In, F] extends Serializable {
   type Out

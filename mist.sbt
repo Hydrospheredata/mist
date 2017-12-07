@@ -31,12 +31,12 @@ lazy val commonSettings = Seq(
 
   is2_10 := scalaVersion.value.startsWith("2.10"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+  parallelExecution in Test := false,
   version := "0.13.3"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
-  .settings(PublishSettings.settings: _*)
   .settings(
     (unmanagedSourceDirectories in Compile) ++= {
       val dirs = (baseDirectory.value / "src" / "main") * "spark-*"
@@ -57,43 +57,22 @@ lazy val mistLib = project.in(file("mist-lib"))
     name := s"mist-lib-spark${sparkVersion.value}",
     libraryDependencies ++= {
       if (is2_10.value ) {
-        Seq(
-          "com.chuusai" %% "shapeless" % "2.3.2",
-          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
-        )
+        Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
       } else {
-        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+        Seq()
       }
     },
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
       Library.Akka.streams,
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
-    )
-//    assemblyShadeRules in assembly := Seq(
-//      ShadeRule.rename("shapeless.**" -> "shadeshapless.@1").inAll
-//    ),
-    //addArtifact(artifact in (Compile, assembly), assembly),
-//    assemblyExcludedJars in assembly := {
-//      val cp = (fullClasspath in assembly).value
-//      cp filter {c => !c.data.getName.contains("shapeless")}
-//    },
-//    artifact in Compile := {
-//      (artifact in(Compile, assembly)).value
-//    }
-    //sbt.Keys.`packageBin` in Compile := (assembly in assembly).value
+    ),
+    parallelExecution in Test := false
   )
-
-lazy val publishMistLib = project
-    .settings(commonSettings: _*)
-    .settings(PublishSettings.settings: _*)
-    .settings(
-      name := s"mist-lib-spark${sparkVersion.value}",
-      packageBin in Compile := (assembly in (mistLib, Compile)).value
-    )
 
 lazy val core = project.in(file("mist/core"))
   .dependsOn(mistLib)
@@ -159,20 +138,7 @@ lazy val worker = project.in(file("mist/worker"))
       Library.scopt,
       Library.scalaTest % "test"
     ),
-    libraryDependencies ++= {
-      if (is2_10.value ) {
-        Seq(
-          "com.chuusai" %% "shapeless" % "2.3.2",
-          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
-        )
-      } else {
-        Seq("com.chuusai" %% "shapeless" % "2.3.2")
-      }
-    },
-    assemblyShadeRules in assembly := Seq(
-      ShadeRule.rename("scopt.**" -> "shaded.@0").inAll,
-      ShadeRule.rename("shapeless.**" -> "shadeshapless.@1").inAll
-    )
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
   )
 
 lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "2.1.0") match {
@@ -336,31 +302,13 @@ lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
     libraryDependencies ++= {
       if (is2_10.value ) {
         Seq(
-          "com.chuusai" %% "shapeless" % "2.3.2",
           compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
         )
       } else {
-        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+        Seq.empty
       }
     },
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
-    assembledMappings in assembly := {
-      // hack - there is no options how to exclude all dependecies that comes
-      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
-      def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.10/classes")
-
-      val x = (fullClasspath in assembly).value
-      val filtered = x.seq.filter(v => {
-        val file = v.data
-        isProjectClasses(file)
-      })
-      val s = (streams in assembly).value
-      Assembly.assembleMappings(filtered, Nil, (assemblyOption in assembly).value, s.log)
-    },
-    assemblyShadeRules in assembly := Seq(
-      ShadeRule.rename("shapeless.**" -> "shadeshapless.@1").inAll
-    ),
-    sbt.Keys.`package` in Compile := (assembly in assembly).value
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
   )
 
 lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
@@ -372,32 +320,14 @@ lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
     libraryDependencies ++= {
       if (is2_10.value ) {
         Seq(
-          "com.chuusai" %% "shapeless" % "2.3.2",
           compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
         )
       } else {
-        Seq("com.chuusai" %% "shapeless" % "2.3.2")
+        Seq.empty
       }
     },
     assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
-    assembledMappings in assembly := {
-      // hack - there is no options how to exclude all dependecies that comes
-      // from `.dependsOn(mistLib)`, setup mappings manually - only jobs + spark-ml-serving
-      def isProjectClasses(f: File): Boolean = f.getAbsolutePath.endsWith(baseDirectory.value + "/target/scala-2.11/classes")
-
-      val x = (fullClasspath in assembly).value
-      val filtered = x.seq.filter(v => {
-        val file = v.data
-        isProjectClasses(file)
-      })
-      val s = (streams in assembly).value
-      Assembly.assembleMappings(filtered, Nil, (assemblyOption in assembly).value, s.log)
-    },
-    assemblyShadeRules in assembly := Seq(
-      ShadeRule.rename("shapeless.**" -> "shadeshapless.@1").inAll
-    ),
     sbt.Keys.`package` in Compile := (assembly in assembly).value
-
   )
 
 

@@ -1,7 +1,7 @@
 package mist.api.args
 
-import shapeless._
-import shapeless.labelled.FieldType
+import shadedshapeless._
+import shadedshapeless.labelled.FieldType
 
 /**
   * Check value type and describe

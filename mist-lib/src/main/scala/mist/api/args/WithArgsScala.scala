@@ -1,7 +1,7 @@
 package mist.api.args
 
-import shapeless.ops.hlist.LeftReducer
-import shapeless.{Generic, HList, Poly2}
+import shadedshapeless.ops.hlist.LeftReducer
+import shadedshapeless.{Generic, HList, Poly2}
 
 
 /**

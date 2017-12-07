@@ -2,7 +2,7 @@ package mist.api.args
 
 import mist.api.{FnContext, Handle, JobFailure, JobSuccess}
 import org.scalatest.{FunSpec, Matchers}
-import shapeless._
+import shadedshapeless._
 
 class ArgDefSpec extends FunSpec with Matchers {
 
