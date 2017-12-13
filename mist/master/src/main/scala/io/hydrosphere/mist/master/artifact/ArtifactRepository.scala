@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.artifact
 
 import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.util.concurrent.Executors
 
 import io.hydrosphere.mist.master.data
@@ -47,7 +47,7 @@ class FsArtifactRepository(
   override def store(src: File, fileName: String): Future[File] = {
     Future {
       val dst = Paths.get(rootDir, fileName)
-      Files.copy(src.toPath, dst)
+      Files.copy(src.toPath, dst, StandardCopyOption.REPLACE_EXISTING)
       dst.toFile
     }
   }

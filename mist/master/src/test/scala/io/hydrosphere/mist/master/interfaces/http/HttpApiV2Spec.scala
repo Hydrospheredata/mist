@@ -210,6 +210,28 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
+    it("should return different entity when forcibly update") {
+      val endpoints = mock[EndpointsStorage]
+      val master = new MainService(
+        mock[JobService],
+        endpoints,
+        mock[ContextsStorage],
+        mock[LogStoragePaths],
+        mock[ArtifactRepository]
+      )
+      val test = EndpointConfig("test", "test", "test", "default")
+      when(endpoints.update(any[EndpointConfig]))
+        .thenSuccess(test)
+
+      val route = HttpV2Routes.endpointsRoutes(master)
+
+      Post("/v2/api/endpoints?force=true", test.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        verify(endpoints, times(1)).update(any[EndpointConfig])
+        responseAs[EndpointConfig] shouldBe test
+      }
+    }
+
     it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock[EndpointsStorage]
       val master = mock[MainService]
@@ -391,6 +413,21 @@ class HttpApiV2Spec extends FunSpec
 
       Post("/v2/api/artifacts", multipartForm) ~> routes ~> check {
         status shouldBe StatusCodes.Conflict
+      }
+    }
+    it("should not check uniqueness when force flag applied") {
+      val artifactRepo = mock[ArtifactRepository]
+      val routes = HttpV2Routes.artifactRoutes(artifactRepo)
+      when(artifactRepo.store(any[File], any[String]))
+        .thenSuccess(new File("some/internal/path/test.jar"))
+      val multipartForm =
+        Multipart.FormData(Multipart.FormData.BodyPart.Strict(
+          "file",
+          HttpEntity(ContentTypes.`application/octet-stream`, ByteString.fromString("Jar content")),
+          Map("filename" -> "test.jar")))
+
+      Post("/v2/api/artifacts?force=true", multipartForm) ~> routes ~> check {
+        status shouldBe StatusCodes.OK
       }
     }
 
