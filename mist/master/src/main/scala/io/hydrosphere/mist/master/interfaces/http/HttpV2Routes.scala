@@ -158,15 +158,23 @@ object HttpV2Routes {
       }}
     } ~
     path( root / "endpoints" ) {
-      post { entity(as[EndpointConfig]) { req =>
-        val res = for {
-          updated      <- master.endpoints.update(req)
-          fullInfo     <- Future.fromTry(master.loadEndpointInfo(updated))
-          endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-        } yield endpointInfo
+      post(parameter('force? false) { force =>
+        entity(as[EndpointConfig]) { req =>
+          if (force) {
+            completeF(master.endpoints.update(req), StatusCodes.BadRequest)
+          } else {
+            val res = master.loadEndpointInfo(req) match {
+              case Success(fullInfo) => for {
+                updated      <- master.endpoints.update(req)
+                endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
+              } yield endpointInfo
+              case Failure(ex) => Future.failed(ex)
+            }
 
-        completeF(res, StatusCodes.BadRequest)
-      }}
+            completeF(res, StatusCodes.BadRequest)
+          }
+        }
+      })
     } ~
     path( root / "endpoints" ) {
       put { entity(as[EndpointConfig]) { req =>
@@ -247,25 +255,32 @@ object HttpV2Routes {
       }
     } ~
     path(root / "artifacts") {
-      post {
+      post { parameters('force? false) { force => {
+        def storeArtifactFile(metadata: FileInfo, tempFile: File): Route = {
+          onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
+            tempFile.delete
+            complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+          }
+        }
         uploadedFile("file") {
           case (metadata, tempFile) =>
-            artifactRepo.get(metadata.fileName) match {
-              case Some(_) => complete {
-                HttpResponse(
-                  StatusCodes.Conflict,
-                  entity = s"Filename must be unique: found ${metadata.fileName} in repository"
-                )
-              }
-              case None =>
-                onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
-                  tempFile.delete
-                  complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+            if (force) {
+              storeArtifactFile(metadata, tempFile)
+            } else {
+              artifactRepo.get(metadata.fileName) match {
+                case Some(_) => complete {
+                  HttpResponse(
+                    StatusCodes.Conflict,
+                    entity = s"Filename must be unique: found ${metadata.fileName} in repository"
+                  )
                 }
+                case None =>
+                  storeArtifactFile(metadata, tempFile)
+              }
             }
         }
       }
-    }
+    }}}
   }
 
   def jobsRoutes(master: MainService): Route = {
