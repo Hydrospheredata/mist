@@ -3,7 +3,7 @@ package io.hydrosphere.mist.job
 import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.{FullJobInfo, JobsLoader}
+import io.hydrosphere.mist.core.jvmjob.{JobInfoData, JobsLoader}
 import mist.api.args.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
@@ -13,12 +13,11 @@ import scala.util.{Success, Try}
 
 case class JobInfo(
   instance: BaseJobInstance = JobInstance.NoOpInstance,
-  info: FullJobInfo
+  data: JobInfoData
 )
 
 trait JobInfoExtractor {
   def extractInfo(file: File, className: String): Try[JobInfo]
-  def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance]
 }
 
 class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtractor {
@@ -27,10 +26,10 @@ class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtract
     val executeJobInstance = extractInstance(file, className, Action.Execute)
     executeJobInstance orElse extractInstance(file, className, Action.Serve) map { instance =>
       val lang = instance match {
-        case _: JavaJobInstance => FullJobInfo.JavaLang
-        case _ => FullJobInfo.ScalaLang
+        case _: JavaJobInstance => JobInfoData.JavaLang
+        case _ => JobInfoData.ScalaLang
       }
-      JobInfo(instance, FullJobInfo(
+      JobInfo(instance, JobInfoData(
         lang = lang,
         execute = instance.describe().collect { case x: UserInputArgument => x },
         isServe = !executeJobInstance.isSuccess,
@@ -42,7 +41,7 @@ class JvmJobInfoExtractor(jobsLoader: File => JobsLoader) extends JobInfoExtract
     }
   }
 
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] = {
+  private def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] = {
     jobsLoader(file).loadJobInstance(className, action)
   }
 
@@ -66,13 +65,10 @@ object JvmJobInfoExtractor {
 
 class PythonJobInfoExtractor extends JobInfoExtractor {
   override def extractInfo(file: File, className: String) = Success(
-    JobInfo(info = FullJobInfo(
-      lang = FullJobInfo.PythonLang,
+    JobInfo(data = JobInfoData(
+      lang = JobInfoData.PythonLang,
       className = className
     )))
-
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] =
-    Success(JobInstance.NoOpInstance)
 }
 
 class BaseJobInfoExtractor(
@@ -83,10 +79,6 @@ class BaseJobInfoExtractor(
   override def extractInfo(file: File, className: String): Try[JobInfo] =
     selectExtractor(file)
       .extractInfo(file, className)
-
-  override def extractInstance(file: File, className: String, action: Action): Try[BaseJobInstance] =
-    selectExtractor(file)
-      .extractInstance(file, className, action)
 
   private def selectExtractor(file: File): JobInfoExtractor =
     FilenameUtils.getExtension(file.getAbsolutePath) match {

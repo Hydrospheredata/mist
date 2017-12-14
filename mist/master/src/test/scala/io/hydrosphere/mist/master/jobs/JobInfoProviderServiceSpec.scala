@@ -7,7 +7,7 @@ import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
@@ -54,11 +54,17 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         "test", jobPath, "Test", "foo"
       ))
       probe.expectMsgType[GetJobInfo]
-      probe.reply(FullJobInfo(lang="scala", className="Test"))
+      probe.reply(JobInfoData(
+        name="test",
+        path=jobPath,
+        defaultContext="foo",
+        lang="scala",
+        className="Test"
+      ))
 
       val result = Await.result(f, Duration.Inf)
 
-      result shouldBe FullJobInfo(
+      result shouldBe JobInfoData(
         name="test",
         lang="scala",
         path=jobPath,
@@ -78,7 +84,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Success(()))
@@ -116,7 +122,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       intercept[IllegalArgumentException] {
         Await.result(f, Duration.Inf)
@@ -154,7 +160,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty, Action.Execute)
+      ), Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -183,12 +189,18 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val f = jobInfoProviderService.getJobInfo("test")
 
       probe.expectMsgType[GetJobInfo]
-      probe.reply(FullJobInfo(lang="scala", className="Test"))
+      probe.reply(JobInfoData(
+        name="test",
+        path=jobPath,
+        defaultContext="foo",
+        lang="scala",
+        className="Test"
+      ))
 
       val result = Await.result(f, Duration.Inf)
 
       result shouldBe defined
-      result.get shouldBe FullJobInfo(
+      result.get shouldBe JobInfoData(
         name="test",
         lang="scala",
         path=jobPath,
@@ -211,7 +223,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Success(()))
@@ -276,7 +288,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -297,7 +309,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(None)
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -340,7 +352,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty, Action.Execute)
+      val f = jobInfoProviderService.validateJob("test", Map.empty)
       probe.expectMsgType[ValidateJobParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 

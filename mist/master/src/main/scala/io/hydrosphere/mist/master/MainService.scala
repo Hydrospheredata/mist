@@ -7,7 +7,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -81,7 +81,7 @@ class MainService(
     for {
       info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters, action)
+      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters)
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -98,7 +98,7 @@ class MainService(
 
   private def selectRunMode(
     config: ContextConfig,
-    info: FullJobInfo,
+    info: JobInfoData,
     workerId: Option[String]
   ): RunMode = {
     if (info.tags.contains(ArgInfo.StreamingContextTag)) ExclusiveContext(workerId)
@@ -140,7 +140,7 @@ class MainService(
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
       info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
-      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters, action))
+      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
@@ -163,18 +163,6 @@ class MainService(
     val name = req.runSettings.contextId.getOrElse(context)
     contexts.getOrDefault(name)
   }
-
-  def endpointsInfo: Future[Seq[FullJobInfo]] = for {
-    configs <- endpoints.all
-    infos   <- Future.sequence(configs.map(e => {
-      jobInfoProviderService.getJobInfoByConfig(e).map(Some.apply)
-        .recover {
-          case ex =>
-            logger.error(ex.getMessage, ex)
-            None
-        }
-    }))
-  } yield infos.flatten
 
 }
 

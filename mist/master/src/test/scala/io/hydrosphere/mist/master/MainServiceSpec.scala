@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FullJobInfo
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
@@ -41,14 +41,14 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(TestUtils.contextSettings.default)
 
     when(jobInfoProviderService.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
+      .thenSuccess(Some(JobInfoData(
         name = "name",
         path = "path.py",
         className = "MyJob",
         defaultContext = "namespace"
       )))
 
-    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
@@ -73,11 +73,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepo)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test"
       )))
 
@@ -100,12 +100,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test"
       )))
 
@@ -130,40 +130,6 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
 
-  it("should return only existing endpoint jobs") {
-    val endpoints = mock[EndpointsStorage]
-    val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
-    val logs = mock[LogStoragePaths]
-    val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
-
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
-    val spiedService = spy(service)
-    val epConf = EndpointConfig("name", "path", "MyJob", "namespace")
-    val noMatterEpConf = EndpointConfig("no_matter", "testpath", "MyJob2", "namespace")
-    val fullInfo = FullJobInfo(
-      lang = "python",
-      defaultContext = "foo",
-      path = "path",
-      name = "name",
-      className = "MyJob"
-    )
-    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(epConf)))
-      .thenSuccess(fullInfo)
-
-    when(jobInfoProvider.getJobInfoByConfig(mockitoEq(noMatterEpConf)))
-      .thenFailure(new RuntimeException("failed"))
-
-    when(endpoints.all)
-      .thenSuccess(Seq(epConf, noMatterEpConf))
-
-    val endpointsInfo = spiedService.endpointsInfo.await
-    endpointsInfo.size shouldBe 1
-    endpointsInfo should contain allElementsOf Seq(fullInfo)
-
-  }
-
   it("should select exclusive run mode on streaming jobs") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
@@ -174,12 +140,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test",
         tags = Seq(ArgInfo.StreamingContextTag)
       )))
@@ -216,12 +182,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]], any[Action]))
+    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(FullJobInfo(
-        lang = FullJobInfo.PythonLang,
+      .thenSuccess(Some(JobInfoData(
+        lang = JobInfoData.PythonLang,
         name = "test",
         tags = Seq(ArgInfo.SqlContextTag)
       )))

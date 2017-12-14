@@ -104,15 +104,38 @@ object CommonData {
   val JobInfoProviderRegisterActorName = "job-info-provider-register"
   case class RegisterJobInfoProvider(ref: ActorRef)
 
-  sealed trait JobInfoMessage {
+  sealed trait JobInfoMessage
+
+  sealed trait InfoRequest extends JobInfoMessage {
     val className: String
     val jobPath: String
+    val name: String
+    val originalPath: String
+    val defaultContext: String
   }
-  case class GetJobInfo(className: String, jobPath: String) extends JobInfoMessage
+  case class GetJobInfo(
+    className: String,
+    jobPath: String,
+    name: String,
+    originalPath: String,
+    defaultContext: String
+  ) extends InfoRequest
+
   case class ValidateJobParameters(
     className: String,
     jobPath: String,
-    action: Action,
+    name: String,
+    originalPath: String,
+    defaultContext: String,
     params: Map[String, Any]
+  ) extends InfoRequest
+
+  case class GetAllJobInfo(
+    //TODO: find out why akka messages requires List but fails for Seq
+    requests: List[GetJobInfo]
   ) extends JobInfoMessage
+
+  case object EvictCache extends JobInfoMessage
+  case object GetCacheSize extends JobInfoMessage
+
 }
