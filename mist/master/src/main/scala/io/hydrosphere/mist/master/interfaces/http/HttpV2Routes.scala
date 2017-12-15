@@ -167,15 +167,27 @@ object HttpV2Routes extends Logger {
       }}
     } ~
     path( root / "endpoints" ) {
-      post { entity(as[EndpointConfig]) { req =>
-        val res = for {
-          updated      <- master.endpoints.update(req)
-          fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
-          endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-        } yield endpointInfo
+      post(parameter('force? false) { force =>
+        entity(as[EndpointConfig]) { req =>
+          if (force) {
+            completeF(master.endpoints.update(req), StatusCodes.BadRequest)
+          } else {
+            val rsp = master.endpoints.get(req.name).flatMap({
+              case Some(ep) =>
+                val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
+                Future.failed(e)
+              case None =>
+                for {
+                  updated      <- master.endpoints.update(req)
+                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
+                  endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
+                } yield endpointInfo
+            })
 
-        completeF(res, StatusCodes.BadRequest)
-      }}
+            completeF(rsp, StatusCodes.BadRequest)
+          }
+        }
+      })
     } ~
     path( root / "endpoints" ) {
       put { entity(as[EndpointConfig]) { req =>
@@ -258,25 +270,32 @@ object HttpV2Routes extends Logger {
       }
     } ~
     path(root / "artifacts") {
-      post {
+      post { parameters('force? false) { force => {
+        def storeArtifactFile(metadata: FileInfo, tempFile: File): Route = {
+          onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
+            tempFile.delete
+            complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+          }
+        }
         uploadedFile("file") {
           case (metadata, tempFile) =>
-            artifactRepo.get(metadata.fileName) match {
-              case Some(_) => complete {
-                HttpResponse(
-                  StatusCodes.Conflict,
-                  entity = s"Filename must be unique: found ${metadata.fileName} in repository"
-                )
-              }
-              case None =>
-                onSuccess(artifactRepo.store(tempFile, metadata.fileName)) { f =>
-                  tempFile.delete
-                  complete { HttpResponse(StatusCodes.OK, entity = s"${f.getName}") }
+            if (force) {
+              storeArtifactFile(metadata, tempFile)
+            } else {
+              artifactRepo.get(metadata.fileName) match {
+                case Some(_) => complete {
+                  HttpResponse(
+                    StatusCodes.Conflict,
+                    entity = s"Filename must be unique: found ${metadata.fileName} in repository"
+                  )
                 }
+                case None =>
+                  storeArtifactFile(metadata, tempFile)
+              }
             }
         }
       }
-    }
+    }}}
   }
 
   def jobsRoutes(master: MainService): Route = {
@@ -353,15 +372,15 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def apiRoutes(masterService: MainService): Route = {
+  def apiRoutes(masterService: MainService, artifacts: ArtifactRepository): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
     contextsRoutes(masterService.contexts) ~
-    artifactRoutes(masterService.artifactRepository) ~
+    artifactRoutes(artifacts) ~
     statusApi
   }
 
-  def apiWithCORS(masterService: MainService): Route =
-    CorsDirective.cors() { apiRoutes(masterService) }
+  def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository): Route =
+    CorsDirective.cors() { apiRoutes(masterService, artifacts) }
 }

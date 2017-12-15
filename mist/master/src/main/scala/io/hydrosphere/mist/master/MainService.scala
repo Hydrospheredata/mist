@@ -27,9 +27,7 @@ class MainService(
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
-  val jobInfoProviderService: JobInfoProviderService,
-  //TODO: it is not used here anymore.
-  val artifactRepository: ArtifactRepository
+  val jobInfoProviderService: JobInfoProviderService
 ) extends Logger {
 
   implicit val timeout: Timeout = Timeout(5 seconds)
@@ -173,10 +171,9 @@ object MainService extends Logger {
     endpoints: EndpointsStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
-    jobInfoProvider: JobInfoProviderService,
-    artifactRepository: ArtifactRepository
+    jobInfoProvider: JobInfoProviderService
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

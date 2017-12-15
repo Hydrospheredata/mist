@@ -133,11 +133,10 @@ object MasterServer extends Logger {
                                                         endpointsStorage,
                                                         contextsStorage,
                                                         logsPaths,
-                                                        jobInfoProviderService,
-                                                        artifactRepository
+                                                        jobInfoProviderService
                                                      )
                              )
-      httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, config.http))
+      httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, artifactRepository, config.http))
       asyncInterfaces        =  bootstrapAsyncInput(masterService, config)
 
     } yield ServerInstance(
@@ -173,11 +172,12 @@ object MasterServer extends Logger {
   private def bootstrapHttp(
     streamer: EventsStreamer,
     mainService: MainService,
+    artifacts: ArtifactRepository,
     config: HttpConfig)(implicit sys: ActorSystem, mat: ActorMaterializer): Future[ServerBinding] = {
     val http = {
       val api = new HttpApi(mainService)
       val apiv2 = {
-        val api = HttpV2Routes.apiWithCORS(mainService)
+        val api = HttpV2Routes.apiWithCORS(mainService, artifacts)
         val ws = new WSApi(streamer)
         // order is important!
         // api router can't chain unhandled calls, because it's wrapped in cors directive

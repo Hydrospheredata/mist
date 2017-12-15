@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.master
 
-import java.io.File
-
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
@@ -14,8 +12,7 @@ import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import mist.api.args.ArgInfo
 import org.mockito.ArgumentCaptor
-import org.mockito.Matchers.{eq => mockitoEq}
-import org.mockito.Mockito.{spy, times, verify}
+import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpecLike, Matchers}
 
 import scala.concurrent.Await
@@ -56,7 +53,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       status = JobDetails.Status.Queued
     ))
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProviderService, artifactRepo)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProviderService)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -71,7 +68,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val artifactRepo = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepo)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
@@ -98,7 +95,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
@@ -138,7 +135,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
@@ -180,7 +177,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider, artifactRepository)
+    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
