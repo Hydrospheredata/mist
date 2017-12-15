@@ -10,6 +10,7 @@ import io.hydrosphere.mist.master.models.ContextConfig
 import cats.syntax.option._
 
 import scala.collection.JavaConversions._
+
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -134,6 +135,25 @@ object ContextsSettings {
 
 }
 
+case class JobInfoProviderConfig(
+  runTimeout: FiniteDuration,
+  cacheEntryTtl: FiniteDuration,
+  sparkConf: Map[String, String]
+)
+object JobInfoProviderConfig {
+  import scala.collection.JavaConverters._
+
+  def apply(c: Config): JobInfoProviderConfig = {
+    JobInfoProviderConfig(
+      c.getFiniteDuration("init-timeout"),
+      c.getFiniteDuration("cache-entry-ttl"),
+      c.getConfig("spark-conf").entrySet().asScala
+        .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
+        .toMap
+    )
+  }
+}
+
 case class SecurityConfig(
   keytab: String,
   principal: String,
@@ -167,6 +187,7 @@ case class MasterConfig(
   contextsPath: String,
   endpointsPath: String,
   security: Option[SecurityConfig],
+  jobInfoProviderConfig: JobInfoProviderConfig,
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
@@ -203,6 +224,7 @@ object MasterConfig {
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
+      jobInfoProviderConfig = JobInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       raw = config
     )

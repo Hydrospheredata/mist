@@ -2,15 +2,14 @@ package io.hydrosphere.mist.worker.runners
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.worker.NamedContext
-
-import _root_.scala.concurrent.{ExecutionContext, Future}
+import mist.api.data.JsLikeData
 
 trait JobRunner {
 
   def run(
     request: RunJobRequest,
     context: NamedContext
-  ): Either[Throwable, Map[String, Any]]
+  ): Either[Throwable, JsLikeData]
 
 }
 

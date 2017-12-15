@@ -4,35 +4,30 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
+import mist.api.internal.BaseJobInstance
 
 import scala.reflect.runtime.universe._
 import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
-  def loadJobClass(className: String): Try[JobClass] = {
-    loadClass(className).map(clz => {
-      val instance = new JobClass(
-        clazz = clz,
-        execute = loadJobInstance(clz, Action.Execute),
-        serve = loadJobInstance(clz, Action.Serve)
-      )
-      instance
+  def loadJobInstance(className: String, action: Action): Try[BaseJobInstance] = {
+    loadClass(className).flatMap({
+      case clz if mist.api.internal.JobInstance.isScalaInstance(clz) =>
+        Try(mist.api.internal.JobInstance.loadScala(clz))
+      case clz if mist.api.internal.JobInstance.isJavaInstance(clz) =>
+        Try(mist.api.internal.JobInstance.loadJava(clz))
+      case clz =>
+        loadJobInstance(clz, action) match {
+          case Some(i) => Success(i)
+          case None =>
+            val e = new IllegalStateException(s"Can not instantiate job for action $action")
+            Failure(e)
+        }
     })
   }
 
-  def loadJobInstance(className: String, action: Action): Try[JobInstance] = {
-    loadClass(className).flatMap(clz => {
-      loadJobInstance(clz, action) match {
-        case Some(i) => Success(i)
-        case None =>
-          val e = new IllegalStateException(s"Can not instantiate job for action $action")
-          Failure(e)
-      }
-    })
-  }
-
-  private def loadJobInstance(clazz: Class[_], action: Action): Option[JobInstance] = {
+  private def loadJobInstance(clazz: Class[_], action: Action): Option[OldInstanceWrapper] = {
     val methodName = methodNameByAction(action)
     val term = newTermName(methodName)
     val symbol = runtimeMirror(clazz.getClassLoader).classSymbol(clazz).toType.member(term)
@@ -40,7 +35,7 @@ class JobsLoader(val classLoader: ClassLoader) {
       None
     } else {
       val instance = new JobInstance(clazz, symbol.asMethod)
-      Some(instance)
+      Some(new OldInstanceWrapper(instance))
     }
   }
 
@@ -49,15 +44,8 @@ class JobsLoader(val classLoader: ClassLoader) {
     case Action.Serve => "serve"
   }
 
-  private def loadClass(name: String): Try[Class[_]] = {
-    try {
-      val clazz = Class.forName(name, true, classLoader)
-      Success(clazz)
-    } catch {
-      case e: Throwable => Failure(e)
-    }
-  }
-
+  private def loadClass(name: String): Try[Class[_]] =
+    Try(Class.forName(name, false, classLoader))
 }
 
 object JobsLoader {
@@ -71,3 +59,4 @@ object JobsLoader {
   }
 
 }
+

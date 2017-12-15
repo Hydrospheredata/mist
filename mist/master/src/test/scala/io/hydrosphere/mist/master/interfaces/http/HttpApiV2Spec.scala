@@ -8,24 +8,24 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.{MockitoSugar, PyJobInfo}
+import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
+import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.interfaces.JsonCodecs
+import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
+import org.mockito.Matchers.{anyInt, eq => mockitoEq}
+import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util._
-import org.mockito.Matchers.{anyInt, eq => mockitoEq}
-import org.mockito.Mockito
-import org.mockito.Mockito.{doReturn, doNothing, times, verify}
 
 class HttpApiV2Spec extends FunSpec
   with Matchers
@@ -37,7 +37,7 @@ class HttpApiV2Spec extends FunSpec
   val mappings = new LogStoragePaths(Paths.get("."))
 
   implicit class ToEntityOps[A](a: A)(implicit f: RootJsonWriter[A]) {
-    def toEntity(implicit f: RootJsonWriter[A]): RequestEntity =  {
+    def toEntity(implicit f: RootJsonWriter[A]): RequestEntity = {
       val data = f.write(a)
       HttpEntity(ContentTypes.`application/json`, data)
     }
@@ -92,8 +92,8 @@ class HttpApiV2Spec extends FunSpec
 
   }
 
-//  val testJobClass = io.hydrosphere.mist.master.testJobs.MultiplyJob.getClass
-//  val testScalaJob = JvmJobInfo(JobsLoader.Common.loadJobClass(testJobClass.getName).get)
+  //  val testJobClass = io.hydrosphere.mist.master.testJobs.MultiplyJob.getClass
+  //  val testScalaJob = JvmJobInfo(JobsLoader.Common.loadJobClass(testJobClass.getName).get)
 
   describe("endpoints") {
 
@@ -136,22 +136,22 @@ class HttpApiV2Spec extends FunSpec
     }
 
 
-//    it("should return endpoints") {
-//      val epConfig = EndpointConfig("name", "path", "className", "context")
-//      val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
-//
-//      val master = mock[MainService]
-//      when(master.endpointsInfo).thenSuccess(infos)
-//
-//      val route = HttpV2Routes.endpointsRoutes(master)
-//
-//      Get("/v2/api/endpoints") ~> route ~> check {
-//        status shouldBe StatusCodes.OK
-//
-//        val endpoints = responseAs[Seq[HttpEndpointInfoV2]]
-//        endpoints.size shouldBe 2
-//      }
-//    }
+    //    it("should return endpoints") {
+    //      val epConfig = EndpointConfig("name", "path", "className", "context")
+    //      val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
+    //
+    //      val master = mock[MainService]
+    //      when(master.endpointsInfo).thenSuccess(infos)
+    //
+    //      val route = HttpV2Routes.endpointsRoutes(master)
+    //
+    //      Get("/v2/api/endpoints") ~> route ~> check {
+    //        status shouldBe StatusCodes.OK
+    //
+    //        val endpoints = responseAs[Seq[HttpEndpointInfoV2]]
+    //        endpoints.size shouldBe 2
+    //      }
+    //    }
 
     it("should return history for endpoint") {
       val jobService = mock[JobService]
@@ -161,10 +161,10 @@ class HttpApiV2Spec extends FunSpec
       when(jobService.endpointHistory(
         any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
       )).thenSuccess(Seq(
-          JobDetails("id", "1",
-            JobParams("path", "className", Map.empty, Action.Execute),
-            "context", None, JobDetails.Source.Http, workerId = "workerId")
-        ))
+        JobDetails("id", "1",
+          JobParams("path", "className", Map.empty, Action.Execute),
+          "context", None, JobDetails.Source.Http, workerId = "workerId")
+      ))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
@@ -180,29 +180,37 @@ class HttpApiV2Spec extends FunSpec
 
   describe("endpoint creation") {
 
-    val endpointConfig = EndpointConfig("name", "path", "className", "context")
-
     it("should update endpoint on create if endpoint created") {
 
       val endpoints = mock[EndpointsStorage]
-      val master = new MainService(
+      val jobInfoProvider = mock[JobInfoProviderService]
+
+      val mainService = new MainService(
         mock[JobService],
         endpoints,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        mock[ArtifactRepository]
+        jobInfoProvider
       )
 
-      val spiedMaster = Mockito.spy(master)
       val test = EndpointConfig("test", "test", "test", "default")
+
+      when(endpoints.get(any[String]))
+        .thenSuccess(None)
+
       when(endpoints.update(any[EndpointConfig]))
         .thenSuccess(test)
 
-      doReturn(Success(FullEndpointInfo(test, PyJobInfo)))
-        .when(spiedMaster)
-        .loadEndpointInfo(any[EndpointConfig])
+      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
+        .thenSuccess(JobInfoData(
+          lang = "python",
+          path = "test",
+          defaultContext = "foo",
+          className = "test",
+          name = "test"
+        ))
 
-      val route = HttpV2Routes.endpointsRoutes(spiedMaster)
+      val route = HttpV2Routes.endpointsRoutes(mainService)
 
       Post("/v2/api/endpoints", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -217,7 +225,7 @@ class HttpApiV2Spec extends FunSpec
         endpoints,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        mock[ArtifactRepository]
+        mock[JobInfoProviderService]
       )
       val test = EndpointConfig("test", "test", "test", "default")
       when(endpoints.update(any[EndpointConfig]))
@@ -235,15 +243,17 @@ class HttpApiV2Spec extends FunSpec
     it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock[EndpointsStorage]
       val master = mock[MainService]
+      val jobInfoProvider = mock[JobInfoProviderService]
       when(master.endpoints).thenReturn(endpointsStorage)
+      when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
 
       val endpointConfig = EndpointConfig("name", "path", "className", "context")
 
       when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
       when(endpointsStorage.update(any[EndpointConfig]))
         .thenReturn(Future.successful(endpointConfig))
-      when(master.loadEndpointInfo(any[EndpointConfig]))
-        .thenReturn(Failure(new Exception("test failure")))
+      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
+        .thenFailure(new Exception("test failure"))
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
@@ -253,7 +263,6 @@ class HttpApiV2Spec extends FunSpec
 
     }
   }
-
 
 
   describe("jobs") {
@@ -332,7 +341,7 @@ class HttpApiV2Spec extends FunSpec
       when(jobsService.jobStatusById(any[String]))
         .thenSuccess(Some(jobDetails))
       when(logStorageMappings.pathFor(any[String]))
-          .thenReturn(Paths.get(".", UUID.randomUUID().toString))
+        .thenReturn(Paths.get(".", UUID.randomUUID().toString))
       val route = HttpV2Routes.jobsRoutes(master)
       Get(s"/v2/api/jobs/id/logs") ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -347,7 +356,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should create jobs with optional parameters") {
       val contextStorage = mock[ContextsStorage]
-      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt","shared", 1 seconds)
+      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", "shared", 1 seconds)
       val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None, None)
 
       when(contextStorage.defaultConfig)

@@ -19,6 +19,8 @@ import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
 
+import io.hydrosphere.mist.utils.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
@@ -76,14 +78,21 @@ object HttpV2Base {
   def completeTry[A : ToEntityMarshaller](f: => Try[A], errorCode: StatusCode): StandardRoute = {
     f match {
       case Success(a) => complete(a)
-      case Failure(e) => complete(HttpResponse(errorCode, entity = e.getMessage))
+      case Failure(e) => complete(HttpResponse(errorCode, entity = s"${e.getMessage}"))
     }
   }
 
   def completeF[A: ToEntityMarshaller](f: => Future[A], errorCode: StatusCode): Route = {
     onComplete(f) {
       case Success(a) => complete(a)
-      case Failure(ex) => complete(HttpResponse(errorCode, entity=ex.getMessage))
+      case Failure(ex) => complete(HttpResponse(errorCode, entity=s"${ex.getMessage}"))
+    }
+  }
+  def completeOptF[A: ToEntityMarshaller](f: => Future[Option[A]], errorCode: StatusCode): Route = {
+    onComplete(f) {
+      case Success(Some(a)) => complete(a)
+      case Success(None)    => complete(HttpResponse(errorCode, entity="Not found"))
+      case Failure(ex)      => complete(HttpResponse(errorCode, entity=s"${ex.getMessage}"))
     }
   }
 
@@ -120,7 +129,7 @@ object HttpV2Base {
   }
 }
 
-object HttpV2Routes {
+object HttpV2Routes extends Logger {
 
   import Directives._
   import JsonCodecs._
@@ -154,7 +163,7 @@ object HttpV2Routes {
 
     path( root / "endpoints" ) {
       get { complete {
-        master.endpointsInfo.map(_.map(HttpEndpointInfoV2.convert))
+        master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" ) {
@@ -163,15 +172,19 @@ object HttpV2Routes {
           if (force) {
             completeF(master.endpoints.update(req), StatusCodes.BadRequest)
           } else {
-            val res = master.loadEndpointInfo(req) match {
-              case Success(fullInfo) => for {
-                updated      <- master.endpoints.update(req)
-                endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-              } yield endpointInfo
-              case Failure(ex) => Future.failed(ex)
-            }
+            val rsp = master.endpoints.get(req.name).flatMap({
+              case Some(ep) =>
+                val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
+                Future.failed(e)
+              case None =>
+                for {
+                  updated      <- master.endpoints.update(req)
+                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
+                  endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
+                } yield endpointInfo
+            })
 
-            completeF(res, StatusCodes.BadRequest)
+            completeF(rsp, StatusCodes.BadRequest)
           }
         }
       })
@@ -186,7 +199,7 @@ object HttpV2Routes {
           case Some(_) =>
             val res = for {
               updated      <- master.endpoints.update(req)
-              fullInfo     <- Future.fromTry(master.loadEndpointInfo(updated))
+              fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
               endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
 
@@ -196,7 +209,9 @@ object HttpV2Routes {
     } ~
     path( root / "endpoints" / Segment ) { endpointId =>
       get { completeOpt {
-        master.endpointInfo(endpointId).map(_.map(HttpEndpointInfoV2.convert))
+        master.jobInfoProviderService
+          .getJobInfo(endpointId)
+          .map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
@@ -357,15 +372,15 @@ object HttpV2Routes {
     }
   }
 
-  def apiRoutes(masterService: MainService): Route = {
+  def apiRoutes(masterService: MainService, artifacts: ArtifactRepository): Route = {
     endpointsRoutes(masterService) ~
     jobsRoutes(masterService) ~
     workerRoutes(masterService.jobService) ~
     contextsRoutes(masterService.contexts) ~
-    artifactRoutes(masterService.artifactRepository) ~
+    artifactRoutes(artifacts) ~
     statusApi
   }
 
-  def apiWithCORS(masterService: MainService): Route =
-    CorsDirective.cors() { apiRoutes(masterService) }
+  def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository): Route =
+    CorsDirective.cors() { apiRoutes(masterService, artifacts) }
 }

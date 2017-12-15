@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.jar.{JarFile, JarInputStream}
+
 import scala.annotation.tailrec
 import sbt._
 
@@ -77,5 +80,26 @@ object StdOutLogger extends ProcessLogger {
     ConsoleOut.systemOut.println(s)
 
   override def buffer[T](f: => T): T = f
+
+}
+
+case class Semver(tuple: (Int, Int, Int))
+  (implicit order: Ordering[(Int, Int, Int)]){
+
+  def gteq(other: Semver): Boolean = order.gteq(tuple, other.tuple)
+
+  override def toString = {
+    import tuple._
+    s"${_1}.${_2}.${_3}"
+  }
+}
+
+object Semver {
+
+  def apply(s: String): Semver = {
+    val arr = s.split('.').map(_.toInt)
+    val patched = Array(1, 0, 0).patch(0, arr, arr.length)
+    Semver(patched(0), patched(1), patched(2))
+  }
 
 }

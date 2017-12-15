@@ -13,7 +13,7 @@ trait Logging extends ContextSupport {
     this.jobId = conf.info.id
   }
 
-  def getLogger: MLogger = MLogger(jobId, loggingConf)
+  def getLogger: MLogger = new MLogger(jobId, loggingConf)
 
   override private[mist] def stop(): Unit = {
     super.stop()
@@ -21,7 +21,7 @@ trait Logging extends ContextSupport {
 
 }
 
-case class MLogger(
+class MLogger(
   sourceId: String,
   centralConf: Option[CentralLoggingConf]
 ) {

@@ -10,9 +10,9 @@ git:
 before_install:
   - export TRAVIS_BRANCH=`echo $TRAVIS_BRANCH | sed 's%[/_]%-%g'`
 
-
 script:
-  - sbt -DsparkVersion=$SPARK_VERSION -no-colors -J-Xss2m testAll
+  - sbt -DsparkVersion=$SPARK_VERSION -no-colors test
+  - sbt -DsparkVersion=$SPARK_VERSION -no-colors it:test
 
 cache:
   directories:

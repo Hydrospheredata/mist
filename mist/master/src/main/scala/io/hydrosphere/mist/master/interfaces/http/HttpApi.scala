@@ -46,8 +46,8 @@ class HttpApi(master: MainService) extends Logger {
     path("internal" / "routers") {
       get {
         complete {
-          val result = master.endpointsInfo
-           .map(seq => seq.map(i => i.config.name -> HttpJobInfo.convert(i)).toMap)
+          val result = master.jobInfoProviderService.allJobInfos
+            .map(_.map(i => i.name -> HttpJobInfo.convert(i)).toMap)
           result
         }
       }

@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master
 
+import mist.api.data._
 import akka.actor.ActorSystem
 import akka.testkit.{TestProbe, TestKit}
 import io.hydrosphere.mist.core.CommonData._
@@ -104,11 +105,11 @@ class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
 
       backend.expectMsg(req1)
       backend.reply(JobStarted("1"))
-      backend.reply(JobSuccess("1", Map("result" -> "1")))
+      backend.reply(JobSuccess("1", JsLikeMap("result" -> JsLikeString("1"))))
 
       backend.expectMsg(req2)
       backend.reply(JobStarted("2"))
-      backend.reply(JobSuccess("2", Map("result" -> "2")))
+      backend.reply(JobSuccess("2", JsLikeMap("result" -> JsLikeString("2"))))
       backend.expectNoMsg()
 
       probe.expectMsgType[ExecutionInfo]

@@ -5,6 +5,9 @@ import java.lang.reflect.InvocationTargetException
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.EitherOps
 import EitherOps._
+import io.hydrosphere.mist.core.jvmjob.JobInstance._
+import mist.api.args.{ArgInfo, InternalArgument, UserInputArgument}
+import mist.api.args.ArgType
 
 import scala.reflect.runtime.universe._
 
@@ -48,7 +51,7 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
   }
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Seq[AnyRef]] = {
-    val validated: Seq[Either[Throwable, Any]] = arguments.map({case (name, tpe) =>
+    val validated: Seq[Either[Throwable, Any]] = userArgumentsType.map({case (name, tpe) =>
       val param = params.get(name)
       validateParam(tpe, name, param)
     })
@@ -74,9 +77,38 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
     }
   }
 
-  private def arguments: Seq[(String, Type)] =
+  private def userArgumentsType: Seq[(String, Type)] =
     method.paramss.head.map(s => s.name.toString -> s.typeSignature)
 
-  def argumentsTypes: Map[String, JobArgType] =
-    arguments.toMap.mapValues(JobArgType.fromType)
+  def arguments: Seq[ArgInfo] =
+    userArgumentsType.toMap
+      .mapValues(ArgType.fromType)
+      .map { case (name, t) => UserInputArgument(name, t) }
+      .toSeq ++
+    internalArgs()
+
+  private def internalArgs(): Seq[ArgInfo] = {
+    val interfaces = clazz.getInterfaces
+    interfaces
+      .filter(clz => MistClasses.contains(clz))
+      .map {
+        case ClassOfStreaming => InternalArgument(Seq(ArgInfo.StreamingContextTag))
+        case ClassOfSql       => InternalArgument(Seq(ArgInfo.SqlContextTag))
+        case ClassOfHive      => InternalArgument(Seq(ArgInfo.SqlContextTag, ArgInfo.HiveContextTag))
+        case _                => InternalArgument()
+      }
+  }
+}
+
+object JobInstance {
+
+  val ClassOfStreaming = classOf[StreamingSupport]
+  val ClassOfSql = classOf[SQLSupport]
+  val ClassOfHive = classOf[HiveSupport]
+
+  val MistClasses = Seq(
+    ClassOfStreaming,
+    ClassOfHive,
+    ClassOfSql
+  )
 }

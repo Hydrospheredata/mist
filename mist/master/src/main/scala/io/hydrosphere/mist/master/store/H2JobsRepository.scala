@@ -6,10 +6,10 @@ import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import JsonCodecs._
-
+import mist.api.data.JsLikeData
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
-import spray.json.{pimpAny, pimpString}
+import spray.json.{JsObject, JsString, pimpAny, pimpString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -26,9 +26,30 @@ trait JobsTable {
     string => JobDetails.Status(string)
   )
 
-  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, Map[String, Any]], String](
-    jobResponseOrError => jobResponseOrError.toJson.compactPrint,
-    string => string.parseJson.convertTo[Either[String, Map[String, Any]]]
+  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, JsLikeData], String](
+    jobResponseOrError => {
+      val jsValue = jobResponseOrError match {
+        case Left(err) => JsObject("error" -> JsString(err))
+        case Right(data) => JsObject("result" -> data.toJson)
+      }
+      jsValue.compactPrint
+    },
+    string => {
+      string.parseJson match {
+        case obj @ JsObject(fields) =>
+          val maybeErr = fields.get("error").flatMap({
+            case JsString(err) => Some(err)
+            case x => None
+          })
+          maybeErr match {
+            case None => Right(fields.get("result").get.convertTo[JsLikeData])
+            case Some(err) => Left(err)
+          }
+        // TODO: backward compatibility
+        case JsString(err) => Left(err)
+        case _ => throw new IllegalArgumentException(s"can not deserialize $string to Job response")
+      }
+    }
   )
 
   implicit def string2JobParameters = MappedColumnType.base[Map[String, Any], String](
@@ -59,7 +80,7 @@ trait JobsTable {
     def jobId = column[String]("job_id", O.PrimaryKey)
     def startTime = column[Option[Long]]("start_time")
     def endTime = column[Option[Long]]("end_time")
-    def jobResult = column[Option[Either[String, Map[String, Any]]]]("job_result")
+    def jobResult = column[Option[Either[String, JsLikeData]]]("job_result")
     def status = column[JobDetails.Status]("status")
     def workerId = column[String]("worker_id")
     def createTime = column[Long]("create_time")

@@ -1,5 +1,8 @@
 package io.hydrosphere.mist.core
 
+import akka.actor.ActorRef
+import mist.api.data.JsLikeData
+
 import scala.concurrent.duration.Duration
 
 object CommonData {
@@ -75,7 +78,7 @@ object CommonData {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: Map[String, Any]) extends JobResponse
+  case class JobSuccess(id: String, result: JsLikeData) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
   sealed trait GetRunInitInfo
@@ -97,4 +100,42 @@ object CommonData {
       override def toString: String = "serve"
     }
   }
+
+  val JobInfoProviderRegisterActorName = "job-info-provider-register"
+  case class RegisterJobInfoProvider(ref: ActorRef)
+
+  sealed trait JobInfoMessage
+
+  sealed trait InfoRequest extends JobInfoMessage {
+    val className: String
+    val jobPath: String
+    val name: String
+    val originalPath: String
+    val defaultContext: String
+  }
+  case class GetJobInfo(
+    className: String,
+    jobPath: String,
+    name: String,
+    originalPath: String,
+    defaultContext: String
+  ) extends InfoRequest
+
+  case class ValidateJobParameters(
+    className: String,
+    jobPath: String,
+    name: String,
+    originalPath: String,
+    defaultContext: String,
+    params: Map[String, Any]
+  ) extends InfoRequest
+
+  case class GetAllJobInfo(
+    //TODO: find out why akka messages requires List but fails for Seq
+    requests: List[GetJobInfo]
+  ) extends JobInfoMessage
+
+  case object EvictCache extends JobInfoMessage
+  case object GetCacheSize extends JobInfoMessage
+
 }

@@ -1,7 +1,5 @@
 package io.hydrosphere.mist.master.models
 
-import io.hydrosphere.mist.core.JobInfo
-
 import scala.concurrent.duration.Duration
 
 trait NamedConfig {
@@ -25,6 +23,3 @@ case class EndpointConfig(
   className: String,
   defaultContext: String
 ) extends NamedConfig
-
-
-case class FullEndpointInfo(config: EndpointConfig, info: JobInfo)
