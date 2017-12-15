@@ -138,7 +138,10 @@ lazy val worker = project.in(file("mist/worker"))
       Library.scopt,
       Library.scalaTest % "test"
     ),
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
+    assemblyShadeRules in assembly := Seq(
+       ShadeRule.rename("scopt.**" -> "shaded.@0").inAll
+    )
   )
 
 lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "2.1.0") match {
