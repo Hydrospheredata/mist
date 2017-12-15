@@ -2,7 +2,7 @@ package mist.api.args
 
 import mist.api.FnContext
 import org.scalatest.{FunSpec, Matchers}
-import shapeless.HNil
+import shadedshapeless.HNil
 
 class WithArgsScalaSpec extends FunSpec with Matchers {
 

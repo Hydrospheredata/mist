@@ -1,6 +1,6 @@
 package mist.api.args
 
-import shapeless._
+import shadedshapeless._
 
 trait Normalizer[A] extends DepFn1[A] with Serializable
 

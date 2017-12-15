@@ -1,8 +1,8 @@
 package mist.api.args
 
 import mist.api._
-import shapeless._
-import shapeless.ops.adjoin.Adjoin
+import shadedshapeless._
+import shadedshapeless.ops.adjoin.Adjoin
 
 trait ArgCombiner[A, B] extends Serializable {
   type Out

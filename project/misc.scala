@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.jar.{JarFile, JarInputStream}
+
 import scala.annotation.tailrec
 import sbt._
 
