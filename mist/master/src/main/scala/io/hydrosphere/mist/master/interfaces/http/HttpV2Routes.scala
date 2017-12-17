@@ -85,7 +85,7 @@ object HttpV2Base {
   def completeF[A: ToEntityMarshaller](f: => Future[A], errorCode: StatusCode): Route = {
     onComplete(f) {
       case Success(a) => complete(a)
-      case Failure(ex) => complete(HttpResponse(errorCode, entity=s"${ex.getMessage}"))
+      case Failure(ex) => complete(HttpResponse(errorCode, entity=s"${ex.getClass}: ${ex.getMessage}"))
     }
   }
   def completeOptF[A: ToEntityMarshaller](f: => Future[Option[A]], errorCode: StatusCode): Route = {
@@ -178,8 +178,8 @@ object HttpV2Routes extends Logger {
                 Future.failed(e)
               case None =>
                 for {
+                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(req)
                   updated      <- master.endpoints.update(req)
-                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
                   endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
                 } yield endpointInfo
             })

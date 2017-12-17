@@ -21,6 +21,8 @@ object Library {
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1"
   val mockito ="org.mockito" % "mockito-all" % "1.10.19"
 
+  val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
+
   object Akka {
     val `is2.11` = """2\.11\..""".r
     val streamsVersion = "2.0.4"
@@ -71,8 +73,7 @@ object Library {
     "org.apache.spark" %% "spark-core" % v,
     "org.apache.spark" %% "spark-sql" % v,
     "org.apache.spark" %% "spark-hive" % v,
-    "org.apache.spark" %% "spark-streaming" % v,
-    "org.apache.spark" %% "spark-mllib" % v
+    "org.apache.spark" %% "spark-streaming" % v
   )
 
 }
