@@ -35,11 +35,19 @@ object PiExample extends MistFn[Double] {
 #### Build
 
 Add Mist as dependency in your `build.sbt`:
+Notes: it's required to have following spark modules at compile time:
+`spark-core`, `spark-sql`, `spark-hive`, `spark-streaming`
 
 ```scala
-libraryDependencies += "io.hydrosphere" %% "mist-lib-spark1" % "0.13.0"
-// or if you use spark >= 2.0
-libraryDependencies += "io.hydrosphere" %% "mist-lib-spark2" % "0.13.0"
+libraryDependencies ++= Seq(
+  "io.hydrosphere" %% "mist-lib" % "1.0.0-RC1",
+
+  "org.apache.spark" %% "spark-core" % "2.1.0" % "provided",
+  "org.apache.spark" %% "spark-sql" % "2.1.0" % "provided",
+  "org.apache.spark" %% "spark-hive" % "2.1.0" % "provided",
+  "org.apache.spark" %% "spark-streaming" % "2.1.0" % "provided"
+)
+
 ```
 
 Maven dependency:
@@ -47,14 +55,8 @@ Maven dependency:
 ```xml
 <dependency>
     <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark1_2.10</artifactId>
-    <version>0.13.0</version>
-</dependency>
-// or if you use spark >= 2.0
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark2_2.11</artifactId>
-    <version>0.13.0</version>
+    <artifactId>mist-lib_2.11</artifactId>
+    <version>1.0.0-RC1</version>
 </dependency>
 ```
 

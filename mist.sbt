@@ -119,7 +119,7 @@ lazy val root = project.in(file("."))
   .settings(
     name := "mist",
 
-    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    stageDirectory := target.value / s"mist-${version.value}",
     stageActions := {
       val routes = {
         CpFile(s"configs/router-examples.conf")
