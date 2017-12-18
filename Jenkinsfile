@@ -29,11 +29,11 @@ node("JenkinsOnDemand") {
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
     if (tag.startsWith("v")) {
-        v = tag.replace("v", "")
         stage('Publish in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
+            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${version} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${version} 'project mistLib' 'sonatypeRelease'"
         }
+        v = tag.replace("v", "")
         stage("upload tar") {
           sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} packageTar"
           tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
