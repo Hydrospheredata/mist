@@ -29,13 +29,14 @@ node("JenkinsOnDemand") {
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
     if (tag.startsWith("v")) {
+        v = tag.replace("v", "")
         stage('Publish in Maven') {
             sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
             sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
         }
         stage("upload tar") {
-          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
-          tar = "${env.WORKSPACE}/target/mist-${version}.tar.gz"
+          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} packageTar"
+          tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
           sshagent(['hydrosphere_static_key']) {
             sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
           }
@@ -72,7 +73,7 @@ def test_mist(slaveName, sparkVersion) {
                 if (tag.startsWith("v")) {
                     version = tag.replace("v", "")
                     stage('Publish in DockerHub') {
-                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
+                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} dockerBuildAndPush"
                     }
 
                 }
