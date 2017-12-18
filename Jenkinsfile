@@ -29,17 +29,18 @@ node("JenkinsOnDemand") {
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
     if (tag.startsWith("v")) {
-        stage('Publish in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-            sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeRelease'"
-        }
         v = tag.replace("v", "")
         stage("upload tar") {
-          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} packageTar"
+          sh "${env.WORKSPACE}/sbt/sbt packageTar"
           tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
           sshagent(['hydrosphere_static_key']) {
             sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
           }
+        }
+
+        stage('Publish in Maven') {
+            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+            sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeRelease'"
         }
     }
 }
