@@ -12,7 +12,6 @@ resolvers ++= Seq(
   "maxaf-releases" at s"http://repo.bumnetworks.com/releases/"
 )
 
-lazy val is2_10: SettingKey[Boolean] = settingKey[Boolean]("Scala version")
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
@@ -23,45 +22,17 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := util.Properties.propOrElse("sparkVersion", "2.1.0"),
-  scalaVersion := (
-    sparkVersion.value match {
-      case versionRegex("1", minor) => "2.10.6"
-      case _ => "2.11.8"
-    }),
-
-  is2_10 := scalaVersion.value.startsWith("2.10"),
+  scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "0.13.3"
+  version := "1.0.0-RC1"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(
-    (unmanagedSourceDirectories in Compile) ++= {
-      val dirs = (baseDirectory.value / "src" / "main") * "spark-*"
-      val current = Semver(sparkVersion.value)
-      val filtered = dirs.filter(f => {
-        val version = f.getName.replace("spark-", "")
-        val semver = Semver(version)
-        current.gteq(semver)
-      }).get
-      if (filtered.nonEmpty) {
-        val msg = s"Spark version is $current - add source directories:\n" +
-          filtered.map(f => "- " + f).mkString("\n")
-        sLog.value.info(msg)
-      }
-      filtered
-    },
     scalacOptions ++= commonScalacOptions,
-    name := s"mist-lib-spark${sparkVersion.value}",
-    libraryDependencies ++= {
-      if (is2_10.value ) {
-        Seq(compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
-      } else {
-        Seq()
-      }
-    },
+    name := "mist-lib",
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
@@ -80,9 +51,10 @@ lazy val core = project.in(file("mist/core"))
   .settings(
     name := "mist-core",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
       Library.slf4j,
+      Library.reflect,
       Library.mockito % "test", Library.scalaTest % "test"
     )
   )
@@ -111,14 +83,7 @@ lazy val master = project.in(file("mist/master"))
       Library.scalaTest % "test",
       Library.mockito % "test"
     ),
-    libraryDependencies ++= Library.hadoopMinicluster,
-    libraryDependencies ++= {
-      val is2_10 = """2\.10\..""".r
-      scalaVersion.value match {
-        case is2_10() => Seq("org.apache.spark" %% "spark-core" % sparkVersion.value % "provided")
-        case _ => Seq()
-      }
-    }
+    libraryDependencies ++= Library.hadoopMinicluster
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
     buildInfoPackage := "io.hydrosphere.mist"
@@ -144,11 +109,6 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
-lazy val currentExamples = util.Properties.propOrElse("sparkVersion", "2.1.0") match {
-  case versionRegex("1", minor) => examplesSpark1
-  case _ => examplesSpark2
-}
-
 lazy val root = project.in(file("."))
   .aggregate(mistLib, core, master, worker)
   .dependsOn(master)
@@ -159,11 +119,10 @@ lazy val root = project.in(file("."))
   .settings(
     name := "mist",
 
-    stageDirectory := target.value / s"mist-${version.value}-${sparkVersion.value}",
+    stageDirectory := target.value / s"mist-${version.value}",
     stageActions := {
-      val sparkMajor = if (sparkVersion.value.startsWith("1.")) "1" else "2"
       val routes = {
-        CpFile(s"configs/router-examples-spark$sparkMajor.conf")
+        CpFile(s"configs/router-examples.conf")
           .as("router.conf")
           .to("configs")
       }
@@ -176,8 +135,8 @@ lazy val root = project.in(file("."))
         CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
-        CpFile(sbt.Keys.`package`.in(currentExamples, Compile).value)
-          .as(s"mist-examples-spark$sparkMajor.jar"),
+        CpFile(sbt.Keys.`package`.in(examples, Compile).value)
+          .as(s"mist-examples.jar"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
@@ -296,41 +255,12 @@ lazy val root = project.in(file("."))
 
 addCommandAlias("testAll", ";test;it:test")
 
-lazy val examplesSpark1 = project.in(file("examples/examples-spark1"))
+lazy val examples = project.in(file("examples/examples"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    name := "mist-examples-spark1",
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
-    libraryDependencies ++= {
-      if (is2_10.value ) {
-        Seq(
-          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
-        )
-      } else {
-        Seq.empty
-      }
-    },
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
-  )
-
-lazy val examplesSpark2 = project.in(file("examples/examples-spark2"))
-  .dependsOn(mistLib)
-  .settings(commonSettings: _*)
-  .settings(
-    name := "mist-examples-spark2",
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
-    libraryDependencies ++= {
-      if (is2_10.value ) {
-        Seq(
-          compilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
-        )
-      } else {
-        Seq.empty
-      }
-    },
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false),
-    sbt.Keys.`package` in Compile := (assembly in assembly).value
+    name := "mist-examples",
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
   )
 
 

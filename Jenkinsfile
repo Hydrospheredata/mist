@@ -1,9 +1,8 @@
 //Spark Version
 versions = [
-        "1.5.2",
-        "1.6.2",
-        "2.0.2",
-        "2.1.1"
+        "2.0.0",
+        "2.1.0",
+        "2.2.0"
 ]
 
 def branches = [:]
@@ -31,12 +30,15 @@ node("JenkinsOnDemand") {
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
     if (tag.startsWith("v")) {
         stage('Publish in Maven') {
-            publishVersions = ["1.5.2", "2.1.0"]
-            for(int i = 0; i < publishVersions.size(); i++) {
-              def v = publishVersions.get(i)
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-              sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
-            }
+            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+            sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${v} 'project mistLib' 'sonatypeRelease'"
+        }
+        stage("upload tar") {
+          sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
+          tar = "${env.WORKSPACE}/target/mist-${version}.tar.gz"
+          sshagent(['hydrosphere_static_key']) {
+            sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
+          }
         }
     }
 }
@@ -73,13 +75,6 @@ def test_mist(slaveName, sparkVersion) {
                         sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/dockerBuildAndPush"
                     }
 
-                    stage("upload tar") {
-                      sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} mist/packageTar"
-                      tar = "${env.WORKSPACE}/target/mist-${version}-${sparkVersion}.tar.gz"
-                      sshagent(['hydrosphere_static_key']) {
-                        sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
-                      }
-                    }
                 }
             }
             catch (err) {

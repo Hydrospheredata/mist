@@ -15,7 +15,7 @@ import mist.api.encoding.Encoder
   * import org.apache.spark.SparkContext
   *
   * object MyJob extends MistJob[Array[Int]] {
-  *   override def defineJob = {
+  *   override def handle = {
   *     withArgs(arg[Int]("number").onSparkContext((i: Int, sc: SparkContext) => {
   *       sc.parallelize(1 to i).map(_ * 2).collect()
   *     })

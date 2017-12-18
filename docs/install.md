@@ -11,14 +11,13 @@ Releases:
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
-We prebuilt Mist for `1.5.2`, `1.6.2`, `2.0.2`, `2.1.0` Spark versions.
+We prebuilt Mist for `2.0.0`, `2.1.0`, `2.2.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
 
 
-For example latest Mist release for Spark `1.6.2` version is:
+For example latest Mist release for Spark `2.2.0` version is:
 
-- docker image `hydrosphere/mist:0.13.3-1.6.2`
-- tar <http://repo.hydrosphere.io/hydrosphere/static/mist-0.13.3-1.6.2.tar.gz>
+- docker image `hydrosphere/mist:1.0.0-RC1-2.2.0`
 
 ### Install locally
 
@@ -26,9 +25,9 @@ For example latest Mist release for Spark `1.6.2` version is:
 - Download Mist and run
 
 ```sh
-wget http://repo.hydrosphere.io/hydrosphere/static/mist-0.13.3-2.1.1.tar.gz
-tar xvfz mist-0.13.3-2.1.1.tar.gz
-cd mist-0.13.3-2.1.1
+wget http://repo.hydrosphere.io/hydrosphere/static/mist-1.0.0-RC1.tar.gz
+tar xvfz mist-1.0.0-RC1.tar.gz
+cd mist-1.0.0-RC1
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
@@ -40,37 +39,20 @@ SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 It is recommended to mount `./config` `./jobs` volumes to Mist docker container in advance.
 So, we'll be able to customise configs and deploy new jobs as we go along. 
 
-For spark 2.1.1:
+For spark 2.2.0:
 ```sh
 mkdir jobs
 mkdir my_config
 curl -o ./my_config/docker.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/default.conf 
-curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples-spark2.conf
+curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples.conf
 
 docker run \
    -p 2004:2004 \
    -v /var/run/docker.sock:/var/run/docker.sock \
    -v $PWD/my_config:/my_config \
    -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.13.3-2.1.1 mist --config /my_config/docker.conf --router-config /my_config/router.conf
+   hydrosphere/mist:1.0.0.RC1-2.2.0 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
-
-For spark 1.6.2
-
-```sh
-mkdir jobs
-mkdir my_config
-curl -o ./my_config/docker.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/default.conf 
-curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples-spark2.conf
-
-docker run \
-   -p 2004:2004 \
-   -v /var/run/docker.sock:/var/run/docker.sock \
-   -v $PWD/my_config:/my_config \
-   -v $PWD/jobs:/jobs \
-   hydrosphere/mist:0.13.3-1.6.2 mist --config /my_config/docker.conf --router-config /my_config/router.conf
-```
-
 
 ![Hydrosphere Mist UI](http://dv9c7babquml0.cloudfront.net/docs-images/hydrisphere-mist-ui.png)
 
@@ -90,7 +72,7 @@ For example http call for [SimpleContext](https://github.com/Hydrospheredata/mis
 from examples looks like that:
 ```sh
 curl --header "Content-Type: application/json"\
-     -X POST "http://localhost:2004/v2/api/endpoints/simple-context/jobs?force=true"\
+     -X POST "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
 
 ```

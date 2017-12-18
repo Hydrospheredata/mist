@@ -59,7 +59,11 @@ class DefaultArtifactRepository(val default: Map[String, File])(implicit val ec:
 
   override def listPaths(): Future[Set[String]] = Future.successful(default.keys.toSet)
 
-  override def get(key: String): Option[File] = default.get(key)
+  override def get(key: String): Option[File] = {
+    default.get(key).orElse({
+      if (Files.exists(Paths.get(key))) Some(new File(key)) else None
+    })
+  }
 
   override def store(src: File, fileName: String): Future[File] =
     Future.failed(new UnsupportedOperationException("do not implement this"))
