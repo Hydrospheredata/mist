@@ -21,7 +21,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "2.1.0"),
+  sparkVersion := util.Properties.propOrElse("sparkVersion", "2.0.0"),
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
