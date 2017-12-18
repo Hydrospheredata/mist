@@ -4,6 +4,8 @@ import java.util.jar.{JarFile, JarInputStream}
 import scala.annotation.tailrec
 import sbt._
 
+import scala.concurrent.Await
+
 object Tar {
 
   import java.io._
@@ -49,10 +51,10 @@ object Tar {
 object SparkLocal {
 
   def downloadSpark(version: String, to: File): Unit = {
-    val link = url(downloadUrl(version))
+    val link = downloadUrl(version)
     val target = to / distrTar(version)
+    Dowloader.download(link, target)
 
-    IO.download(link, target)
     Tar.extractTarGz(target, to)
   }
 
@@ -71,16 +73,29 @@ object SparkLocal {
 /**
   * Dummy stdout logger for process running
   */
-object StdOutLogger extends ProcessLogger {
+object StdOutLogger extends scala.sys.process.ProcessLogger {
 
-  override def error(s: => String): Unit =
+  override def err(s: => String): Unit =
     ConsoleOut.systemOut.println(s)
 
-  override def info(s: => String): Unit =
+  override def out(s: => String): Unit =
     ConsoleOut.systemOut.println(s)
 
   override def buffer[T](f: => T): T = f
 
+}
+
+object Dowloader {
+  import scala.concurrent.ExecutionContext.Implicits._
+  import scala.concurrent.duration._
+  import gigahorse._
+  import support.okhttp.Gigahorse
+
+  def download(url: String, out: File): File = {
+    val http = sbt.librarymanagement.Http.http
+    val req = Gigahorse.url(url)
+    Await.result(http.download(req, out), Duration.Inf)
+  }
 }
 
 case class Semver(tuple: (Int, Int, Int))

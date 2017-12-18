@@ -21,7 +21,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "2.0.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.0.0"),
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -179,6 +179,9 @@ lazy val root = project.in(file("."))
       val home = basicStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")
+
+      import scala.sys.process._
+
       val ps = Process(args, Some(home), extraEnv: _*)
       log.info(s"Running mist $ps with env $extraEnv")
 
@@ -264,9 +267,49 @@ lazy val examples = project.in(file("examples/examples"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
   )
 
+//lazy val docs = project.in(file("docs"))
+//  .enablePlugins(MicrositesPlugin, ScalaUnidocPlugin)
+//  .dependedOn(mistLib)
+//  .settings(
+//    micrositeName := "Hydropshere - Mist",
+//    micrositeDescription := "Serverless proxy for Spark cluster",
+//    micrositeAuthor := "hydrosphere.io",
+//    micrositeHighlightTheme := "atom-one-light",
+//    micrositeDocumentationUrl := "api",
+//    micrositeGithubOwner := "hydrosphere",
+//    micrositeGithubRepo := "mist",
+//    micrositeBaseUrl := "mist",
+//    micrositePalette := Map(
+//      "brand-primary" -> "#3b3c3b",
+//      "brand-secondary" -> "#4c4d4c",
+//      "brand-tertiary" -> "#5d5e5d",
+//      "gray-dark" -> "#48494B",
+//      "gray" -> "#7D7E7D",
+//      "gray-light" -> "#E5E6E5",
+//      "gray-lighter" -> "#F4F3F4",
+//      "white-color" -> "#FFFFFF"),
+//    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), micrositeDocumentationUrl),
+//    ghpagesNoJekyll := false,
+//    scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
+//      "-groups",
+//      "-implicits",
+//      "-skip-packages", "scalaz",
+//      "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
+//      "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
+//      "-doc-root-content", (resourceDirectory.in(Compile).value / "rootdoc.txt").getAbsolutePath
+//    ),
+//    scalacOptions ~= {
+//      _.filterNot(Set("-Yno-predef", "-Xlint"))
+//    },
+//    git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
+//    //unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(benchmarks, jsonTest),
+//    //includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.svg" | "*.js" | "*.swf" | "*.yml" | "*.md",
+//    siteSubdirName in ScalaUnidoc := "docs"
+//  )
+
 
 lazy val commonAssemblySettings = Seq(
-  mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
+  assemblyMergeStrategy in assembly := {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
     case m if m.startsWith("META-INF") => MergeStrategy.discard
     case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
@@ -276,7 +319,6 @@ lazy val commonAssemblySettings = Seq(
     case "reference.conf" => MergeStrategy.concat
     case PathList("org", "datanucleus", xs@_*) => MergeStrategy.discard
     case _ => MergeStrategy.first
-  }
   },
   logLevel in assembly := Level.Error,
   test in assembly := {}
