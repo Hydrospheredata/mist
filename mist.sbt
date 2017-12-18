@@ -30,6 +30,7 @@ lazy val commonSettings = Seq(
 
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
+  .settings(PublishSettings.settings: _*)
   .settings(
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
