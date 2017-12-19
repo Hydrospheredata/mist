@@ -1,9 +1,9 @@
 ---
 layout: docs
-title: "Scala library"
+title: "Scala library API"
 position: 4
 ---
-### Scala DSL
+### Scala library API
 
 Definitions:
 
@@ -15,7 +15,7 @@ Mist Library provides a DSL for Mist Functions that could be deployed and execut
 `MistFn[A]` is a base interface for function definition.
 
 `PiExample.scala`:
-```scala
+```tut
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -119,7 +119,7 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
 ```
 
 If your function doesn't require any arguments, there are similar methods available from `MistFn`
-```scala
+```tut
 
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
@@ -141,7 +141,7 @@ For that purpose `ArgDef[A]` has special methods to validate arguments:
 - `validated(f: A => Boolean)`
 - `validated(f: A => Boolean, explanation: String)`
 
-```scala
+```tut
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -152,7 +152,14 @@ object PiExample extends MistFn[Double] {
     withArgs(
       arg[Int]("samples").validated(n => n > 0, "Samples value should be positive")
     ).onSparkContext((n: Int, sc: SparkContext) => {
-       ...
+      val count = sc.parallelize(1 to n).filter(_ => {
+        val x = math.random
+        val y = math.random
+        x * x + y * y < 1
+      }).count()
+
+      val pi = (4.0 * count) / n
+      pi
     })
   }
 }
@@ -181,7 +188,7 @@ to have that extra information in a function body.
 Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
 These utilities are called `MistExtras`. Example:
 
-```scala
+```tut
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -199,6 +206,3 @@ object HelloWorld extends MistFn[Unit] {
   }
 }
 ```
-
-### Next
-- [Run your Mist Function](/docs/run-job.md)

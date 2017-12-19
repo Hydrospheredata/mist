@@ -270,20 +270,22 @@ lazy val examples = project.in(file("examples/examples"))
 lazy val docs = project.in(file("docs"))
   .enablePlugins(MicrositesPlugin)
   .dependsOn(mistLib)
+  .settings(commonSettings: _*)
   .settings(
     scalaVersion := "2.11.8",
+    libraryDependencies ++= Library.spark(sparkVersion.value),
     micrositeName := "Hydropshere - Mist",
     micrositeDescription := "Serverless proxy for Spark cluster",
     micrositeAuthor := "hydrosphere.io",
     micrositeHighlightTheme := "atom-one-light",
     micrositeDocumentationUrl := "api",
-    micrositeGithubOwner := "hydrosphere",
+    micrositeGithubOwner := "Hydrospheredata",
     micrositeGithubRepo := "mist",
-    micrositeBaseUrl := "mist",
+    micrositeBaseUrl := "/mist/docs",
     micrositePalette := Map(
-      "brand-primary" -> "#3b3c3b",
-      "brand-secondary" -> "#4c4d4c",
-      "brand-tertiary" -> "#5d5e5d",
+      "brand-primary" -> "#052150",
+      "brand-secondary" -> "#081440",
+      "brand-tertiary" -> "#052150",
       "gray-dark" -> "#48494B",
       "gray" -> "#7D7E7D",
       "gray-light" -> "#E5E6E5",
@@ -291,7 +293,6 @@ lazy val docs = project.in(file("docs"))
       "white-color" -> "#FFFFFF"),
     ghpagesNoJekyll := false,
     git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
-    //includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.svg" | "*.js" | "*.swf" | "*.yml" | "*.md",
   )
 
 

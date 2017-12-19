@@ -258,8 +258,3 @@ Glosssary:
 
 
 Note: Mist always has default context settings, you can obtain it by "default" id.
-
-
-
-### Next 
-- [Reactive API](/docs/reactive_api.md)

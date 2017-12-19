@@ -52,6 +52,3 @@ Events are sent to the client to the following paths:
 - `/v2/api/ws` - subscribe to all events from mist
 - `/v2/api/jobs/{id}/ws` - subscribe to events from particular job
 
-### Next 
-- [Configuration](/docs/configuration.md)
-- [Contexts](/docs/context-namespaces.md)

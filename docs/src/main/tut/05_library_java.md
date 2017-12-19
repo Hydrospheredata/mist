@@ -1,9 +1,9 @@
 ---
 layout: docs
-title: "Java library"
+title: "Java library API"
 position: 5
 ---
-### Java DSL
+### Java library API
 
 Definitions:
 
@@ -178,6 +178,3 @@ public class Hello extends JMistFn<Void> {
     }
 }
 ```
-
-### Next
-- [Run your Mist Job](/docs/run-job.md)

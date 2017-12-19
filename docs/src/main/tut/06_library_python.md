@@ -1,9 +1,9 @@
 ---
 layout: docs
-title: "Python dsl"
+title: "Python library API"
 position: 6
 ---
-###### Python DSL 
+## Python library API
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources/mist), extend MistJob class and implement method `def execute(self)`: 
 
@@ -43,6 +43,3 @@ class MyOldSparkJob(MistJob, WithSQLSupport, WithHiveSupport):
         ...
         return dict()
 ```
-
-### Next
-- [Run your Mist Job](/docs/run-job.md)
