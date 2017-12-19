@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "About"
+position: 1
+---
 ## What is Hydrosphere Mist?
 
 Hydrosphere Mist is an open-source Multi-tenancy and Multi-user Spark server.

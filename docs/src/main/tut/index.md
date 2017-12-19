@@ -1,3 +1,9 @@
+---
+layout: home
+title: "Home"
+section: "home"
+---
+
 **Table of Contents**
 
 - [About](/docs/about.md)

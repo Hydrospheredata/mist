@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Mist Function"
+position: 3
+---
 ## Spark Job at Mist
 
 Our examples: 

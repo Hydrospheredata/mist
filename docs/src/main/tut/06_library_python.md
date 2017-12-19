@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Python dsl"
+position: 6
+---
 ###### Python DSL 
 
 Import [mist](https://github.com/Hydrospheredata/mist/tree/master/src/main/resources/mist), extend MistJob class and implement method `def execute(self)`: 

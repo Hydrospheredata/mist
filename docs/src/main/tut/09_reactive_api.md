@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Reactive API"
+position: 9
+---
 ### Reactive API
 
 For reactive api mist supports MQTT and Kafka.
@@ -48,6 +53,5 @@ Events are sent to the client to the following paths:
 - `/v2/api/jobs/{id}/ws` - subscribe to events from particular job
 
 ### Next 
-- [CLI](/docs/cli.md)
 - [Configuration](/docs/configuration.md)
 - [Contexts](/docs/context-namespaces.md)

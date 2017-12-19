@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Run mist function"
+position: 7
+---
 ## Run Mist job
 
 ### Configuration

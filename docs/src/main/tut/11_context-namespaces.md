@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Contexts"
+position: 11
+---
 ## Context namespaces
 
 Mist creates and orchestrates Apache Spark contexts automatically.

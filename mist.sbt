@@ -267,45 +267,32 @@ lazy val examples = project.in(file("examples/examples"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
   )
 
-//lazy val docs = project.in(file("docs"))
-//  .enablePlugins(MicrositesPlugin, ScalaUnidocPlugin)
-//  .dependedOn(mistLib)
-//  .settings(
-//    micrositeName := "Hydropshere - Mist",
-//    micrositeDescription := "Serverless proxy for Spark cluster",
-//    micrositeAuthor := "hydrosphere.io",
-//    micrositeHighlightTheme := "atom-one-light",
-//    micrositeDocumentationUrl := "api",
-//    micrositeGithubOwner := "hydrosphere",
-//    micrositeGithubRepo := "mist",
-//    micrositeBaseUrl := "mist",
-//    micrositePalette := Map(
-//      "brand-primary" -> "#3b3c3b",
-//      "brand-secondary" -> "#4c4d4c",
-//      "brand-tertiary" -> "#5d5e5d",
-//      "gray-dark" -> "#48494B",
-//      "gray" -> "#7D7E7D",
-//      "gray-light" -> "#E5E6E5",
-//      "gray-lighter" -> "#F4F3F4",
-//      "white-color" -> "#FFFFFF"),
-//    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), micrositeDocumentationUrl),
-//    ghpagesNoJekyll := false,
-//    scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
-//      "-groups",
-//      "-implicits",
-//      "-skip-packages", "scalaz",
-//      "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
-//      "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
-//      "-doc-root-content", (resourceDirectory.in(Compile).value / "rootdoc.txt").getAbsolutePath
-//    ),
-//    scalacOptions ~= {
-//      _.filterNot(Set("-Yno-predef", "-Xlint"))
-//    },
-//    git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
-//    //unidocProjectFilter in (ScalaUnidoc, unidoc) := inAnyProject -- inProjects(benchmarks, jsonTest),
-//    //includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.svg" | "*.js" | "*.swf" | "*.yml" | "*.md",
-//    siteSubdirName in ScalaUnidoc := "docs"
-//  )
+lazy val docs = project.in(file("docs"))
+  .enablePlugins(MicrositesPlugin)
+  .dependsOn(mistLib)
+  .settings(
+    scalaVersion := "2.11.8",
+    micrositeName := "Hydropshere - Mist",
+    micrositeDescription := "Serverless proxy for Spark cluster",
+    micrositeAuthor := "hydrosphere.io",
+    micrositeHighlightTheme := "atom-one-light",
+    micrositeDocumentationUrl := "api",
+    micrositeGithubOwner := "hydrosphere",
+    micrositeGithubRepo := "mist",
+    micrositeBaseUrl := "mist",
+    micrositePalette := Map(
+      "brand-primary" -> "#3b3c3b",
+      "brand-secondary" -> "#4c4d4c",
+      "brand-tertiary" -> "#5d5e5d",
+      "gray-dark" -> "#48494B",
+      "gray" -> "#7D7E7D",
+      "gray-light" -> "#E5E6E5",
+      "gray-lighter" -> "#F4F3F4",
+      "white-color" -> "#FFFFFF"),
+    ghpagesNoJekyll := false,
+    git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
+    //includeFilter in makeSite := "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.svg" | "*.js" | "*.swf" | "*.yml" | "*.md",
+  )
 
 
 lazy val commonAssemblySettings = Seq(

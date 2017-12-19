@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Java library"
+position: 5
+---
 ### Java DSL
 
 Definitions:

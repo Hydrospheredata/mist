@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Install"
+position: 2
+---
 ## Install Hydrosphere Mist 
 
 You can install Mist from default tarball package or run it in docker.

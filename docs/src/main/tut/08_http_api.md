@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Http Api"
+position: 8
+---
 ### Mist Api V2
 
 Glosssary:
@@ -258,4 +263,3 @@ Note: Mist always has default context settings, you can obtain it by "default" i
 
 ### Next 
 - [Reactive API](/docs/reactive_api.md)
-- [CLI](/docs/cli.md)

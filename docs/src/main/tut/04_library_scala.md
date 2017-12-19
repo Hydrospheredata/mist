@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Scala library"
+position: 4
+---
 ### Scala DSL
 
 Definitions:

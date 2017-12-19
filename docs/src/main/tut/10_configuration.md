@@ -1,3 +1,8 @@
+---
+layout: docs
+title: "Configuration"
+position: 10
+---
 ## Configuration
 
 _See full configuration [here](https://github.com/Hydrospheredata/mist/blob/master/mist/master/src/main/resources/master.conf)_
