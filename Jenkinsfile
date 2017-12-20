@@ -33,8 +33,7 @@ node("JenkinsOnDemand") {
     if (publishDocs()) {
       stage("publish docs") {
           sh "${env.WORKSPACE}/sbt/sbt docs/makeMicrosite"
-          sh "cd ${env.WORKSPACE}/docs/target/site"
-          sh "jekyll build"
+          sh "jekyll build --source ${env.WORKSPACE}/docs/target/site ${env.WORKSPACE}/docs/target/site/_site"
           sshagent(['hydro-site-publish']) {
             sh "scp -o StrictHostKeyChecking=no -r ${env.WORKSPACE}/docs/target/site/_site/* jenkins_publish@hydrosphere.io:publish_dir"
           }
