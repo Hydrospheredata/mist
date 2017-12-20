@@ -281,7 +281,7 @@ lazy val docs = project.in(file("docs"))
     micrositeDocumentationUrl := "api",
     micrositeGithubOwner := "Hydrospheredata",
     micrositeGithubRepo := "mist",
-    micrositeBaseUrl := "/mist/docs",
+    micrositeBaseUrl := "/mist-docs",
     micrositePalette := Map(
       "brand-primary" -> "#052150",
       "brand-secondary" -> "#081440",

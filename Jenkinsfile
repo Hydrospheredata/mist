@@ -16,6 +16,9 @@ for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-
 //Execute test and builds in parallel
 parallel branches
 
+def publishDocs() {
+    return "feature/jekill_docs".equalsIgnoreCase(env.BRANCH_NAME)
+}
 //some commit
 node("JenkinsOnDemand") {
     stage('Final stage - scm checkout') {
@@ -25,6 +28,15 @@ node("JenkinsOnDemand") {
              checkout scm
              sh "cd ${env.WORKSPACE}"
              sh "git fetch --tags"
+    }
+
+    if (publishDocs()) {
+      stage("publish docs") {
+          sh "${env.WORKSPACE}/sbt/sbt docs/makeMicrosite"
+          sshagent(['hydro-site-publish']) {
+            sh "scp -o StrictHostKeyChecking=no -r ${env.WORKSPACE}/docs/target/site/_site/* jenkins_publish@hydrosphere.io:publish_dir"
+          }
+      }
     }
 
     def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
