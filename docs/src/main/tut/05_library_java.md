@@ -46,8 +46,6 @@ public class JavaPiExample extends JMistFn<Double> {
 
 #### Build
 
-Add Mist as dependency in your `build.sbt`:
-
 Maven dependency:
 
 ```xml
