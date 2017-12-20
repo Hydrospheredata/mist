@@ -1,13 +1,14 @@
 ---
 layout: docs
 title: "Reactive API"
+permalink: reactive_api.html
 position: 9
 ---
 ### Reactive API
 
 For reactive api mist supports MQTT and Kafka.
 You can run jobs and consume job-event from Mist.
-By default it is turned off. Check out [configs example](https://github.com/Hydrospheredata/mist/blob/master/src/it/resources/mqtt/integration.conf#L27) to see how to turn it on.
+By default it is turned off. Check out [configuration](/mist-docs/configuration.html) to see how to turn it on.
 
 Run-job request is json message and should has following format:
 ```js
@@ -23,7 +24,7 @@ Run-job request is json message and should has following format:
 ```
 Then you can listen `publish-topic` to catch events from the job
 
-#### Livecycle events
+#### Lifecycle events
 
 There were several async interfaces described bellow, that can be used to track lifecycle events from jobs.
 All events have 2 required fields: `event`, `id`, and some of them provide more:
@@ -40,8 +41,9 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 - `canceled` - job has been canceled by user
 - `finished`- job has been finished successfully, also has `result` field
 - `failed` - job has been finished unsuccessfully, also has `error` field
--  `logs` - [struct](https://github.com/Hydrospheredata/mist/blob/4bd40459e4c6780d2b3e7d6fe6e6e1c9f5c14174/src/main/scala/io/hydrosphere/mist/Messages.scala#L98)
+- `logs` - job produced some log messages
 
+[Events fromat](https://github.com/Hydrospheredata/mist/blob/master/mist/master/src/main/scala/io/hydrosphere/mist/master/Messages.scala#L28)
 TODO: describe all events
 
 

@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: "Scala library API"
+permalink: lib_scala.html
 position: 4
 ---
 ### Scala library API

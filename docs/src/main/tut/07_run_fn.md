@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: "Run mist function"
+permalink: run.html
 position: 7
 ---
 ## Run Mist job

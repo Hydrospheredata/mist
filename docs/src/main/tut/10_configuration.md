@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: "Configuration"
+permalink: configuration.html
 position: 10
 ---
 ## Configuration

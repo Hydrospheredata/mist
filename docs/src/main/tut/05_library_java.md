@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: "Java library API"
+permalink: lib_java.html
 position: 5
 ---
 ### Java library API

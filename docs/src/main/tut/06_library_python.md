@@ -1,6 +1,7 @@
 ---
 layout: docs
 title: "Python library API"
+permalink: lib_python.html
 position: 6
 ---
 ## Python library API
