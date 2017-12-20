@@ -75,10 +75,10 @@ from examples looks like that:
 curl --header "Content-Type: application/json"\
      -X POST "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
-
 ```
-NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
+
+NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
 ### Connecting to your existing Apache Spark cluster
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
