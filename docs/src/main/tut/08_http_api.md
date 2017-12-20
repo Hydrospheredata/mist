@@ -1,3 +1,9 @@
+---
+layout: docs
+title: "Http Api"
+permalink: http_api.html
+position: 8
+---
 ### Mist Api V2
 
 Glosssary:
@@ -6,7 +12,7 @@ Glosssary:
 - Job - fact of endpoint invocation
 - Namespace - SparkContext configs and Mist configs for given SparkContext 
 - Worker - Mist slave instance that holds Spark Driver application
-- Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](configuration.md))
+- Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](/mist-docs/contexts.html))
     - Shared - all jobs from same context are using one spark driver application
     - Exclusive - fresh driver application will be created for one job invocation
 
@@ -253,9 +259,3 @@ Glosssary:
 
 
 Note: Mist always has default context settings, you can obtain it by "default" id.
-
-
-
-### Next 
-- [Reactive API](/docs/reactive_api.md)
-- [CLI](/docs/cli.md)

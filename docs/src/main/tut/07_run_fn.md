@@ -1,3 +1,9 @@
+---
+layout: docs
+title: "Run mist function"
+permalink: run.html
+position: 7
+---
 ## Run Mist job
 
 ### Configuration
@@ -22,12 +28,12 @@ my-awesome-job { // object name is name of endpoint
 There is several ways to run job on endpoint:
 
 - Http api:
-   - Run job - obtain id assciated with that run request:
-    ```sh
-    curl --header "Content-Type: application/json" \
-         -X POST http://localhost:2004/v2/api/endpoints/my-awesome-job/jobs?force=true \
-         --data '{"arg": "value"}'
-    ```
+- Run job - obtain id assciated with that run request:
+  ```sh
+  curl --header "Content-Type: application/json" \
+       -X POST http://localhost:2004/v2/api/endpoints/my-awesome-job/jobs?force=true \
+       --data '{"arg": "value"}'
+  ```
 - Send message over Kafka or Mqtt with format:
    ```javascript
     {
@@ -37,7 +43,3 @@ There is several ways to run job on endpoint:
       }
     }
    ```
-### Next 
-- [Http API](/docs/http_api.md)
-- [Reactive API](/docs/reactive_api.md)
-- [CLI](/docs/cli.md)

@@ -1,4 +1,10 @@
-### Java DSL
+---
+layout: docs
+title: "Java library API"
+permalink: lib_java.html
+position: 5
+---
+### Java library API
 
 Definitions:
 
@@ -40,8 +46,6 @@ public class JavaPiExample extends JMistFn<Double> {
 ```
 
 #### Build
-
-Add Mist as dependency in your `build.sbt`:
 
 Maven dependency:
 
@@ -173,6 +177,3 @@ public class Hello extends JMistFn<Void> {
     }
 }
 ```
-
-### Next
-- [Run your Mist Job](/docs/run-job.md)

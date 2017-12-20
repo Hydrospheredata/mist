@@ -1,3 +1,9 @@
+---
+layout: docs
+title: "Install"
+permalink: install.html
+position: 2
+---
 ## Install Hydrosphere Mist 
 
 You can install Mist from default tarball package or run it in docker.
@@ -54,30 +60,25 @@ docker run \
    hydrosphere/mist:1.0.0.RC1-2.2.0 mist --config /my_config/docker.conf --router-config /my_config/router.conf
 ```
 
-![Hydrosphere Mist UI](http://dv9c7babquml0.cloudfront.net/docs-images/hydrisphere-mist-ui.png)
-
-
-
 ### Check how it works
 
 Mist has built-in UI where you could check running workers and jobs as well as execute/debug API routes right from the web browser.
 By default it's available by `/ui` path.
 Link on it for local installation <http://localhost:2004/ui>.
 Also Mist has prebuilt examples for: 
-- [spark1](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark1/src/main/scala)
-- [spark2](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark2/src/main/scala)
+- [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark2/src/main/)
 - [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
 You can run these examples from web ui, REST HTTP or Messaging API.
-For example http call for [SimpleContext](https://github.com/Hydrospheredata/mist/blob/master/examples-spark1/src/main/scala/SimpleContext.scala)
+For example http call for [SparkContextExample](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/main/scala/SparkContextExample.scala)
 from examples looks like that:
 ```sh
 curl --header "Content-Type: application/json"\
      -X POST "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
-
 ```
-NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
+
+NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
 ### Connecting to your existing Apache Spark cluster
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
@@ -95,7 +96,3 @@ For standalone cluster your config should looks like that:
 If you want use your Yarn or Mesos cluster, there is not something special configuration from Mist side excluding `spark-master` conf.
 Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
 Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set them up before starting Mist
-
-### Next
-- [Mistify your Spark job](/docs/mist-job.md)
-- [Run your Mist Job](/docs/run-job.md)

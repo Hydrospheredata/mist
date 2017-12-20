@@ -21,7 +21,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := util.Properties.propOrElse("sparkVersion", "2.0.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.0.0"),
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -179,6 +179,9 @@ lazy val root = project.in(file("."))
       val home = basicStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")
+
+      import scala.sys.process._
+
       val ps = Process(args, Some(home), extraEnv: _*)
       log.info(s"Running mist $ps with env $extraEnv")
 
@@ -227,13 +230,13 @@ lazy val root = project.in(file("."))
     scalaSource in IntegrationTest := baseDirectory.value / "mist-tests" / "scala",
     resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
-    fork in(IntegrationTest, test) := true,
-    fork in(IntegrationTest, testOnly) := true,
+    fork in IntegrationTest := true,
+    //fork in(IntegrationTest, testOnly) := true,
     envVars in IntegrationTest ++= Map(
       "SPARK_HOME" -> s"${sparkLocal.value}",
       "MIST_HOME" -> s"${basicStage.value}"
     ),
-    javaOptions in(IntegrationTest, test) ++= {
+    javaOptions in IntegrationTest ++= {
       val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
@@ -242,7 +245,7 @@ lazy val root = project.in(file("."))
         "-Xmx512m"
       )
     },
-    javaOptions in(IntegrationTest, testOnly) ++= {
+    /*javaOptions in (IntegrationTest, testOnly) ++= {
       val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
@@ -250,7 +253,7 @@ lazy val root = project.in(file("."))
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    }
+    }*/
 
   )
 
@@ -264,9 +267,37 @@ lazy val examples = project.in(file("examples/examples"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
   )
 
+lazy val docs = project.in(file("docs"))
+  .enablePlugins(MicrositesPlugin)
+  .dependsOn(mistLib)
+  .settings(commonSettings: _*)
+  .settings(
+    scalaVersion := "2.11.8",
+    libraryDependencies ++= Library.spark(sparkVersion.value),
+    micrositeName := "Hydropshere - Mist",
+    micrositeDescription := "Serverless proxy for Spark cluster",
+    micrositeAuthor := "hydrosphere.io",
+    micrositeHighlightTheme := "atom-one-light",
+    micrositeDocumentationUrl := "api",
+    micrositeGithubOwner := "Hydrospheredata",
+    micrositeGithubRepo := "mist",
+    micrositeBaseUrl := "/mist-docs",
+    micrositePalette := Map(
+      "brand-primary" -> "#052150",
+      "brand-secondary" -> "#081440",
+      "brand-tertiary" -> "#052150",
+      "gray-dark" -> "#48494B",
+      "gray" -> "#7D7E7D",
+      "gray-light" -> "#E5E6E5",
+      "gray-lighter" -> "#F4F3F4",
+      "white-color" -> "#FFFFFF"),
+    ghpagesNoJekyll := false,
+    git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
+  )
+
 
 lazy val commonAssemblySettings = Seq(
-  mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) => {
+  assemblyMergeStrategy in assembly := {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
     case m if m.startsWith("META-INF") => MergeStrategy.discard
     case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
@@ -276,7 +307,6 @@ lazy val commonAssemblySettings = Seq(
     case "reference.conf" => MergeStrategy.concat
     case PathList("org", "datanucleus", xs@_*) => MergeStrategy.discard
     case _ => MergeStrategy.first
-  }
   },
   logLevel in assembly := Level.Error,
   test in assembly := {}
