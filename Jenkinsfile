@@ -17,7 +17,7 @@ for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-
 parallel branches
 
 def publishDocs() {
-    return "feature/jekill_docs".equalsIgnoreCase(env.BRANCH_NAME)
+    return "master".equalsIgnoreCase(env.BRANCH_NAME)
 }
 //some commit
 node("JenkinsOnDemand") {
