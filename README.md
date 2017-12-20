@@ -51,46 +51,6 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 - Self Healing after driver program failure
 - Powerful logging
 
-## Version Information
-
-| Mist Version   | Scala Version  | Python Version | Spark Version    |
-|----------------|----------------|----------------|------------------|
-| 0.1.4          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.2.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.3.0          | 2.10.6         | 2.7.6          | >=1.5.2          |
-| 0.4.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.5.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.6.5          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.7.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.8.0          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.9.1          | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| 0.10.0         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-| master         | 2.10.6, 2.11.8 | 2.7.6          | >=1.5.2          |
-
-
-## Roadmap
-
------------------
-- [x] Persist job state for self healing
-- [x] Super parallel mode: run Spark contexts in separate JVMs
-- [x] Powerful logging
-- [x] RESTification
-- [x] Support streaming contexts/jobs
-- [x] Reactive API
-- [x] Realtime ML models serving/scoring
-- [x] CLI
-- [x] Web Interface
-- [x] Apache Kafka support
-- [x] Kerberos integration
-- [ ] AWS ECS cloudformation package 
-- [ ] AWS EMR cloudformation package
-- [ ] Hortonworks Ambari package
-- [ ] DC/OS package
-- [ ] Dynamic auto-configurable Spark settings based on jobs history
-- [ ] Bi-directional streaming API
-- [ ] Spark Structural Streaming API
-- [ ] AMQP support
-
 
 ## Contact
 
