@@ -230,13 +230,13 @@ lazy val root = project.in(file("."))
     scalaSource in IntegrationTest := baseDirectory.value / "mist-tests" / "scala",
     resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
-    fork in(IntegrationTest, test) := true,
-    fork in(IntegrationTest, testOnly) := true,
+    fork in IntegrationTest := true,
+    //fork in(IntegrationTest, testOnly) := true,
     envVars in IntegrationTest ++= Map(
       "SPARK_HOME" -> s"${sparkLocal.value}",
       "MIST_HOME" -> s"${basicStage.value}"
     ),
-    javaOptions in(IntegrationTest, test) ++= {
+    javaOptions in IntegrationTest ++= {
       val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
@@ -245,7 +245,7 @@ lazy val root = project.in(file("."))
         "-Xmx512m"
       )
     },
-    javaOptions in(IntegrationTest, testOnly) ++= {
+    /*javaOptions in (IntegrationTest, testOnly) ++= {
       val mistHome = basicStage.value
       Seq(
         s"-DsparkHome=${sparkLocal.value}",
@@ -253,7 +253,7 @@ lazy val root = project.in(file("."))
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    }
+    }*/
 
   )
 
