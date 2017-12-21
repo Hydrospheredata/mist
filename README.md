@@ -24,7 +24,7 @@ Discover more [Hydrosphere Mist use cases](/docs/use-cases/README.md).
 
 -----------------
 
-**[Getting Started Guide and user documentation](/docs/README.md)**
+**[Getting Started Guide and user documentation](https://hydrosphere.io/mist-docs/)**
 
 -----------------
 
