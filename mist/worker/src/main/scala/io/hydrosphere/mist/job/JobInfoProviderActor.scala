@@ -156,7 +156,7 @@ class JobInfoProviderActor(
   private def cacheKey(req: InfoRequest): String = {
     val path = Paths.get(req.jobPath)
     val sha1 = DigestUtils.sha1Hex(Files.newInputStream(path))
-    s"${req.className}_$sha1"
+    s"${req.name}_${req.className}_$sha1"
   }
 
 }
