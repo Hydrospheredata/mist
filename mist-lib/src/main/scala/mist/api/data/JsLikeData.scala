@@ -5,7 +5,7 @@ package mist.api.data
   * We use our own data-structure to keep worker/master communications
   *  independent of third-party json libraries
   */
-sealed trait JsLikeData
+sealed trait JsLikeData extends Serializable
 
 case object JsLikeUnit extends JsLikeData {
   override def toString: String = "{}"
@@ -38,15 +38,36 @@ object JsLikeNumber {
   def apply(n: BigInt): JsLikeNumber = new JsLikeNumber(BigDecimal(n))
 }
 
-case class JsLikeMap(map: Map[String, JsLikeData]) extends JsLikeData {
+class JsLikeMap(val map: Map[String, JsLikeData]) extends JsLikeData {
+
   override def toString: String = map.mkString("{", ",", "}")
   def fields: Seq[(String, JsLikeData)] = map.toSeq
   def get(key: String): Option[JsLikeData] = map.get(key)
+
+  override def equals(obj: scala.Any): Boolean = {
+    obj match {
+      case JsLikeMap(other) => other.equals(map)
+      case any => false
+    }
+  }
+
+  override def hashCode(): Int = map.hashCode()
 }
 
 object JsLikeMap {
 
-  def apply(fields: (String, JsLikeData)*): JsLikeMap = JsLikeMap(fields.toMap)
+  def apply(fields: (String, JsLikeData)*): JsLikeMap = {
+    new JsLikeMap(Map(fields: _*))
+  }
+
+  def apply(fields: Map[String, JsLikeData]): JsLikeMap = {
+    // sometimes we can get map that can't be serialized
+    // https://issues.scala-lang.org/browse/SI-7005
+    val values = fields.toSeq
+    new JsLikeMap(Map(values: _*))
+  }
+
+  def unapply(arg: JsLikeMap): Option[Map[String, JsLikeData]] = Option(arg.map)
 
 }
 
