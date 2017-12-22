@@ -1,5 +1,6 @@
 package mist.api.data
 
+import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.util
 
 import org.scalatest._
@@ -42,5 +43,22 @@ class JsLikeDataSpec extends FunSpec with Matchers {
       JsLikeData.fromJava(raw) shouldBe jsLike
     }
   }
+
+  describe("JsLikeMap") {
+
+    // problem with MapLike - akka can't serialize it
+    // scala.collection.immutable.MapLike$$anon$2
+    //    java.io.NotSerializableException: scala.collection.immutable.MapLike$$anon$2
+    it("JsLikeMap should be serializable") {
+      val map = Map("1" -> 1, "2" -> 2).mapValues(i => JsLikeNumber(i))
+      val jslikeMap = JsLikeMap(map)
+
+      val bos = new ByteArrayOutputStream
+      val out = new ObjectOutputStream(bos)
+      out.writeObject(jslikeMap)
+      out.close()
+    }
+  }
+
 
 }
