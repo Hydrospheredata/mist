@@ -87,7 +87,8 @@ def test_mist(slaveName, sparkVersion) {
                 if (tag.startsWith("v")) {
                     version = tag.replace("v", "")
                     stage('Publish in DockerHub') {
-                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} dockerBuildAndPush"
+                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} docker"
+                        sh "docker push hydrosphere/mist:${version}-${sparkVersion}"
                     }
 
                 }
