@@ -15,47 +15,39 @@ object PublishSettings {
     publishArtifact in Test := false,
     pomIncludeRepository := { _ => false },
 
-    pomExtra := <url>https://github.com/Hydrospheredata/mist</url>
-      <licenses>
-        <license>
-          <name>Apache 2.0 License</name>
-          <url>https://github.com/Hydrospheredata/mist/LICENSE</url>
-          <distribution>repo</distribution>
-        </license>
-      </licenses>
-      <scm>
-        <url>https://github.com/Hydrospheredata/mist.git</url>
-        <connection>https://github.com/Hydrospheredata/mist.git</connection>
-      </scm>
-      <developers>
-        <developer>
-          <id>mkf-simpson</id>
-          <name>Konstantin Makarychev</name>
-          <url>https://github.com/mkf-simpson</url>
-          <organization>Hydrosphere</organization>
-          <organizationUrl>http://hydrosphere.io/</organizationUrl>
-        </developer>
-        <developer>
-          <id>leonid133</id>
-          <name>Leonid Blokhin</name>
-          <url>https://github.com/leonid133</url>
-          <organization>Hydrosphere</organization>
-          <organizationUrl>http://hydrosphere.io/</organizationUrl>
-        </developer>
-        <developer>
-          <id>dos65</id>
-          <name>Vadim Chelyshov</name>
-          <url>https://github.com/dos65</url>
-          <organization>Hydrosphere</organization>
-          <organizationUrl>http://hydrosphere.io/</organizationUrl>
-        </developer>
-        <developer>
-          <id>blvp</id>
-          <name>Pavel Borobov</name>
-          <url>https://github.com/blvp</url>
-          <organization>Hydrosphere</organization>
-          <organizationUrl>http://hydrosphere.io/</organizationUrl>
-        </developer>
-      </developers>
+    licenses := Seq("Apache 2.0 License" -> url("https://github.com/Hydrospheredata/mist")),
+    homepage := Some(url("https://github.com/Hydrospheredata/mist")),
+    scmInfo := Some(
+          ScmInfo(
+            url("https://github.com/Hydrospheredata/mist"),
+            "scm:git@github.com:Hydrospheredata/mist.git"
+          )
+        ),
+    developers := List(
+        Developer(
+          id = "mkf-simpson",
+          name = "Konstantin Makarychev",
+          url = url("https://github.com/mkf-simpson"),
+          email = "kmakarychev@provectus-it.com",
+        ),
+        Developer(
+          id = "leonid133",
+          name = "Leonid Blokhin",
+          url = url("https://github.com/leonid133"),
+          email = "lenin133@yandex.ru"
+        ),
+        Developer(
+          id = "dos65",
+          name = "Vadim Chelyshov",
+          url = url("https://github.com/dos65"),
+          email = "qtankle@gmail.com"
+        ),
+        Developer(
+          id = "blvp",
+          name = "Pavel Borobov",
+          url = url("https://github.com/blvp"),
+          email = "blvp.me@gmail.com"
+        )
+    )
   )
 }
