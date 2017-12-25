@@ -82,6 +82,12 @@ class ClusterWorker(
       log.debug(s"Worker interface received $x")
 
   }
+
+  private def shutdown(): Unit = {
+    context.stop(self)
+    cluster.system.terminate()
+  }
+
   private def isWorkerMessage(msg: Any): Boolean =
     !msg.isInstanceOf[MemberEvent] && !msg.isInstanceOf[GetRunInitInfo]
 

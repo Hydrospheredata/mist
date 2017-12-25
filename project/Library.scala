@@ -24,34 +24,21 @@ object Library {
   val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
 
   object Akka {
-    val `is2.11` = """2\.11\..""".r
-    val streamsVersion = "2.0.4"
+    val akkaVersion = "2.5.8"
+    val httpVersion = "10.0.11"
 
-    val streams = "com.typesafe.akka" %% "akka-stream-experimental" % streamsVersion
-    val http = Seq(
-      "com.typesafe.akka" %% "akka-http-core-experimental" % streamsVersion,
-      "com.typesafe.akka" %% "akka-http-experimental" % streamsVersion 
-    )
-    val httpSprayJson = "com.typesafe.akka" %% "akka-http-spray-json-experimental" % streamsVersion 
-    val httpTestKit = "com.typesafe.akka" %% "akka-http-testkit-experimental" % streamsVersion
+    val stream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
+    val http = "com.typesafe.akka" %% "akka-http" % httpVersion
+    val httpSprayJson = "com.typesafe.akka" %% "akka-http-spray-json" % httpVersion
+    val httpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % httpVersion
 
-    def base(scalaVersion: String) = {
-      val version = scalaVersion match {
-        case `is2.11`() => "2.4.7"
-        case _     => "2.3.15"
-      }
+    val testKit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+    def base = {
       Seq(
-        "com.typesafe.akka" %% "akka-actor" % version,
-        "com.typesafe.akka" %% "akka-cluster" % version,
-        "com.typesafe.akka" %% "akka-slf4j" % version 
+        "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+        "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
+        "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
       )
-    }
-    def testKit(scalaVersion: String) = {
-      val version = scalaVersion match {
-        case `is2.11`() => "2.4.7"
-        case _     => "2.3.15"
-      }
-      "com.typesafe.akka" %% "akka-testkit" % version
     }
   }
 

@@ -21,12 +21,12 @@ class WSApi(streamer: EventsStreamer) {
   val route = {
     path( "v2" / "api" / "ws" / "all" ) {
       get {
-        handleWebsocketMessages(allEventsWsFlow())
+        handleWebSocketMessages(allEventsWsFlow())
       }
     } ~
     path( "v2" / "api" / "ws"/ "jobs" / Segment ) { jobId =>
       get {
-        handleWebsocketMessages(jobWsFlow(jobId))
+        handleWebSocketMessages(jobWsFlow(jobId))
       }
     }
   }
