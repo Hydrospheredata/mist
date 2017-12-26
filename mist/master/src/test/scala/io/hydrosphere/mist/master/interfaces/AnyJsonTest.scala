@@ -1,44 +1,34 @@
 package io.hydrosphere.mist.master.interfaces
 
-import org.scalatest.FunSuite
+import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.prop.TableDrivenPropertyChecks._
 import spray.json._
 
 import scala.language.postfixOps
 
-class AnyJsonTest extends FunSuite with DefaultJsonProtocol with AnyJsonFormat {
+class AnyJsonTest extends FunSpec with DefaultJsonProtocol with AnyJsonFormat with Matchers {
 
-  test("AnyJsonFormat read") {
-    assert(
-      5 == AnyFormat.read(JsNumber(5)) &&
-        "TestString" == AnyFormat.read(JsString("TestString")) &&
-        Map.empty[String, JsValue] == AnyFormat.read(JsObject(Map.empty[String, JsValue])) &&
-        true == AnyFormat.read(JsTrue) &&
-        false == AnyFormat.read(JsFalse)
-    )
+  val expected = Table[JsValue, Any](
+    ("in", "out"),
+    (JsNumber(5), 5),
+    (JsNumber(5.5), 5.5),
+    (JsNumber(12147483647L), 12147483647L),
+    (JsString("str"), "str"),
+    (JsTrue, true),
+    (JsFalse, false),
+    (JsArray(JsString("str"), JsTrue, JsNumber(42)), Seq("str", true, 42)),
+    (JsObject("a" -> JsString("b")), Map("a" -> "b"))
+  )
+
+  it("should read") {
+    forAll(expected) { (in, out) =>
+      AnyFormat.read(in) shouldBe out
+    }
   }
-
-  test("AnyJsonFormat write") {
-    assert(
-      JsNumber(5) == AnyFormat.write(5) &&
-        JsString("TestString") == AnyFormat.write("TestString") &&
-        JsArray(JsNumber(1), JsNumber(1), JsNumber(2)) == AnyFormat.write(Seq(1, 1, 2)) &&
-        JsObject(Map.empty[String, JsValue]) == AnyFormat.write(Map.empty[String, JsValue]) &&
-        JsTrue == AnyFormat.write(true) &&
-        JsFalse == AnyFormat.write(false)
-    )
-  }
-
-  test("AnyJsonFormat serializationError") {
-    intercept[spray.json.SerializationException] {
-      val unknown = Set(1, 2)
-      AnyFormat.write(unknown)
+  it("should write") {
+    forAll(expected) { (in, out) =>
+      AnyFormat.write(out) shouldBe in
     }
   }
 
-  test("AnyJsonFormat deserilalizationError") {
-    intercept[spray.json.DeserializationException] {
-      val unknown = JsNull
-      AnyFormat.read(unknown)
-    }
-  }
 }

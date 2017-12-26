@@ -19,31 +19,43 @@ object TypedPrimitive {
 
   import java.{lang => jl}
 
-  private def typed[A, B](clz: Class[B], atype: ArgType): TypedPrimitive[A] = {
+  private def extraction[A](atype: ArgType)(f: Any => ArgExtraction[A]): TypedPrimitive[A] = {
     new TypedPrimitive[A] {
       override def `type`: ArgType = atype
       override def extract(a: Any): ArgExtraction[A] = {
-        if (a != null && clz.isInstance(a))
-          Extracted(a.asInstanceOf[A])
+        if (a == null)
+          Missing(s"value is null")
         else
-          Missing(s"value $a has wrong type: ${a.getClass}, expected $clz")
+          f(a)
       }
     }
   }
 
+  private def typed[A, B](clz: Class[B], atype: ArgType): TypedPrimitive[A] = {
+    extraction(atype) { a =>
+      if (clz.isInstance(a))
+        Extracted(a.asInstanceOf[A])
+      else
+        Missing(s"value $a has wrong type: ${a.getClass}, expected $clz")
+    }
+  }
+
+
   implicit val boolTyped: TypedPrimitive[Boolean] = typed(classOf[jl.Boolean], MBoolean)
-  implicit val shortTyped: TypedPrimitive[Short] = typed(classOf[jl.Short], MInt)
   implicit val intTyped: TypedPrimitive[Int] = typed(classOf[jl.Integer], MInt)
   implicit val longTyped: TypedPrimitive[Long] = typed(classOf[jl.Long], MInt)
-  implicit val floatTyped: TypedPrimitive[Float] = typed(classOf[jl.Float], MDouble)
-  implicit val doubleTyped: TypedPrimitive[Double] = typed(classOf[jl.Double], MDouble)
+
+  implicit val doubleTyped: TypedPrimitive[Double] = extraction(MDouble){
+    case i: Int => Extracted(i.toDouble)
+    case d: Double => Extracted(d)
+    case x => Missing(s"value $x can't be converted to double")
+  }
+
   implicit val stringTyped: TypedPrimitive[String] = typed(classOf[jl.String], MString)
 
   implicit val boolTypedJ: TypedPrimitive[jl.Boolean] = typed(classOf[jl.Boolean], MBoolean)
-  implicit val shortTypedJ: TypedPrimitive[jl.Short] = typed(classOf[jl.Short], MInt)
   implicit val intTypedJ: TypedPrimitive[jl.Integer] = typed(classOf[jl.Integer], MInt)
   implicit val longTypedJ: TypedPrimitive[jl.Long] = typed(classOf[jl.Long], MInt)
-  implicit val floatTypedJ: TypedPrimitive[jl.Float] = typed(classOf[jl.Float], MDouble)
   implicit val doubleTypedJ: TypedPrimitive[jl.Double] = typed(classOf[jl.Double], MDouble)
 }
 

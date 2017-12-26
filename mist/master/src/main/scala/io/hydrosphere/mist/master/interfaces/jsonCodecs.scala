@@ -15,6 +15,7 @@ import spray.json._
 
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
+import scala.util.Try
 
 trait AnyJsonFormat extends DefaultJsonProtocol {
 
@@ -23,6 +24,7 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
     def write(x: Any): JsValue = x match {
       case number: Int => JsNumber(number)
       case number: java.lang.Double => JsNumber(number)
+      case number: java.lang.Long => JsNumber(number)
       case string: String => JsString(string)
       case sequence: Seq[_] => seqFormat[Any].write(sequence)
       case javaList: java.util.ArrayList[_] => seqFormat[Any].write(javaList.toList)
@@ -37,11 +39,9 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 
     def read(value: JsValue): Any = value match {
       case JsNumber(number) =>
-        try {
-          number.toIntExact
-        } catch {
-          case _: ArithmeticException => number.toDouble
-        }
+        Try(number.toIntExact)
+          .orElse(Try(number.toLongExact))
+          .getOrElse(number.toDouble)
       case JsString(string) => string
       case _: JsArray => listFormat[Any].read(value)
       case _: JsObject => mapFormat[String, Any].read(value)

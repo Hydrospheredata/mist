@@ -96,6 +96,7 @@ class UserArgsSpec extends FunSpec with Matchers {
       (arg[Double]("d"),         Seq("d" -> 2.4),  Extracted(2.4)),
       (arg[Double]("d", 2.2),    Seq.empty,        Extracted(2.2)),
       (arg[Double]("d"),         Seq.empty,        miss),
+      (arg[Double]("d"),         Seq("d" -> 2),    Extracted(2.0)),
       (arg[Option[Double]]("d"), Seq("d" -> 42.1), Extracted(Some(42.1))),
       (arg[Option[Double]]("d"), Seq.empty,        Extracted(None)),
 
