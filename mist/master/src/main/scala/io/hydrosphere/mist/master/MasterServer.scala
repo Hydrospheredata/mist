@@ -175,7 +175,6 @@ object MasterServer extends Logger {
     artifacts: ArtifactRepository,
     config: HttpConfig)(implicit sys: ActorSystem, mat: ActorMaterializer): Future[ServerBinding] = {
     val http = {
-      val api = new HttpApi(mainService)
       val apiv2 = {
         val api = HttpV2Routes.apiWithCORS(mainService, artifacts)
         val ws = new WSApi(streamer)
@@ -183,7 +182,7 @@ object MasterServer extends Logger {
         // api router can't chain unhandled calls, because it's wrapped in cors directive
         ws.route ~ api
       }
-      val http = new HttpUi(config.uiPath).route ~ api.route ~ DevApi.devRoutes(mainService) ~ apiv2
+      val http = new HttpUi(config.uiPath).route ~ DevApi.devRoutes(mainService) ~ apiv2
       Http().bindAndHandle(http, config.host, config.port)
     }
     http
