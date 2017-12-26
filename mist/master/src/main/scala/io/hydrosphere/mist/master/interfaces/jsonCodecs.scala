@@ -3,7 +3,6 @@ package io.hydrosphere.mist.master.interfaces
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
 import io.hydrosphere.mist.master.Messages.StatusMessages._
