@@ -14,7 +14,7 @@ Features:
 * **Spark Function as a Service**. Deploy Spark functions rather than nodetebooks or scripts.
 * Spark Cluster and Session management. Fully managed Spark sessions backed by on-demand EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark clusters.
 * **Typesafe** programming framework that clearly defines inputs and outputs of every Spark job.
-* Muli-cluster mode: Seamless Spark cluster on-demand provisioning, autoscaling and termination
+* Multi-cluster mode: Seamless Spark cluster on-demand provisioning, autoscaling and termination
 ![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
 * **REST** HTTP & Messaging (MQTT, Kafka) API for Scala & Python Spark jobs.
 
