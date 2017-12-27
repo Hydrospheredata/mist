@@ -43,7 +43,11 @@ object TypedPrimitive {
 
   implicit val boolTyped: TypedPrimitive[Boolean] = typed(classOf[jl.Boolean], MBoolean)
   implicit val intTyped: TypedPrimitive[Int] = typed(classOf[jl.Integer], MInt)
-  implicit val longTyped: TypedPrimitive[Long] = typed(classOf[jl.Long], MInt)
+  implicit val longTyped: TypedPrimitive[Long] = extraction(MInt) {
+    case i: Int => Extracted(i.toLong)
+    case l: Long => Extracted(l)
+    case x => Missing(s"value $x can't be converted to double")
+  }
 
   implicit val doubleTyped: TypedPrimitive[Double] = extraction(MDouble){
     case i: Int => Extracted(i.toDouble)
