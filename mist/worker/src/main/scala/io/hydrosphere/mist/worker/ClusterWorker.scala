@@ -3,8 +3,11 @@ package io.hydrosphere.mist.worker
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
-
 import io.hydrosphere.mist.core.CommonData._
+
+import scala.concurrent.Await
+import scala.util.Try
+import scala.concurrent.duration._
 
 class ClusterWorker(
   name: String,
@@ -53,16 +56,21 @@ class ClusterWorker(
     case Terminated(ref) if ref == worker =>
       log.info(s"Worker reference for $name is terminated, leave cluster")
       cluster.leave(cluster.selfAddress)
+      context.setReceiveTimeout(15.seconds)
 
     case MemberRemoved(m, _) if m.address == cluster.selfAddress =>
       context.stop(self)
-      cluster.unsubscribe(self)
-      cluster.system.shutdown()
+      cluster.system.terminate()
+
+    case ReceiveTimeout =>
+      log.info("Problem with exiting from cluster - force shutdown")
+      context.stop(self)
+      cluster.system.terminate()
 
     case MemberRemoved(m, _) if m.hasRole("master") =>
       log.info("Master is down. Shutdown now")
       context.stop(self)
-      cluster.system.shutdown()
+      cluster.system.terminate()
 
     case x if isWorkerMessage(x) =>
       worker forward x
