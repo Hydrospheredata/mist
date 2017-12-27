@@ -87,6 +87,9 @@ class UserArgsSpec extends FunSpec with Matchers {
       (arg[Option[Int]]("n"), Seq("n" -> 42), Extracted(Some(42))),
       (arg[Option[Int]]("n"), Seq.empty,      Extracted(None)),
 
+      (arg[Long]("n"),         Seq("n" -> 2),  Extracted(2L)),
+      (arg[Long]("n"),         Seq("n" -> 2L),  Extracted(2L)),
+
       (arg[String]("s"),          Seq("s" -> "value"), Extracted("value")),
       (arg[String]("s", "value"), Seq.empty,           Extracted("value")),
       (arg[String]("s"),          Seq.empty,           miss),
@@ -104,7 +107,7 @@ class UserArgsSpec extends FunSpec with Matchers {
 
       (arg[Seq[Double]]("doubles"), Seq("doubles" -> Seq(1.1,2.2,3.3)), Extracted(Seq(1.1, 2.2, 3.3))),
 
-      (arg[Seq[Double]]("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(Seq("a", "b", "c"))),
+      (arg[Seq[String]]("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(Seq("a", "b", "c"))),
 
       (arg[Seq[Boolean]]("booleans"), Seq("booleans" -> Seq(true, false)), Extracted(Seq(true, false)))
     )
@@ -116,6 +119,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         (expected, result) match {
           case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr
           case (extr: Missing[_], res: Extracted[_]) => fail(s"for $arg got $res, expected $extr")
+          case (extr: Extracted[_], res: Missing[_]) => fail(s"for $arg got $res, expected $extr")
           case _ =>
         }
       }
