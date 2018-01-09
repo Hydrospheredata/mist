@@ -69,11 +69,6 @@ object StageDist {
     }
   }
 
-//  implicit class AsPath(f: File) {
-//    def asPath: Path = Paths.get(f.getAbsolutePath)
-//  }
-
-
   sealed trait StageAction
   case class CpFile(
     file: File,

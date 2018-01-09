@@ -1,6 +1,7 @@
 import sbt.Keys._
 import StageDist._
 import complete.DefaultParsers._
+import microsites.ConfigYml
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyOption
 
@@ -293,6 +294,9 @@ lazy val docs = project.in(file("docs"))
       "white-color" -> "#FFFFFF"),
     ghpagesNoJekyll := false,
     git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
+    micrositeConfigYaml := ConfigYml(
+      yamlCustomProperties = Map("version" -> version.value)
+    )
   )
 
 

@@ -4,61 +4,53 @@ title: "Install"
 permalink: install.html
 position: 2
 ---
-## Install Hydrosphere Mist 
 
-You can install Mist from default tarball package or run it in docker.
+## Quick start
+
+This tutorial provides a quick introduction to using Mist.
+We will first cover local installation details, then briefly overview how to write functions
+and finally how to deploy and run them on Mist
+
+## Install
+
+You can install Mist from binaries or run it in docker.
 All of distributions have default configuration and our examples for a quick start.
 Docker image also has Apache Spark binaries for a quick start.
 
-
 Releases:
 
-- tar <http://repo.hydrosphere.io/hydrosphere/static/> 
+- binaries: <http://repo.hydrosphere.io/hydrosphere/static/{{ site.version }}> 
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
+### Run docker image
+
 We prebuilt Mist for `2.0.0`, `2.1.0`, `2.2.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
+For example latest Mist release for Spark `2.2.0` version is: `mist:{{ site.version }}-2.2.0`
 
+```sh
+docker run -p 2004:2004 \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   hydrosphere/mist:{{ site.version }}-2.2.0 mist
+```
 
-For example latest Mist release for Spark `2.2.0` version is:
-
-- docker image `hydrosphere/mist:1.0.0-RC1-2.2.0`
-
-### Install locally
+### Run from binaries
 
 - Download [Spark](https://spark.apache.org/docs/2.1.1/)
 - Download Mist and run
 
 ```sh
-wget http://repo.hydrosphere.io/hydrosphere/static/mist-1.0.0-RC1.tar.gz
-tar xvfz mist-1.0.0-RC1.tar.gz
-cd mist-1.0.0-RC1
+wget http://repo.hydrosphere.io/hydrosphere/static/mist-{{ site.version }}.tar.gz
+tar xvfz mist-{{ site.version }}.tar.gz
+cd mist-{{ site.version }}
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
-- Check how it works on <http://localhost:2004/ui>
+
+## Check it up
 
 
-### From docker image
-
-It is recommended to mount `./config` `./jobs` volumes to Mist docker container in advance.
-So, we'll be able to customise configs and deploy new jobs as we go along. 
-
-For spark 2.2.0:
-```sh
-mkdir jobs
-mkdir my_config
-curl -o ./my_config/docker.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/default.conf 
-curl -o ./my_config/router.conf https://raw.githubusercontent.com/Hydrospheredata/mist/master/configs/router-examples.conf
-
-docker run \
-   -p 2004:2004 \
-   -v /var/run/docker.sock:/var/run/docker.sock \
-   -v $PWD/my_config:/my_config \
-   -v $PWD/jobs:/jobs \
-   hydrosphere/mist:1.0.0.RC1-2.2.0 mist --config /my_config/docker.conf --router-config /my_config/router.conf
-```
 
 ### Check how it works
 
