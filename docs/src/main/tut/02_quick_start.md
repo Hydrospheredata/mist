@@ -1,7 +1,7 @@
 ---
 layout: docs
-title: "Install"
-permalink: install.html
+title: "Quick start"
+permalink: quick_start.html
 position: 2
 ---
 
@@ -65,12 +65,15 @@ You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SparkContextExample](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/main/scala/SparkContextExample.scala)
 from examples looks like that:
 ```sh
-curl --header "Content-Type: application/json"\
-     -X POST "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"\
-     -d '{"numbers": [1, 2, 3]}'
+curl -d '{"numbers": [1, 2, 3]}' "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"
 ```
 
 NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
+
+### Running your own function
+
+So after 
+
 
 ### Connecting to your existing Apache Spark cluster
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
