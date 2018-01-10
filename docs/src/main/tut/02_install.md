@@ -48,17 +48,18 @@ cd mist-{{ site.version }}
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 ```
 
-## Check it up
-
-
-
 ### Check how it works
 
 Mist has built-in UI where you could check running workers and jobs as well as execute/debug API routes right from the web browser.
 By default it's available by `/ui` path.
+
+<video autoplay="autoplay">
+ <source src="/mist-docs/img/quick-start-ui.webm" type='video/webm; codecs="vp8, vorbis"'>
+</video>
+
 Link on it for local installation <http://localhost:2004/ui>.
 Also Mist has prebuilt examples for: 
-- [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-spark2/src/main/)
+- [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples/src/main/)
 - [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
 You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SparkContextExample](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/main/scala/SparkContextExample.scala)
@@ -68,7 +69,6 @@ curl --header "Content-Type: application/json"\
      -X POST "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"\
      -d '{"numbers": [1, 2, 3]}'
 ```
-
 
 NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
