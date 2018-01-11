@@ -5,8 +5,21 @@ import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
 case class Z(hz: String, yoyo: Int)
-case class ComplexCase(abc: Int, hehe: String, x: Boolean, z: Z)
+case class ComplexCase(abc: Int, hehe: String, x: Boolean, z: Seq[Z])
 case class Test(a: String, b: Int, z: Boolean, l: Long)
+
+case class ScalingFactor(dmaId: Int, scalingFactor: Double)
+case class StoreItem(id: Int, lat: Double, lon: Double)
+case class VisitRateArguments(
+  locationList: List[StoreItem],
+  scalingFactors: Seq[ScalingFactor],
+  campaignId: Int,
+  dateStart: String,
+  dateEnd: String,
+  distToVisit: Double,
+  proximityZone: Double,
+  eventsFileLocation: String
+)
 
 class UserArgsSpec extends FunSpec with Matchers {
 
@@ -14,16 +27,39 @@ class UserArgsSpec extends FunSpec with Matchers {
 
   describe("complex case class") {
 
+    it("example") {
+      val params = Map(
+        "locationList" -> Seq(Map(
+          "id"  -> 1,
+          "lat" -> 42.5,
+          "lon" -> 45.6
+        )),
+        "scalingFactors" -> Seq(Map(
+          "dmaId" -> 34,
+          "scalingFactor" -> 22.4
+        )),
+        "campaignId" -> 5,
+        "dateStart" -> "xxxxx",
+        "dateEnd" -> "yyyyy",
+        "distToVisit" -> 256.7,
+        "proximityZone" -> 1.2,
+        "eventsFileLocation" -> "asd,asd,sad"
+      )
+      implicit val ext = ArgExtractor.rootFor[VisitRateArguments]
+      val r = arg[VisitRateArguments].extract(FnContext(params))
+      r.isExtracted shouldBe true
+    }
 
     it("should extract") {
       val params = Map(
         "abc" -> 1,
         "hehe" -> "ads",
         "x" -> false,
-        "z" -> Map("hz" -> "asdsad", "yoyo" -> 1)
+        "z" -> Seq(Map("hz" -> "asdsad", "yoyo" -> 1))
       )
+      implicit val ext = ArgExtractor.rootFor[ComplexCase]
       val r = arg[ComplexCase].extract(FnContext(params))
-      r shouldBe Extracted(ComplexCase(1, "ads", false, Z("asdsad", 1)))
+      r shouldBe Extracted(ComplexCase(1, "ads", false, Seq(Z("asdsad", 1))))
     }
 
     it("should fail on invalid map") {
@@ -33,6 +69,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "x" -> false,
         "z" -> Map(1 -> "asdsad", 2 -> 1)
       )
+      implicit val ext = ArgExtractor.rootFor[ComplexCase]
       val r = arg[ComplexCase].extract(FnContext(params))
       r.isMissing shouldBe true
     }
@@ -44,6 +81,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "x" -> false,
         "z" -> 50
       )
+      implicit val ext = ArgExtractor.rootFor[ComplexCase]
       val r = arg[ComplexCase].extract(FnContext(params))
       r.isMissing shouldBe true
     }
@@ -59,6 +97,8 @@ class UserArgsSpec extends FunSpec with Matchers {
         "z" -> false,
         "l" -> 10L
       )
+
+      implicit val ext = ArgExtractor.rootFor[Test]
       val r = arg[Test].extract(FnContext(params))
       r shouldBe Extracted(Test("A", 1, false, 10L))
     }
