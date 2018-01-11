@@ -19,23 +19,25 @@ class WSApi(streamer: EventsStreamer) {
   import JsonCodecs._
 
   val route = {
-    path( "v2" / "api" / "ws" / "all" ) {
-      get {
-        handleWebSocketMessages(allEventsWsFlow())
+    pathPrefix("v2" / "api"/ "ws" ) { parameter('withLogs ? true)  { withLogs =>
+      path("all") {
+        get {
+          handleWebSocketMessages(allEventsWsFlow(withLogs))
+        }
+      } ~
+      path("jobs" / Segment) { jobId =>
+        get {
+          handleWebSocketMessages(jobWsFlow(jobId, withLogs))
+        }
       }
-    } ~
-    path( "v2" / "api" / "ws"/ "jobs" / Segment ) { jobId =>
-      get {
-        handleWebSocketMessages(jobWsFlow(jobId))
-      }
-    }
+    }}
   }
 
-  private def jobWsFlow(id: String): Flow[Message, Message, Any]= {
+  private def jobWsFlow(id: String, withLogs: Boolean): Flow[Message, Message, Any] = {
     val source = streamer.eventsSource()
       .filter({
         case e: UpdateStatusEvent => e.id == id
-        case e: ReceivedLogs => e.id == id
+        case e: ReceivedLogs if withLogs => e.id == id
         case _ => false
       })
       .map(toWsMessage)
@@ -44,8 +46,13 @@ class WSApi(streamer: EventsStreamer) {
     Flow.fromSinkAndSource(sink, source)
   }
 
-  private def allEventsWsFlow(): Flow[Message, Message, Any] = {
-    val source = streamer.eventsSource().map(toWsMessage)
+  private def allEventsWsFlow(withLogs: Boolean): Flow[Message, Message, Any] = {
+    val source = streamer.eventsSource()
+      .filter({
+        case _: ReceivedLogs => withLogs
+        case _ => true
+      })
+      .map(toWsMessage)
 
     val sink = Sink.ignore
     Flow.fromSinkAndSource(sink, source)
