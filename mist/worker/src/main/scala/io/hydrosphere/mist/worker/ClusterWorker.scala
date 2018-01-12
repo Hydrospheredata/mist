@@ -39,17 +39,23 @@ class ClusterWorker(
       log.info(s"Joined to cluster. Master ${m.address}")
       requestInfo(m.address)
       context become joined(m.address)
+      context.setReceiveTimeout(1.minute)
   }
 
 
   def joined(master: Address): Receive = {
     case info: WorkerInitInfo =>
+      context.setReceiveTimeout(Duration.Inf)
+
       log.info("Received init info {}", info)
       val (nm, worker) = startWorker(info)
       log.info("Worker actor started")
       val ui = SparkUtils.getSparkUiAddress(nm.sparkContext)
       register(master, ui)
       context become initialized(master, worker, info)
+
+    case ReceiveTimeout =>
+      shutdown("Problem with cluster - can't receive initial data")
   }
 
   def initialized(master: Address, worker: ActorRef, info: WorkerInitInfo): Receive = {
@@ -63,14 +69,10 @@ class ClusterWorker(
       cluster.system.terminate()
 
     case ReceiveTimeout =>
-      log.info("Problem with exiting from cluster - force shutdown")
-      context.stop(self)
-      cluster.system.terminate()
+      shutdown("Problem with exiting from cluster - force shutdown")
 
     case MemberRemoved(m, _) if m.hasRole("master") =>
-      log.info("Master is down. Shutdown now")
-      context.stop(self)
-      cluster.system.terminate()
+      shutdown("Master is down. Shutdown now")
 
     case x if isWorkerMessage(x) =>
       worker forward x
@@ -80,8 +82,14 @@ class ClusterWorker(
 
     case x =>
       log.debug(s"Worker interface received $x")
-
   }
+
+  private def shutdown(reason: String): Unit = {
+    log.info(reason)
+    context.stop(self)
+    cluster.system.terminate()
+  }
+
   private def isWorkerMessage(msg: Any): Boolean =
     !msg.isInstanceOf[MemberEvent] && !msg.isInstanceOf[GetRunInitInfo]
 
