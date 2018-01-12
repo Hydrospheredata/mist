@@ -13,6 +13,9 @@ import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import com.typesafe.config.ConfigFactory
 import org.slf4j.{Logger, LoggerFactory}
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 private [mist] object MistLogging {
 
   case class Level(value: Int, name: String)
@@ -135,7 +138,7 @@ private [mist] object MistLogging {
 
     def close(): Unit = {
       mat.shutdown()
-      sys.shutdown()
+      Await.result(sys.terminate(), Duration.Inf)
     }
 
   }

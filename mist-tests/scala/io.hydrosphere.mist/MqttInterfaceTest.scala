@@ -16,7 +16,7 @@ import org.testcontainers.containers.wait.Wait
 class MqttInterfaceTest extends FunSpec with MistItTest with Eventually {
 
   import JsonCodecs._
-  import spray.json.pimpString
+  import spray.json.enrichString
 
   implicit private val suiteDescription = Description.createSuiteDescription(getClass)
   implicit override val patienceConfig =

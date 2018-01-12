@@ -145,7 +145,7 @@ object MockHttpServer {
   import scala.concurrent.{Future, Promise}
 
   def onServer[A](
-    routes: Flow[HttpRequest, HttpResponse, Unit],
+    routes: Flow[HttpRequest, HttpResponse, _],
     f: (Http.ServerBinding) => A): Future[A] = {
 
     implicit val system = ActorSystem("mock-http-cli")
@@ -160,8 +160,8 @@ object MockHttpServer {
     close.future
       .flatMap(binding => binding.unbind())
       .onComplete(_ => {
-        system.shutdown()
-        system.awaitTermination()
+        materializer.shutdown()
+        Await.result(system.terminate(), Duration.Inf)
       })
 
     val result = binding.flatMap(binding => {

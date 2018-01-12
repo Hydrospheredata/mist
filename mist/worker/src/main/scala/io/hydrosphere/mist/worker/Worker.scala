@@ -4,6 +4,9 @@ import akka.actor.ActorSystem
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
@@ -99,7 +102,7 @@ object Worker extends App with Logger {
     val msg = s"Worker $name is started, context ${arguments.contextName}, mode = $mode"
     logger.info(msg)
 
-    system.awaitTermination()
+    Await.result(system.whenTerminated, Duration.Inf)
     logger.info(s"Shutdown worker application $name ${arguments.contextName}")
     sys.exit()
   } catch {
