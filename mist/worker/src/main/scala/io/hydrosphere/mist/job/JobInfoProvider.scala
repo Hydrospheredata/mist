@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.utils.Logger
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -75,7 +75,7 @@ object JobInfoProvider extends App with Logger {
           sys.exit(-1)
       }
 
-    system.awaitTermination()
+    Await.result(system.whenTerminated, Duration.Inf)
 
     sys.exit()
   } catch {

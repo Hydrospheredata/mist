@@ -9,7 +9,7 @@ import JsonCodecs._
 import mist.api.data.JsLikeData
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
-import spray.json.{JsObject, JsString, pimpAny, pimpString}
+import spray.json.{JsObject, JsString, enrichAny, enrichString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

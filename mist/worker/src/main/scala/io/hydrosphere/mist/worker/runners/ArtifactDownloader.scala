@@ -91,7 +91,7 @@ case class HttpArtifactDownloader(
   }
 
   override def stop(): Unit = {
-    system.shutdown()
+    system.terminate()
   }
 }
 

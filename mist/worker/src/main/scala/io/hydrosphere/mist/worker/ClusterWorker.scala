@@ -5,8 +5,6 @@ import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.core.CommonData._
 
-import scala.concurrent.Await
-import scala.util.Try
 import scala.concurrent.duration._
 
 class ClusterWorker(
@@ -86,6 +84,11 @@ class ClusterWorker(
 
   private def shutdown(reason: String): Unit = {
     log.info(reason)
+    context.stop(self)
+    cluster.system.terminate()
+  }
+
+  private def shutdown(): Unit = {
     context.stop(self)
     cluster.system.terminate()
   }
