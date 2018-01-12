@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.logging
 
 import java.nio.ByteOrder
 
+import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.io.Framing
 import akka.stream.scaladsl._
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.ByteString
@@ -21,7 +21,7 @@ trait LogStreams {
     * Storing batched logEvent via writer and produce Event
     *   for async interfaces
     */
-  def storeFlow(writer: LogsWriter): Flow[LogEvent, LogUpdate, Unit] = {
+  def storeFlow(writer: LogsWriter): Flow[LogEvent, LogUpdate, NotUsed] = {
     Flow[LogEvent]
       .groupBy(1000, _.from)
       .groupedWithin(1000, 1 second)
@@ -37,7 +37,7 @@ trait LogStreams {
     */
   def tcpConnectionFlow[B](
     eventHandler: Flow[LogEvent, B, Any],
-    decodePoolSize: Int = 10): Flow[ByteString, ByteString, Unit] = {
+    decodePoolSize: Int = 10): Flow[ByteString, ByteString, NotUsed] = {
 
     val kryoPool = {
       val inst = new ScalaKryoInstantiator

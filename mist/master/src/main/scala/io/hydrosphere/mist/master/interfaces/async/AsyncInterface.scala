@@ -5,7 +5,8 @@ import io.hydrosphere.mist.master.MainService
 import io.hydrosphere.mist.master.interfaces.JsonCodecs._
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
-import spray.json.{DeserializationException, JsValue, JsonParser, pimpString}
+import spray.json.{DeserializationException, JsValue, JsonParser}
+import spray.json.enrichString
 
 import scala.util.{Failure, Success, Try}
 

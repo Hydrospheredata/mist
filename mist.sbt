@@ -38,7 +38,7 @@ lazy val mistLib = project.in(file("mist-lib"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
-      Library.Akka.streams,
+      Library.Akka.stream,
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
@@ -68,15 +68,15 @@ lazy val master = project.in(file("mist/master"))
   .settings(
     name := "mist-master",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.Akka.base(scalaVersion.value) ++ Library.Akka.http,
-    libraryDependencies += Library.Akka.testKit(scalaVersion.value),
+    libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
       Library.slf4j, Library.typesafeConfig, Library.scopt,
       Library.slick, Library.h2, Library.flyway,
       Library.chill,
       Library.kafka, Library.pahoMqtt,
 
-      Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
+      Library.Akka.testKit % "test",
+      Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
       Library.cats,
 
       Library.hadoopCommon, Library.commonsCodec, Library.scalajHttp,
@@ -97,8 +97,8 @@ lazy val worker = project.in(file("mist/worker"))
   .settings(
     name := "mist-worker",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.Akka.base(scalaVersion.value) ++ Library.Akka.http,
-    libraryDependencies += Library.Akka.testKit(scalaVersion.value),
+    libraryDependencies ++= Library.Akka.base :+ Library.Akka.http,
+    libraryDependencies += Library.Akka.testKit,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       Library.scopt,
