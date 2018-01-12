@@ -19,7 +19,7 @@ class WSApi(streamer: EventsStreamer) {
   import JsonCodecs._
 
   val route = {
-    pathPrefix("v2" / "api"/ "ws" ) { parameter('withLogs ? true)  { withLogs =>
+    pathPrefix("v2" / "api"/ "ws" ) { parameter('withLogs ? false)  { withLogs =>
       path("all") {
         get {
           handleWebSocketMessages(allEventsWsFlow(withLogs))

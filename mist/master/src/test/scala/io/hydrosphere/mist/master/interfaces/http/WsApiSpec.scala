@@ -52,7 +52,7 @@ class WsApiSpec extends FunSpec
 
     val client = WSProbe()
 
-    WS("/v2/api/ws/jobs/1", client.flow) ~> route ~> check {
+    WS("/v2/api/ws/jobs/1?withLogs=true", client.flow) ~> route ~> check {
       isWebSocketUpgrade shouldBe true
 
       client.expectMessage("""{"id":"1","time":1,"event":"started"}""")
@@ -61,7 +61,7 @@ class WsApiSpec extends FunSpec
     }
   }
 
-  it("should filter received logs events with flag set") {
+  it("should filter received logs events if flag wasn't set") {
     val testSource = Source[SystemEvent](List(
       StartedEvent("1", 1),
       StartedEvent("2", 1),
@@ -76,7 +76,7 @@ class WsApiSpec extends FunSpec
 
     val client = WSProbe()
 
-    WS("/v2/api/ws/jobs/1?withLogs=false", client.flow) ~> route ~> check {
+    WS("/v2/api/ws/jobs/1", client.flow) ~> route ~> check {
       isWebSocketUpgrade shouldBe true
 
       client.expectMessage("""{"id":"1","time":1,"event":"started"}""")
