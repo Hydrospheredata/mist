@@ -3,13 +3,15 @@ package mist.api.args
 import shadedshapeless._
 import shadedshapeless.labelled.FieldType
 
-trait ArgExtractor[A] {
+trait ArgExtractor[A] { self =>
 
   def `type`: ArgType
   def extract(a: Any): ArgExtraction[A]
 }
 
-trait RootExtractor[A] extends ArgExtractor[A]
+trait RootExtractor[A] extends ArgExtractor[A] {
+  def `type`: RootArgType
+}
 
 trait Basic {
 
@@ -17,6 +19,13 @@ trait Basic {
     new ArgExtractor[A] {
       override def extract(a: Any): ArgExtraction[A] = f(a)
       override def `type`: ArgType = argType
+    }
+  }
+
+  def createRoot[A](argType: RootArgType)(f: Any => ArgExtraction[A]): RootExtractor[A] = {
+    new RootExtractor[A] {
+      override def extract(a: Any): ArgExtraction[A] = f(a)
+      override def `type`: RootArgType = argType
     }
   }
 
@@ -95,16 +104,24 @@ trait Collections extends Basic {
 
 trait CaseClasses extends Basic {
 
-  implicit def hnilExt[H <: HNil]: ArgExtractor[HNil] =
-    create(MObj(Seq.empty))(_ => Extracted(HNil))
+  trait ObjExtractor[A] extends RootExtractor[A] {
+    def `type`: MObj
+  }
+
+  implicit def hnilExt[H <: HNil]: ObjExtractor[HNil] = {
+    new ObjExtractor[HNil] {
+      def extract(a: Any): ArgExtraction[HNil] = Extracted(HNil)
+      def `type`: MObj = MObj.empty
+    }
+  }
 
   implicit def hlistExt[K <: Symbol, H, T <: HList](
     implicit
     witness: Witness.Aux[K],
     hExt: Lazy[ArgExtractor[H]],
-    tExt: ArgExtractor[T]
-  ): ArgExtractor[FieldType[K, H] :: T] = {
-    new ArgExtractor[FieldType[K, H] :: T] {
+    tExt: ObjExtractor[T]
+  ): ObjExtractor[FieldType[K, H] :: T] = {
+    new ObjExtractor[FieldType[K, H] :: T] {
 
       override def extract(a: Any): ArgExtraction[FieldType[K, H] :: T] = {
         val fieldName: String = witness.value.name
@@ -130,13 +147,10 @@ trait CaseClasses extends Basic {
         }
       }
 
-      override def `type`: ArgType = {
+      override def `type`: MObj = {
         val curr = witness.value.name -> hExt.value.`type`
-        val tail = tExt.`type` match {
-          case MObj(fields) => fields
-          case _ => throw new AssertionError("Internal extraction error")
-        }
-        MObj(tail :+ curr)
+        val tail = tExt.`type`
+        MObj(tail.fields :+ curr)
       }
     }
   }
@@ -144,9 +158,10 @@ trait CaseClasses extends Basic {
   implicit def labelled[A, H <: HList](
     implicit
     labGen: LabelledGeneric.Aux[A, H],
-    ext: ArgExtractor[H]
-  ): ArgExtractor[A] = {
-    create(ext.`type`)(a => ext.extract(a) match {
+    extL: Lazy[ObjExtractor[H]]
+  ): RootExtractor[A] = {
+    val ext = extL.value
+    createRoot(ext.`type`)(a => ext.extract(a) match {
       case Extracted(v) => Extracted(labGen.from(v))
       case m @ Missing(_) => m.asInstanceOf[Missing[A]]
     })
@@ -154,16 +169,12 @@ trait CaseClasses extends Basic {
 
 }
 
-object ArgExtractor extends Primitives with Collections with CaseClasses {
+object ArgExtractor extends Primitives
+    with Collections
+    with CaseClasses {
 
   def apply[A](implicit ext: ArgExtractor[A]): ArgExtractor[A] = ext
 
-  def rootFor[A](implicit ev: LabelledGeneric[A], ext: ArgExtractor[A]): RootExtractor[A] = {
-    new RootExtractor[A] {
-      override def extract(a: Any): ArgExtraction[A] = ext.extract(a)
-
-      override def `type`: ArgType = ext.`type`
-    }
-  }
+  def rootFor[A](implicit root: RootExtractor[A]): RootExtractor[A] = root
 }
 

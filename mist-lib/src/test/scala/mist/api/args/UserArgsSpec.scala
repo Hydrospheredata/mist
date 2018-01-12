@@ -21,11 +21,29 @@ case class VisitRateArguments(
   eventsFileLocation: String
 )
 
+case class NumArg(n: Int, mult: Int)
+case class ArgsX(
+  number: NumArg
+)
+
 class UserArgsSpec extends FunSpec with Matchers {
 
   import ArgsInstances._
 
   describe("complex case class") {
+
+    it("lazy labelled") {
+      implicit val ext = ArgExtractor.rootFor[ArgsX]
+
+      val params = Map(
+        "number" -> Map(
+          "n"  -> 1,
+          "mult" -> 2
+        )
+      )
+      val r = arg[ArgsX].extract(FnContext(params))
+      r.isExtracted shouldBe true
+    }
 
     it("example") {
       val params = Map(
@@ -45,7 +63,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         "proximityZone" -> 1.2,
         "eventsFileLocation" -> "asd,asd,sad"
       )
-      implicit val ext = ArgExtractor.rootFor[VisitRateArguments]
+      implicit val ext2 = ArgExtractor.rootFor[VisitRateArguments]
       val r = arg[VisitRateArguments].extract(FnContext(params))
       r.isExtracted shouldBe true
     }

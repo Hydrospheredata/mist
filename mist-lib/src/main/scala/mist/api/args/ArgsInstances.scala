@@ -31,9 +31,12 @@ trait ArgsInstances {
 
   def arg[A](implicit le: RootExtractor[A]): UserArg[A] = {
     new UserArg[A] {
-      //TODO
-      override def describe(): Seq[ArgInfo] =
-        le.`type`.asInstanceOf[MObj].fields.map({case (k, v) => UserInputArgument(k, v)})
+      override def describe(): Seq[ArgInfo] = {
+        le.`type` match {
+          case MObj(fields) => fields.map({case (k, v) => UserInputArgument(k, v)})
+          case MMap(k, v) => Seq()
+        }
+      }
 
       override def extract(ctx: FnContext) = le.extract(ctx.params)
     }
