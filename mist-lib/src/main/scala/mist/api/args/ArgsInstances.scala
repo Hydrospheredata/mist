@@ -4,15 +4,15 @@ import mist.api.FnContext
 
 trait ArgsInstances {
 
-  class NamedUserArg[A](name: String)(implicit pe: PlainExtractor[A]) extends UserArg[A] {
+  class NamedUserArg[A](name: String)(implicit pe: ArgExtractor[A]) extends UserArg[A] {
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, pe.`type`))
 
     override def extract(ctx: FnContext): ArgExtraction[A] = {
-      pe.extract(ctx.params.get(name))
+      pe.extract(ctx.params.getOrElse(name, null))
     }
   }
 
-  class NamedUserArgWithDefault[A](name: String, default: A)(implicit pe: PlainExtractor[A]) extends UserArg[A] {
+  class NamedUserArgWithDefault[A](name: String, default: A)(implicit pe: ArgExtractor[A]) extends UserArg[A] {
     override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(pe.`type`)))
 
     override def extract(ctx: FnContext): ArgExtraction[A] = {
@@ -23,15 +23,20 @@ trait ArgsInstances {
     }
   }
 
-  def arg[A](name: String)(implicit pe: PlainExtractor[A]): UserArg[A] =
+  def arg[A](name: String)(implicit pe: ArgExtractor[A]): UserArg[A] =
     new NamedUserArg[A](name)
 
-  def arg[A](name: String, default: A)(implicit pe: PlainExtractor[A]): UserArg[A] =
+  def arg[A](name: String, default: A)(implicit pe: ArgExtractor[A]): UserArg[A] =
     new NamedUserArgWithDefault[A](name, default)
 
-  def arg[A](implicit le: LabeledExtractor[A]): UserArg[A] = {
+  def arg[A](implicit le: RootExtractor[A]): UserArg[A] = {
     new UserArg[A] {
-      override def describe(): Seq[ArgInfo] = le.info
+      override def describe(): Seq[ArgInfo] = {
+        le.`type` match {
+          case MObj(fields) => fields.map({case (k, v) => UserInputArgument(k, v)})
+          case MMap(k, v) => Seq()
+        }
+      }
 
       override def extract(ctx: FnContext) = le.extract(ctx.params)
     }
@@ -45,4 +50,3 @@ trait ArgsInstances {
 }
 
 object ArgsInstances extends ArgsInstances
-

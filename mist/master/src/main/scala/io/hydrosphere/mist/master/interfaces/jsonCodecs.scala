@@ -9,6 +9,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.{JobDetails, JobResult, WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
+import mist.api.args.{ArgType, MBoolean}
 import mist.api.data._
 import spray.json._
 
@@ -125,7 +126,7 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val printer = CompactPrinter
 
   implicit val httpJobArgF: RootJsonFormat[HttpJobArg] =
-    rootFormat(lazyFormat(jsonFormat(HttpJobArg.apply, "type", "args")))
+    rootFormat(lazyFormat(jsonFormat(HttpJobArg.apply, "type", "args", "fields")))
 
   implicit val httpJobInfoF = rootFormat(lazyFormat(jsonFormat(HttpJobInfo.apply,
       "name", "execute", "serve",
