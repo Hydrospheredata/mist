@@ -13,7 +13,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
     it("should build arguments for worker") {
       val cfg = MasterConfig(
         cluster = HostPortConfig("0.0.0.0", 2345),
-        http = HttpConfig("0.0.0.0", 2004, "path"),
+        http = HttpConfig("0.0.0.0", 2004, "path", 30 seconds),
         mqtt = None,
         kafka = None,
         logs = LogServiceConfig("logsHost", 5000, ""),

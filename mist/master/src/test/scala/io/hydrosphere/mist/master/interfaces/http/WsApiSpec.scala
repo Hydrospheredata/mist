@@ -9,12 +9,14 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.EventsStreamer
 import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}
+import scala.concurrent.duration._
 
 class WsApiSpec extends FunSpec
   with Matchers
   with ScalatestRouteTest {
 
   val mat = ActorMaterializer()
+  implicit val keepAlive = 30 seconds
 
   it("should stream all events") {
     val testSource = Source[UpdateStatusEvent](List(

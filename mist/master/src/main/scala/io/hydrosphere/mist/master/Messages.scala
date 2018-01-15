@@ -34,6 +34,7 @@ object Messages {
     case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
     case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
+    case object KeepAliveEvent extends SystemEvent
 
     // return full job details
     case object RunningJobs

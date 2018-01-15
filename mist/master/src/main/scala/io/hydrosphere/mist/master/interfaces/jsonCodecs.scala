@@ -255,6 +255,7 @@ trait JsonCodecs extends SprayJsonSupport
         case x: FailedEvent => "failed" -> x.toJson
         case x: ReceivedLogs => "logs" -> x.toJson
         case x: JobFileDownloadingEvent => "job-file-downloading" -> x.toJson
+        case KeepAliveEvent => "keep-alive" -> JsObject(Map.empty[String, JsValue])
       }
 
       val merged = initial.asJsObject.fields + ("event" -> JsString(name))
