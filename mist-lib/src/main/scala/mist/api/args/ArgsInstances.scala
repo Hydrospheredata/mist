@@ -17,8 +17,8 @@ trait ArgsInstances {
 
     override def extract(ctx: FnContext): ArgExtraction[A] = {
       ctx.params.get(name) match {
-        case Some(v) => pe.extract(v)
-        case None => Extracted(default)
+        case Some(a) => pe.extract(a)
+        case _ => Extracted(default)
       }
     }
   }
