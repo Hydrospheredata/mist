@@ -135,6 +135,7 @@ class UserArgsSpec extends FunSpec with Matchers {
       ("arg", "data", "expected"),
       (arg[Boolean]("b"),        Seq("b" -> true), Extracted(true)),
       (arg[Boolean]("b", false), Seq.empty,        Extracted(false)),
+      (arg[Boolean]("b", true),  Seq("b" -> false),Extracted(false)),
       (arg[Boolean]("b"),        Seq.empty,        miss),
       (arg[Option[Boolean]]("b"),Seq("b" -> true), Extracted(Some(true))),
       (arg[Option[Boolean]]("b"),Seq.empty,        Extracted(None)),
@@ -182,6 +183,7 @@ class UserArgsSpec extends FunSpec with Matchers {
         }
       }
     }
+
   }
 
   describe("ArgDef - validate") {
