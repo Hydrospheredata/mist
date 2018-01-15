@@ -23,6 +23,7 @@ class JArgDefSpec extends FunSpec with Matchers {
     ("arg", "data", "expected"),
     (booleanArg("b"),        Seq("b" -> true), Extracted(true)),
     (booleanArg("b", false), Seq.empty,        Extracted(false)),
+    (booleanArg("b", false), Seq("b" -> true), Extracted(true)),
     (booleanArg("b"),        Seq.empty,        miss),
     (optBooleanArg("b"),     Seq("b" -> true), Extracted(java.util.Optional.of(true))),
     (optBooleanArg("b"),     Seq.empty,        Extracted(java.util.Optional.empty())),
