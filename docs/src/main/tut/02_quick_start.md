@@ -11,6 +11,12 @@ This tutorial provides a quick introduction to using Mist.
 We will first cover local installation details, then briefly overview how to write functions
 and finally how to deploy and run them on Mist
 
+To better understainding lets introduce following defenitions that we will use:
+- function - user code that invokes on spark
+- job - a result of function invocation
+- master - mist master application (it manages functions, jobs, workers, expose public interfaces)
+- worker - special spark driver application that actually invokes function (mist automatically spawn them)
+
 ## Install
 
 You can install Mist from binaries or run it in docker.
@@ -50,14 +56,18 @@ SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 
 ### Check how it works
 
-Mist has built-in UI where you could check running workers and jobs as well as execute/debug API routes right from the web browser.
-By default it's available by `/ui` path.
+Mist has build-in UI where you could:
+- manage functions
+- run jobs, access they results, see addtitional info (status, logs)
+- see worker settings and stop them manually
 
+By default ui is availably at <http://localhost:2004/ui>.
+
+Demo:
 <video autoplay="autoplay">
  <source src="/mist-docs/img/quick-start-ui.webm" type='video/webm; codecs="vp8, vorbis"'>
 </video>
 
-Link on it for local installation <http://localhost:2004/ui>.
 Also Mist has prebuilt examples for: 
 - [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples/src/main/)
 - [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
@@ -72,7 +82,8 @@ NOTE: here we use `force=true` to get job result in same http req/resp pair, it 
 
 ### Running your own function
 
-So after 
+So after plaing with example it's time to build and run function from outside.
+Details about writing function will be covered in next chapters 
 
 
 ### Connecting to your existing Apache Spark cluster
