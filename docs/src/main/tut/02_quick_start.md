@@ -61,7 +61,7 @@ Mist has build-in UI where you could:
 - run jobs, access they results, see addtitional info (status, logs)
 - see worker settings and stop them manually
 
-By default ui is availably at <http://localhost:2004/ui>.
+By default ui is available at <http://localhost:2004/ui>.
 
 Demo:
 <video autoplay="autoplay">
@@ -82,8 +82,15 @@ NOTE: here we use `force=true` to get job result in same http req/resp pair, it 
 
 ### Running your own function
 
-So after plaing with example it's time to build and run function from outside.
-Details about writing function will be covered in next chapters 
+After plaing with examples it's time to build and run function from outside.
+For a quick start we will use repository that alrady contains prepared projects.
+(Details about writing function will be covered in next chapters)
+
+
+
+#### Scala + sbt
+
+ 
 
 
 ### Connecting to your existing Apache Spark cluster
