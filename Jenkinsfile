@@ -40,21 +40,20 @@ node("JenkinsOnDemand") {
       }
     }
 
-    def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-    if (tag.startsWith("v")) {
-        v = tag.replace("v", "")
-        stage("upload tar") {
-          sh "${env.WORKSPACE}/sbt/sbt packageTar"
-          tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
-          sshagent(['hydrosphere_static_key']) {
-            sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
-          }
+    onRelease { v ->
+      stage("upload tar") {
+        sh "${env.WORKSPACE}/sbt/sbt packageTar"
+        tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
+        sshagent(['hydrosphere_static_key']) {
+          sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
         }
+      }
 
-        stage('Publish in Maven') {
-            sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
-            sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeRelease'"
-        }
+      stage('Publish in Maven') {
+          sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+          sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeReleaseAll'"
+      }
+      
     }
 }
 
@@ -70,7 +69,8 @@ def test_mist(slaveName, sparkVersion) {
                     sh "cd ${env.WORKSPACE}"
                     sh "git fetch --tags"
                 }
-
+                
+                
                 stage('Build and test') {
                     //Clear derby databases
                     sh "rm -rf metastore_db recovery.db derby.log"
@@ -83,14 +83,11 @@ def test_mist(slaveName, sparkVersion) {
                     }
                 }
 
-                def tag = sh(returnStdout: true, script: "git tag -l --contains HEAD").trim()
-                if (tag.startsWith("v")) {
-                    version = tag.replace("v", "")
-                    stage('Publish in DockerHub') {
-                        sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} docker"
-                        sh "docker push hydrosphere/mist:${version}-${sparkVersion}"
-                    }
-
+                onRelease { v ->
+                  stage('Publish in DockerHub') {
+                      sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} docker"
+                      sh "docker push hydrosphere/mist:${v}-${sparkVersion}"
+                  }
                 }
             }
             catch (err) {
@@ -106,4 +103,10 @@ def test_mist(slaveName, sparkVersion) {
             }
         }
     }
+}
+
+def onRelease(Closure body) {
+  def describe = sh(returnStdout: true, script: "git describe").trim()
+  if (describe ==~ /^v\d+.\d+.\d+(-RC\d+)?/)
+    body(describe)
 }
