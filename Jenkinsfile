@@ -108,5 +108,5 @@ def test_mist(slaveName, sparkVersion) {
 def onRelease(Closure body) {
   def describe = sh(returnStdout: true, script: "git describe").trim()
   if (describe ==~ /^v\d+.\d+.\d+(-RC\d+)?/)
-    body(describe)
+    body(describe.replace("v", ""))
 }
