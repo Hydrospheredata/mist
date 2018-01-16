@@ -34,10 +34,10 @@ trait JArgsDef {
 
   import scala.collection.JavaConverters._
 
-  private def namedArg[A](name: String)(implicit d: PlainExtractor[A]): JUserArg[A] =
+  private def namedArg[A](name: String)(implicit d: ArgExtractor[A]): JUserArg[A] =
     new JUserArg[A](arg[A](name))
 
-  private def namedArg[A](name: String, default: A)(implicit d: PlainExtractor[A]): JUserArg[A] =
+  private def namedArg[A](name: String, default: A)(implicit d: ArgExtractor[A]): JUserArg[A] =
     new JUserArg[A](arg[A](name, default))
 
   def intArg(name: String): JUserArg[jl.Integer] = namedArg(name)
@@ -52,7 +52,7 @@ trait JArgsDef {
   def booleanArg(name: String): JUserArg[jl.Boolean] = namedArg(name)
   def booleanArg(name: String, defaultValue: jl.Boolean): JUserArg[jl.Boolean] = namedArg(name, defaultValue)
 
-  private def optArg[T](name: String)(implicit tP: TypedPrimitive[T]): JUserArg[ju.Optional[T]] = {
+  private def optArg[T](name: String)(implicit tP: ArgExtractor[T]): JUserArg[ju.Optional[T]] = {
     val arg = new UserArg[ju.Optional[T]] {
       override def describe() = Seq(UserInputArgument(name, MOption(tP.`type`)))
 
@@ -74,7 +74,7 @@ trait JArgsDef {
   def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg(name)
   def optBooleanArg(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg(name)
 
-  private def listArg[T](name: String)(implicit tP: TypedPrimitive[T]): JUserArg[ju.List[T]] = {
+  private def listArg[T](name: String)(implicit tP: ArgExtractor[T]): JUserArg[ju.List[T]] = {
     val arg = new UserArg[ju.List[T]] {
       override def describe() = Seq(UserInputArgument(name, MList(tP.`type`)))
 
@@ -108,4 +108,3 @@ trait JArgsDef {
 }
 
 object JArgsDef extends JArgsDef
-

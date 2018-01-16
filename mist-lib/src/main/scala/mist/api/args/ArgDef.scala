@@ -30,6 +30,8 @@ trait ArgExtraction[+A] { self =>
     case m@Missing(_) => true
   }
 
+  def isExtracted: Boolean = !isMissing
+
 }
 
 case class Extracted[+A](value: A) extends ArgExtraction[A]

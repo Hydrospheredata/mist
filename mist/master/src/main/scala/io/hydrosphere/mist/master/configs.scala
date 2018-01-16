@@ -34,13 +34,19 @@ object HostPortConfig {
 case class HttpConfig(
   host: String,
   port: Int,
-  uiPath: String
+  uiPath: String,
+  keepAliveTick: FiniteDuration
 )
 
 object HttpConfig {
 
   def apply(config: Config): HttpConfig =
-    HttpConfig(config.getString("host"), config.getInt("port"), config.getString("ui"))
+    HttpConfig(
+      config.getString("host"),
+      config.getInt("port"),
+      config.getString("ui"),
+      config.getFiniteDuration("ws-keepalive-tick")
+    )
 }
 
 

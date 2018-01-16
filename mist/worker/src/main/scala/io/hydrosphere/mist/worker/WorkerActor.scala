@@ -165,10 +165,18 @@ class ExclusiveWorkerActor(
 
   override def receive: Receive = awaitRequest
 
+  override def preStart(): Unit = {
+    context.setReceiveTimeout(1.minute)
+  }
+
   val awaitRequest: Receive = {
     case req: RunJobRequest =>
       val jobStarted = startJob(req)
       context.become(execute(ExecutionUnit(sender(), jobStarted)))
+
+    case ReceiveTimeout =>
+      log.info("No job requests for a 1 minute - (cluster problems?)")
+      context.stop(self)
   }
 
   def execute(executionUnit: ExecutionUnit): Receive = {

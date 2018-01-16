@@ -6,9 +6,15 @@ case object MInt extends ArgType
 case object MString extends ArgType
 case object MDouble extends ArgType
 
-case class MList(v: ArgType) extends ArgType
-case class MMap(k: ArgType, v: ArgType) extends ArgType
-case class MOption(v: ArgType) extends ArgType
+final case class MList(v: ArgType) extends ArgType
+final case class MOption(v: ArgType) extends ArgType
+
+sealed trait RootArgType extends ArgType
+final case class MMap(k: ArgType, v: ArgType) extends RootArgType
+final case class MObj(fields: Seq[(String, ArgType)]) extends RootArgType
+object MObj {
+  val empty = MObj(Seq.empty)
+}
 
 case object MAny extends ArgType
 

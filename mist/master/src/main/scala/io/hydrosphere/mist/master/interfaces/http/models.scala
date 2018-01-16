@@ -45,22 +45,33 @@ object HttpJobInfo {
 
 case class HttpJobArg(
   `type`: String,
-  args: Seq[HttpJobArg]
+  args: Option[Seq[HttpJobArg]],
+  fields: Option[Map[String, HttpJobArg]] = None
 )
 
 object HttpJobArg {
 
+  import cats.syntax.option._
   import mist.api.args._
+
+  def plain(`type`: String): HttpJobArg =
+    HttpJobArg(`type`, None, None)
+
+  def withTypeArgs(`type`: String, args: Seq[HttpJobArg]): HttpJobArg =
+    HttpJobArg(`type`, args.some)
+
+  def complex(`type`: String, fields: Map[String, HttpJobArg]): HttpJobArg =
+    HttpJobArg(`type`, None, fields.some)
 
   def convert(argType: ArgType): HttpJobArg = {
     val t = argType.getClass.getSimpleName.replace("$", "")
-    val typeArgs = argType match {
-      case x@(MBoolean | MInt | MDouble | MString | MAny) => Seq.empty
-      case x: MMap => Seq(x.k, x.v).map(HttpJobArg.convert)
-      case x: MList => Seq(HttpJobArg.convert(x.v))
-      case x: MOption => Seq(HttpJobArg.convert(x.v))
+    argType match {
+      case x@(MBoolean | MInt | MDouble | MString | MAny) => plain(t)
+      case x: MMap => withTypeArgs(t, Seq(x.k, x.v).map(convert))
+      case x: MList => withTypeArgs(t, Seq(convert(x.v)))
+      case x: MOption => withTypeArgs(t, Seq(convert(x.v)))
+      case x: MObj => complex(t, x.fields.map({case (k, v) => k -> convert(v)}).toMap)
     }
-    new HttpJobArg(t, typeArgs)
   }
 }
 
@@ -79,22 +90,6 @@ case class HttpEndpointInfoV2(
 )
 
 object HttpEndpointInfoV2 {
-
-  //  val TagTraits = Seq(
-  //    classOf[HiveSupport],
-  //    classOf[SQLSupport],
-  //    classOf[StreamingSupport],
-  //    classOf[MLMistJob]
-  //  )
-  //
-  //  case class TagTrait(clazz: Class[_], name: String)
-  //
-  //  val AllTags = Seq(
-  //    TagTrait(classOf[HiveSupport], "hive"),
-  //    TagTrait(classOf[SQLSupport], "sql"),
-  //    TagTrait(classOf[StreamingSupport], "streaming"),
-  //    TagTrait(classOf[MLMistJob], "ml")
-  //  )
 
   def convert(info: JobInfoData): HttpEndpointInfoV2 = {
     HttpEndpointInfoV2(

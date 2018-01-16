@@ -19,7 +19,7 @@ import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.language.reflectiveCalls
 import scala.util._
@@ -146,8 +146,7 @@ object MasterServer extends Logger {
       Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
       Step.future("System", {
         materializer.shutdown()
-        system.shutdown()
-        Future(system.awaitTermination(30 seconds))
+        system.terminate().map(_ => ())
       }) :+
       Step.future("LogsSystem", logService.close())
 
@@ -177,7 +176,7 @@ object MasterServer extends Logger {
     val http = {
       val apiv2 = {
         val api = HttpV2Routes.apiWithCORS(mainService, artifacts)
-        val ws = new WSApi(streamer)
+        val ws = new WSApi(streamer)(config.keepAliveTick)
         // order is important!
         // api router can't chain unhandled calls, because it's wrapped in cors directive
         ws.route ~ api

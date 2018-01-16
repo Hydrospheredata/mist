@@ -88,7 +88,7 @@ case class MistHttpInterface(
 ) {
 
   import io.hydrosphere.mist.master.interfaces.JsonCodecs._
-  import spray.json.{pimpString, _}
+  import spray.json.{enrichString, _}
 
   def runJob(routeId: String, params: (String, Any)*): JobResult =
     callV2Api(routeId, params.toMap)

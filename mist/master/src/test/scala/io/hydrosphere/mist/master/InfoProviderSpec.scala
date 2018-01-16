@@ -4,8 +4,8 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.data.ContextsStorage
 import org.scalatest.{FunSpec, Matchers}
 
+import scala.concurrent.duration._
 import scala.concurrent.Future
-
 class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
 
   import TestUtils._
@@ -17,7 +17,7 @@ class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
 
     val provider = new InfoProvider(
       LogServiceConfig("logHost", 999, ""),
-      HttpConfig("localhost", 2004, "ui"),
+      HttpConfig("localhost", 2004, "ui", 30 seconds),
       contexts,
       "/tmp"
     )

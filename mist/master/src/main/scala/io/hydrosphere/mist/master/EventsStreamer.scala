@@ -7,7 +7,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages.{UpdateStatusEvent, Sy
 
 trait EventsStreamer {
 
-  def eventsSource(): Source[SystemEvent, Unit]
+  def eventsSource(): Source[SystemEvent, akka.NotUsed]
 
   def push(event: SystemEvent): Unit
 
@@ -24,9 +24,9 @@ object EventsStreamer {
     val actor = system.actorOf(Props(new BroadcastSource))
 
     new EventsStreamer {
-      override def eventsSource(): Source[SystemEvent, Unit] = {
+      override def eventsSource(): Source[SystemEvent, akka.NotUsed] = {
         Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropTail)
-          .mapMaterializedValue(ref => actor.tell("subscribe", ref))
+          .mapMaterializedValue(ref => {actor.tell("subscribe", ref); akka.NotUsed})
       }
 
       override def push(event: SystemEvent): Unit = actor ! event
