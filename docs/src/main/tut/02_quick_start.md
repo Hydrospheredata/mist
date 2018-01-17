@@ -14,8 +14,11 @@ and finally how to deploy and run them on Mist
 To better understainding lets introduce following defenitions that we will use:
 - function - user code that invokes on spark
 - job - a result of function invocation
+- context - settings for worker where function invokes (spark settings + worker mode) 
+- artifact - file (.jar or .py) that contains function
 - master - mist master application (it manages functions, jobs, workers, expose public interfaces)
 - worker - special spark driver application that actually invokes function (mist automatically spawn them)
+- mist-cli - command line tool for interations with mist
 
 ## Install
 
@@ -71,6 +74,8 @@ Demo:
 Also Mist has prebuilt examples for: 
 - [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples/src/main/)
 - [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
+
+
 You can run these examples from web ui, REST HTTP or Messaging API.
 For example http call for [SparkContextExample](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/main/scala/SparkContextExample.scala)
 from examples looks like that:
@@ -82,18 +87,152 @@ NOTE: here we use `force=true` to get job result in same http req/resp pair, it 
 
 ### Running your own function
 
-After plaing with examples it's time to build and run function from outside.
-For a quick start we will use repository that alrady contains prepared projects.
-(Details about writing function will be covered in next chapters)
+Mist provides typeful library for writing functions on scala/java
+
+#### Scala
+
+build.sbt:
+```scala
+lazy val sparkVersion = "2.2.0"
+libraryDependencies ++= Seq(
+  "io.hydrosphere" %% "mist-lib" % "{{ site.version }}",
+
+  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-hive" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-streaming" % sparkVersion % "provided"
+)
+```
+
+Lets write a function spark which will calculate pi on spark and
+quickly overview how to write functions.
+
+`src/main/scala/HelloMist.scala`:
+```tut:silent
+import mist.api._
+import mist.api.encoding.DefaultEncoders._
+import org.apache.spark.SparkContext
+
+// an function object
+object HelloMist extends MistFn[Double] {
+
+  override def handle = {
+    withArgs(
+      // declare an input argument with name `n` and type `Int` and default value `10000`
+      // we could call it by sending:
+      //  - {} - empty request, n will be taken from default value
+      //  - {"n": 5 } - n will be 5
+      arg[Int]("samples", 10000)
+    )
+    // declare that we want to have access to mist extras
+    // we could use a internal logger from it for debugging
+    .withMistExtras
+    .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
+      import extras._
+
+      logger.info(s"Hello Mist started with samples: $n")
+
+      val count = sc.parallelize(1 to n).filter(_ => {
+        val x = math.random
+        val y = math.random
+        x * x + y * y < 1
+      }).count()
+
+      val pi = (4.0 * count) / n
+      pi
+    })
+  }
+}
+```
+
+Next we should build an artifact with out function and set it up on mist:
+```sh
+sbt package
+curl 
+```
+
+
+#### Java
+
+For maven:
+```xml
+  <properties>
+    <spark.version>2.2.0</spark.version>
+    <java.version>1.8</java.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.hydrosphere</groupId>
+      <artifactId>mist-lib_2.11</artifactId>
+      <version>1.0.0-RC5</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-hive_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-streaming_2.11</artifactId>
+      <version>${spark.version}</version>
+    </dependency>
+  </dependencies>
+```
 
 
 
-#### Scala + sbt
 
+Prerequiments:
+- install `mist-cli`
+  ```sh
+  pip install mist-cli
+  // or
+  easy_install mist-cli
+  ```
+- clone repository with prepared projects
+  ```sh
+  git clone https://github.com/dos65/hello_mist.git
+  ```
+
+We will use `mist-cli` to upload our function using just one command(or you can use [http interface directly](/mist-docs/http_api.html))
+That repository contnains:
+- simple function example
+- build setup (sbt/mvn)
+- configuration files for mist-cli
+
+#### Scala
+
+```sh
+cd hello_mist/scala
+sbt package
+mist-cli apply -f conf
+```
+
+#### Java
  
-
+```sh
+cd hello_mist/java
+mvn package
+mist-cli apply -f conf
+```
 
 ### Connecting to your existing Apache Spark cluster
+
 If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
 you should edit a config and specifying an address of your existing Apache Spark master.
 
