@@ -1,25 +1,15 @@
 # coding=utf-8
 
-import py4j.java_gateway
-import pyspark
-import sys, getopt, traceback, json, re, types
-
+import sys, traceback, types, argparse
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
-from py4j.java_collections import SetConverter, MapConverter, ListConverter, JavaMap, JavaList
-from py4j.protocol import Py4JJavaError
+from py4j.java_collections import JavaMap, JavaList
 
-from pyspark.conf import SparkConf
-from pyspark.context import SparkContext
 from pyspark.sql.types import *
-from pyspark.rdd import RDD
-from pyspark.files import SparkFiles
-from pyspark.storagelevel import StorageLevel
-from pyspark.accumulators import Accumulator, AccumulatorParam
-from pyspark.broadcast import Broadcast
-from pyspark.serializers import MarshalSerializer, PickleSerializer
 
-from mist.mist_job import *
+from mist.executable_entry import get_metadata, ClassEntry
 from mist.context_wrapper import ContextWrapper
+from mist.decorators import SPARK_CONTEXT, SPARK_SESSION, SPARK_STREAMING, HIVE_CONTEXT, HIVE_SESSION, SQL_CONTEXT
+
 
 def to_python_types(any):
     python_any = any
@@ -32,69 +22,100 @@ def to_python_types(any):
         for i, value in enumerate(any):
             python_any.insert(i, to_python_types(value))
     return python_any
-        
 
-_client = GatewayClient(port=int(sys.argv[1]))
-_gateway = JavaGateway(_client, auto_convert = True)
-_entry_point = _gateway.entry_point
 
-java_import(_gateway.jvm, "org.apache.spark.SparkContext")
-java_import(_gateway.jvm, "org.apache.spark.SparkEnv")
-java_import(_gateway.jvm, "org.apache.spark.SparkConf")
-java_import(_gateway.jvm, "org.apache.spark.streaming.*")
-java_import(_gateway.jvm, "org.apache.spark.streaming.api.java.*")
-java_import(_gateway.jvm, "org.apache.spark.streaming.api.python.*")
-java_import(_gateway.jvm, "org.apache.spark.api.java.*")
-java_import(_gateway.jvm, "org.apache.spark.api.python.*")
-java_import(_gateway.jvm, "org.apache.spark.mllib.api.python.*")
-java_import(_gateway.jvm, "org.apache.spark.*")
-java_import(_gateway.jvm, "org.apache.spark.sql.*")
-java_import(_gateway.jvm, 'java.util.*')
+def initialized_context_value(_gateway, context_wrapper, selected_spark_argument):
+    if selected_spark_argument == SPARK_CONTEXT:
+        argument = context_wrapper.context
+    elif selected_spark_argument == SPARK_SESSION:
+        context_wrapper.set_session(_gateway)
+        argument = context_wrapper.session
+    elif selected_spark_argument == HIVE_SESSION:
+        context_wrapper.set_hive_session(_gateway)
+        argument = context_wrapper.session
+    elif selected_spark_argument == HIVE_CONTEXT:
+        context_wrapper.set_hive_context(_gateway)
+        argument = context_wrapper.hive_context
+    elif selected_spark_argument == SPARK_STREAMING:
+        context_wrapper.set_streaming_context(_gateway)
+        argument = context_wrapper.streaming_context
+    elif selected_spark_argument == SQL_CONTEXT:
+        context_wrapper.set_sql_context(_gateway)
+        argument = context_wrapper.sql_context
+    else:
+        raise Exception('Unknown spark argument type: ' + selected_spark_argument)
+    return argument
 
-context_wrapper = ContextWrapper()
-context_wrapper.set_context(_gateway)
 
-configuration_wrapper = _entry_point.configurationWrapper()
-error_wrapper = _entry_point.errorWrapper()
-path = configuration_wrapper.path()
-class_name = configuration_wrapper.className()
-parameters = configuration_wrapper.parameters()
+def execution_cmd(args):
+    _client = GatewayClient(port=args.gateway_port)
+    _gateway = JavaGateway(_client, auto_convert=True)
+    _entry_point = _gateway.entry_point
 
-data_wrapper = _entry_point.dataWrapper()
+    java_import(_gateway.jvm, "org.apache.spark.SparkContext")
+    java_import(_gateway.jvm, "org.apache.spark.SparkEnv")
+    java_import(_gateway.jvm, "org.apache.spark.SparkConf")
+    java_import(_gateway.jvm, "org.apache.spark.streaming.*")
+    java_import(_gateway.jvm, "org.apache.spark.streaming.api.java.*")
+    java_import(_gateway.jvm, "org.apache.spark.streaming.api.python.*")
+    java_import(_gateway.jvm, "org.apache.spark.api.java.*")
+    java_import(_gateway.jvm, "org.apache.spark.api.python.*")
+    java_import(_gateway.jvm, "org.apache.spark.mllib.api.python.*")
+    java_import(_gateway.jvm, "org.apache.spark.*")
+    java_import(_gateway.jvm, "org.apache.spark.sql.*")
+    java_import(_gateway.jvm, 'java.util.*')
 
-try: 
-    with open(path) as file:
-        code = compile(file.read(), path, "exec")
-    user_job_module = types.ModuleType("<user_job>")
-    exec code in user_job_module.__dict__
+    context_wrapper = ContextWrapper()
+    context_wrapper.set_context(_gateway)
 
-    class_ = getattr(user_job_module, class_name)
-    if not issubclass(class_, MistJob):
-        raise Exception(class_name + " is not a subclass of MistJob")
+    configuration_wrapper = _entry_point.configurationWrapper()
+    error_wrapper = _entry_point.errorWrapper()
+    path = configuration_wrapper.path()
+    class_name = configuration_wrapper.className()
+    parameters = configuration_wrapper.parameters()
 
-    instance = class_()
+    data_wrapper = _entry_point.dataWrapper()
 
     try:
-        from pyspark.sql import SparkSession
-        if issubclass(class_, WithSQLSupport):
-            context_wrapper.set_session(_gateway)
-        if issubclass(class_, WithHiveSupport):
-            context_wrapper.set_hive_session(_gateway)
-    except ImportError:
-        if issubclass(class_, WithSQLSupport):
-            context_wrapper.set_sql_context(_gateway)
-        if issubclass(class_, WithHiveSupport):
-            context_wrapper.set_hive_context(_gateway)
+        with open(path) as f:
+            code = compile(f.read(), path, "exec")
+        user_job_module = types.ModuleType("<user_job>")
+        exec code in user_job_module.__dict__
 
-    if issubclass(class_, WithPublisher):
-        context_wrapper.init_publisher(_gateway)
+        module_entry = getattr(user_job_module, class_name)
+        executable_entry = get_metadata(module_entry)
+        selected_spark_argument = executable_entry.selected_spark_argument
 
-    if issubclass(class_, WithStreamingContext):
-        context_wrapper.set_streaming_context(_gateway)
+        argument = initialized_context_value(_gateway, context_wrapper, selected_spark_argument)
 
-    instance.setup(context_wrapper)
-    # TODO: train/serve
-    result = instance.execute(**to_python_types(parameters))
-    data_wrapper.set(result)
-except Exception:
-    error_wrapper.set(traceback.format_exc())
+        if isinstance(executable_entry, ClassEntry):
+            if executable_entry.with_publisher:
+                context_wrapper.init_publisher(_gateway)
+            result = executable_entry.invoke(context_wrapper, to_python_types(parameters))
+        else:
+            result = executable_entry.invoke(argument, to_python_types(parameters))
+
+        data_wrapper.set(result)
+
+    except Exception:
+        error_wrapper.set(traceback.format_exc())
+
+
+def metadata_cmd(args):
+    # TODO:
+    pass
+    # return get_metadata(args.fn_name)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+    exec_cmd = subparsers.add_parser('execution')
+    exec_cmd.add_argument('--gateway-port', type=int)
+    exec_cmd.set_defaults(func=execution_cmd)
+    metadata_cmd = subparsers.add_parser('metadata')
+    metadata_cmd.add_argument('--fn-name', type=str)
+    metadata_cmd.set_defaults(func=metadata_cmd)
+    args = parser.parse_args()
+    args.func(args)
+

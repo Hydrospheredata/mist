@@ -29,4 +29,10 @@ class PyJobsSpec extends FunSpec with MistItTest with Matchers {
     )
     assert(result.success, s"Job is failed $result")
   }}
+
+  it("should run simple function with new api") {
+    val result = interface.runJob("simple-context-new-py", "numbers" -> List(1, 2, 3), "multiplier" -> 4)
+    assert(result.success, s"Job is failed $result")
+  }
+
 }

@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.worker.runners.python
 
 import java.io.File
+import java.nio.file.Paths
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.utils.Logger
@@ -10,7 +11,6 @@ import io.hydrosphere.mist.worker.runners.python.wrappers._
 import mist.api.data.JsLikeData
 import py4j.GatewayServer
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
@@ -33,7 +33,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
 
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
-      var cmd = "python " + selfJarPath
+      var cmd = s"python $selfJarPath execution --gateway-port"
       val entryPoint = new PythonEntryPoint(req.copy(params = req.params.copy(filePath = jobFile.toString)), context)
 
       val gatewayServer: GatewayServer = new GatewayServer(entryPoint, 0)

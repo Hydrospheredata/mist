@@ -3,13 +3,8 @@
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
 
-class ContextWrapper:
 
-    _context = None
-    _sql_context = None
-    _hive_context = None
-    _session = None
-    _streaming_context = None
+class ContextWrapper(object):
 
     def __init__(self):
         pass
@@ -17,7 +12,7 @@ class ContextWrapper:
     def set_context(self, java_gateway):
         spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
         j_spark_conf = spark_context_wrapper.sparkConf()
-        p_spark_conf = SparkConf(_jvm = java_gateway.jvm, _jconf = j_spark_conf)
+        p_spark_conf = SparkConf(_jvm=java_gateway.jvm, _jconf=j_spark_conf)
         j_spark_context = spark_context_wrapper.javaContext()
         self._context = SparkContext(jsc=j_spark_context, gateway=java_gateway, conf=p_spark_conf)
 
@@ -33,15 +28,18 @@ class ContextWrapper:
 
     def set_session(self, java_gateway):
         from pyspark.sql import SparkSession
-        self._session = SparkSession.builder.config(conf = self._context.getConf()).getOrCreate()
+        self._session = SparkSession.builder.config(conf=self._context.getConf()).getOrCreate()
 
     def set_hive_session(self, java_gateway):
         from pyspark.sql import SparkSession
-        self._session = SparkSession.builder.config(conf = self._context.getConf()).enableHiveSupport().getOrCreate()
+        self._session = SparkSession.builder.config(conf=self._context.getConf()).enableHiveSupport().getOrCreate()
 
     def set_streaming_context(self, java_gateway):
         from pyspark.streaming import StreamingContext
-        self._streaming_context = StreamingContext(self._context, java_gateway.entry_point.sparkStreamingWrapper().getDurationSeconds())
+        self._streaming_context = StreamingContext(
+            self._context,
+            java_gateway.entry_point.sparkStreamingWrapper().getDurationSeconds()
+        )
         java_gateway.entry_point.sparkStreamingWrapper().setStreamingContext(self._streaming_context._jssc)
 
     def init_publisher(self, java_gateway):
@@ -49,7 +47,6 @@ class ContextWrapper:
         wrapper = java_gateway.entry_point.globalPublisherWrapper()
         conf = spark_context_wrapper.setupConfiguration()
         self._publisher = wrapper.create(conf)
-
 
     @property
     def context(self):
