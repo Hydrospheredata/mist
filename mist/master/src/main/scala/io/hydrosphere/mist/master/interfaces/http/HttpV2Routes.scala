@@ -153,14 +153,6 @@ object HttpV2Routes extends Logger {
   }
 
   def endpointsRoutes(master: MainService): Route = {
-    val exceptionHandler =
-      ExceptionHandler {
-        case iae: IllegalArgumentException =>
-          complete((StatusCodes.BadRequest, s"Bad request: ${iae.getMessage}"))
-        case ex =>
-          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
-      }
-
     path( root / "endpoints" ) {
       get { complete {
         master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
@@ -226,13 +218,11 @@ object HttpV2Routes extends Logger {
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       post( postJobQuery { query =>
         entity(as[Map[String, Any]]) { params =>
-          handleExceptions(exceptionHandler) {
-            val jobReq = buildStartRequest(endpointId, query, params)
-            if (query.force) {
-              completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
-            } else {
-              completeOpt { master.runJob(jobReq, JobDetails.Source.Http) }
-            }
+          val jobReq = buildStartRequest(endpointId, query, params)
+          if (query.force) {
+            completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
+          } else {
+            completeOpt { master.runJob(jobReq, JobDetails.Source.Http) }
           }
         }
       })
@@ -373,12 +363,21 @@ object HttpV2Routes extends Logger {
   }
 
   def apiRoutes(masterService: MainService, artifacts: ArtifactRepository): Route = {
-    endpointsRoutes(masterService) ~
-    jobsRoutes(masterService) ~
-    workerRoutes(masterService.jobService) ~
-    contextsRoutes(masterService.contexts) ~
-    artifactRoutes(artifacts) ~
-    statusApi
+    val exceptionHandler =
+      ExceptionHandler {
+        case ex @ (_: IllegalArgumentException  | _: IllegalStateException) =>
+          complete((StatusCodes.BadRequest, s"Bad request: ${ex.getMessage}"))
+        case ex =>
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+      }
+    handleExceptions(exceptionHandler) {
+      endpointsRoutes(masterService) ~
+      jobsRoutes(masterService) ~
+      workerRoutes(masterService.jobService) ~
+      contextsRoutes(masterService.contexts) ~
+      artifactRoutes(artifacts) ~
+      statusApi
+    }
   }
 
   def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository): Route =
