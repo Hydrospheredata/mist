@@ -7,17 +7,13 @@ import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
 
-trait BaseJobInfo {
+trait BaseJobInstance {
 
   def describe(): Seq[ArgInfo]
 
   def validateParams(params: Map[String, Any]): Either[Throwable, Any]
-}
-
-trait BaseJobInstance extends BaseJobInfo {
 
   def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
-
 }
 
 class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
@@ -65,6 +61,7 @@ class JavaJobInstance(instance: JMistFn[_]) extends BaseJobInstance {
 }
 
 object JobInstance {
+
   val NoOpInstance = new BaseJobInstance {
 
     override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
