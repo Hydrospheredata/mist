@@ -92,9 +92,6 @@ class HttpApiV2Spec extends FunSpec
 
   }
 
-  //  val testJobClass = io.hydrosphere.mist.master.testJobs.MultiplyJob.getClass
-  //  val testScalaJob = JvmJobInfo(JobsLoader.Common.loadJobClass(testJobClass.getName).get)
-
   describe("endpoints") {
 
     it("should run job") {
@@ -109,31 +106,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
-    it("should return bad request on futures failed illegal argument exception") {
-      val master = mock[MainService]
 
-      when(master.runJob(any[EndpointStartRequest], any[Source]))
-        .thenFailure(new IllegalArgumentException("argument missing"))
-
-      val route = HttpV2Routes.endpointsRoutes(master)
-      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
-        responseAs[String] shouldBe "Bad request: argument missing"
-        status shouldBe StatusCodes.BadRequest
-      }
-    }
-
-    it("should return 500 on future`s any exception except iae") {
-      val master = mock[MainService]
-
-      when(master.runJob(any[EndpointStartRequest], any[Source]))
-        .thenFailure(new IllegalStateException("some exception"))
-
-      val route = HttpV2Routes.endpointsRoutes(master)
-
-      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
-        status shouldBe StatusCodes.InternalServerError
-      }
-    }
 
 
     //    it("should return endpoints") {
@@ -498,6 +471,35 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
+  }
+
+  describe("full api") {
+
+    it("should return bad request on futures failed illegal argument exception") {
+      val master = mock[MainService]
+
+      when(master.runJob(any[EndpointStartRequest], any[Source]))
+        .thenFailure(new IllegalArgumentException("argument missing"))
+
+      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+        responseAs[String] shouldBe "Bad request: argument missing"
+        status shouldBe StatusCodes.BadRequest
+      }
+    }
+
+    it("should return 500 on future`s any exception except iae") {
+      val master = mock[MainService]
+
+      when(master.runJob(any[EndpointStartRequest], any[Source]))
+        .thenFailure(new RuntimeException("some exception"))
+
+      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
+
+      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+        status shouldBe StatusCodes.InternalServerError
+      }
+    }
   }
 
 }
