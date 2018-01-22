@@ -87,9 +87,39 @@ NOTE: here we use `force=true` to get job result in same http req/resp pair, it 
 
 ### Running your own function
 
-Mist provides typeful library for writing functions on scala/java
+Mist provides typeful library for writing functions on scala/java.
+Also there is command line tool `mist-cli` that provides an easiest way to
+deploy function/context/artifacts. For a quick start let use already prepered examples
 
-#### Scala
+```sh
+# install mist-cli
+pip install mist-cli
+// or
+easy_install mist-cli
+
+# clone examples
+git clone https://github.com/dos65/hello_mist.git
+```
+
+That repository contains two similar examples with already written function for pi calculating and build setup:
+- scala + sbt
+- java + maven
+
+Scala:
+```sh
+cd hello_mist/scala
+sbt package
+mist-cli apply -f conf
+```
+
+Java:
+```sh
+cd hello_mist/java
+mvn package
+mist-cli apply -f conf
+```
+
+#### More details(Scala)
 
 build.sbt:
 ```scala
@@ -104,7 +134,7 @@ libraryDependencies ++= Seq(
 )
 ```
 
-Lets write a function spark which will calculate pi on spark and
+Lets write a function spark which calculates pi value on spark and
 quickly overview how to write functions.
 
 `src/main/scala/HelloMist.scala`:

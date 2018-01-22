@@ -80,7 +80,7 @@ object Worker extends App with Logger {
     val name = arguments.name
 
     val mode = arguments.workerMode
-    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
+    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}, master: ${arguments.masterNode}")
 
     val seedNodes = Seq(arguments.masterNode).asJava
     val roles = Seq(s"worker-$name").asJava
