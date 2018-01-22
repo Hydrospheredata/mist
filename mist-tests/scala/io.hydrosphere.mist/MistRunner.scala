@@ -56,29 +56,6 @@ trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
     Await.result(master.stop(), Duration.Inf)
   }
 
-  def isSpark2: Boolean = sparkVersion.startsWith("2.")
-  def isSpark1: Boolean = !isSpark2
-
-  def runOnlyIf(f: => Boolean, descr: String)(body: => Unit) = {
-    if (f) body
-    else cancel(descr)
-  }
-
-  def runOnlyOnSpark2(body: => Unit): Unit =
-    runOnlyIf(isSpark2, "SKIP TEST - ONLY FOR SPARK2")(body)
-
-  def runOnlyOnSpark1(body: => Unit): Unit =
-    runOnlyIf(isSpark1, "SKIP TEST - ONLY FOR SPARK1")(body)
-
-  private def prepareOnlyIf(pred: => Boolean, body: => Unit) = {
-    if (pred) body
-  }
-
-  def prepareOnlyForSpark2(body: => Unit): Unit =
-    prepareOnlyIf(isSpark2, body)
-
-  def prepareOnlyForSpark1(body: => Unit): Unit =
-    prepareOnlyIf(isSpark1, body)
 }
 
 case class MistHttpInterface(

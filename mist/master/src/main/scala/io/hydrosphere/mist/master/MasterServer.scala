@@ -1,12 +1,13 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
+import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import akka.pattern.gracefulStop
+import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
@@ -74,6 +75,11 @@ object MasterServer extends Logger {
   def start(config: MasterConfig, routerConfig: String): Future[ServerInstance] = {
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
+
+    // use an actor reference unexpected master shutdown or connection problems
+    val healthRef = system.actorOf(Props(new Actor {
+      override def receive: Receive = { case _ => }
+    }), CommonData.HealthActorName)
 
     val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)

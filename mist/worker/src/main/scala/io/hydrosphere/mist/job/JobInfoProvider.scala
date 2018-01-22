@@ -1,10 +1,11 @@
 package io.hydrosphere.mist.job
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.akka.WhenTerminated
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
@@ -54,7 +55,7 @@ object JobInfoProvider extends App with Logger {
         throw new IllegalStateException("please provide arguments")
     }
     val config = ConfigFactory.load("job-extractor")
-    val system = ActorSystem("mist", config)
+    implicit val system = ActorSystem("mist", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
     val jobInfoProviderRef = system.actorOf(
@@ -63,17 +64,32 @@ object JobInfoProvider extends App with Logger {
         jobInfoProviderArguments.cacheEntryTtl
       ),"job-info-provider")
 
-    val jobInfoProviderRegistererName =
-      s"akka.tcp://mist@${jobInfoProviderArguments.clusterAddr}/user/${CommonData.JobInfoProviderRegisterActorName}"
-    system.actorSelection(jobInfoProviderRegistererName)
-      .resolveOne(10 second)
-      .onComplete {
-        case Success(ref) =>
-          ref ! RegisterJobInfoProvider(jobInfoProviderRef)
-        case Failure(ex) =>
-          logger.error(ex.getMessage, ex)
+    def resolveRemote(path: String): ActorRef = {
+      val ref = system.actorSelection(path).resolveOne(10 seconds)
+      try {
+        Await.result(ref, Duration.Inf)
+      } catch {
+        case e: Throwable =>
+          logger.error(s"Couldn't resolve remote path $path", e)
           sys.exit(-1)
       }
+    }
+
+    def remotePath(name: String): String = {
+      s"akka.tcp://mist@${jobInfoProviderArguments.clusterAddr}/user/$name"
+    }
+
+    val registerRef = resolveRemote(remotePath(CommonData.JobInfoProviderRegisterActorName))
+    val heathRef = resolveRemote(remotePath(CommonData.HealthActorName))
+
+    WhenTerminated(heathRef, {
+      logger.info("Remote system was terminated, shutdown app")
+      jobInfoProviderRef ! PoisonPill
+      system.terminate()
+    })
+
+    registerRef ! RegisterJobInfoProvider(jobInfoProviderRef)
+
 
     Await.result(system.whenTerminated, Duration.Inf)
 
@@ -82,6 +98,7 @@ object JobInfoProvider extends App with Logger {
     case e: Exception =>
       logger.error(e.getMessage, e)
   }
+
 
 
 }

@@ -143,6 +143,7 @@ lazy val root = project.in(file("."))
     },
     stageActions in basicStage +=
       CpFile("configs/default.conf").to("configs"),
+    stageDirectory in dockerStage := target.value / (name.value + "-docker"),
     stageActions in dockerStage +=
       CpFile("configs/docker.conf").as("default.conf").to("configs")
   ).settings(
@@ -210,7 +211,7 @@ lazy val root = project.in(file("."))
 
         run("apk", "update")
         run("apk", "add", "python", "curl", "jq", "coreutils")
-
+        expose(2004)
         workDir(mistHome)
         entryPoint("/docker-entrypoint.sh")
       }
@@ -238,7 +239,14 @@ lazy val root = project.in(file("."))
     ),
     javaOptions in IntegrationTest ++= {
       val mistHome = basicStage.value
+      val dockerImage = {
+        docker.value
+        (imageNames in docker).value.head
+      }
       Seq(
+        s"-DmistVersion=${version.value}",
+        s"-Dworkspace=${target.value / "workspace"}",
+        s"-DimageName=${dockerImage}",
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistHome=$mistHome",
         s"-DsparkVersion=${sparkVersion.value}",

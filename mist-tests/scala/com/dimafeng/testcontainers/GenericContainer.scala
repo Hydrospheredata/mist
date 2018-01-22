@@ -2,6 +2,7 @@ package com.dimafeng.testcontainers
 
 import org.testcontainers.containers.wait.WaitStrategy
 import org.testcontainers.containers.{BindMode, FixedHostPortGenericContainer => OTCGenericContainer}
+import org.testcontainers.shaded.com.github.dockerjava.api.model.VolumesFrom
 
 class GenericContainer(imageName: String,
   fixedPorts: Map[Int, Int] = Map.empty,
@@ -9,7 +10,8 @@ class GenericContainer(imageName: String,
   env: Map[String, String] = Map(),
   command: Seq[String] = Seq(),
   classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
-  waitStrategy: Option[WaitStrategy] = None
+  waitStrategy: Option[WaitStrategy] = None,
+  volumes: Seq[(String, String, BindMode)] = Seq.empty
 ) extends SingleContainer[OTCGenericContainer[_]] {
 
   type OTCContainer = OTCGenericContainer[T] forSome {type T <: OTCGenericContainer[T]}
@@ -25,8 +27,11 @@ class GenericContainer(imageName: String,
   if (command.nonEmpty) {
     container.withCommand(command: _*)
   }
+  volumes.foreach(Function.tupled(container.addFileSystemBind))
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
+  container.setNetworkMode("bridge")
+  container.withStartupTimeout(java.time.Duration.ofMinutes(1L))
 }
 
 object GenericContainer {
@@ -36,7 +41,18 @@ object GenericContainer {
     env: Map[String, String] = Map(),
     command: Seq[String] = Seq(),
     classpathResourceMapping: Seq[(String, String, BindMode)] = Seq(),
-    waitStrategy: WaitStrategy = null) =
-    new GenericContainer(imageName, fixedExposedPorts, exposedPorts, env, command, classpathResourceMapping, Option(waitStrategy))
+    waitStrategy: WaitStrategy = null,
+    volumes: Seq[(String, String, BindMode)] = Seq.empty
+  ) =
+    new GenericContainer(
+      imageName,
+      fixedExposedPorts,
+      exposedPorts,
+      env,
+      command,
+      classpathResourceMapping,
+      Option(waitStrategy),
+      volumes
+    )
 }
 

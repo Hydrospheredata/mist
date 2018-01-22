@@ -102,6 +102,8 @@ object CommonData {
   }
 
   val JobInfoProviderRegisterActorName = "job-info-provider-register"
+  val HealthActorName = "health"
+
   case class RegisterJobInfoProvider(ref: ActorRef)
 
   sealed trait JobInfoMessage

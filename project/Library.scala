@@ -33,9 +33,10 @@ object Library {
     val httpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % httpVersion
 
     val testKit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+    val actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
     def base = {
       Seq(
-        "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+        actor,
         "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
       )

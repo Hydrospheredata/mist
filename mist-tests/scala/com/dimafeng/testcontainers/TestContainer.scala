@@ -1,12 +1,14 @@
 package com.dimafeng.testcontainers
 
 import java.io.File
+
 import org.junit.runner.Description
 import org.scalatest._
 import org.testcontainers.containers.traits.LinkableContainer
-import org.testcontainers.containers.{GenericContainer => OTCGenericContainer, DockerComposeContainer => OTCDockerComposeContainer, FailureDetectingExternalResource, TestContainerAccessor}
+import org.testcontainers.containers.{FailureDetectingExternalResource, TestContainerAccessor, DockerComposeContainer => OTCDockerComposeContainer, GenericContainer => OTCGenericContainer}
 import org.testcontainers.shaded.com.github.dockerjava.api.command.InspectContainerResponse
-import org.testcontainers.shaded.com.github.dockerjava.api.model.Bind
+import org.testcontainers.shaded.com.github.dockerjava.api.model.{Bind, VolumesFrom}
+
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
@@ -143,6 +145,8 @@ abstract class SingleContainer[T <: OTCGenericContainer[_]] extends TestContaine
   def mappedPort(port: Int): Int = container.getMappedPort(port)
 
   def portBindings: Seq[String] = container.getPortBindings.asScala
+
+  def volumes: Seq[VolumesFrom] = container.getVolumesFroms.asScala
 }
 
 class MultipleContainers[T <: Product] private(val _containers: T) extends Container {

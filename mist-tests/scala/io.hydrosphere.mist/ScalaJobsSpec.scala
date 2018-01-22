@@ -24,23 +24,12 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
       |}
     """.stripMargin
 
-    prepareOnlyForSpark1 {
-      val targetDir = "./target/it-jars/simple1"
-      val path = Paths.get(targetDir)
-      Files.createDirectories(path)
-      val compiler = new TestCompiler(targetDir)
-      compiler.compile(jobSource, "SimpleContext")
-      JarPackager.pack(targetDir, targetDir)
-    }
-
-    prepareOnlyForSpark2 {
-      val targetDir = "./target/it-jars/simple2"
-      val path = Paths.get(targetDir)
-      Files.createDirectories(path)
-      val compiler = new TestCompiler(targetDir)
-      compiler.compile(jobSource, "SimpleContext")
-      JarPackager.pack(targetDir, targetDir)
-    }
+    val targetDir = "./target/it-jars/simple2"
+    val path = Paths.get(targetDir)
+    Files.createDirectories(path)
+    val compiler = new TestCompiler(targetDir)
+    compiler.compile(jobSource, "SimpleContext")
+    JarPackager.pack(targetDir, targetDir)
 
   }
 
@@ -48,21 +37,12 @@ class ScalaJobsSpec extends FunSpec with MistItTest  with Matchers {
 
   describe("simple context") {
 
-    it("should run simple context -spark 1") { runOnlyOnSpark1 {
-
-      val result = interface.runJob("simple-context1",
-        "numbers" -> List(1, 2, 3)
-      )
-      assert(result.success, s"Job is failed $result")
-    
-    }}
-
-    it("should run simple context - spark 2") { runOnlyOnSpark2 {
+    it("should run simple context - spark 2") {
       val result = interface.runJob("simple-context2",
         "numbers" -> List(1, 2, 3)
       )
       assert(result.success, s"Job is failed $result")
     
-    }}
+    }
   }
 }
