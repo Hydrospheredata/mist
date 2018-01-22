@@ -1,12 +1,10 @@
 package io.hydrosphere.mist.job
 
 import java.io.File
-import java.nio.file.{Files, Paths}
 
 import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
-import org.apache.commons.codec.digest.DigestUtils
+import io.hydrosphere.mist.utils.EitherOps._
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -128,7 +126,7 @@ class JobInfoProviderActor(
   ): Either[Throwable, (String, JobInfo)] = {
     val file = new File(req.jobPath)
     if (file.exists() && file.isFile) {
-      val key = cacheKey(req)
+      val key = cacheKey(req, file)
       cache.get(key) match {
         case Some(info) => Right((key, info))
         case None => jobInfo(req) match {
@@ -141,22 +139,20 @@ class JobInfoProviderActor(
 
   private def jobInfo(req: InfoRequest): Either[Throwable, JobInfo] = {
     import req._
-    jobInfoExtractor.extractInfo(new File(jobPath), className) match {
-      case Success(info) =>
-        Right(info.copy(data = info.data.copy(
+    val f = new File(jobPath)
+    val res = jobInfoExtractor.extractInfo(f, className).map(info => {
+      info.copy(
+        data = info.data.copy(
           defaultContext = req.defaultContext,
-          name=req.name,
-          path=req.originalPath
-        )))
-      case Failure(ex) =>
-        Left(ex)
-    }
+          name = req.name,
+          path = req.originalPath
+        ))
+    })
+    Either.fromTry(res)
   }
 
-  private def cacheKey(req: InfoRequest): String = {
-    val path = Paths.get(req.jobPath)
-    val sha1 = DigestUtils.sha1Hex(Files.newInputStream(path))
-    s"${req.name}_${req.className}_$sha1"
+  private def cacheKey(req: InfoRequest, file: File): String = {
+    s"${req.name}_${req.className}_${file.lastModified()}"
   }
 
 }
