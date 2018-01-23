@@ -357,7 +357,7 @@ object HttpV2Routes extends Logger {
   def statusApi: Route = {
     path( root / "status" ) {
       get {
-        complete(MistStatus.Value)
+        complete(MistStatus.create)
       }
     }
   }
