@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData.{Action, GetJobInfo, ValidateJobParameters}
+import io.hydrosphere.mist.core.CommonData.{Action, GetAllJobInfo, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -360,5 +360,47 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         Await.result(f, Duration.Inf)
       }
     }
+  }
+
+  describe("allInfos") {
+
+    it("should return all job infos") {
+      val probe = TestProbe()
+      val endpoints = mock[EndpointsStorage]
+      val artifactRepo = mock[ArtifactRepository]
+
+      when(endpoints.all)
+        .thenSuccess(Seq(EndpointConfig(
+          "test", jobPath, "Test", "foo"
+        )))
+
+      when(artifactRepo.get(any[String]))
+        .thenReturn(Some(new File(jobPath)))
+
+      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
+      val f = jobInfoProviderService.allJobInfos
+      probe.expectMsgType[GetAllJobInfo]
+      probe.reply(Seq(JobInfoData()))
+
+      val response = Await.result(f, Duration.Inf)
+      response.size shouldBe 1
+    }
+
+    it("shouldn't fail with empty endpoints") {
+      val probe = TestProbe()
+      val endpoints = mock[EndpointsStorage]
+      val artifactRepo = mock[ArtifactRepository]
+
+      when(endpoints.all).thenSuccess(Seq.empty)
+
+      when(artifactRepo.get(any[String])).thenReturn(Some(new File(jobPath)))
+
+      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
+      val f = jobInfoProviderService.allJobInfos
+
+      val response = Await.result(f, Duration.Inf)
+      response.size shouldBe 0
+    }
+
   }
 }
