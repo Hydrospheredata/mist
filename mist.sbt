@@ -161,7 +161,7 @@ lazy val root = project.in(file("."))
 
       val mkPyEndpoints = Seq(
         ("simple_context.py", "SimpleContext"),
-        ("simple_hive_context.py", "SimpleHiveContext")
+        ("session_job.py", "SessionJob")
       ).flatMap({case (file, clazz) => {
         val name = file.replace(".py", "")
         Seq(
@@ -169,7 +169,7 @@ lazy val root = project.in(file("."))
             s"data/endpoints/$name.conf",
             s"""path = $file
                |className = "$clazz"
-              |namespace = foo""".stripMargin
+               |namespace = foo""".stripMargin
           ),
           CpFile(s"examples/examples-python/$file").to("data/artifacts")
         )
@@ -268,21 +268,20 @@ lazy val root = project.in(file("."))
       "MIST_HOME" -> s"${basicStage.value}"
     ),
     javaOptions in IntegrationTest ++= {
-//      val mistHome = basicStage.value
-//      val dockerImage = {
-//        docker.value
-//        (imageNames in docker).value.head
-//      }
-//      val examplesJar = sbt.Keys.`package`.in(examples, Compile).value
-//      Seq(
-//        s"-DexamplesJar=${examplesJar}",
-//        s"-DimageName=${dockerImage}",
-//        s"-DsparkHome=${sparkLocal.value}",
-//        s"-DmistHome=$mistHome",
-//        s"-DsparkVersion=${sparkVersion.value}",
-//        "-Xmx512m"
-//      )
-      Seq.empty
+      val mistHome = runStage.value
+      val dockerImage = {
+        docker.value
+        (imageNames in docker).value.head
+      }
+      val examplesJar = sbt.Keys.`package`.in(examples, Compile).value
+      Seq(
+        s"-DexamplesJar=$examplesJar",
+        s"-DimageName=$dockerImage",
+        s"-DsparkHome=${sparkLocal.value}",
+        s"-DmistHome=$mistHome",
+        s"-DsparkVersion=${sparkVersion.value}",
+        "-Xmx512m"
+      )
     }
   )
 

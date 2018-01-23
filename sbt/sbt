@@ -24,8 +24,6 @@ SBT_VERSION="1.1.0-RC2"
 URL1=http://typesafe.artifactoryonline.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/${SBT_VERSION}/sbt-launch.jar
 URL2=http://repo.typesafe.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/${SBT_VERSION}/sbt-launch.jar
 JAR=sbt/sbt-launch-${SBT_VERSION}.jar
-// for integration tests
-SBT_PATH=$0
 
 # Download sbt launch jar if it hasn't been downloaded yet
 if [ ! -f ${JAR} ]; then

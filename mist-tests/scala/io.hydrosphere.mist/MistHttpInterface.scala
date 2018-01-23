@@ -1,62 +1,11 @@
 package io.hydrosphere.mist
 
-import java.nio.file.Paths
+import java.nio.file.{Files, Path}
 
-import io.hydrosphere.mist.master.{JobResult, MasterAppArguments, MasterServer, ServerInstance}
-import org.scalatest._
+import io.hydrosphere.mist.master.JobResult
+import io.hydrosphere.mist.master.models.EndpointConfig
 
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scalaj.http.Http
-
-trait MistRunner {
-
-  private def getProperty(name: String): String = sys.props.get(name) match {
-    case Some(v) => v
-    case None => throw new RuntimeException(s"Property $name is not set")
-  }
-
-  val mistHome = getProperty("mistHome")
-  val sparkHome = getProperty("sparkHome")
-  val sparkVersion = getProperty("sparkVersion")
-
-  def runMist(
-    overrideConf: Option[String],
-    overrideRouter: Option[String]
-  ): ServerInstance = {
-    def fromResource(path: String): String =
-      getClass.getClassLoader.getResource(path).getPath
-
-    val defaultArgs = MasterAppArguments.fromPath(Paths.get(mistHome))
-
-    val conf = overrideConf.map(fromResource).getOrElse(defaultArgs.configPath)
-    val router = overrideRouter.map(fromResource).getOrElse(defaultArgs.routerConfigPath)
-    val starting = MasterServer.start(conf, router)
-    Await.result(starting, Duration.Inf)
-  }
-
-}
-
-object MistRunner extends MistRunner
-
-trait MistItTest extends BeforeAndAfterAll with MistRunner { self: Suite =>
-
-  val overrideConf: Option[String] = None
-  val overrideRouter: Option[String] = None
-  protected def beforeMistStart: Unit = {}
-
-  var master: ServerInstance = _
-
-  override def beforeAll {
-    beforeMistStart
-    master = runMist(overrideConf, overrideRouter)
-  }
-
-  override def afterAll: Unit = {
-    Await.result(master.stop(), Duration.Inf)
-  }
-
-}
+import scalaj.http._
 
 case class MistHttpInterface(
   host: String,
@@ -69,6 +18,32 @@ case class MistHttpInterface(
 
   def runJob(routeId: String, params: (String, Any)*): JobResult =
     callV2Api(routeId, params.toMap)
+
+  def uploadArtifact(name: String, file: Path): Unit = {
+    val bytes = Files.readAllBytes(file)
+    val req = Http(s"http://$host:$port/v2/api/artifacts")
+      .postMulti(MultiPart("file", name, "application/octet-stream", bytes))
+
+    val resp = req.asBytes
+    if (resp.code != 200)
+      throw new RuntimeException(s"File $file uploading failed. Code: ${resp.code}, body: ${resp.body}")
+  }
+
+  def status: String = {
+    val req = Http(s"http://$host:$port/v2/api/status")
+    new String(req.asBytes.body)
+  }
+
+  def createEndpoint(ep: EndpointConfig): EndpointConfig = {
+    val req = Http("http://localhost:2004/v2/api/endpoints")
+      .postData(ep.toJson)
+    val resp = req.asString
+    if (resp.code == 200)
+      resp.body.parseJson.convertTo[EndpointConfig]
+    else
+      throw new RuntimeException(s"Endpoints creation failed. Code: ${resp.code}, body: ${resp.body}")
+  }
+
 
   def serve(routeId: String, params: (String, Any)*): JobResult =
     callOldApi(routeId, params.toMap, Serve)

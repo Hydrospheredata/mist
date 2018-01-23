@@ -207,11 +207,15 @@ object MasterConfig {
     parse(filePath, cfg)
   }
 
-  def loadConfig(filePath: String): Config = {
+  def resolveUserConf(config: Config): Config = {
     val appConfig = ConfigFactory.parseResourcesAnySyntax("master.conf")
-    val user = ConfigFactory.parseFile(new File(filePath))
     val properties = ConfigFactory.systemProperties()
-    properties.withFallback(user.withFallback(appConfig)).resolve()
+    properties.withFallback(config.withFallback(appConfig)).resolve()
+  }
+
+  def loadConfig(filePath: String): Config = {
+    val user = ConfigFactory.parseFile(new File(filePath))
+    resolveUserConf(user)
   }
 
   def parse(filePath: String, config: Config): MasterConfig = {
