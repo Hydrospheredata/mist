@@ -30,8 +30,6 @@ class GenericContainer(imageName: String,
   volumes.foreach(Function.tupled(container.addFileSystemBind))
   classpathResourceMapping.foreach(Function.tupled(container.withClasspathResourceMapping))
   waitStrategy.foreach(container.waitingFor)
-  container.setNetworkMode("bridge")
-  container.withStartupTimeout(java.time.Duration.ofMinutes(1L))
 }
 
 object GenericContainer {
