@@ -151,12 +151,12 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
     out.value
   }
 
-  def endpointHistoryCount(id: String, statuses: Seq[JobDetails.Status]): Future[Long] = {
-    askStatus[Long](GetEndpointHistoryCount(id, statuses))
+  def endpointHistoryCount(id: String, statuses: Seq[JobDetails.Status]): Future[Int] = {
+    askStatus[Int](GetEndpointHistoryCount(id, statuses))
   }
 
-  def historyCount(statuses: Seq[JobDetails.Status]): Future[Long] = {
-    askStatus[Long](GetHistoryCount(statuses))
+  def historyCount(statuses: Seq[JobDetails.Status]): Future[Int] = {
+    askStatus[Int](GetHistoryCount(statuses))
   }
 
   private def askManager[T: ClassTag](msg: Any): Future[T] = typedAsk[T](workerManager, msg)

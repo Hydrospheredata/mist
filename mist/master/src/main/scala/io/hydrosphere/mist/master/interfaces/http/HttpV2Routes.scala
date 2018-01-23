@@ -204,10 +204,13 @@ object HttpV2Routes extends Logger {
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       get { (pageRequest & parameter('status * )) { (pageReq, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
+          import pageReq._
           for {
-            data <- master.jobService.endpointHistory(endpointId, pageReq.pageSize, pageReq.offset, statuses)
+            data <- master.jobService.endpointHistory(endpointId, pageSize, offset, statuses)
             count <- master.jobService.endpointHistoryCount(endpointId, statuses)
-            nextPage = PageRequest(pageReq.pageSize, data.size + pageReq.offset)
+            nextPage = if (data.lengthCompare(pageSize) < 0) {
+              None
+            } else Some(PageRequest(pageSize, data.size + offset))
           } yield Page(data, nextPage, count)
         }
       }}
@@ -287,9 +290,16 @@ object HttpV2Routes extends Logger {
 
   def jobsRoutes(master: MainService): Route = {
     path( root / "jobs" ) {
-      get { (pageRequest & parameter('status * )) { (limits, rawStatuses) =>
+      get { (pageRequest & parameter('status * )) { (pageReq, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.getHistory(limits.limit, limits.offset, statuses)
+          import pageReq._
+          for {
+            data <- master.jobService.getHistory(pageSize, offset, statuses)
+            count <- master.jobService.historyCount(statuses)
+            nextPage = if (data.lengthCompare(pageSize) < 0) {
+              None
+            } else Some(PageRequest(pageSize, offset + data.size))
+          } yield Page(data, nextPage, count)
         }
       }}
     } ~

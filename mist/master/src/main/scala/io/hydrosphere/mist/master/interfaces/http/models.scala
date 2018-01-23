@@ -175,4 +175,8 @@ case class PageRequest(
   offset: Int
 )
 
-case class Page[T](data: Seq[T], nextPage: PageRequest, count: Long)
+case class Page[T](
+  data: Seq[T],
+  nextPage: Option[PageRequest],
+  count: Long
+)
