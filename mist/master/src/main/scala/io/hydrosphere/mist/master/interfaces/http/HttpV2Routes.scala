@@ -37,11 +37,6 @@ case class JobRunQueryParams(
   }
 }
 
-case class LimitOffsetQuery(
-  limit: Int,
-  offset: Int
-)
-
 /**
   * Utility for HttpApiv2
   */
@@ -66,11 +61,11 @@ object HttpV2Base {
       'workerId ?
     ).as(JobRunQueryParams)
 
-  val jobsQuery = {
+  val pageRequest = {
     parameters(
-      'limit.?(25),
-      'offset.?(0)
-    ).as(LimitOffsetQuery)
+      'pageSize ? 25,
+      'offset ? 0
+    ).as(PageRequest)
   }
 
   val completeOpt = rejectEmptyResponse & complete _
@@ -207,11 +202,13 @@ object HttpV2Routes extends Logger {
       }}
     } ~
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
-      get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
+      get { (pageRequest & parameter('status * )) { (pageReq, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.endpointHistory(
-            endpointId,
-            limits.limit, limits.offset, statuses)
+          for {
+            data <- master.jobService.endpointHistory(endpointId, pageReq.pageSize, pageReq.offset, statuses)
+            count <- master.jobService.endpointHistoryCount(endpointId, statuses)
+            nextPage = PageRequest(pageReq.pageSize, data.size + pageReq.offset)
+          } yield Page(data, nextPage, count)
         }
       }}
     } ~
@@ -290,7 +287,7 @@ object HttpV2Routes extends Logger {
 
   def jobsRoutes(master: MainService): Route = {
     path( root / "jobs" ) {
-      get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
+      get { (pageRequest & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
           master.jobService.getHistory(limits.limit, limits.offset, statuses)
         }

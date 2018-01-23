@@ -170,3 +170,9 @@ object MistStatus {
   }
 }
 
+case class PageRequest(
+  pageSize: Int,
+  offset: Int
+)
+
+case class Page[T](data: Seq[T], nextPage: PageRequest, count: Long)
