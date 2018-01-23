@@ -206,8 +206,8 @@ object HttpV2Routes extends Logger {
         withValidatedStatuses(rawStatuses) { statuses =>
           import pageReq._
           for {
-            data <- master.jobService.endpointHistory(endpointId, pageSize, offset, statuses)
-            count <- master.jobService.endpointHistoryCount(endpointId, statuses)
+            data    <- master.jobService.endpointHistory(endpointId, pageSize, offset, statuses)
+            count   <- master.jobService.endpointHistoryCount(endpointId, statuses)
             nextPage = if (data.lengthCompare(pageSize) < 0) {
               None
             } else Some(PageRequest(pageSize, data.size + offset))
@@ -294,8 +294,8 @@ object HttpV2Routes extends Logger {
         withValidatedStatuses(rawStatuses) { statuses =>
           import pageReq._
           for {
-            data <- master.jobService.getHistory(pageSize, offset, statuses)
-            count <- master.jobService.historyCount(statuses)
+            data    <- master.jobService.getHistory(pageSize, offset, statuses)
+            count   <- master.jobService.historyCount(statuses)
             nextPage = if (data.lengthCompare(pageSize) < 0) {
               None
             } else Some(PageRequest(pageSize, offset + data.size))

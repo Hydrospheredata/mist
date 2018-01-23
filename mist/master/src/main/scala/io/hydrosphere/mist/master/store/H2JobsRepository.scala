@@ -174,6 +174,20 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
 
     run(query.result)
   }
+
+  override def countByEndpointId(id: String, statuses: Seq[JobDetails.Status]): Future[Int] = {
+    val byId = table.filter(_.endpoint === id)
+    val filtered = if (statuses.nonEmpty) byId.filter(_.status inSet statuses) else byId
+    val query = filtered.length
+    run(query.result)
+  }
+
+  override def countHistory(statuses: Seq[JobDetails.Status]): Future[Int] = {
+    val filtered = if (statuses.nonEmpty) table.filter(_.status inSet statuses) else table
+    val query = filtered.length
+    run(query.result)
+  }
+
 }
 
 object H2JobsRepository {

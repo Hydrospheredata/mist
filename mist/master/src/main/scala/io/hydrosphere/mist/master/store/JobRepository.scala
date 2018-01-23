@@ -25,5 +25,7 @@ trait JobRepository {
 
   def clear(): Future[Unit]
 
+  def countByEndpointId(id: String, statuses: Seq[JobDetails.Status]): Future[Int]
+  def countHistory(statuses: Seq[JobDetails.Status]): Future[Int]
 }
 

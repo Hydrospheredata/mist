@@ -62,11 +62,11 @@ class StatusService(
     case GetEndpointHistory(id, limit, offset, statuses) =>
       store.getByEndpointId(id, limit, offset, statuses) pipeTo sender()
 
-    case GetEndpointCount(id, statuses) =>
-      ???
+    case GetEndpointHistoryCount(id, statuses) =>
+      store.countByEndpointId(id, statuses) pipeTo sender()
 
     case GetHistoryCount(statuses) =>
-      ???
+      store.countHistory(statuses) pipeTo sender()
 
     case GetHistory(limit, offset, statuses) =>
       store.getAll(limit, offset, statuses) pipeTo sender()
