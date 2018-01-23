@@ -70,10 +70,14 @@ class JobInfoProviderService(
         .map(f => createGetInfoMsg(e, f))
     }
     for {
-      endpoints      <- endpointStorage.all
-      requests       =  endpoints.flatMap(toJobInfoRequest).toList
-      timeout        =  Timeout(timeoutDuration * requests.size)
-      data           <- askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests), timeout)
+      endpoints <- endpointStorage.all
+      data      <-
+        if (endpoints.nonEmpty) {
+          val requests =  endpoints.flatMap(toJobInfoRequest).toList
+          val timeout =  Timeout(timeoutDuration * requests.size.toLong)
+          askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests), timeout)
+        } else
+          Future.successful(Seq.empty)
     } yield data
   }
 
