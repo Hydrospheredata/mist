@@ -11,11 +11,8 @@ import org.testcontainers.containers.wait.Wait
 import scala.io.Source
 
 case class EnvArgs(
-  sparkVersion: String,
-  mistVersion: String,
   imageName: String,
-  workspace: String,
-  sbtPath: String
+  examplesJar: String
 )
 
 class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
@@ -29,11 +26,8 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
       case None => throw new RuntimeException(s"Property $name is not set")
     }
     EnvArgs(
-      sparkVersion = read("sparkVersion"),
-      mistVersion = read("mistVersion"),
       imageName = read("imageName"),
-      workspace = read("workspace"),
-      sbtPath = sys.env.getOrElse("SBT_PATH", "sbt")
+      examplesJar = read("examplesJar")
     )
   }
 
@@ -54,60 +48,37 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     super.afterAll
   }
 
-  def prepareProject(name: String): Path = {
-    val path = Paths.get(getClass.getClassLoader.getResource(name).getPath)
-    val target = Paths.get(envArgs.workspace, name)
-    if (Files.exists(target)) {
-      fs.clean(target)
-    }
-
-    fs.createDir(target)
-    fs.copyDir(path, target)
-
-    val buildFile = target.resolve("build.sbt")
-    val updated = Source.fromFile(buildFile.toFile).getLines()
-      .map(s => {
-        s.replace("{{SPARK_VERSION}}", envArgs.sparkVersion)
-          .replace("{{MIST_VERSION}}", envArgs.mistVersion)
-      }).mkString("\n")
-
-    Files.write(buildFile, updated.getBytes())
-    target
-  }
-
   describe("hello-mist project") {
 
     it("should deploy and invoke") {
-      import scala.sys.process._
-      val dir = prepareProject("hellomist")
-
-      val build = Process(s"${envArgs.sbtPath} package", Some(dir.toFile)).!
-      if (build != 0) {
-        throw new RuntimeException("Build failed")
-      }
-
       import scalaj.http._
 
-      val jarPath = dir.resolve("target/scala-2.11/hello-mist_2.11-0.0.1.jar")
-      val bytes = Files.readAllBytes(jarPath)
+      val jarName = "docker-examples.jar"
+      val endpointName = "spark-ctx"
+      val clazz = "SparkContextExample$"
 
-      val uploadJar = Http("http://localhost:2004/v2/api/artifacts")
-        .postMulti(MultiPart("file", "hello-mist.jar", "application/octet-stream", bytes))
-        .asString
-
-      println(uploadJar.body)
+      println(envArgs)
+      val bytes = Files.readAllBytes(Paths.get(envArgs.examplesJar))
+      println(bytes.length)
+      try {
+        val uploadJar = Http("http://localhost:2004/v2/api/artifacts")
+          .postMulti(MultiPart("file", jarName, "application/octet-stream", bytes))
+          .asString
+      } catch {
+        case e: Throwable =>
+          println("WTF???")
+          throw e
+      }
 
       val endpoint = Http("http://localhost:2004/v2/api/endpoints")
         .postData(
-          """{"name": "hello-mist",
-             | "path": "hello-mist.jar",
-             | "className": "HelloMist$",
-             | "defaultContext": "default"} """.stripMargin)
-
-      println(endpoint.asString.body)
+          s"""{"name": "$endpointName",
+             | "path": "$jarName",
+             | "className": "$clazz",
+             | "defaultContext": "default"}""".stripMargin)
 
       val interface = MistHttpInterface("localhost", 2004)
-      val result = interface.runJob("hello-mist")
+      val result = interface.runJob(endpointName, "numbers" -> Seq(1,2,3,4))
       assert(result.success)
     }
   }
