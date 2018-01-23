@@ -155,8 +155,12 @@ trait JsonCodecs extends SprayJsonSupport
       }
     }
   }
-
-  implicit val mistStatusF = jsonFormat3(MistStatus.apply)
+  implicit val gcMetricsF = jsonFormat2(GCMetrics.apply)
+  implicit val threadMetricsF = jsonFormat6(ThreadMetrics.apply)
+  implicit val heapF = jsonFormat4(Heap.apply)
+  implicit val heapMetricsF = jsonFormat2(HeapMetrics.apply)
+  implicit val javaVersionInfoF = jsonFormat2(JavaVersionInfo.apply)
+  implicit val mistStatusF = jsonFormat7(MistStatus.apply)
 
   implicit val jobStartResponseF = jsonFormat1(JobStartResponse)
 

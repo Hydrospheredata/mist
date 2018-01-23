@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.interfaces.http
 
+import java.lang.management._
 import java.time.LocalDateTime
 
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
@@ -70,7 +71,7 @@ object HttpJobArg {
       case x: MMap => withTypeArgs(t, Seq(x.k, x.v).map(convert))
       case x: MList => withTypeArgs(t, Seq(convert(x.v)))
       case x: MOption => withTypeArgs(t, Seq(convert(x.v)))
-      case x: MObj => complex(t, x.fields.map({case (k, v) => k -> convert(v)}).toMap)
+      case x: MObj => complex(t, x.fields.map({ case (k, v) => k -> convert(v) }).toMap)
     }
   }
 }
@@ -152,21 +153,108 @@ object ContextCreateRequest {
 case class MistStatus(
   mistVersion: String,
   sparkVersion: String,
-  started: LocalDateTime
+  started: LocalDateTime,
+  gc: Map[String, GCMetrics],
+  memory: HeapMetrics,
+  threads: ThreadMetrics,
+  javaVersion: JavaVersionInfo
 )
 
 object MistStatus {
 
   import io.hydrosphere.mist.BuildInfo
 
-  val Value = {
+  import scala.collection.JavaConverters._
+
+  val Started = LocalDateTime.now()
+  val SparkVersion = {
     val is1x = BuildInfo.sparkVersion.startsWith("1.")
-    val sparkVersion = if (is1x) "1.x.x" else "2.x.x"
+    if (is1x) "1.x.x" else "2.x.x"
+  }
+
+  def create: MistStatus = {
+    val beans = ManagementFactory.getGarbageCollectorMXBeans.asScala
+    val memoryMXBean = ManagementFactory.getMemoryMXBean
+    val threadMXBean = ManagementFactory.getThreadMXBean
+
+    val gCMetrics = beans.map(gc => s"${gc.getName}" -> GCMetrics.create(gc)).toMap
     MistStatus(
       BuildInfo.version,
-      sparkVersion,
-      LocalDateTime.now()
+      SparkVersion,
+      Started,
+      gCMetrics,
+      HeapMetrics.create(memoryMXBean),
+      ThreadMetrics.create(threadMXBean),
+      JavaVersionInfo.create
     )
   }
 }
 
+case class GCMetrics(collectionCount: Long, collectionTimeInSec: Long)
+
+object GCMetrics {
+  def create(gc: GarbageCollectorMXBean): GCMetrics = GCMetrics(
+    gc.getCollectionCount, gc.getCollectionTime / 1000
+  )
+}
+
+
+case class Heap(used: Long, commited: Long, max: Long, init: Long)
+
+object Heap {
+  val BytesPerMegabyte = 1024 * 1024
+
+  def create(memory: MemoryUsage): Heap = {
+    Heap(
+      memory.getUsed / BytesPerMegabyte,
+      memory.getCommitted / BytesPerMegabyte,
+      memory.getMax / BytesPerMegabyte,
+      memory.getInit / BytesPerMegabyte
+    )
+  }
+}
+
+case class HeapMetrics(heap: Heap, nonHeap: Heap)
+
+object HeapMetrics {
+
+  def create(memoryMXBean: MemoryMXBean): HeapMetrics = {
+    HeapMetrics(
+      Heap.create(memoryMXBean.getHeapMemoryUsage),
+      Heap.create(memoryMXBean.getNonHeapMemoryUsage)
+    )
+  }
+}
+
+case class ThreadMetrics(
+  count: Long,
+  daemon: Long,
+  peak: Long,
+  startedTotal: Long,
+  deadlocked: Option[Long],
+  deadlockedMonitor: Option[Long]
+)
+
+object ThreadMetrics {
+  def create(threadMXBean: ThreadMXBean): ThreadMetrics = {
+    ThreadMetrics(
+      threadMXBean.getThreadCount,
+      threadMXBean.getDaemonThreadCount,
+      threadMXBean.getPeakThreadCount,
+      threadMXBean.getTotalStartedThreadCount,
+      Option(threadMXBean.findDeadlockedThreads()).map(_.length),
+      Option(threadMXBean.findMonitorDeadlockedThreads()).map(_.length)
+    )
+  }
+}
+
+case class JavaVersionInfo(runtimeVersion: String, vmVendor: String)
+
+object JavaVersionInfo {
+  def create: JavaVersionInfo = {
+    JavaVersionInfo(
+      System.getProperty("java.runtime.version", "unknown"),
+      System.getProperty("java.vm.vendor", "unknown")
+    )
+  }
+}
