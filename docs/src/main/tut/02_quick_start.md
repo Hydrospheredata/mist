@@ -13,9 +13,10 @@ and finally how to deploy and run them on Mist
 
 To better understainding lets introduce following defenitions that we will use:
 - function - user code that invokes on spark
-- job - a result of function invocation
-- context - settings for worker where function invokes (spark settings + worker mode) 
 - artifact - file (.jar or .py) that contains function
+- context - settings for worker where function invokes (spark settings + worker mode) 
+- endpoint - named entry point for function invocation (function class name, artifact path, default context)
+- job - a result of endpoint invocation
 - master - mist master application (it manages functions, jobs, workers, expose public interfaces)
 - worker - special spark driver application that actually invokes function (mist automatically spawn them)
 - mist-cli - command line tool for interations with mist
@@ -28,7 +29,7 @@ Docker image also has Apache Spark binaries for a quick start.
 
 Releases:
 
-- binaries: <http://repo.hydrosphere.io/hydrosphere/static/{{ site.version }}> 
+- binaries: <http://repo.hydrosphere.io/hydrosphere/static/> 
 - docker <https://hub.docker.com/r/hydrosphere/mist/>
 
 
@@ -71,25 +72,18 @@ Demo:
  <source src="/mist-docs/img/quick-start-ui.webm" type='video/webm; codecs="vp8, vorbis"'>
 </video>
 
-Also Mist has prebuilt examples for: 
-- [scala/java](https://github.com/Hydrospheredata/mist/tree/master/examples/examples/src/main/)
-- [python](https://github.com/Hydrospheredata/mist/tree/master/examples/examples-python)
-
-
-You can run these examples from web ui, REST HTTP or Messaging API.
-For example http call for [SparkContextExample](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/main/scala/SparkContextExample.scala)
-from examples looks like that:
-```sh
-curl -d '{"numbers": [1, 2, 3]}' "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs?force=true"
-```
-
-NOTE: here we use `force=true` to get job result in same http req/resp pair, it can be useful for quick jobs, but you should not use that parameter for long-running jobs
 
 ### Running your own function
 
 Mist provides typeful library for writing functions on scala/java.
 Also there is command line tool `mist-cli` that provides an easiest way to
-deploy function/context/artifacts. For a quick start let use already prepered examples
+deploy function/context/artifacts. For a quick start let use already [prepared project examples](https://github.com/dos65/hello_mist)
+
+We will use `mist-cli` to upload our function using just one command(or you can use [http interface directly](/mist-docs/http_api.html))
+That repository contnains:
+- simple function example
+- build setup (sbt/mvn)
+- configuration files for mist-cli
 
 ```sh
 # install mist-cli
@@ -101,25 +95,35 @@ easy_install mist-cli
 git clone https://github.com/dos65/hello_mist.git
 ```
 
-That repository contains two similar examples with already written function for pi calculating and build setup:
-- scala + sbt
-- java + maven
-
 Scala:
 ```sh
 cd hello_mist/scala
+
+# build function and send its settings to mist
 sbt package
 mist-cli apply -f conf
+
+# run it
+curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/endpoints/hello-mist-scala/jobs?force=true"
 ```
 
 Java:
 ```sh
 cd hello_mist/java
+
+# build function and send its settings to mist
 mvn package
 mist-cli apply -f conf
+
+# run it
+curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/endpoints/hello-mist-java/jobs?force=true"
 ```
 
-#### More details(Scala)
+NOTE: here we use `force=true` to get job result in same http req/resp pair,
+it could be useful for quick jobs, but you should not use that parameter for long-running jobs
+There are additional [reactive interfaces](/mist-docs/reactive_api.html) for jobs running
+
+#### Scala - more details
 
 build.sbt:
 ```scala
@@ -134,24 +138,21 @@ libraryDependencies ++= Seq(
 )
 ```
 
-Lets write a function spark which calculates pi value on spark and
-quickly overview how to write functions.
-
 `src/main/scala/HelloMist.scala`:
 ```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-// an function object
+// function object
 object HelloMist extends MistFn[Double] {
 
   override def handle = {
     withArgs(
-      // declare an input argument with name `n` and type `Int` and default value `10000`
+      // declare an input argument with name `samples` and type `Int` and default value `10000`
       // we could call it by sending:
       //  - {} - empty request, n will be taken from default value
-      //  - {"n": 5 } - n will be 5
+      //  - {"samples": 5 } - n will be 5
       arg[Int]("samples", 10000)
     )
     // declare that we want to have access to mist extras
@@ -175,16 +176,9 @@ object HelloMist extends MistFn[Double] {
 }
 ```
 
-Next we should build an artifact with out function and set it up on mist:
-```sh
-sbt package
-curl 
-```
+#### Java - more details
 
-
-#### Java
-
-For maven:
+`pom.xml`:
 ```xml
   <properties>
     <spark.version>2.2.0</spark.version>
@@ -224,57 +218,76 @@ For maven:
   </dependencies>
 ```
 
+`src/main/java/HelloMist.java`:
+```java
+import mist.api.jdsl.JArg;
+import mist.api.jdsl.JHandle;
+import mist.api.jdsl.JMistFn;
+import mist.api.jdsl.RetValues;
 
+import java.util.ArrayList;
+import java.util.List;
 
+// function class
+public class HelloMist extends JMistFn<Double> {
 
-Prerequiments:
-- install `mist-cli`
-  ```sh
-  pip install mist-cli
-  // or
-  easy_install mist-cli
-  ```
-- clone repository with prepared projects
-  ```sh
-  git clone https://github.com/dos65/hello_mist.git
-  ```
+  @Override
+  public JHandle<Double> handle() {
+    // declare an input argument with name `samples` and type `Int` and default value `10000`
+    // we could call it by sending:
+    //  - {} - empty request, n will be taken from default value
+    //  - {"samples": 5 } - n will be 5
+    return withArgs(intArg("samples", 10000)).
+           // declare that we want to have access to mist extras
+           // we could use a internal logger from it for debugging
+           withMistExtras().
+           onSparkContext((n, extras, sc) -> {
 
-We will use `mist-cli` to upload our function using just one command(or you can use [http interface directly](/mist-docs/http_api.html))
-That repository contnains:
-- simple function example
-- build setup (sbt/mvn)
-- configuration files for mist-cli
+         extras.logger().info("Hello Mist started with samples:" + n);
+         List<Integer> l = new ArrayList<>(n);
+         for (int i = 0; i < n ; i++) {
+             l.add(i);
+         }
 
-#### Scala
+         long count = sc.parallelize(l).filter(i -> {
+             double x = Math.random();
+             double y = Math.random();
+             return x*x + y*y < 1;
+         }).count();
 
-```sh
-cd hello_mist/scala
-sbt package
-mist-cli apply -f conf
-```
-
-#### Java
- 
-```sh
-cd hello_mist/java
-mvn package
-mist-cli apply -f conf
+         double pi = (4.0 * count) / n;
+         return RetValues.of(pi);
+    });
+  }
+}
 ```
 
 ### Connecting to your existing Apache Spark cluster
 
-If you would like to install Hydrosphere Mist on top of existing Apache Spark installation,
-you should edit a config and specifying an address of your existing Apache Spark master.
-
-For local installation it's placed at `${MIST_HOME}/config/default.conf`.
-For docker it's in `my_config/docker.conf`
-
-For standalone cluster your config should looks like that:
-```
-  mist.context-defaults.spark-conf = {
-    spark.master = "spark://IP:PORT"
+Exmaples above was intented to quickly meet a user with mist usage basics.
+Function invocation was done using on `local` spark node (default).
+The next important thing is to invoke them on a spark cluster.
+To do that we should configure a new `context` with cluster settings and change it for our endpoint:
+Lets continue to use `mist-cli`:
+- using your favorite editor we need to create a file with context settings:
+  `hello_mist/scala/conf/10_cluster_context.conf`
+  ```
+  model = Context
+  name = cluster_context
+  data {
+    spark-conf {
+      spark.master = "spark://IP:PORT"
+    }
   }
-```
+  ```
+  `spark-conf` is a section where we could set up or tune [spark settings](https://spark.apache.org/docs/latest/configuration.html) for a context
+
+- in `hello_mist/scala/conf/20_endpoint.conf` set `context = cluster_context`
+- send changes to mist:
+  ```sh
+  mist-cli apply -f conf
+  ```
+
 If you want use your Yarn or Mesos cluster, there is not something special configuration from Mist side excluding `spark-master` conf.
 Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
 Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set them up before starting Mist
