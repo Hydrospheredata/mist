@@ -50,11 +50,17 @@ object EndpointsStorage extends Logger {
   }
 
   def fromDefaultsConfig(path: String): Seq[EndpointConfig] = {
-    val directory = Paths.get(path).getParent
-    val config = ConfigFactory.parseFile(new File(path))
-      .withValue("location", ConfigValueFactory.fromAnyRef(directory.toString))
-      .resolve()
-    parseConfig(config)
+    val file = new File(path)
+    if (!file.exists()) {
+      Seq.empty
+    } else {
+      logger.warn("Starting using router conf (that feature will be removed - please use http api for uploading functions)")
+      val directory = Paths.get(path).getParent
+      val config = ConfigFactory.parseFile(file)
+        .withValue("location", ConfigValueFactory.fromAnyRef(directory.toString))
+        .resolve()
+      parseConfig(config)
+    }
   }
 
   def parseConfig(config: Config): Seq[EndpointConfig] = {

@@ -123,29 +123,61 @@ lazy val root = project.in(file("."))
 
     stageDirectory := target.value / s"mist-${version.value}",
     stageActions := {
-      val routes = {
-        CpFile(s"configs/router-examples.conf")
-          .as("router.conf")
-          .to("configs")
-      }
       Seq(
         CpFile("bin"),
         MkDir("configs"),
         CpFile("configs/default.conf").to("configs"),
         CpFile("configs/logging").to("configs"),
-        routes,
-        CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
-        CpFile(sbt.Keys.`package`.in(examples, Compile).value)
-          .as(s"mist-examples.jar"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
-    stageActions in basicStage +=
-      CpFile("configs/default.conf").to("configs"),
-    stageActions in dockerStage +=
-      CpFile("configs/docker.conf").as("default.conf").to("configs")
+    stageActions in basicStage += CpFile("configs/default.conf").to("configs"),
+    stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
+    stageActions in dockerStage += CpFile("configs/docker.conf").as("default.conf").to("configs"),
+
+    stageDirectory in runStage := target.value / s"mist-run-${version.value}",
+    stageActions in runStage ++= {
+      val mkJEndpoints = Seq(
+        ("spark-ctx-example", "SparkContextExample$"),
+        ("jspark-ctx-example", "JavaSparkContextExample"),
+        ("streaming-ctx-example", "StreamingExample$"),
+        ("jstreaming-ctx-example", "JavaStreamingContextExample"),
+        ("hive-ctx-example", "HiveContextExample$"),
+        ("sql-ctx-example", "SQLContextExample$"),
+        ("text-search-example", "TextSearchExample$"),
+        ("pi-example", "PiExample$"),
+        ("jpi-example", "JavaPiExample")
+      ).map({case (name, clazz) => {
+        Write(
+          s"data/endpoints/$name.conf",
+          s"""path = mist-examples.jar
+             |className = "$clazz"
+             |namespace = foo""".stripMargin
+        )
+      }}) :+ CpFile(sbt.Keys.`package`.in(examples, Compile).value)
+        .as(s"mist-examples.jar")
+        .to("data/artifacts")
+
+      val mkPyEndpoints = Seq(
+        ("simple_context.py", "SimpleContext"),
+        ("session_job.py", "SessionJob")
+      ).flatMap({case (file, clazz) => {
+        val name = file.replace(".py", "")
+        Seq(
+          Write(
+            s"data/endpoints/$name.conf",
+            s"""path = $file
+               |className = "$clazz"
+               |namespace = foo""".stripMargin
+          ),
+          CpFile(s"examples/examples-python/$file").to("data/artifacts")
+        )
+      }})
+
+      Seq(MkDir("data/artifacts"), MkDir("data/endpoints")) ++ mkJEndpoints ++ mkPyEndpoints
+    }
   ).settings(
     sparkLocal := {
       val log = streams.value.log
@@ -177,7 +209,7 @@ lazy val root = project.in(file("."))
         uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
       }
       val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
-      val home = basicStage.value
+      val home = runStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")
 
@@ -211,7 +243,7 @@ lazy val root = project.in(file("."))
 
         run("apk", "update")
         run("apk", "add", "python", "curl", "jq", "coreutils")
-
+        expose(2004)
         workDir(mistHome)
         entryPoint("/docker-entrypoint.sh")
       }
@@ -232,30 +264,26 @@ lazy val root = project.in(file("."))
     resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
     fork in IntegrationTest := true,
-    //fork in(IntegrationTest, testOnly) := true,
     envVars in IntegrationTest ++= Map(
       "SPARK_HOME" -> s"${sparkLocal.value}",
       "MIST_HOME" -> s"${basicStage.value}"
     ),
     javaOptions in IntegrationTest ++= {
-      val mistHome = basicStage.value
+      val mistHome = runStage.value
+      val dockerImage = {
+        docker.value
+        (imageNames in docker).value.head
+      }
+      val examplesJar = sbt.Keys.`package`.in(examples, Compile).value
       Seq(
+        s"-DexamplesJar=$examplesJar",
+        s"-DimageName=$dockerImage",
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistHome=$mistHome",
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    },
-    /*javaOptions in (IntegrationTest, testOnly) ++= {
-      val mistHome = basicStage.value
-      Seq(
-        s"-DsparkHome=${sparkLocal.value}",
-        s"-DmistHome=$mistHome",
-        s"-DsparkVersion=${sparkVersion.value}",
-        "-Xmx512m"
-      )
-    }*/
-
+    }
   )
 
 addCommandAlias("testAll", ";test;it:test")

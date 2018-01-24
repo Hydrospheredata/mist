@@ -17,6 +17,7 @@ class ClusterWorker(
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+    context.setReceiveTimeout(1.minute)
   }
 
   override def postStop(): Unit = {
@@ -38,6 +39,9 @@ class ClusterWorker(
       requestInfo(m.address)
       context become joined(m.address)
       context.setReceiveTimeout(1.minute)
+
+    case ReceiveTimeout =>
+      shutdown("Problem with cluster - couldn't join after 1 minute")
   }
 
 

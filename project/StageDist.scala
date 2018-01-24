@@ -8,6 +8,7 @@ object StageDist {
   lazy val stageDirectory = taskKey[File]("Target directory")
   lazy val stageActions = taskKey[Seq[StageAction]]("Actions to build stage")
   lazy val basicStage = taskKey[File]("Build stage for basic distributive")
+  lazy val runStage = taskKey[File]("Build stage for docker distributive")
   lazy val dockerStage = taskKey[File]("Build stage for docker distributive")
   lazy val packageTar = taskKey[File]("Package stage to tar")
 
@@ -15,6 +16,7 @@ object StageDist {
     stageDirectory := target.value / name.value,
     basicStage := stageBuildTask(basicStage).value,
     dockerStage := stageBuildTask(dockerStage).value,
+    runStage := stageBuildTask(runStage).value,
     packageTar := {
       import scala.sys.process._
 
@@ -41,6 +43,7 @@ object StageDist {
     actions.foreach({
       case MkDir(name) => mkDir(name, dir)
       case copy: CpFile => copyToDir(copy, dir)
+      case Write(name, data) => IO.write(dir.asPath.resolve(name).toFile, data.getBytes)
     })
     log.info(s"Stage is built at $dir")
     dir
@@ -90,6 +93,8 @@ object StageDist {
     def apply(f: File): CpFile = CpFile(f, None, None)
     def apply(s: String): CpFile = CpFile(sbt.file(s), None, None)
   }
+
+  case class Write(name: String, data: String) extends StageAction
 
   case class MkDir(name: String) extends StageAction
 }
