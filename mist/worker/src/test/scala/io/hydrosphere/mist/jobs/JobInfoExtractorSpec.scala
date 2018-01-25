@@ -4,7 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{JobInfoData, JobsLoader, OldInstanceWrapper}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData, JobsLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
 import mist.api.args.{InternalArgument, MInt, UserInputArgument}
 import mist.api.internal.{JavaJobInstance, JobInstance, ScalaJobInstance}
@@ -29,13 +29,13 @@ class JobInfoExtractorSpec extends FunSpecLike
       val pyExtractor = mock[PythonJobInfoExtractor]
 
       when(jvmExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(data = JobInfoData("test"))))
+        .thenReturn(Success(JobInfo(data = ExtractedData("test"))))
 
       val baseJobInfoExtractor = new BaseJobInfoExtractor(jvmExtractor, pyExtractor)
 
       val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.jar"), "Test")
 
-      info.get shouldBe JobInfo(data = JobInfoData("test"))
+      info.get shouldBe JobInfo(data = ExtractedData("test"))
 
       verify(jvmExtractor, times(1)).extractInfo(any[File], any[String])
       verify(pyExtractor, never()).extractInfo(any[File], any[String])
@@ -45,13 +45,13 @@ class JobInfoExtractorSpec extends FunSpecLike
       val pyExtractor = mock[PythonJobInfoExtractor]
 
       when(pyExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(data = JobInfoData("test"))))
+        .thenReturn(Success(JobInfo(data = ExtractedData("test"))))
 
       val baseJobInfoExtractor = new BaseJobInfoExtractor(jvmExtractor, pyExtractor)
 
       val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.py"), "Test")
 
-      info.get shouldBe JobInfo(data = JobInfoData("test"))
+      info.get shouldBe JobInfo(data = ExtractedData("test"))
 
       verify(jvmExtractor, never()).extractInfo(any[File], any[String])
       verify(pyExtractor, times(1)).extractInfo(any[File], any[String])
@@ -100,26 +100,23 @@ class JobInfoExtractorSpec extends FunSpecLike
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
       res.isSuccess shouldBe true
-      res.get.data shouldBe JobInfoData(
+      res.get.data shouldBe ExtractedData(
         lang = "java",
-        execute=Seq(UserInputArgument("num", MInt)),
-        className="TestJava"
+        execute=Seq(UserInputArgument("num", MInt))
       )
       val scalaJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestScala")
 
       scalaJob.isSuccess shouldBe true
-      scalaJob.get.data shouldBe JobInfoData(
+      scalaJob.get.data shouldBe ExtractedData(
         lang = "scala",
-        execute=Seq(UserInputArgument("num", MInt)),
-        className="TestScala"
+        execute=Seq(UserInputArgument("num", MInt))
       )
       val otherJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestOld")
 
       otherJob.isSuccess shouldBe true
-      otherJob.get.data shouldBe JobInfoData(
+      otherJob.get.data shouldBe ExtractedData(
         lang = "scala",
-        execute=Seq(UserInputArgument("num", MInt)),
-        className="TestOld"
+        execute=Seq(UserInputArgument("num", MInt))
       )
     }
 
@@ -151,11 +148,10 @@ class JobInfoExtractorSpec extends FunSpecLike
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestClass")
 
       res.isSuccess shouldBe true
-      res.get.data shouldBe JobInfoData(
+      res.get.data shouldBe ExtractedData(
         lang="scala",
         execute = Seq(UserInputArgument("num", MInt)),
-        isServe = true,
-        className = "TestClass"
+        isServe = true
       )
     }
 
@@ -175,10 +171,9 @@ class JobInfoExtractorSpec extends FunSpecLike
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
       res.isSuccess shouldBe true
-      res.get.data shouldBe JobInfoData(
+      res.get.data shouldBe ExtractedData(
         lang = "java",
         execute = Seq(UserInputArgument("num", MInt)),
-        className = "TestJava",
         tags = Seq("testTag")
       )
 
@@ -194,9 +189,8 @@ class JobInfoExtractorSpec extends FunSpecLike
       val pythonJobInfoExtractor = new PythonJobInfoExtractor
       val res = pythonJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Test")
       res.isSuccess shouldBe true
-      res.get.data shouldBe JobInfoData(
-        lang="python",
-        className="Test"
+      res.get.data shouldBe ExtractedData(
+        lang="python"
       )
       res.get.instance shouldBe JobInstance.NoOpInstance
     }
