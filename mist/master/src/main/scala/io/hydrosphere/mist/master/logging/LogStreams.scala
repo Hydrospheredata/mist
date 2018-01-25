@@ -4,8 +4,9 @@ import java.nio.ByteOrder
 
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
+import akka.pattern.Backoff
 import akka.stream.scaladsl._
-import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.stream.{ActorAttributes, ActorMaterializer, Attributes, OverflowStrategy}
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
@@ -17,6 +18,10 @@ import scala.concurrent.duration._
 
 trait LogStreams {
 
+  import ActorAttributes.supervisionStrategy
+  import akka.stream.Supervision.resumingDecider
+
+
   /**
     * Storing batched logEvent via writer and produce Event
     *   for async interfaces
@@ -25,10 +30,11 @@ trait LogStreams {
     Flow[LogEvent]
       .groupBy(1000, _.from)
       .groupedWithin(1000, 1 second)
-      .mapAsync(10)(events => {
+      .mapAsync(4)(events => {
         val jobId = events.head.from
         writer.write(jobId, events)
       })
+      .withAttributes(supervisionStrategy(resumingDecider))
       .mergeSubstreams
   }
 
