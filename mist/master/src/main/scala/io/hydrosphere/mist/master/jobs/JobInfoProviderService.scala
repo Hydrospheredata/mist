@@ -30,7 +30,10 @@ class JobInfoProviderService(
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
       jobInfo  <- OptionT.liftF(askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file)))
-    } yield jobInfo
+    } yield jobInfo.copy(
+      path = endpoint.path,
+      defaultContext = endpoint.defaultContext
+    )
 
     f.value
   }
@@ -39,6 +42,7 @@ class JobInfoProviderService(
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file))
+          .map(info => info.copy(defaultContext = endpoint.defaultContext, path = endpoint.path))
       case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${endpoint.path}"))
     }
   }
@@ -70,15 +74,22 @@ class JobInfoProviderService(
         .map(f => createGetInfoMsg(e, f))
     }
     for {
-      endpoints <- endpointStorage.all
-      data      <-
+      endpoints   <- endpointStorage.all
+      enpointsMap =  endpoints.map(e => e.name -> e).toMap
+      data        <-
         if (endpoints.nonEmpty) {
           val requests =  endpoints.flatMap(toJobInfoRequest).toList
           val timeout =  Timeout(timeoutDuration * requests.size.toLong)
           askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests), timeout)
         } else
           Future.successful(Seq.empty)
-    } yield data
+    } yield {
+      data.flatMap(info => {
+        enpointsMap.get(info.name).map { ep =>
+          info.copy(path = ep.path, defaultContext = ep.defaultContext)
+        }
+      })
+    }
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any, t: Timeout): Future[T] =
@@ -94,9 +105,7 @@ class JobInfoProviderService(
   private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(
     endpoint.className,
     file.getAbsolutePath,
-    endpoint.name,
-    endpoint.path,
-    endpoint.defaultContext
+    endpoint.name
   )
 
   private def createValidateParamsMsg(
@@ -107,8 +116,6 @@ class JobInfoProviderService(
     endpoint.className,
     file.getAbsolutePath,
     endpoint.name,
-    endpoint.path,
-    endpoint.defaultContext,
     params
   )
 }

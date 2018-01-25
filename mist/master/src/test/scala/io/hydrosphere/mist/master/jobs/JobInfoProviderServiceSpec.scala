@@ -380,7 +380,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.allJobInfos
       probe.expectMsgType[GetAllJobInfo]
-      probe.reply(Seq(JobInfoData()))
+      probe.reply(Seq(JobInfoData(name="test")))
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 1
