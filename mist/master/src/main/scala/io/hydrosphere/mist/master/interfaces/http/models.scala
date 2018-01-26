@@ -238,12 +238,12 @@ case class ThreadMetrics(
 object ThreadMetrics {
   def create(threadMXBean: ThreadMXBean): ThreadMetrics = {
     ThreadMetrics(
-      threadMXBean.getThreadCount,
-      threadMXBean.getDaemonThreadCount,
-      threadMXBean.getPeakThreadCount,
+      threadMXBean.getThreadCount.toLong,
+      threadMXBean.getDaemonThreadCount.toLong,
+      threadMXBean.getPeakThreadCount.toLong,
       threadMXBean.getTotalStartedThreadCount,
-      Option(threadMXBean.findDeadlockedThreads()).map(_.length),
-      Option(threadMXBean.findMonitorDeadlockedThreads()).map(_.length)
+      Option(threadMXBean.findDeadlockedThreads()).map(_.length.toLong),
+      Option(threadMXBean.findMonitorDeadlockedThreads()).map(_.length.toLong)
     )
   }
 }

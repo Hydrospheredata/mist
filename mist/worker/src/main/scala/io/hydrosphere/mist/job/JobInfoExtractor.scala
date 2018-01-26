@@ -4,7 +4,7 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.{JobInfoData, JobsLoader}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData, JobsLoader}
 import mist.api.args.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 
 case class JobInfo(
   instance: BaseJobInstance = JobInstance.NoOpInstance,
-  data: JobInfoData
+  data: ExtractedData
 )
 
 trait JobInfoExtractor {
@@ -37,11 +37,10 @@ class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoEx
           case _: JavaJobInstance => JobInfoData.JavaLang
           case _ => JobInfoData.ScalaLang
         }
-        JobInfo(instance, JobInfoData(
+        JobInfo(instance, ExtractedData(
           lang = lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeJobInstance.isSuccess,
-          className = className,
           tags = instance.describe()
             .collect { case InternalArgument(t) => t }
             .flatten
@@ -71,9 +70,8 @@ object JvmJobInfoExtractor {
 
 class PythonJobInfoExtractor extends JobInfoExtractor {
   override def extractInfo(file: File, className: String) = Success(
-    JobInfo(data = JobInfoData(
-      lang = JobInfoData.PythonLang,
-      className = className
+    JobInfo(data = ExtractedData(
+      lang = JobInfoData.PythonLang
     )))
 }
 
