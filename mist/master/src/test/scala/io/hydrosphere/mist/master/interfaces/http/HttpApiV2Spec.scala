@@ -106,9 +106,6 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
-
-
-
     //    it("should return endpoints") {
     //      val epConfig = EndpointConfig("name", "path", "className", "context")
     //      val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
@@ -138,17 +135,50 @@ class HttpApiV2Spec extends FunSpec
           JobParams("path", "className", Map.empty, Action.Execute),
           "context", None, JobDetails.Source.Http, workerId = "workerId")
       ))
+      when(jobService.endpointHistoryCount(any[String], any[Seq[JobDetails.Status]]))
+        .thenSuccess(1)
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Get("/v2/api/endpoints/id/jobs?status=started") ~> route ~> check {
         status shouldBe StatusCodes.OK
 
-        val jobs = responseAs[Seq[JobDetails]]
-        jobs.size shouldBe 1
+        val jobs = responseAs[Page[JobDetails]]
+        jobs.data.size shouldBe 1
+        jobs.nextPage should not be defined
+        jobs.count shouldBe 1
       }
     }
 
+    it("should paginate history for endpoint") {
+      val jobService = mock[JobService]
+      val master = mock[MainService]
+      when(master.jobService).thenReturn(jobService)
+
+      when(jobService.endpointHistory(
+        any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
+      )).thenSuccess(Seq(
+        JobDetails("id", "1",
+          JobParams("path", "className", Map.empty, Action.Execute),
+          "context", None, JobDetails.Source.Http, workerId = "workerId")
+      ))
+      when(jobService.endpointHistoryCount(any[String], any[Seq[JobDetails.Status]]))
+        .thenSuccess(2)
+
+      val route = HttpV2Routes.endpointsRoutes(master)
+
+      Get("/v2/api/endpoints/id/jobs?status=started&pageSize=1&offset=0") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+
+        val jobs = responseAs[Page[JobDetails]]
+        jobs.data.size shouldBe 1
+        jobs.nextPage shouldBe defined
+        val nextPage = jobs.nextPage.get
+        nextPage.offset shouldBe 1
+        nextPage.pageSize shouldBe 1
+        jobs.count shouldBe 2
+      }
+    }
   }
 
   describe("endpoint creation") {
@@ -249,6 +279,63 @@ class HttpApiV2Spec extends FunSpec
       externalId = None,
       workerId = "workerId"
     )
+
+    it("should return page of JobDetails") {
+      val jobService = mock[JobService]
+      val master = mock[MainService]
+      when(master.jobService).thenReturn(jobService)
+
+      when(jobService.getHistory(
+        anyInt(), anyInt(), any[Seq[JobDetails.Status]]
+      )).thenSuccess(Seq(
+        JobDetails("id", "1",
+          JobParams("path", "className", Map.empty, Action.Execute),
+          "context", None, JobDetails.Source.Http, workerId = "workerId")
+      ))
+      when(jobService.historyCount(any[Seq[JobDetails.Status]]))
+        .thenSuccess(1)
+
+      val route = HttpV2Routes.jobsRoutes(master)
+
+      Get("/v2/api/jobs?status=started") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+
+        val jobs = responseAs[Page[JobDetails]]
+        jobs.data.size shouldBe 1
+        jobs.nextPage should not be defined
+        jobs.count shouldBe 1
+      }
+    }
+
+    it("should paginate with next page") {
+      val jobService = mock[JobService]
+      val master = mock[MainService]
+      when(master.jobService).thenReturn(jobService)
+
+      when(jobService.getHistory(
+        anyInt(), anyInt(), any[Seq[JobDetails.Status]]
+      )).thenSuccess(Seq(
+        JobDetails("id", "1",
+          JobParams("path", "className", Map.empty, Action.Execute),
+          "context", None, JobDetails.Source.Http, workerId = "workerId")
+      ))
+      when(jobService.historyCount(any[Seq[JobDetails.Status]]))
+        .thenSuccess(2)
+
+      val route = HttpV2Routes.jobsRoutes(master)
+
+      Get("/v2/api/jobs?status=started&pageSize=1&offset=0") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val jobs = responseAs[Page[JobDetails]]
+        jobs.data.size shouldBe 1
+        jobs.nextPage shouldBe defined
+        val nextPage = jobs.nextPage.get
+        nextPage.offset shouldBe 1
+        nextPage.pageSize shouldBe 1
+        jobs.count shouldBe 2
+      }
+
+    }
 
     it("should return jobs status by id") {
       val jobsService = mock[JobService]
