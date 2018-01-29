@@ -24,7 +24,7 @@ object Library {
   val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
 
   object Akka {
-    val akkaVersion = "2.5.8"
+    val akkaVersion = "2.5.9"
     val httpVersion = "10.0.11"
 
     val stream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
@@ -34,6 +34,7 @@ object Library {
 
     val testKit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
     val actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
+    val typed = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
     def base = {
       Seq(
         actor,

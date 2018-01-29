@@ -43,7 +43,8 @@ object CommonData {
 
   case class RunJobRequest(
     id: String,
-    params: JobParams
+    params: JobParams,
+    timeout: Duration = Duration.Inf
   )
 
   sealed trait RunJobResponse {

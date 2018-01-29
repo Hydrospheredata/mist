@@ -56,6 +56,7 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       Library.slf4j,
       Library.reflect,
+      Library.Akka.testKit % "test",
       Library.mockito % "test", Library.scalaTest % "test"
     )
   )
@@ -70,6 +71,7 @@ lazy val master = project.in(file("mist/master"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
+      Library.Akka.typed,
       Library.slf4j, Library.typesafeConfig, Library.scopt,
       Library.slick, Library.h2, Library.flyway,
       Library.chill,

@@ -17,6 +17,7 @@ class ClusterWorker(
 
   override def preStart(): Unit = {
     cluster.subscribe(self, InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+    cluster.registerOnMemberRemoved()
     context.setReceiveTimeout(1.minute)
   }
 
