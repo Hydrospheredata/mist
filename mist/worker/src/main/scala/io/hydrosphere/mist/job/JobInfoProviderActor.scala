@@ -2,17 +2,20 @@ package io.hydrosphere.mist.job
 
 import java.io.File
 
+import akka.actor.SupervisorStrategy.Resume
 import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.utils.EitherOps._
+import io.hydrosphere.mist.core.jvmjob.ExtractedData
+import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 
 trait Cache[K, V] {
   self =>
   def get(k: K): Option[V]
+
+  def getOrUpdate(k: K)(f: K => V): (Cache[K, V], V)
 
   def put(k: K, v: V): Cache[K, V]
 
@@ -27,6 +30,7 @@ trait Cache[K, V] {
   def -(k: K): Cache[K, V] = self.removeItem(k)
 
   protected def now: Long = System.currentTimeMillis()
+
 }
 
 object Cache {
@@ -47,6 +51,15 @@ case class TTLCache[K, V](
     cache.get(k)
       .filter { case (expiration, _) => expiration > now }
       .map(_._2)
+
+  override def getOrUpdate(k: K)(f: K => V): (Cache[K, V], V) = {
+    get(k) match {
+      case Some(v) => (this, v)
+      case None =>
+        val v = f(k)
+        (put(k, v), v)
+    }
+  }
 
   override def put(k: K, v: V): Cache[K, V] = {
     val newCache = cache + (k -> (now + ttl.toMillis, v))
@@ -72,83 +85,84 @@ class JobInfoProviderActor(
   ttl: FiniteDuration
 ) extends Actor with ActorLogging {
 
+  type StateCache = Cache[String, TryLoad[JobInfo]]
+
   implicit val ec = context.dispatcher
+
+  override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy(){
+    case e: Throwable =>
+      log.error(e, "Handled error")
+      Resume
+  }
 
   context.system.scheduler.schedule(ttl, ttl, self, EvictCache)
 
-  override def receive: Receive = cached(Cache[String, JobInfo](ttl))
+  override def receive: Receive = cached(Cache[String, TryLoad[JobInfo]](ttl))
 
-  def cached(cache: Cache[String, JobInfo]): Receive = {
+  private def wrapError(e: Throwable): Throwable = e match {
+    case e: Error => new RuntimeException(e)
+    case e: Throwable => e
+  }
+
+  def cached(cache: StateCache): Receive = {
     case r: GetJobInfo =>
-      jobInfoFromCache(cache, r) match {
-        case Right(entry@(_, i)) =>
-          sender() ! i.data
-          context become cached(cache + entry)
-        case Left(err) =>
-          sender() ! Status.Failure(err)
+      val (next, v) = usingCache(cache, r)
+      val rsp = v match {
+        case Succ(info) => info.data
+        case Err(e) =>
+          log.info(s"Responding with err on {}: {} {}", r, e.getClass, e.getMessage)
+          Status.Failure(wrapError(e))
       }
+      sender() ! rsp
+      context become cached(next)
 
     case req: ValidateJobParameters =>
-      import req._
-      val message = jobInfoFromCache(cache, req) match {
-        case Right(entry@(_, item)) => item.instance.validateParams(params) match {
-          case Right(_) =>
-            context become cached(cache + entry)
-            Status.Success(())
-          case Left(err) => Status.Failure(err)
-        }
-        case Left(err) => Status.Failure(err)
+      val (next, v) = usingCache(cache, req)
+      val rsp = v.flatMap(i => TryLoad.fromEither(i.instance.validateParams(req.params))) match {
+        case Succ(_) => Status.Success(())
+        case Err(e) =>
+          log.info(s"Responding with err on {}: {} {}", req, e.getClass, e.getMessage)
+          Status.Failure(wrapError(e))
       }
-      sender() ! message
+      sender() ! rsp
+      context become cached(next)
 
     case GetAllJobInfo(requests) =>
-      val jobInfoDatas = requests
-        .map(req => jobInfoFromCache(cache, req))
-        .foldLeft(Seq.empty[(String, JobInfo)]) {
-          case (acc, Right(item)) => acc :+ item
-          case (acc, Left(err)) =>
-            log.error(err, err.getMessage)
-            acc
-        }
-
-      sender() ! jobInfoDatas.map(_._2.data)
-
-      val updatedCache = jobInfoDatas.foldLeft(cache) {
-        case (c, entry) => c + entry
+      //TODO send errors to master
+      val (next, results) = requests.foldLeft((cache, Seq.empty[ExtractedData])){
+        case ((cache, acc), req) =>
+          val (upd, v) = usingCache(cache, req)
+          val nextAcc = v match {
+            case Succ(info) =>
+              acc :+ info.data
+            case Err(err) =>
+              log.error(err, err.getMessage)
+              acc
+          }
+          (upd, nextAcc)
       }
-
-      context become cached(updatedCache)
+      sender() ! results
+      context become cached(next)
 
     case GetCacheSize =>
       sender() ! cache.size
 
     case EvictCache =>
       context become cached(cache.evictAll)
-
   }
 
-  private def jobInfoFromCache(
-    cache: Cache[String, JobInfo],
-    req: InfoRequest
-  ): Either[Throwable, (String, JobInfo)] = {
+  private def usingCache(cache: StateCache, req: InfoRequest): (StateCache, TryLoad[JobInfo]) = {
     val file = new File(req.jobPath)
     if (file.exists() && file.isFile) {
       val key = cacheKey(req, file)
-      cache.get(key) match {
-        case Some(info) => Right((key, info))
-        case None => jobInfo(req) match {
-          case Right(info) => Right((key, info))
-          case Left(err) => Left(err)
-        }
-      }
-    } else Left(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
+      cache.getOrUpdate(key)(_ => jobInfo(req))
+    } else cache -> Err(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
   }
 
-  private def jobInfo(req: InfoRequest): Either[Throwable, JobInfo] = {
+  private def jobInfo(req: InfoRequest): TryLoad[JobInfo] = {
     import req._
     val f = new File(jobPath)
-    val res = jobInfoExtractor.extractInfo(f, className).map(e => e.copy(data = e.data.copy(name = req.name)))
-    Either.fromTry(res)
+    jobInfoExtractor.extractInfo(f, className).map(e => e.copy(data = e.data.copy(name = req.name)))
   }
 
   private def cacheKey(req: InfoRequest, file: File): String = {
