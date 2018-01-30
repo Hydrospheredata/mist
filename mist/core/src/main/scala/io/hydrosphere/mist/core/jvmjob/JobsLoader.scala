@@ -4,25 +4,25 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.utils.{Err, TryLoad, Succ}
 import mist.api.internal.BaseJobInstance
 
 import scala.reflect.runtime.universe._
-import scala.util.{Failure, Success, Try}
 
 class JobsLoader(val classLoader: ClassLoader) {
 
-  def loadJobInstance(className: String, action: Action): Try[BaseJobInstance] = {
+  def loadJobInstance(className: String, action: Action): TryLoad[BaseJobInstance] = {
     loadClass(className).flatMap({
       case clz if mist.api.internal.JobInstance.isScalaInstance(clz) =>
-        Try(mist.api.internal.JobInstance.loadScala(clz))
+        TryLoad(mist.api.internal.JobInstance.loadScala(clz))
       case clz if mist.api.internal.JobInstance.isJavaInstance(clz) =>
-        Try(mist.api.internal.JobInstance.loadJava(clz))
+        TryLoad(mist.api.internal.JobInstance.loadJava(clz))
       case clz =>
         loadJobInstance(clz, action) match {
-          case Some(i) => Success(i)
+          case Some(i) => Succ(i)
           case None =>
             val e = new IllegalStateException(s"Can not instantiate job for action $action")
-            Failure(e)
+            Err(e)
         }
     })
   }
@@ -44,8 +44,8 @@ class JobsLoader(val classLoader: ClassLoader) {
     case Action.Serve => "serve"
   }
 
-  private def loadClass(name: String): Try[Class[_]] =
-    Try(Class.forName(name, false, classLoader))
+  private def loadClass(name: String): TryLoad[Class[_]] =
+    TryLoad(Class.forName(name, false, classLoader))
 }
 
 object JobsLoader {

@@ -9,6 +9,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
 import io.hydrosphere.mist.job.{Cache, JobInfo, JobInfoExtractor, JobInfoProviderActor}
+import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{ArgInfo, UserInputArgument}
 import mist.api.FullFnContext
 import mist.api.args.MInt
@@ -47,7 +48,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should get job info when file is found") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           data = ExtractedData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -77,7 +78,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should handle failure of extraction when get job info") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Failure(new IllegalArgumentException("invalid job")))
+        .thenReturn(Err(new IllegalArgumentException("invalid job")))
 
       val testProbe = TestProbe()
       val jobInfoProvider = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
@@ -90,7 +91,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should return validation success when validation is passed") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           TestJobInstance(Right(Map.empty)),
           ExtractedData()
         )))
@@ -118,7 +119,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should return failure when fail to extract instance") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Failure(new IllegalArgumentException("invalid")))
+        .thenReturn(Err(new IllegalArgumentException("invalid")))
 
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
@@ -130,12 +131,12 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should return failure when validation fails") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           TestJobInstance(Right(Map.empty)),
           ExtractedData()
         )))
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           TestJobInstance(Left(new IllegalArgumentException("invalid"))),
           ExtractedData()
         )))
@@ -151,7 +152,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should cache job info when requested") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           data = ExtractedData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -169,7 +170,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should hit cache when get job info") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           data = ExtractedData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -187,7 +188,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should hit cache when validate job info") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           instance = TestJobInstance(Right(Map.empty)),
           data = ExtractedData(
             lang = "scala",
@@ -208,7 +209,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should cache job info when validate job") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           instance = TestJobInstance(Right(Map.empty)),
           data = ExtractedData(
             lang = "scala",
@@ -227,7 +228,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     it("should get all items in request") {
       val jobInfoExtractor = mock[JobInfoExtractor]
       when(jobInfoExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Success(JobInfo(
+        .thenReturn(Succ(JobInfo(
           instance = TestJobInstance(Right(Map.empty)),
           data = ExtractedData(
             lang = "scala",
