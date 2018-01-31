@@ -11,6 +11,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.execution.{ExecutionMaster, Executor, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
@@ -18,6 +19,7 @@ import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future, Promise}
@@ -99,15 +101,23 @@ object MasterServer extends Logger {
       val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
 
       val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
-      val workerManager = system.actorOf(
-        WorkersManager.props(
-          status, workerRunner,
-          jobsLogger,
-          config.workers.runnerInitTimeout,
-          infoProvider
-        ), "workers-manager")
 
-      new JobService(workerManager, status)
+      val regHub = ActorRegHub("regHub", system)
+      logger.info("RegHub:" + regHub.regPath)
+      val execMaster = system.actorOf(ExecutionMaster.props(
+        status,
+        Executor.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
+      ))
+
+//      val workerManager = system.actorOf(
+//        WorkersManager.props(
+//          status, workerRunner,
+//          jobsLogger,
+//          config.workers.runnerInitTimeout,
+//          infoProvider
+//        ), "workers-manager")
+
+      new JobService(execMaster, status)
     }
 
     val artifactRepository = ArtifactRepository.create(

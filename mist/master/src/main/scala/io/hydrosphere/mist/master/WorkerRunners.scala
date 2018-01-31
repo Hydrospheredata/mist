@@ -61,6 +61,7 @@ class LocalWorkerRunner(config: MasterConfig)
       Seq[String](s"${sys.env("MIST_HOME")}/bin/mist-worker", "--runner", "local") ++
       workerArgs(name, context, mode, config)
 
+    logger.info(s"Try run local worker with $cmd")
     val builder = Process(cmd)
     builder.run(false)
   }

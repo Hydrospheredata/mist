@@ -96,7 +96,7 @@ class SharedWorkerActor(
   }
 
   override def receive: Receive = {
-    case req@RunJobRequest(id, params) =>
+    case req@RunJobRequest(id, params, _) =>
       if (activeJobs.size == maxJobs) {
         sender() ! WorkerIsBusy(id)
       } else {

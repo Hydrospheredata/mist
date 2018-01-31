@@ -4,8 +4,49 @@ import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.duration._
+
+class ClusterWorker2(
+  id: String,
+  regHub: ActorRef,
+  workerInit: WorkerInitInfo => (NamedContext, Props)
+) extends Actor with ActorLogging {
+
+  override def preStart: Unit = {
+    regHub ! ActorRegHub.Register(id)
+    log.info(s"REGISTER $regHub")
+  }
+
+  override def receive: Receive = waitInit
+
+  // TODO watch remote, watch worker
+  private def waitInit: Receive = {
+    case init:WorkerInitInfo =>
+      log.info("received init info")
+      val (nm, props) = workerInit(init)
+      val ref = context.actorOf(props)
+      sender() ! WorkerReady
+      context.watch(ref)
+      log.info("BECOME WORK")
+      context become work(sender(), ref)
+  }
+
+  private def work(remote: ActorRef, worker: ActorRef): Receive = {
+    case x =>
+      log.info(s"FORWARD $x")
+      worker forward x
+  }
+
+}
+
+object ClusterWorker2 {
+
+  def props(id: String, regHub: ActorRef, workerInit: WorkerInitInfo => (NamedContext, Props)): Props = {
+    Props(classOf[ClusterWorker2], id, regHub, workerInit)
+  }
+}
 
 class ClusterWorker(
   name: String,

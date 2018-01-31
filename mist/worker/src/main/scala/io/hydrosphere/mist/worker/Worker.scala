@@ -1,11 +1,12 @@
 package io.hydrosphere.mist.worker
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 
 case class WorkerArguments(
@@ -82,19 +83,32 @@ object Worker extends App with Logger {
     val mode = arguments.workerMode
     logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
 
-    val seedNodes = Seq(arguments.masterNode).asJava
-    val roles = Seq(s"worker-$name").asJava
+//    val seedNodes = Seq(arguments.masterNode).asJava
+//    val roles = Seq(s"worker-$name").asJava
     val config = ConfigFactory.load("worker")
-      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
-      .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
+//      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
+//      .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(arguments.bindPort))
 
-    val system = ActorSystem("mist", config)
+    val system = ActorSystem(s"mist-worker-$name", config)
 
-    val props = ClusterWorker.props(
-      name = arguments.name,
-      contextName = arguments.contextName,
+    def resolveRemote(path: String): ActorRef = {
+      val ref = system.actorSelection(path).resolveOne(10 seconds)
+      try {
+        Await.result(ref, Duration.Inf)
+      } catch {
+        case e: Throwable =>
+          logger.error(s"Couldn't resolve remote path $path", e)
+          sys.exit(-1)
+      }
+    }
+
+    val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
+    println(regHub)
+    val props = ClusterWorker2.props(
+      id = arguments.name,
+      regHub = regHub,
       workerInit = WorkerActor.propsFromInitInfo(name, arguments.contextName, mode)
     )
     system.actorOf(props, s"worker-$name")
@@ -107,7 +121,8 @@ object Worker extends App with Logger {
     sys.exit()
   } catch {
     case e: Throwable =>
-    logger.error("Fatal error", e)
+      logger.error("Fatal error", e)
+      sys.exit(1)
   }
 
 }
