@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, Props, ReceiveTimeout, Timers}
 import akka.pattern._
 import cats.data._
 import cats.implicits._
@@ -12,7 +12,49 @@ import io.hydrosphere.mist.master.store.JobRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
+
+class JobStatusFlusher(
+  id: String,
+  flush: Seq[UpdateStatusEvent] => Future[JobDetails]
+) extends Actor with ActorLogging {
+
+  import JobStatusFlusher._
+
+  override def preStart(): Unit = {
+    context.setReceiveTimeout(30 seconds)
+  }
+
+  override def receive: Receive = initial
+
+  private def initial: Receive = {
+    case ev: UpdateStatusEvent => performFlush(Seq(ev))
+    case ReceiveTimeout => context.stop(self)
+  }
+
+  private def writing(messages: Seq[UpdateStatusEvent]): Receive = {
+    case ev: UpdateStatusEvent => context become writing(messages :+ ev)
+    case Ready if messages.nonEmpty => performFlush(messages)
+    case Ready => context become initial
+  }
+
+  private def performFlush(messages: Seq[UpdateStatusEvent]): Unit = {
+    flush(messages).onComplete {
+      case Success(_) => self ! Ready
+      case Failure(e) =>
+        log.error(e, "Flushing for {}, messages: {} was failed", id, messages)
+        self ! Ready
+    }
+    context become writing(Seq.empty)
+  }
+
+}
+
+object JobStatusFlusher {
+
+  case object Ready
+}
 
 class StatusService(
   store: JobRepository,
@@ -34,6 +76,7 @@ class StatusService(
       })
 
     case e: UpdateStatusEvent =>
+      log.info(s"HANDLED $e")
       val origin = sender()
       updateDetails(e).onComplete({
         case Success(Some(details)) =>
@@ -69,6 +112,7 @@ class StatusService(
   private def updateDetails(e: UpdateStatusEvent): Future[Option[JobDetails]] = {
     val result = for {
       details <- OptionT(store.get(e.id))
+      _ = log.info(s"TRY UPDATE DETAILS: ${details}")
       updated = applyStatusEvent(details, e)
       _ <- OptionT.liftF(store.update(updated))
     } yield updated

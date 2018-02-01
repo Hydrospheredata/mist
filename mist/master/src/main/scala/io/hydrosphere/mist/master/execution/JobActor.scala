@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.execution
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.execution.status.StatusReporter
 import mist.api.data.JsLikeData
 
 import scala.concurrent.Promise
@@ -12,7 +13,7 @@ class JobActor(
   callback: ActorRef,
   req: RunJobRequest,
   promise: Promise[JsLikeData],
-  report: UpdateStatusEvent => Unit
+  report: StatusReporter
 ) extends Actor with ActorLogging with Timers {
 
   import JobActor._
@@ -44,20 +45,28 @@ class JobActor(
     context become cancellingOnExecutor(Seq(cancelRespond), executor, reason)
   }
 
-  private def starting(executor: ActorRef): Receive = {
+  private def starting(executor: ActorRef, workerRespond: Boolean = false): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Queued
     case Event.Cancel => cancelRemotely(sender(), executor, "user request")
     case Event.Timeout => cancelRemotely(sender(), executor, "timeout")
 
-    case Terminated(_) => onExecutorTermination()
+    case Terminated(_) =>
+      if (workerRespond) onExecutorTermination()
+      else {
+        log.info(s"Returning job: {} back to initial state, worker didn't respond on start request", req.id)
+        context become initial
+      }
 
     case JobFileDownloading(id, time) =>
-      report(JobFileDownloadingEvent(id, time))
+      report.report(JobFileDownloadingEvent(id, time))
       callback ! Event.Started(id)
+      context become starting(executor, true)
 
     case JobStarted(id, time) =>
-      report(StartedEvent(id, time))
-      callback ! Event.Started(id)
+      report.report(StartedEvent(id, time))
+      if (!workerRespond) {
+        callback ! Event.Started(id)
+      }
       context become completion(callback, executor)
   }
 
@@ -102,7 +111,8 @@ class JobActor(
     time: Long = System.currentTimeMillis()
   ): Unit = {
     promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
-    report(CanceledEvent(req.id, time))
+    report.report(CanceledEvent(req.id, time))
+    log.info(s"Job ${req.id} was cancelled: $reason")
     callback ! Event.Completed(req.id)
     self ! PoisonPill
   }
@@ -111,14 +121,16 @@ class JobActor(
 
   private def completeSuccess(data: JsLikeData): Unit = {
     promise.success(data)
-    report(FinishedEvent(req.id, System.currentTimeMillis(), data))
+    report.report(FinishedEvent(req.id, System.currentTimeMillis(), data))
+    log.info(s"Job ${req.id} completed successfully")
     callback ! Event.Completed(req.id)
     self ! PoisonPill
   }
 
   private def completeFailure(err: String): Unit = {
     promise.failure(new RuntimeException(err))
-    report(FailedEvent(req.id, System.currentTimeMillis(), err))
+    report.report(FailedEvent(req.id, System.currentTimeMillis(), err))
+    log.info(s"Job ${req.id} completed with error")
     callback ! Event.Completed(req.id)
     self ! PoisonPill
   }
@@ -141,14 +153,8 @@ object JobActor {
     callback: ActorRef,
     req: RunJobRequest,
     promise: Promise[JsLikeData],
-    reporter: UpdateStatusEvent => Unit
+    reporter: StatusReporter
   ): Props = Props(classOf[JobActor], callback, req, promise, reporter)
 
-  def props(
-    callback: ActorRef,
-    req: RunJobRequest,
-    promise: Promise[JsLikeData],
-    statusService: ActorRef
-  ): Props = props(callback, req, promise, e => statusService ! e)
 }
 

@@ -11,7 +11,9 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.{ExecutionMaster, Executor, SpawnSettings}
+import io.hydrosphere.mist.master.execution.remote.Executor
+import io.hydrosphere.mist.master.execution.status.StatusReporter
+import io.hydrosphere.mist.master.execution.{ExecutionMaster, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
@@ -100,12 +102,13 @@ object MasterServer extends Logger {
       val workerRunner = WorkerRunner.create(config)
       val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
 
-      val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
+//      val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
+      val statusR = StatusReporter.reporter(store, streamer)
 
       val regHub = ActorRegHub("regHub", system)
       logger.info("RegHub:" + regHub.regPath)
       val execMaster = system.actorOf(ExecutionMaster.props(
-        status,
+        statusR,
         Executor.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
       ))
 
@@ -117,7 +120,7 @@ object MasterServer extends Logger {
 //          infoProvider
 //        ), "workers-manager")
 
-      new JobService(execMaster, status)
+      new JobService(execMaster, store)
     }
 
     val artifactRepository = ArtifactRepository.create(

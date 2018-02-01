@@ -25,23 +25,23 @@ object Messages {
       val id: String
     }
 
-    case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
-    case class QueuedEvent(id: String) extends UpdateStatusEvent
-    case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class JobFileDownloadingEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
-    case class FinishedEvent(id: String, time: Long, result: JsLikeData) extends UpdateStatusEvent
-    case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
+    final case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
+    final case class QueuedEvent(id: String) extends UpdateStatusEvent
+    final case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
+    final case class JobFileDownloadingEvent(id: String, time: Long) extends UpdateStatusEvent
+    final case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
+    final case class FinishedEvent(id: String, time: Long, result: JsLikeData) extends UpdateStatusEvent
+    final case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
-    case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
+    final case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
     case object KeepAliveEvent extends SystemEvent
 
     // return full job details
-    case object RunningJobs
-    case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
-    case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
-    case class GetById(id: String)
-    case class RunningJobsByWorker(id: String, workerState: WorkerState)
+//    case object RunningJobs
+//    case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
+//    case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
+//    case class GetById(id: String)
+//    case class RunningJobsByWorker(id: String, workerState: WorkerState)
 
   }
 

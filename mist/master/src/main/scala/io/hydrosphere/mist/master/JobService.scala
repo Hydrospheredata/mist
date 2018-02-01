@@ -5,11 +5,13 @@ import akka.pattern.ask
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.master.models._
-import Messages.JobExecution._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest, WorkerInitInfo}
-import io.hydrosphere.mist.master.Messages.StatusMessages
+import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.execution.ExecutionInfo
+import io.hydrosphere.mist.master.execution.WorkerState._
+import io.hydrosphere.mist.master.models._
+import io.hydrosphere.mist.master.store.JobRepository
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag
@@ -17,29 +19,29 @@ import scala.reflect.ClassTag
 /**
   *  Jobs starting/stopping, statuses, worker utility methods
   */
-class JobService(val workerManager: ActorRef, statusService: ActorRef) {
+class JobService(
+  val workerManager: ActorRef,
+  repo: JobRepository
+) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
 
   implicit val timeout = Timeout(10.second)
 
-  def activeJobs(): Future[Seq[JobDetails]] =
-    askStatus[Seq[JobDetails]](RunningJobs)
+  def activeJobs(): Future[Seq[JobDetails]] = repo.running()
 
   def markJobFailed(id: String, reason: String): Future[Unit] = {
-    val event = FailedEvent(id, System.currentTimeMillis(), reason)
-    statusService.ask(event).map(_ => ())
+    repo.path(id)(d => d.withEndTime(System.currentTimeMillis()).withFailure(reason))
   }
 
-  def jobStatusById(id: String): Future[Option[JobDetails]] =
-    askStatus[Option[JobDetails]](GetById(id))
+  def jobStatusById(id: String): Future[Option[JobDetails]] = repo.get(id)
 
   def endpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-    askStatus[Seq[JobDetails]](GetEndpointHistory(id, limit, offset, statuses))
+    repo.getByEndpointId(id, limit, offset, statuses)
 
   def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-    askStatus[Seq[JobDetails]](GetHistory(limit, offset, statuses))
+    repo.getAll(limit, offset, statuses)
 
   def workers(): Future[Seq[WorkerLink]] =
     askManager[Seq[WorkerLink]](GetWorkers)
@@ -64,7 +66,7 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
   }
 
   private def toWorkerLink(state: WorkerState): Option[WorkerLink] = state match {
-    case Started(_, addr, _, sparkUi, _) => Some(WorkerLink("", addr.toString, sparkUi))
+    case Started(addr, sparkUi) => Some(WorkerLink("", addr.toString, sparkUi))
     case _                            => None
   }
 
@@ -74,7 +76,7 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
       jobs                             <- OptionT.liftF(jobsByWorker(workerId, workerInfo._1))
       jobsLink                         =  jobs.map(toJobLinks)
       (initInfo, address, sparkUi)     =  workerInfo match {
-                                            case (Started(_, a, _, s, _), i) => (i, a.toString, s)
+                                            case (Started(a, s), i) => (i, a.toString, s)
                                             case (_, i) => (i, "", None)
                                           }
     } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, initInfo)
@@ -89,7 +91,7 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
     workerId: String,
     state: WorkerState
   ): Future[Seq[JobDetails]] =
-    askStatus[Seq[JobDetails]](StatusMessages.RunningJobsByWorker(workerId, state))
+    repo.getByWorkerIdBeforeDate(workerId, state.timestamp)
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
@@ -124,8 +126,15 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
       workerId = startCmd.computeWorkerId()
     )
 
+    //TODO: WOrkerID
+    val details = JobDetails(
+      endpoint.name,
+      req.id,
+      internalRequest.params,
+      context.name,
+      externalId, source, workerId = "")
     for {
-      _ <- statusService.ask(registrationCommand).mapTo[Unit]
+      _ <- repo.update(details)
       info <- workerManager.ask(startCmd).mapTo[ExecutionInfo]
     } yield info
   }
@@ -152,7 +161,6 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
   }
 
   private def askManager[T: ClassTag](msg: Any): Future[T] = typedAsk[T](workerManager, msg)
-  private def askStatus[T: ClassTag](msg: Any): Future[T] = typedAsk[T](statusService, msg)
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
 
 }

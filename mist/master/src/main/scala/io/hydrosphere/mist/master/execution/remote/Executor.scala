@@ -1,7 +1,8 @@
-package io.hydrosphere.mist.master.execution
+package io.hydrosphere.mist.master.execution.remote
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
 import io.hydrosphere.mist.core.CommonData.{WorkerInitInfo, WorkerReady}
+import io.hydrosphere.mist.master.execution.SpawnSettings
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 

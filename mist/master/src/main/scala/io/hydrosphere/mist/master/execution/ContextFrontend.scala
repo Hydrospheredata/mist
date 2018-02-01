@@ -3,58 +3,20 @@ package io.hydrosphere.mist.master.execution
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest, WorkerInitInfo}
-import io.hydrosphere.mist.master.JobDetails.InProgress
+import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
+import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.models.ContextConfig
-import io.hydrosphere.mist.master.{ExecutionInfo, JobDetails}
 import mist.api.data.JsLikeData
 
-import scala.collection.immutable.Queue
 import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
-class JobsState(actors: Map[String, ActorRef], queue: Queue[String]) {
-
-  def enqueue(id: String, ref: ActorRef): JobsState = JobsState(actors + (id -> ref), queue.enqueue(id))
-
-  def head: Option[ActorRef] = headId.flatMap(id => actors.get(id))
-
-  def headId: Option[String] = if (queue.isEmpty) None else Some(queue.front)
-
-  def get(id: String): Option[ActorRef] = actors.get(id)
-
-  def remove(id: String): JobsState = JobsState(actors - id, queue.filter(_ != id))
-
-  def removeFromQueue(id: String): JobsState = JobsState(actors, queue.filter(_ != id))
-
-  def dequeue(id: String): JobsState = JobsState(actors, queue.filter(_ != id))
-
-  def hasQueued(id: String): Boolean = queue.contains(id)
-
-  def has(id: String): Boolean = actors.keys.exists(_ == id)
-
-  def take(n: Int): Map[String, ActorRef] = {
-    val min = math.min(n, queue.size)
-    queue.take(min).map(i => i -> actors(i)).toMap
-  }
-}
-
-object JobsState {
-
-  val empty: JobsState = JobsState(Map.empty[String, ActorRef], Queue.empty)
-
-  def apply(actors: Map[String, ActorRef], queue: Queue[String]): JobsState = new JobsState(actors, queue)
-
-  def apply(id: String, ref: ActorRef): JobsState = empty.enqueue(id, ref)
-}
-
-
 class ContextFrontend(
   name: String,
-  status: ActorRef,
+  status: StatusReporter,
   executorStarter: (String, ContextConfig) => Future[ActorRef],
-  jobFactory: (ActorRef, RunJobRequest, Promise[JsLikeData], ActorRef) => Props
+  jobFactory: (ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter) => Props
 ) extends Actor with ActorLogging {
 
   import ContextFrontend._
@@ -113,7 +75,6 @@ class ContextFrontend(
     inProgress: Seq[String]
   ): Unit = {
     val available = ctx.maxJobs - inProgress.size
-    log.info(s"WTF? $available")
     if (available > 0) {
       state.take(available).foreach({case (id, ref) =>
         log.info(s"Trying to start job $id")
@@ -135,9 +96,9 @@ class ContextFrontend(
 
     def updateState(state: JobsState): Unit = becomeNext(state, inProgress)
 
-    def handleStarted(id: String): Unit = becomeNext(state.removeFromQueue(id), inProgress :+ id)
+    def handleStarted(id: String): Unit = becomeNext(state.removeFromQueue(id), inProgress.filter(_ != id))
 
-    def handleCompleted(id: String): Unit = becomeNext(state.remove(id), inProgress.filter(_ != id))
+    def handleCompleted(id: String): Unit = becomeNext(state.remove(id), inProgress)
 
     {
       case req: RunJobRequest =>
@@ -190,7 +151,7 @@ class ContextFrontend(
   ): JobsState = state.get(id) match {
     case Some(ref) =>
       ref.tell(JobActor.Event.Cancel, respond)
-      state.dequeue(id)
+      state.removeFromQueue(id)
     case None =>
       respond ! akka.actor.Status.Failure(new IllegalArgumentException(s"Unknown job: $id"))
       state
@@ -202,9 +163,10 @@ class ContextFrontend(
     val ref = context.actorOf(props)
     context.watchWith(ref, JobDied(req.id))
 
-    respond ! ExecutionInfo(req, promise, JobDetails.Status.Queued)
+    respond ! ExecutionInfo(req, promise)
     st.enqueue(req.id, ref)
   }
+
 }
 
 object ContextFrontend {
@@ -222,15 +184,15 @@ object ContextFrontend {
 
   def props(
     name: String,
-    status: ActorRef,
+    status: StatusReporter,
     executorStarter: (String, ContextConfig) => Future[ActorRef],
-    jobFactory: (ActorRef, RunJobRequest, Promise[JsLikeData], ActorRef) => Props
+    jobFactory: (ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter) => Props
   ): Props = Props(classOf[ContextFrontend], name, status, executorStarter, jobFactory)
 
 
   def props(
     name: String,
-    status: ActorRef,
+    status: StatusReporter,
     executorStarter: (String, ContextConfig) => Future[ActorRef]
   ): Props = props(name, status, executorStarter, JobActor.props)
 }
