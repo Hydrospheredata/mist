@@ -1,5 +1,5 @@
 package io.hydrosphere.mist.master
-
+/*
 import mist.api.data._
 
 import akka.actor._
@@ -158,3 +158,4 @@ object WorkerManagerSpec {
 
   )
 }
+*/

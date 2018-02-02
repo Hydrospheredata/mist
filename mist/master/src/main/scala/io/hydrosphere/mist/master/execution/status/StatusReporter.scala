@@ -13,6 +13,10 @@ trait StatusReporter {
 
 object StatusReporter {
 
+  val NOOP = new StatusReporter {
+    override def report(ev: UpdateStatusEvent): Unit = ()
+  }
+
   /**
     * Send status updates to store + async interfaces
     */

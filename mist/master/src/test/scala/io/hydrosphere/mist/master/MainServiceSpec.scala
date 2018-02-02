@@ -7,6 +7,7 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.execution.ExecutionInfo
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
@@ -49,8 +50,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
-      req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute)),
-      status = JobDetails.Status.Queued
+      req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute))
     ))
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProviderService)

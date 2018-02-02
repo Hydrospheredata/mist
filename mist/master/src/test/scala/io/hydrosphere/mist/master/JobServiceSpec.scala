@@ -3,26 +3,31 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.Messages.StatusMessages.{GetById, Register}
-import io.hydrosphere.mist.master.models.{EndpointConfig, JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.execution.ExecutionInfo
+import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.store.JobRepository
 import org.scalatest._
 
+import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Promise}
 
 class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
-  with Matchers {
+  with Matchers
+  with MockitoSugar
+  with TestData {
 
   describe("jobs starting") {
 
     it("should start job") {
-      val workerManager = TestProbe()
-      val statusService = TestProbe()
+      val execution = TestProbe()
+      val repo = mock[JobRepository]
+      when(repo.update(any[JobDetails])).thenSuccess(())
 
-      val service = new JobService(workerManager.ref, statusService.ref)
+      val service = new JobService(execution.ref, repo)
 
       val future = service.startJob(
         JobStartRequest(
@@ -35,11 +40,8 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
           externalId = None
       ))
 
-      statusService.expectMsgType[Register]
-      statusService.reply(())
-
-      workerManager.expectMsgType[RunJobCommand]
-      workerManager.reply(ExecutionInfo(req = mkRunReq("id")))
+      execution.expectMsgType[RunJobCommand]
+      execution.reply(ExecutionInfo(req = mkRunReq("id")))
 
       val executionInfo = Await.result(future, Duration.Inf)
       executionInfo.request.id shouldBe "id"
@@ -61,44 +63,24 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
     )
 
     it("should stop job") {
-      val workerManager = TestProbe()
-      val statusService = TestProbe()
+      //TODO
+      val execution = TestProbe()
+      val repo = mock[JobRepository]
+      when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
 
-      val service = new JobService(workerManager.ref, statusService.ref)
+      val service = new JobService(execution.ref, repo)
 
       val future = service.stopJob("id")
 
-      statusService.expectMsgType[GetById]
-      statusService.reply(Some(mkDetails(JobDetails.Status.Started)))
+      execution.expectMsgType[CancelJobCommand]
+      execution.reply(())
 
-      workerManager.expectMsgType[CancelJobCommand]
-      workerManager.reply(())
-
-      statusService.expectMsgType[GetById]
-      statusService.reply(Some(mkDetails(JobDetails.Status.Canceled)))
+      when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Canceled)))
 
       val details = Await.result(future, Duration.Inf)
       details.get.status shouldBe JobDetails.Status.Canceled
     }
 
-
-    def mkDetails(status: JobDetails.Status): JobDetails = {
-      JobDetails(
-        endpoint = "endpoint",
-        jobId = "jobId",
-        params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
-        context = "context",
-        externalId = None,
-        source = JobDetails.Source.Http,
-        status = status,
-        workerId = "workerId"
-      )
-    }
   }
 
-
-
-  def mkRunReq(id: String): RunJobRequest = {
-    RunJobRequest(id, JobParams("path", "class", Map("1" -> 2), Action.Execute))
-  }
 }
