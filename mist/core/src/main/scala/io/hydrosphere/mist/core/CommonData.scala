@@ -11,7 +11,7 @@ object CommonData {
     * Request data for creating spark/mist context on worker
     */
   case class WorkerInitInfoReq(contextName: String)
-  case object WorkerReady
+  case class WorkerReady(id: String)
 
   /**
     * Data for creation spark/mist context on worker

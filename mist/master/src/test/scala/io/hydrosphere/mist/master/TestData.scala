@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
 
 trait TestData {
 
@@ -52,6 +52,16 @@ trait TestData {
     }
     contextSettings.contexts.get("foo").get
   }
+
+  val workerInitData = WorkerInitInfo(
+    sparkConf = FooContext.sparkConf,
+    maxJobs = FooContext.maxJobs,
+    downtime = FooContext.downtime,
+    streamingDuration = FooContext.streamingDuration,
+    logService = "localhost:2005",
+    masterHttpConf = "localhost:2004",
+    jobsSavePath = "/tmp"
+  )
 
 }
 

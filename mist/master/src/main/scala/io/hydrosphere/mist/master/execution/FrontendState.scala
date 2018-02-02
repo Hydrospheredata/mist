@@ -58,7 +58,7 @@ class FrontendState[K, V](
   }
 
   def getWithState(k: K): Option[(V, EntryState)] = {
-    queued.get(k).map(v => v -> Waiting) orElse
+    waiting.get(k).map(v => v -> Waiting) orElse
     granted.get(k).map(v => v -> Granted) orElse
     working.get(k).map(v => v -> Working)
   }
