@@ -4,11 +4,11 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, JobsLoader, OldInstanceWrapper}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{InternalArgument, MInt, UserInputArgument}
-import mist.api.internal.{JavaJobInstance, JobInstance, ScalaJobInstance}
+import mist.api.internal.{JavaFunctionInstance, FunctionInstance, ScalaFunctionInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
@@ -68,19 +68,19 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     }
 
     it("should extract job info prior to language") {
-      val jobsLoader = mock[JobsLoader]
-      val scalaJobInstance = mock[ScalaJobInstance]
-      val javaJobInstance = mock[JavaJobInstance]
+      val jobsLoader = mock[FunctionInstanceLoader]
+      val scalaJobInstance = mock[ScalaFunctionInstance]
+      val javaJobInstance = mock[JavaFunctionInstance]
       val oldJobInstance = mock[OldInstanceWrapper]
 
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
-      when(jobsLoader.loadJobInstance(mockitoEndsWith("Scala"), any[Action]))
+      when(jobsLoader.loadFnInstance(mockitoEndsWith("Scala"), any[Action]))
         .thenReturn(Succ(scalaJobInstance))
 
-      when(jobsLoader.loadJobInstance(mockitoEndsWith("Java"), any[Action]))
+      when(jobsLoader.loadFnInstance(mockitoEndsWith("Java"), any[Action]))
         .thenReturn(Succ(javaJobInstance))
 
-      when(jobsLoader.loadJobInstance(mockitoEndsWith("Old"), any[Action]))
+      when(jobsLoader.loadFnInstance(mockitoEndsWith("Old"), any[Action]))
         .thenReturn(Succ(oldJobInstance))
 
       when(scalaJobInstance.describe())
@@ -122,8 +122,8 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     }
 
     it("should return failure then jobsloader fails load instance") {
-      val jobsLoader = mock[JobsLoader]
-      when(jobsLoader.loadJobInstance(any[String], any[Action]))
+      val jobsLoader = mock[FunctionInstanceLoader]
+      when(jobsLoader.loadFnInstance(any[String], any[Action]))
         .thenReturn(Err(new IllegalArgumentException("invalid")))
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
@@ -134,15 +134,15 @@ class FunctionInfoExtractorSpec extends FunSpecLike
 
     it("should load job instance for old serve method") {
       val oldInstance = mock[OldInstanceWrapper]
-      val jobsLoader = mock[JobsLoader]
-      when(jobsLoader.loadJobInstance(any[String], mockitoEq(Action.Execute)))
+      val jobsLoader = mock[FunctionInstanceLoader]
+      when(jobsLoader.loadFnInstance(any[String], mockitoEq(Action.Execute)))
         .thenReturn(Err(new IllegalArgumentException("invalid")))
       when(oldInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
           InternalArgument()
         ))
-      when(jobsLoader.loadJobInstance(any[String], mockitoEq(Action.Serve)))
+      when(jobsLoader.loadFnInstance(any[String], mockitoEq(Action.Serve)))
         .thenReturn(Succ(oldInstance))
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
@@ -157,10 +157,10 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     }
 
     it("should get tags from internal arguments"){
-      val javaJobInstance = mock[JavaJobInstance]
-      val jobsLoader = mock[JobsLoader]
+      val javaJobInstance = mock[JavaFunctionInstance]
+      val jobsLoader = mock[FunctionInstanceLoader]
 
-      when(jobsLoader.loadJobInstance(mockitoEndsWith("Java"), any[Action]))
+      when(jobsLoader.loadFnInstance(mockitoEndsWith("Java"), any[Action]))
         .thenReturn(Succ(javaJobInstance))
 
       when(javaJobInstance.describe())
@@ -193,7 +193,7 @@ class FunctionInfoExtractorSpec extends FunSpecLike
       res.get.data shouldBe ExtractedFunctionData(
         lang="python"
       )
-      res.get.instance shouldBe JobInstance.NoOpInstance
+      res.get.instance shouldBe FunctionInstance.NoOpInstance
     }
   }
 

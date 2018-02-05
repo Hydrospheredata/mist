@@ -4,14 +4,14 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, JobsLoader}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.args.{InternalArgument, UserInputArgument}
-import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
+import mist.api.internal.{BaseFunctionInstance, JavaFunctionInstance, FunctionInstance}
 import org.apache.commons.io.FilenameUtils
 
 case class FunctionInfo(
-  instance: BaseJobInstance = JobInstance.NoOpInstance,
+  instance: BaseFunctionInstance = FunctionInstance.NoOpInstance,
   data: ExtractedFunctionData
 )
 
@@ -19,7 +19,7 @@ trait FunctionInfoExtractor {
   def extractInfo(file: File, className: String): TryLoad[FunctionInfo]
 }
 
-class JvmFunctionInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends FunctionInfoExtractor {
+class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) extends FunctionInfoExtractor {
 
   override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
     val prev = Thread.currentThread().getContextClassLoader
@@ -30,16 +30,16 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends Func
       Thread.currentThread().setContextClassLoader(clzLoader)
 
       val loader = mkLoader(clzLoader)
-      val executeJobInstance = loader.loadJobInstance(className, Action.Execute)
-      executeJobInstance orElse loader.loadJobInstance(className, Action.Serve) map { instance =>
+      val executeFnInstance = loader.loadFnInstance(className, Action.Execute)
+      executeFnInstance orElse loader.loadFnInstance(className, Action.Serve) map { instance =>
         val lang = instance match {
-          case _: JavaJobInstance => FunctionInfoData.JavaLang
+          case _: JavaFunctionInstance => FunctionInfoData.JavaLang
           case _ => FunctionInfoData.ScalaLang
         }
         FunctionInfo(instance, ExtractedFunctionData(
           lang = lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
-          isServe = !executeJobInstance.isSuccess,
+          isServe = !executeFnInstance.isSuccess,
           tags = instance.describe()
             .collect { case InternalArgument(t) => t }
             .flatten
@@ -63,7 +63,7 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends Func
 
 object JvmFunctionInfoExtractor {
 
-  def apply(): JvmFunctionInfoExtractor = new JvmFunctionInfoExtractor(clzLoader => new JobsLoader(clzLoader))
+  def apply(): JvmFunctionInfoExtractor = new JvmFunctionInfoExtractor(clzLoader => new FunctionInstanceLoader(clzLoader))
 
 }
 

@@ -58,7 +58,7 @@ class MqttJobRunner:
     def runJob(self, endpoint, params, runSettings = { "mode": { "type": "shared" }}):
         self.externalId = str(uuid.uuid4())
         req = {
-          "endpointId": endpoint,
+          "functionId": endpoint,
           "parameters": params,
           "externalId": self.externalId,
           "runSettings": runSettings
