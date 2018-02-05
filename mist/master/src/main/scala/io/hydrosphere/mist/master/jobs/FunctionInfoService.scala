@@ -19,7 +19,7 @@ import scala.reflect.ClassTag
 
 class FunctionInfoService(
   functionInfoActor: ActorRef,
-  endpointStorage: FunctionConfigStorage,
+  functionStorage: FunctionConfigStorage,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
   val timeoutDuration = 5 seconds
@@ -27,7 +27,7 @@ class FunctionInfoService(
 
   def getFunctionInfo(id: String): Future[Option[FunctionInfoData]] = {
     val f = for {
-      endpoint <- OptionT(endpointStorage.get(id))
+      endpoint <- OptionT(functionStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
       data     <- OptionT.liftF(askInfoProvider[ExtractedFunctionData](createGetInfoMsg(endpoint, file)))
       info     =  createJobInfoData(endpoint, data)
@@ -49,7 +49,7 @@ class FunctionInfoService(
     params: Map[String, Any]
   ): Future[Option[Unit]] = {
     val f = for {
-      endpoint   <- OptionT(endpointStorage.get(id))
+      endpoint   <- OptionT(functionStorage.get(id))
       file       <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
       _ <- OptionT.liftF(askInfoProvider[Unit](createValidateParamsMsg(endpoint, file, params)))
     } yield ()
@@ -71,18 +71,18 @@ class FunctionInfoService(
         .map(file => createGetInfoMsg(f, file))
     }
     for {
-      endpoints   <- endpointStorage.all
-      enpointsMap =  endpoints.map(e => e.name -> e).toMap
-      data        <-
-        if (endpoints.nonEmpty) {
-          val requests = endpoints.flatMap(toFunctionInfoRequest).toList
+      functions    <- functionStorage.all
+      functionsMap =  functions.map(e => e.name -> e).toMap
+      data         <-
+        if (functions.nonEmpty) {
+          val requests = functions.flatMap(toFunctionInfoRequest).toList
           val timeout = Timeout(timeoutDuration * requests.size.toLong)
           askInfoProvider[Seq[ExtractedFunctionData]](GetAllFunctions(requests), timeout)
         } else
           Future.successful(Seq.empty)
     } yield {
       data.flatMap(d => {
-        enpointsMap.get(d.name).map { ep => createJobInfoData(ep, d)}
+        functionsMap.get(d.name).map { ep => createJobInfoData(ep, d)}
       })
     }
   }

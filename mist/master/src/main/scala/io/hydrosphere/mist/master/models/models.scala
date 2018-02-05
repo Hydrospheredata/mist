@@ -43,7 +43,7 @@ object RunSettings {
   * New version api
   */
 case class FunctionStartRequest(
-  endpointId: String,
+  functionId: String,
   parameters: Map[String, Any],
   externalId: Option[String] = None,
   runSettings: RunSettings = RunSettings.Default,
@@ -67,7 +67,7 @@ case class JobStartResponse(id: String)
   * Like JobStartRequest, but for async interfaces
   * (spray json not support default values)
   */
-case class AsyncEndpointStartRequest(
+case class AsyncFunctionStartRequest(
   functionId: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],

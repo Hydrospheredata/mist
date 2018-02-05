@@ -54,20 +54,20 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
     it("should deploy and invoke") {
       val jarName = "docker-examples.jar"
-      val endpointName = "spark-ctx"
+      val functionName = "spark-ctx"
       val clazz = "SparkContextExample$"
 
       val interface = MistHttpInterface("localhost", 2004)
       interface.uploadArtifact(jarName, Paths.get(envArgs.examplesJar))
       interface.createEndpoint(
         FunctionConfig(
-          name = endpointName,
+          name = functionName,
           path = jarName,
           className = clazz,
           defaultContext = "default"
         )
       )
-      val result = interface.runJob(endpointName, "numbers" -> Seq(1,2,3,4))
+      val result = interface.runJob(functionName, "numbers" -> Seq(1,2,3,4))
       assert(result.success)
     }
   }

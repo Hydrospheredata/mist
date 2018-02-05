@@ -24,14 +24,14 @@ class AsyncInterface(
   }
 
   private def process(message: String): Unit = {
-    def asEndpointRequest(js: JsValue) = js.convertTo[AsyncEndpointStartRequest]
+    def asFunctionRequest(js: JsValue) = js.convertTo[AsyncFunctionStartRequest]
     def asDevRequest(js: JsValue) = js.convertTo[DevJobStartRequestModel]
 
     try {
       val js = message.parseJson
 
-      Try[Any](asDevRequest(js)).orElse(Try(asEndpointRequest(js))) match {
-        case Success(req: AsyncEndpointStartRequest) =>
+      Try[Any](asDevRequest(js)).orElse(Try(asFunctionRequest(js))) match {
+        case Success(req: AsyncFunctionStartRequest) =>
           mainService.runJob(req.toCommon, source)
         case Success(req: DevJobStartRequestModel) =>
           mainService.devRun(req.toCommon, source)

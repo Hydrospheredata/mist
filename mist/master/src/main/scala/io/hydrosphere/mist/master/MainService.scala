@@ -137,8 +137,8 @@ class MainService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      info         <- OptionT(functionInfoService.getFunctionInfo(req.endpointId))
-      _            <- OptionT.liftF(functionInfoService.validateFunctionParams(req.endpointId, req.parameters))
+      info         <- OptionT(functionInfoService.getFunctionInfo(req.functionId))
+      _            <- OptionT.liftF(functionInfoService.validateFunctionParams(req.functionId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
