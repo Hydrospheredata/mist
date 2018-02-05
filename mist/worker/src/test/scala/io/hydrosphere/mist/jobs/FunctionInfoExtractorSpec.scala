@@ -4,7 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData, JobsLoader, OldInstanceWrapper}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, JobsLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{InternalArgument, MInt, UserInputArgument}
@@ -15,44 +15,44 @@ import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
 import scala.util.{Failure, Success}
 
-class JobInfoExtractorSpec extends FunSpecLike
+class FunctionInfoExtractorSpec extends FunSpecLike
   with Matchers
   with MockitoSugar
   with BeforeAndAfterAll {
 
   it("should create BaseJobInfoExtractor") {
-    JobInfoExtractor()
+    FunctionInfoExtractor()
   }
 
   describe("BaseJobInfoExtractor") {
     it("should extract jvm job") {
-      val jvmExtractor = mock[JvmJobInfoExtractor]
-      val pyExtractor = mock[PythonJobInfoExtractor]
+      val jvmExtractor = mock[JvmFunctionInfoExtractor]
+      val pyExtractor = mock[PythonFunctionInfoExtractor]
 
       when(jvmExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Succ(JobInfo(data = ExtractedData("test"))))
+        .thenReturn(Succ(FunctionInfo(data = ExtractedFunctionData("test"))))
 
-      val baseJobInfoExtractor = new BaseJobInfoExtractor(jvmExtractor, pyExtractor)
+      val baseJobInfoExtractor = new BaseFunctionInfoExtractor(jvmExtractor, pyExtractor)
 
       val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.jar"), "Test")
 
-      info.get shouldBe JobInfo(data = ExtractedData("test"))
+      info.get shouldBe FunctionInfo(data = ExtractedFunctionData("test"))
 
       verify(jvmExtractor, times(1)).extractInfo(any[File], any[String])
       verify(pyExtractor, never()).extractInfo(any[File], any[String])
     }
     it("should extract py job") {
-      val jvmExtractor = mock[JvmJobInfoExtractor]
-      val pyExtractor = mock[PythonJobInfoExtractor]
+      val jvmExtractor = mock[JvmFunctionInfoExtractor]
+      val pyExtractor = mock[PythonFunctionInfoExtractor]
 
       when(pyExtractor.extractInfo(any[File], any[String]))
-        .thenReturn(Succ(JobInfo(data = ExtractedData("test"))))
+        .thenReturn(Succ(FunctionInfo(data = ExtractedFunctionData("test"))))
 
-      val baseJobInfoExtractor = new BaseJobInfoExtractor(jvmExtractor, pyExtractor)
+      val baseJobInfoExtractor = new BaseFunctionInfoExtractor(jvmExtractor, pyExtractor)
 
       val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.py"), "Test")
 
-      info.get shouldBe JobInfo(data = ExtractedData("test"))
+      info.get shouldBe FunctionInfo(data = ExtractedFunctionData("test"))
 
       verify(jvmExtractor, never()).extractInfo(any[File], any[String])
       verify(pyExtractor, times(1)).extractInfo(any[File], any[String])
@@ -64,7 +64,7 @@ class JobInfoExtractorSpec extends FunSpecLike
 
 
     it("should create JvmJobExtractor") {
-      JvmJobInfoExtractor()
+      JvmFunctionInfoExtractor()
     }
 
     it("should extract job info prior to language") {
@@ -73,7 +73,7 @@ class JobInfoExtractorSpec extends FunSpecLike
       val javaJobInstance = mock[JavaJobInstance]
       val oldJobInstance = mock[OldInstanceWrapper]
 
-      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+      val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
       when(jobsLoader.loadJobInstance(mockitoEndsWith("Scala"), any[Action]))
         .thenReturn(Succ(scalaJobInstance))
 
@@ -101,21 +101,21 @@ class JobInfoExtractorSpec extends FunSpecLike
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
       res.isSuccess shouldBe true
-      res.get.data shouldBe ExtractedData(
+      res.get.data shouldBe ExtractedFunctionData(
         lang = "java",
         execute=Seq(UserInputArgument("num", MInt))
       )
       val scalaJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestScala")
 
       scalaJob.isSuccess shouldBe true
-      scalaJob.get.data shouldBe ExtractedData(
+      scalaJob.get.data shouldBe ExtractedFunctionData(
         lang = "scala",
         execute=Seq(UserInputArgument("num", MInt))
       )
       val otherJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestOld")
 
       otherJob.isSuccess shouldBe true
-      otherJob.get.data shouldBe ExtractedData(
+      otherJob.get.data shouldBe ExtractedFunctionData(
         lang = "scala",
         execute=Seq(UserInputArgument("num", MInt))
       )
@@ -125,7 +125,7 @@ class JobInfoExtractorSpec extends FunSpecLike
       val jobsLoader = mock[JobsLoader]
       when(jobsLoader.loadJobInstance(any[String], any[Action]))
         .thenReturn(Err(new IllegalArgumentException("invalid")))
-      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+      val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Rest")
 
@@ -144,12 +144,12 @@ class JobInfoExtractorSpec extends FunSpecLike
         ))
       when(jobsLoader.loadJobInstance(any[String], mockitoEq(Action.Serve)))
         .thenReturn(Succ(oldInstance))
-      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+      val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestClass")
 
       res.isSuccess shouldBe true
-      res.get.data shouldBe ExtractedData(
+      res.get.data shouldBe ExtractedFunctionData(
         lang="scala",
         execute = Seq(UserInputArgument("num", MInt)),
         isServe = true
@@ -168,11 +168,11 @@ class JobInfoExtractorSpec extends FunSpecLike
           UserInputArgument("num", MInt),
           InternalArgument(Seq("testTag"))
         ))
-      val jvmJobInfoExtractor = new JvmJobInfoExtractor(_ => jobsLoader)
+      val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
       res.isSuccess shouldBe true
-      res.get.data shouldBe ExtractedData(
+      res.get.data shouldBe ExtractedFunctionData(
         lang = "java",
         execute = Seq(UserInputArgument("num", MInt)),
         tags = Seq("testTag")
@@ -183,14 +183,14 @@ class JobInfoExtractorSpec extends FunSpecLike
   }
   describe("PyJobInfoExtractor") {
     it("should create py job info extractor") {
-      new PythonJobInfoExtractor
+      new PythonFunctionInfoExtractor
     }
 
     it("should extract py info") {
-      val pythonJobInfoExtractor = new PythonJobInfoExtractor
+      val pythonJobInfoExtractor = new PythonFunctionInfoExtractor
       val res = pythonJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Test")
       res.isSuccess shouldBe true
-      res.get.data shouldBe ExtractedData(
+      res.get.data shouldBe ExtractedFunctionData(
         lang="python"
       )
       res.get.instance shouldBe JobInstance.NoOpInstance

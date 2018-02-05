@@ -131,19 +131,19 @@ class HttpApiV2Spec extends FunSpec
 
   }
 
-  describe("endpoint creation") {
+  describe("function creation") {
 
-    it("should update endpoint on create if endpoint created") {
+    it("should update function on create if function created") {
 
       val functions = mock[FunctionConfigStorage]
-      val jobInfoProvider = mock[FunctionInfoService]
+      val functionInfoService = mock[FunctionInfoService]
 
       val mainService = new MainService(
         mock[JobService],
         functions,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        jobInfoProvider
+        functionInfoService
       )
 
       val test = FunctionConfig("test", "test", "test", "default")
@@ -154,7 +154,7 @@ class HttpApiV2Spec extends FunSpec
       when(functions.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      when(jobInfoProvider.getFunctionInfoByConfig(any[FunctionConfig]))
+      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenSuccess(FunctionInfoData(
           lang = "python",
           path = "test",
@@ -193,19 +193,19 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
-    it("should fail with invalid data for endpoint") {
+    it("should fail with invalid data for function") {
       val functionsStorage = mock[FunctionConfigStorage]
       val master = mock[MainService]
-      val jobInfoProvider = mock[FunctionInfoService]
+      val functionInfoService = mock[FunctionInfoService]
       when(master.functions).thenReturn(functionsStorage)
-      when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
+      when(master.functionInfoService).thenReturn(functionInfoService)
 
       val functionConfig = FunctionConfig("name", "path", "className", "context")
 
       when(functionsStorage.get(any[String])).thenReturn(Future.successful(None))
       when(functionsStorage.update(any[FunctionConfig]))
         .thenReturn(Future.successful(functionConfig))
-      when(jobInfoProvider.getFunctionInfoByConfig(any[FunctionConfig]))
+      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenFailure(new Exception("test failure"))
 
       val route = HttpV2Routes.functionRoutes(master)

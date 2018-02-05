@@ -141,16 +141,16 @@ object ContextsSettings {
 
 }
 
-case class JobInfoProviderConfig(
+case class FunctionInfoProviderConfig(
   runTimeout: FiniteDuration,
   cacheEntryTtl: FiniteDuration,
   sparkConf: Map[String, String]
 )
-object JobInfoProviderConfig {
+object FunctionInfoProviderConfig {
   import scala.collection.JavaConverters._
 
-  def apply(c: Config): JobInfoProviderConfig = {
-    JobInfoProviderConfig(
+  def apply(c: Config): FunctionInfoProviderConfig = {
+    FunctionInfoProviderConfig(
       c.getFiniteDuration("init-timeout"),
       c.getFiniteDuration("cache-entry-ttl"),
       c.getConfig("spark-conf").entrySet().asScala
@@ -193,7 +193,7 @@ case class MasterConfig(
   contextsPath: String,
   functionsPath: String,
   security: Option[SecurityConfig],
-  jobInfoProviderConfig: JobInfoProviderConfig,
+  jobInfoProviderConfig: FunctionInfoProviderConfig,
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
@@ -234,7 +234,7 @@ object MasterConfig {
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
-      jobInfoProviderConfig = JobInfoProviderConfig(mist.getConfig("job-extractor")),
+      jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       raw = config
     )

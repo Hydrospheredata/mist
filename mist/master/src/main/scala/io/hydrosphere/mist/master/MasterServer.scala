@@ -13,7 +13,7 @@ import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, FunctionInfoService}
+import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
@@ -119,7 +119,7 @@ object MasterServer extends Logger {
 
     val security = bootstrapSecurity(config)
 
-    val jobExtractorRunner = JobInfoProviderRunner.create(
+    val jobExtractorRunner = FunctionInfoProviderRunner.create(
       config.jobInfoProviderConfig,
       config.cluster.host,
       config.cluster.port

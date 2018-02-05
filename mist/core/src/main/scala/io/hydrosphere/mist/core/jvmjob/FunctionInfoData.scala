@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.args.UserInputArgument
 
-case class ExtractedData(
+case class ExtractedFunctionData(
   name: String = "",
   lang: String = "",
   execute: Seq[UserInputArgument] = Seq.empty,

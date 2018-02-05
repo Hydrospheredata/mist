@@ -8,7 +8,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import io.hydrosphere.mist.master.models.FunctionConfig
@@ -29,7 +29,7 @@ class FunctionInfoService(
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      data     <- OptionT.liftF(askInfoProvider[ExtractedData](createGetInfoMsg(endpoint, file)))
+      data     <- OptionT.liftF(askInfoProvider[ExtractedFunctionData](createGetInfoMsg(endpoint, file)))
       info     =  createJobInfoData(endpoint, data)
     } yield info
     f.value
@@ -38,7 +38,7 @@ class FunctionInfoService(
   def getFunctionInfoByConfig(function: FunctionConfig): Future[FunctionInfoData] = {
     artifactRepository.get(function.path) match {
       case Some(file) =>
-        askInfoProvider[ExtractedData](createGetInfoMsg(function, file))
+        askInfoProvider[ExtractedFunctionData](createGetInfoMsg(function, file))
           .map(data => createJobInfoData(function, data))
       case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${function.path}"))
     }
@@ -77,7 +77,7 @@ class FunctionInfoService(
         if (endpoints.nonEmpty) {
           val requests = endpoints.flatMap(toFunctionInfoRequest).toList
           val timeout = Timeout(timeoutDuration * requests.size.toLong)
-          askInfoProvider[Seq[ExtractedData]](GetAllFunctions(requests), timeout)
+          askInfoProvider[Seq[ExtractedFunctionData]](GetAllFunctions(requests), timeout)
         } else
           Future.successful(Seq.empty)
     } yield {
@@ -97,7 +97,7 @@ class FunctionInfoService(
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] =
     ref.ask(msg).mapTo[T]
 
-  private def createJobInfoData(function: FunctionConfig, data: ExtractedData): FunctionInfoData = FunctionInfoData(
+  private def createJobInfoData(function: FunctionConfig, data: ExtractedFunctionData): FunctionInfoData = FunctionInfoData(
     function.name,
     function.path,
     function.className,

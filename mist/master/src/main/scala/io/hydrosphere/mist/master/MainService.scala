@@ -27,7 +27,7 @@ class MainService(
   val functions: FunctionConfigStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
-  val jobInfoProviderService: FunctionInfoService
+  val functionInfoService: FunctionInfoService
 ) extends Logger {
 
   implicit val timeout: Timeout = Timeout(5 seconds)
@@ -77,9 +77,9 @@ class MainService(
     )
 
     for {
-      info          <- jobInfoProviderService.getFunctionInfoByConfig(function)
+      info          <- functionInfoService.getFunctionInfoByConfig(function)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateFunctionParamsByConfig(function, req.parameters)
+      _             <- functionInfoService.validateFunctionParamsByConfig(function, req.parameters)
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -137,8 +137,8 @@ class MainService(
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      info         <- OptionT(jobInfoProviderService.getFunctionInfo(req.endpointId))
-      _            <- OptionT.liftF(jobInfoProviderService.validateFunctionParams(req.endpointId, req.parameters))
+      info         <- OptionT(functionInfoService.getFunctionInfo(req.endpointId))
+      _            <- OptionT.liftF(functionInfoService.validateFunctionParams(req.endpointId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(

@@ -4,24 +4,24 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData, JobsLoader}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, JobsLoader}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.args.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
 
-case class JobInfo(
+case class FunctionInfo(
   instance: BaseJobInstance = JobInstance.NoOpInstance,
-  data: ExtractedData
+  data: ExtractedFunctionData
 )
 
-trait JobInfoExtractor {
-  def extractInfo(file: File, className: String): TryLoad[JobInfo]
+trait FunctionInfoExtractor {
+  def extractInfo(file: File, className: String): TryLoad[FunctionInfo]
 }
 
-class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoExtractor {
+class JvmFunctionInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends FunctionInfoExtractor {
 
-  override def extractInfo(file: File, className: String): TryLoad[JobInfo] = {
+  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
     val prev = Thread.currentThread().getContextClassLoader
     try {
       val existing = this.getClass.getClassLoader
@@ -36,7 +36,7 @@ class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoEx
           case _: JavaJobInstance => FunctionInfoData.JavaLang
           case _ => FunctionInfoData.ScalaLang
         }
-        JobInfo(instance, ExtractedData(
+        FunctionInfo(instance, ExtractedFunctionData(
           lang = lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeJobInstance.isSuccess,
@@ -61,36 +61,36 @@ class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoEx
 
 }
 
-object JvmJobInfoExtractor {
+object JvmFunctionInfoExtractor {
 
-  def apply(): JvmJobInfoExtractor = new JvmJobInfoExtractor(clzLoader => new JobsLoader(clzLoader))
+  def apply(): JvmFunctionInfoExtractor = new JvmFunctionInfoExtractor(clzLoader => new JobsLoader(clzLoader))
 
 }
 
-class PythonJobInfoExtractor extends JobInfoExtractor {
+class PythonFunctionInfoExtractor extends FunctionInfoExtractor {
   override def extractInfo(file: File, className: String) = Succ(
-    JobInfo(data = ExtractedData(
+    FunctionInfo(data = ExtractedFunctionData(
       lang = FunctionInfoData.PythonLang
     )))
 }
 
-class BaseJobInfoExtractor(
-  jvmJobInfoExtractor: JvmJobInfoExtractor,
-  pythonJobInfoExtractor: PythonJobInfoExtractor
-) extends JobInfoExtractor {
+class BaseFunctionInfoExtractor(
+  jvmJobInfoExtractor: JvmFunctionInfoExtractor,
+  pythonJobInfoExtractor: PythonFunctionInfoExtractor
+) extends FunctionInfoExtractor {
 
-  override def extractInfo(file: File, className: String): TryLoad[JobInfo] =
+  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] =
     selectExtractor(file)
       .extractInfo(file, className)
 
-  private def selectExtractor(file: File): JobInfoExtractor =
+  private def selectExtractor(file: File): FunctionInfoExtractor =
     FilenameUtils.getExtension(file.getAbsolutePath) match {
       case "py" => pythonJobInfoExtractor
       case "jar" => jvmJobInfoExtractor
     }
 }
 
-object JobInfoExtractor {
-  def apply(): BaseJobInfoExtractor =
-    new BaseJobInfoExtractor(JvmJobInfoExtractor(), new PythonJobInfoExtractor)
+object FunctionInfoExtractor {
+  def apply(): BaseFunctionInfoExtractor =
+    new BaseFunctionInfoExtractor(JvmFunctionInfoExtractor(), new PythonFunctionInfoExtractor)
 }

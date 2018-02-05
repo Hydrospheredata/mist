@@ -7,7 +7,7 @@ import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import io.hydrosphere.mist.master.models.FunctionConfig
@@ -54,7 +54,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
         "test", jobPath, "Test", "foo"
       ))
       probe.expectMsgType[GetFunctionInfo]
-      probe.reply(ExtractedData(
+      probe.reply(ExtractedFunctionData(
         name="test",
         lang="scala"
       ))
@@ -186,7 +186,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       val f = functionInfoService.getFunctionInfo("test")
 
       probe.expectMsgType[GetFunctionInfo]
-      probe.reply(ExtractedData(
+      probe.reply(ExtractedFunctionData(
         name="test",
         lang="scala"
       ))
@@ -374,7 +374,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
       val f = functionInfoService.allFunctions
       probe.expectMsgType[GetAllFunctions]
-      probe.reply(Seq(ExtractedData(name="test")))
+      probe.reply(Seq(ExtractedFunctionData(name="test")))
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 1

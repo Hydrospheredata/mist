@@ -20,7 +20,7 @@ function startJobInfoProvider() {
     export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
 
     SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
-    MAIN_CLASS="io.hydrosphere.mist.job.JobInfoProvider"
+    MAIN_CLASS="io.hydrosphere.mist.job.FunctionInfoProvider"
 
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.infoprovider.properties
     DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dmist.home=$MIST_HOME"

@@ -84,7 +84,7 @@ object JobDetails {
 /**
   * Full information about job invocation
   *
-  * @param function - name of endpoint(route)
+  * @param function - name of function(route)
   * @param jobId - uniqId
   * @param params - filePath, className, args
   * @param context - target context/namespace
