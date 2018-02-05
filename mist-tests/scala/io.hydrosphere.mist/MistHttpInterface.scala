@@ -35,7 +35,7 @@ case class MistHttpInterface(
   }
 
   def createEndpoint(ep: FunctionConfig): FunctionConfig = {
-    val req = Http("http://localhost:2004/v2/api/endpoints")
+    val req = Http("http://localhost:2004/v2/api/functions")
       .postData(ep.toJson)
     val resp = req.asString
     if (resp.code == 200)
@@ -74,12 +74,12 @@ case class MistHttpInterface(
   }
 
   def callV2Api(
-    endpointId: String,
+    functionId: String,
     params: Map[String, Any]
   ): JobResult = {
 
     val millis = timeout * 1000
-    val url = s"http://$host:$port/v2/api/endpoints/$endpointId/jobs?force=true"
+    val url = s"http://$host:$port/v2/api/functions/$functionId/jobs?force=true"
 
     val req = Http(url)
       .timeout(millis, millis)

@@ -123,9 +123,9 @@ object HttpV2Base {
     routeId: String,
     queryParams: JobRunQueryParams,
     parameters: Map[String, Any]
-  ): EndpointStartRequest = {
+  ): FunctionStartRequest = {
     val runSettings = queryParams.buildRunSettings()
-    EndpointStartRequest(routeId, parameters, queryParams.externalId, runSettings)
+    FunctionStartRequest(routeId, parameters, queryParams.externalId, runSettings)
   }
 }
 
@@ -153,12 +153,12 @@ object HttpV2Routes extends Logger {
   }
 
   def functionRoutes(master: MainService): Route = {
-    path( root / "endpoints" ) {
+    path( root / "functions" ) {
       get { complete {
         master.jobInfoProviderService.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" ) {
+    path( root / "functions" ) {
       post(parameter('force? false) { force =>
         entity(as[FunctionConfig]) { req =>
           if (force) {
@@ -181,7 +181,7 @@ object HttpV2Routes extends Logger {
         }
       })
     } ~
-    path( root / "endpoints" ) {
+    path( root / "functions" ) {
       put { entity(as[FunctionConfig]) { req =>
 
         onSuccess(master.functions.get(req.name)) {
@@ -199,14 +199,14 @@ object HttpV2Routes extends Logger {
         }
       }}
     } ~
-    path( root / "endpoints" / Segment ) { functionId =>
+    path( root / "functions" / Segment ) { functionId =>
       get { completeOpt {
         master.jobInfoProviderService
           .getFunctionInfo(functionId)
           .map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { functionId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
           master.jobService.functionJobHistory(
@@ -215,7 +215,7 @@ object HttpV2Routes extends Logger {
         }
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { functionId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       post( postJobQuery { query =>
         entity(as[Map[String, Any]]) { params =>
           val jobReq = buildStartRequest(functionId, query, params)

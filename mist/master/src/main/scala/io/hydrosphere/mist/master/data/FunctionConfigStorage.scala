@@ -74,7 +74,7 @@ object FunctionConfigStorage extends Logger {
       .map(name => parse(name))
       .foldLeft(List.empty[FunctionConfig])({
         case (lst, Failure(e)) =>
-          logger.warn("Invalid configuration for endpoint", e)
+          logger.warn("Invalid configuration for function", e)
           lst
         case (lst, Success(c)) => lst :+ c
       })

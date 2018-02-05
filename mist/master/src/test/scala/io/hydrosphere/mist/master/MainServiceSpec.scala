@@ -55,7 +55,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(jobService, functions, contexts, logs, jobInfoProviderService)
 
-    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
     runInfo shouldBe defined
   }
@@ -81,7 +81,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         FunctionInfoData.PythonLang
       )))
 
-    val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
+    val req = FunctionStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
 
     val f = service.runJob(req, JobDetails.Source.Http)
 
@@ -125,7 +125,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       ))
 
 
-    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http)
     intercept[IllegalArgumentException] {
       Await.result(runInfo, 30 seconds)
@@ -170,7 +170,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jobService.startJob(any[JobStartRequest]))
       .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
 
-    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
     val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
     verify(jobService, times(1)).startJob(argCapture.capture())
@@ -215,7 +215,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jobService.startJob(any[JobStartRequest]))
       .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
 
-    val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
     val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
     verify(jobService, times(1)).startJob(argCapture.capture())

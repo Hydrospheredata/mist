@@ -33,7 +33,7 @@ class MainService(
   implicit val timeout: Timeout = Timeout(5 seconds)
 
   def runJob(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source
   ): Future[Option[JobStartResponse]] = {
     val out = for {
@@ -43,7 +43,7 @@ class MainService(
   }
 
   def forceJobRun(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[Option[JobResult]] = {
@@ -111,7 +111,7 @@ class MainService(
   def recoverJobs(): Future[Unit] = {
 
     def restartJob(job: JobDetails): Future[Unit] = {
-      val req = EndpointStartRequest(job.function, job.params.arguments, job.externalId, id = job.jobId)
+      val req = FunctionStartRequest(job.function, job.params.arguments, job.externalId, id = job.jobId)
       runJob(req, job.source).map(_ => ())
     }
 
@@ -133,7 +133,7 @@ class MainService(
   }
 
   private def runJobRaw(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
@@ -157,7 +157,7 @@ class MainService(
     out.value
   }
 
-  private def selectContext(req: EndpointStartRequest, context: String): Future[ContextConfig] = {
+  private def selectContext(req: FunctionStartRequest, context: String): Future[ContextConfig] = {
     val name = req.runSettings.contextId.getOrElse(context)
     contexts.getOrDefault(name)
   }

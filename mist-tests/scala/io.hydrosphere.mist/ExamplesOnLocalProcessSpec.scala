@@ -101,7 +101,7 @@ class ExamplesOnLocalProcessSpec
     val request =
       """
         |{
-        |  "endpointId": "simple_context",
+        |  "functionId": "simple_context",
         |  "parameters": {
         |    "numbers": [1, 2, 3]
         |  }

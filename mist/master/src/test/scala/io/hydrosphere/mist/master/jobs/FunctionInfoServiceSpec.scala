@@ -40,8 +40,8 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
     FileUtils.deleteQuietly(f)
   }
 
-  describe("by endpoint config methods") {
-    it("should get job info from endpoint") {
+  describe("by function config methods") {
+    it("should get job info from function") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
@@ -70,7 +70,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       )
     }
 
-    it("should validate job parameters by endpoint") {
+    it("should validate job parameters by function") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
@@ -168,8 +168,8 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
     }
   }
 
-  describe("by endpoint id methods") {
-    it("should get job info from endpoint id") {
+  describe("by function id methods") {
+    it("should get job info from function id") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
@@ -203,7 +203,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       )
     }
 
-    it ("should validate job parameters by endpoint id") {
+    it ("should validate job parameters by function id") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
@@ -228,7 +228,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
     }
 
-    it("should return none on get job info when endpoint not found") {
+    it("should return none on get job info when function not found") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
@@ -270,7 +270,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
     }
 
-    it("should return none on validate job parameters when endpoint not found") {
+    it("should return none on validate job parameters when function not found") {
       val probe = TestProbe()
       val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]

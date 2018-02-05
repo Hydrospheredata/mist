@@ -42,7 +42,7 @@ object RunSettings {
   * Request for starting job by name
   * New version api
   */
-case class EndpointStartRequest(
+case class FunctionStartRequest(
   endpointId: String,
   parameters: Map[String, Any],
   externalId: Option[String] = None,
@@ -68,15 +68,15 @@ case class JobStartResponse(id: String)
   * (spray json not support default values)
   */
 case class AsyncEndpointStartRequest(
-  endpointId: String,
+  functionId: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],
   runSettings: Option[RunSettings]
 ) {
 
-  def toCommon: EndpointStartRequest =
-    EndpointStartRequest(
-      endpointId,
+  def toCommon: FunctionStartRequest =
+    FunctionStartRequest(
+      functionId,
       parameters.getOrElse(Map.empty),
       externalId,
       runSettings.getOrElse(RunSettings.Default))
@@ -121,7 +121,7 @@ case class JobDetailsLink(
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  endpoint: String,
+  function: String,
   workerId: String,
   createTime: Long = System.currentTimeMillis()
 )

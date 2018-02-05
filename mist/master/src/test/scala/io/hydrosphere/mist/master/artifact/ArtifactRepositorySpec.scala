@@ -91,7 +91,7 @@ class ArtifactRepositorySpec extends FunSpecLike
   }
   describe("DefaultArtifactRepositorySpec") {
 
-    it("should get existing default endpoint job file path") {
+    it("should get existing default function job file path") {
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
       val localStorageFile = artifactRepo.get(testArtifactName)
@@ -100,7 +100,7 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile.get.getName shouldBe testArtifactName
     }
 
-    it("should not get missing default endpoint job file path") {
+    it("should not get missing default function job file path") {
       val artifactRepo = new DefaultArtifactRepository(Map())
       val testFilePath = Paths.get(dir.toString, testArtifactName)
 
@@ -109,7 +109,7 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile should not be defined
     }
 
-    it("should list all files in endpoint default storage") {
+    it("should list all files in function default storage") {
       val functions = mock[FunctionConfigStorage]
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
