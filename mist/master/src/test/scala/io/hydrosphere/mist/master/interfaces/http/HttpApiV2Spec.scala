@@ -13,7 +13,7 @@ import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models._
@@ -155,7 +155,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should update endpoint on create if endpoint created") {
 
-      val endpoints = mock[EndpointsStorage]
+      val endpoints = mock[FunctionConfigStorage]
       val jobInfoProvider = mock[JobInfoProviderService]
 
       val mainService = new MainService(
@@ -166,15 +166,15 @@ class HttpApiV2Spec extends FunSpec
         jobInfoProvider
       )
 
-      val test = EndpointConfig("test", "test", "test", "default")
+      val test = FunctionConfig("test", "test", "test", "default")
 
       when(endpoints.get(any[String]))
         .thenSuccess(None)
 
-      when(endpoints.update(any[EndpointConfig]))
+      when(endpoints.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
+      when(jobInfoProvider.getJobInfoByConfig(any[FunctionConfig]))
         .thenSuccess(JobInfoData(
           lang = "python",
           path = "test",
@@ -187,12 +187,12 @@ class HttpApiV2Spec extends FunSpec
 
       Post("/v2/api/endpoints", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(endpoints, times(1)).update(any[EndpointConfig])
+        verify(endpoints, times(1)).update(any[FunctionConfig])
       }
     }
 
     it("should return different entity when forcibly update") {
-      val endpoints = mock[EndpointsStorage]
+      val endpoints = mock[FunctionConfigStorage]
       val master = new MainService(
         mock[JobService],
         endpoints,
@@ -200,32 +200,32 @@ class HttpApiV2Spec extends FunSpec
         mock[LogStoragePaths],
         mock[JobInfoProviderService]
       )
-      val test = EndpointConfig("test", "test", "test", "default")
-      when(endpoints.update(any[EndpointConfig]))
+      val test = FunctionConfig("test", "test", "test", "default")
+      when(endpoints.update(any[FunctionConfig]))
         .thenSuccess(test)
 
       val route = HttpV2Routes.endpointsRoutes(master)
 
       Post("/v2/api/endpoints?force=true", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(endpoints, times(1)).update(any[EndpointConfig])
-        responseAs[EndpointConfig] shouldBe test
+        verify(endpoints, times(1)).update(any[FunctionConfig])
+        responseAs[FunctionConfig] shouldBe test
       }
     }
 
     it("should fail with invalid data for endpoint") {
-      val endpointsStorage = mock[EndpointsStorage]
+      val endpointsStorage = mock[FunctionConfigStorage]
       val master = mock[MainService]
       val jobInfoProvider = mock[JobInfoProviderService]
       when(master.endpoints).thenReturn(endpointsStorage)
       when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
 
-      val endpointConfig = EndpointConfig("name", "path", "className", "context")
+      val endpointConfig = FunctionConfig("name", "path", "className", "context")
 
       when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
-      when(endpointsStorage.update(any[EndpointConfig]))
+      when(endpointsStorage.update(any[FunctionConfig]))
         .thenReturn(Future.successful(endpointConfig))
-      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
+      when(jobInfoProvider.getJobInfoByConfig(any[FunctionConfig]))
         .thenFailure(new Exception("test failure"))
 
       val route = HttpV2Routes.endpointsRoutes(master)

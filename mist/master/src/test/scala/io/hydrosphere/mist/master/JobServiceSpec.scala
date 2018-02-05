@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.StatusMessages.{GetById, Register}
-import io.hydrosphere.mist.master.models.{EndpointConfig, JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.models.{FunctionConfig, JobStartRequest, RunMode}
 import org.scalatest._
 
 import scala.concurrent.duration.Duration

@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.TestUtils.AwaitSyntax
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import org.apache.commons.io.FileUtils
 import org.mockito.Mockito.{never, times, verify}
 import org.scalatest.concurrent.ScalaFutures
@@ -110,7 +110,7 @@ class ArtifactRepositorySpec extends FunSpecLike
     }
 
     it("should list all files in endpoint default storage") {
-      val endpointStorage = mock[EndpointsStorage]
+      val endpointStorage = mock[FunctionConfigStorage]
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
 

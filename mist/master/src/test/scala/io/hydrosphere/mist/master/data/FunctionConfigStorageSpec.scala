@@ -2,11 +2,11 @@ package io.hydrosphere.mist.master.data
 
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.models.FunctionConfig
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfter, Matchers, FunSpec}
 
-class EndpointsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
+class FunctionConfigStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   val path = "./target/data/endps_store_test"
 
@@ -23,7 +23,7 @@ class EndpointsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
     endpoints.all.await.size shouldBe 1
 
-    endpoints.update(EndpointConfig("second", "path", "className", "foo")).await
+    endpoints.update(FunctionConfig("second", "path", "className", "foo")).await
     endpoints.all.await.size shouldBe 2
   }
 
@@ -33,7 +33,7 @@ class EndpointsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     endpoints.get("first").await.isDefined shouldBe true
     endpoints.get("second").await.isDefined shouldBe false
 
-    endpoints.update(EndpointConfig("second", "path", "className", "foo")).await
+    endpoints.update(FunctionConfig("second", "path", "className", "foo")).await
     endpoints.get("second").await.isDefined shouldBe true
   }
 
@@ -42,13 +42,13 @@ class EndpointsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
     endpoints.get("first").await.get.className shouldBe "className"
 
-    endpoints.update(EndpointConfig("first", "path", "anotherClassName", "foo")).await
+    endpoints.update(FunctionConfig("first", "path", "anotherClassName", "foo")).await
     endpoints.get("first").await.get.className shouldBe "anotherClassName"
   }
 
   def testStorage(
-    defaults: Seq[EndpointConfig] = Seq(EndpointConfig("first", "path", "className", "foo"))): EndpointsStorage = {
-    new EndpointsStorage(
+    defaults: Seq[FunctionConfig] = Seq(FunctionConfig("first", "path", "className", "foo"))): FunctionConfigStorage = {
+    new FunctionConfigStorage(
       FsStorage.create(path, ConfigRepr.EndpointsRepr),
       defaults
     )

@@ -10,7 +10,7 @@ import akka.pattern.gracefulStop
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
@@ -81,7 +81,7 @@ object MasterServer extends Logger {
       override def receive: Receive = { case _ => }
     }), CommonData.HealthActorName)
 
-    val endpointsStorage = EndpointsStorage.create(config.functionsPath, routerConfig)
+    val endpointsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
     val store = H2JobsRepository(config.dbPath)
 

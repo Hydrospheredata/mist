@@ -10,8 +10,8 @@ import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{GetAllJobInfo, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.EndpointsStorage
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.data.FunctionConfigStorage
+import io.hydrosphere.mist.master.models.FunctionConfig
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -19,7 +19,7 @@ import scala.reflect.ClassTag
 
 class JobInfoProviderService(
   jobInfoProvider: ActorRef,
-  endpointStorage: EndpointsStorage,
+  endpointStorage: FunctionConfigStorage,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) {
   val timeoutDuration = 5 seconds
@@ -35,7 +35,7 @@ class JobInfoProviderService(
     f.value
   }
 
-  def getJobInfoByConfig(endpoint: EndpointConfig): Future[JobInfoData] = {
+  def getJobInfoByConfig(endpoint: FunctionConfig): Future[JobInfoData] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[ExtractedData](createGetInfoMsg(endpoint, file))
@@ -57,7 +57,7 @@ class JobInfoProviderService(
     f.value
   }
 
-  def validateJobByConfig(endpoint: EndpointConfig, params: Map[String, Any]): Future[Unit] = {
+  def validateJobByConfig(endpoint: FunctionConfig, params: Map[String, Any]): Future[Unit] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
         askInfoProvider[Unit](createValidateParamsMsg(endpoint, file, params))
@@ -66,7 +66,7 @@ class JobInfoProviderService(
   }
 
   def allJobInfos: Future[Seq[JobInfoData]] = {
-    def toJobInfoRequest(e: EndpointConfig): Option[GetJobInfo] = {
+    def toJobInfoRequest(e: FunctionConfig): Option[GetJobInfo] = {
       artifactRepository.get(e.path)
         .map(f => createGetInfoMsg(e, f))
     }
@@ -97,7 +97,7 @@ class JobInfoProviderService(
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] =
     ref.ask(msg).mapTo[T]
 
-  private def createJobInfoData(endpoint: EndpointConfig, data: ExtractedData): JobInfoData = JobInfoData(
+  private def createJobInfoData(endpoint: FunctionConfig, data: ExtractedData): JobInfoData = JobInfoData(
     endpoint.name,
     endpoint.path,
     endpoint.className,
@@ -108,14 +108,14 @@ class JobInfoProviderService(
     data.tags
   )
 
-  private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(
+  private def createGetInfoMsg(endpoint: FunctionConfig, file: File): GetJobInfo = GetJobInfo(
     endpoint.className,
     file.getAbsolutePath,
     endpoint.name
   )
 
   private def createValidateParamsMsg(
-    endpoint: EndpointConfig,
+    endpoint: FunctionConfig,
     file: File,
     params: Map[String, Any]
   ): ValidateJobParameters = ValidateJobParameters(

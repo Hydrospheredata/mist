@@ -160,18 +160,18 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "endpoints" ) {
       post(parameter('force? false) { force =>
-        entity(as[EndpointConfig]) { req =>
+        entity(as[FunctionConfig]) { req =>
           if (force) {
-            completeF(master.endpoints.update(req), StatusCodes.BadRequest)
+            completeF(master.functions.update(req), StatusCodes.BadRequest)
           } else {
-            val rsp = master.endpoints.get(req.name).flatMap({
+            val rsp = master.functions.get(req.name).flatMap({
               case Some(ep) =>
                 val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
                 Future.failed(e)
               case None =>
                 for {
                   fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(req)
-                  updated      <- master.endpoints.update(req)
+                  updated      <- master.functions.update(req)
                   endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
                 } yield endpointInfo
             })
@@ -182,15 +182,15 @@ object HttpV2Routes extends Logger {
       })
     } ~
     path( root / "endpoints" ) {
-      put { entity(as[EndpointConfig]) { req =>
+      put { entity(as[FunctionConfig]) { req =>
 
-        onSuccess(master.endpoints.get(req.name)) {
+        onSuccess(master.functions.get(req.name)) {
           case None =>
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
             val res = for {
-              updated      <- master.endpoints.update(req)
+              updated      <- master.functions.update(req)
               fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
               endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo

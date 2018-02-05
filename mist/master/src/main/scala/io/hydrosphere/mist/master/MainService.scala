@@ -11,7 +11,7 @@ import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
@@ -24,7 +24,7 @@ import scala.util.{Failure, Success}
 
 class MainService(
   val jobService: JobService,
-  val endpoints: EndpointsStorage,
+  val functions: FunctionConfigStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
   val jobInfoProviderService: JobInfoProviderService
@@ -69,7 +69,7 @@ class MainService(
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
 
-    val endpoint = EndpointConfig(
+    val function = FunctionConfig(
       name = req.fakeName,
       path = req.path,
       className = req.className,
@@ -77,9 +77,9 @@ class MainService(
     )
 
     for {
-      info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
+      info          <- jobInfoProviderService.getJobInfoByConfig(function)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters)
+      _             <- jobInfoProviderService.validateJobByConfig(function, req.parameters)
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -168,7 +168,7 @@ object MainService extends Logger {
 
   def start(
     jobService: JobService,
-    endpoints: EndpointsStorage,
+    endpoints: FunctionConfigStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
     jobInfoProvider: JobInfoProviderService

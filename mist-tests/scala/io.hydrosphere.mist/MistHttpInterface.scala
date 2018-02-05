@@ -3,7 +3,7 @@ package io.hydrosphere.mist
 import java.nio.file.{Files, Path}
 
 import io.hydrosphere.mist.master.JobResult
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.models.FunctionConfig
 
 import scalaj.http._
 
@@ -34,12 +34,12 @@ case class MistHttpInterface(
     new String(req.asBytes.body)
   }
 
-  def createEndpoint(ep: EndpointConfig): EndpointConfig = {
+  def createEndpoint(ep: FunctionConfig): FunctionConfig = {
     val req = Http("http://localhost:2004/v2/api/endpoints")
       .postData(ep.toJson)
     val resp = req.asString
     if (resp.code == 200)
-      resp.body.parseJson.convertTo[EndpointConfig]
+      resp.body.parseJson.convertTo[FunctionConfig]
     else
       throw new RuntimeException(s"Endpoints creation failed. Code: ${resp.code}, body: ${resp.body}")
   }
