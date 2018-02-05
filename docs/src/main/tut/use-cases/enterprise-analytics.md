@@ -69,7 +69,9 @@ Mist job accepts user parameters map, in our case we expect path to the log file
 
 ### (3/6) Configuring Router
 
-Mist provides a Endpoints or Routers abstraction that maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. It allows building user friendly endpoints by exposing only client specific parameters. System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
+Mist provides a Functions or Routers abstraction that maps incoming HTTP/Messaging requests and CLI commands into underlying Scala & Python programs with actual Mist Jobs. 
+It allows building user friendly REST endpoints by exposing only client specific parameters. 
+System parameters like corresponded Java/Python classpath and Spark Context namespace are all set in Router.
 
 Create or edit file `./my_config/router.conf` to add a router for the log search application:
 
@@ -82,9 +84,9 @@ log-search = {
 }
 ````
 
-This route describes REST API endpoint `/api/endpoint/log-search`, so client application could send a simple REST request and get result back:
+This route describes REST API endpoint `/api/v2/functions/log-search`, so client application could send a simple REST request and get result back:
 ````
-POST /api/v2/endpoints/log-search
+POST /api/v2/functions/log-search
 {
     "filePath": "/path/to/log-file"
     "filters": [“ERROR”]
@@ -131,7 +133,7 @@ hydrosphere mist no errors
 EOF
 
 curl --header "Content-Type: application/json" \
-         -X POST http://localhost:2004/v2/api/endpoints/log-search?force=true \
+         -X POST http://localhost:2004/v2/api/functions/log-search?force=true \
          --data '{"filters": ["ERROR", "MySQL"], "filePath": "/jobs/text_search.log"}'
 ```
 

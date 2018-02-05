@@ -55,10 +55,10 @@ class MqttJobRunner:
 
 
 
-    def runJob(self, endpoint, params, runSettings = { "mode": { "type": "shared" }}):
+    def runJob(self, function, params, runSettings = {"mode": {"type": "shared"}}):
         self.externalId = str(uuid.uuid4())
         req = {
-          "functionId": endpoint,
+          "functionId": function,
           "parameters": params,
           "externalId": self.externalId,
           "runSettings": runSettings
@@ -76,7 +76,7 @@ class MqttJobRunner:
         if self.success:
             return self.result
         else:
-            raise Exception("Job "+ endpoint + " jobId:" + self.jobId + "failed. Reason:" + self.result)
+            raise Exception("Job " + function + " jobId:" + self.jobId + "failed. Reason:" + self.result)
 
 
 

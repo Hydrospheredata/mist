@@ -27,10 +27,10 @@ class FunctionInfoService(
 
   def getFunctionInfo(id: String): Future[Option[FunctionInfoData]] = {
     val f = for {
-      endpoint <- OptionT(functionStorage.get(id))
-      file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      data     <- OptionT.liftF(askInfoProvider[ExtractedFunctionData](createGetInfoMsg(endpoint, file)))
-      info     =  createJobInfoData(endpoint, data)
+      function <- OptionT(functionStorage.get(id))
+      file     <- OptionT.fromOption[Future](artifactRepository.get(function.path))
+      data     <- OptionT.liftF(askInfoProvider[ExtractedFunctionData](createGetInfoMsg(function, file)))
+      info     =  createJobInfoData(function, data)
     } yield info
     f.value
   }
@@ -49,9 +49,9 @@ class FunctionInfoService(
     params: Map[String, Any]
   ): Future[Option[Unit]] = {
     val f = for {
-      endpoint   <- OptionT(functionStorage.get(id))
-      file       <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      _ <- OptionT.liftF(askInfoProvider[Unit](createValidateParamsMsg(endpoint, file, params)))
+      function   <- OptionT(functionStorage.get(id))
+      file       <- OptionT.fromOption[Future](artifactRepository.get(function.path))
+      _ <- OptionT.liftF(askInfoProvider[Unit](createValidateParamsMsg(function, file, params)))
     } yield ()
 
     f.value
