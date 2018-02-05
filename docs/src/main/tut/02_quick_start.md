@@ -7,24 +7,21 @@ position: 2
 
 ## Quick start
 
-This tutorial provides a quick introduction to using Mist.
-We will first cover local installation details, then briefly overview how to write functions
-and finally how to deploy and run them on Mist
+This is a quick start tutorial for Mist.
+We will cover local installation details, then discuss how to develop and deploy Mist Functions and launch them in different Spark slusters.
 
-To better understainding lets introduce following defenitions that we will use:
-- function - user code that invokes on spark
-- artifact - file (.jar or .py) that contains function
-- context - settings for worker where function invokes (spark settings + worker mode) 
-- endpoint - named entry point for function invocation (function class name, artifact path, default context)
-- job - a result of endpoint invocation
-- master - mist master application (it manages functions, jobs, workers, expose public interfaces)
-- worker - special spark driver application that actually invokes function (mist automatically spawn them)
-- mist-cli - command line tool for interations with mist
+Vocabulary. The next terms are used in this document:
+- Function - user code with Spark program to be deployed on Mist
+- Artifact - file (.jar or .py) that contains a Function
+- Mist Master - an application that manages functions, jobs, workers, and expose public interfaces
+- Mist Worker - Spark driver application that actually invokes function (Mist Master automatically spawns its Workers)
+- Context - settings for Mist Worker where Function is being executed (spark settings + worker mode) 
+- Job - a result of the Function execution
+- mist-cli - command line tool for Mist
 
 ## Install
 
 You can install Mist from binaries or run it in docker.
-All of distributions have default configuration and our examples for a quick start.
 Docker image also has Apache Spark binaries for a quick start.
 
 Releases:
@@ -35,9 +32,9 @@ Releases:
 
 ### Run docker image
 
-We prebuilt Mist for `2.0.0`, `2.1.0`, `2.2.0` Spark versions.
+We have prebuilt Mist for `2.0.0`, `2.1.0`, `2.2.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
-For example latest Mist release for Spark `2.2.0` version is: `mist:{{ site.version }}-2.2.0`
+For example the latest Mist release for Spark `2.2.0` version looks like this: `mist:{{ site.version }}-2.2.0`
 
 ```sh
 docker run -p 2004:2004 \
@@ -47,7 +44,7 @@ docker run -p 2004:2004 \
 
 ### Run from binaries
 
-- Download [Spark](https://spark.apache.org/docs/2.1.1/)
+- Download [Spark](https://spark.apache.org/downloads.html)
 - Download Mist and run
 
 ```sh
@@ -60,12 +57,12 @@ SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
 
 ### Check how it works
 
-Mist has build-in UI where you could:
+Mist has build-in UI where you can:
 - manage functions
-- run jobs, access they results, see addtitional info (status, logs)
-- see worker settings and stop them manually
+- run jobs, check results, see additional info (status, logs, etc)
+- manage workers
 
-By default ui is available at <http://localhost:2004/ui>.
+By default UI is available at <http://localhost:2004/ui>.
 
 Demo:
 <video autoplay="autoplay">
@@ -73,17 +70,14 @@ Demo:
 </video>
 
 
-### Running your own function
+### Build your own function
 
-Mist provides typeful library for writing functions on scala/java.
-Also there is command line tool `mist-cli` that provides an easiest way to
-deploy function/context/artifacts. For a quick start let use already [prepared project examples](https://github.com/dos65/hello_mist)
-
-We will use `mist-cli` to upload our function using just one command(or you can use [http interface directly](/mist-docs/http_api.html))
-That repository contnains:
-- simple function example
+Mist provides typeful library for writing functions in scala/java.
+For a quick start please check out a [demo project](https://github.com/dos65/hello_mist). Demo setup includes:
+- simple function example in [Scala](https://github.com/dos65/hello_mist/blob/master/scala/src/main/scala/HelloMist.scala) 
+and [Java](https://github.com/dos65/hello_mist/blob/master/java/src/main/java/HelloMist.java)
 - build setup (sbt/mvn)
-- configuration files for mist-cli
+- configuration files for `mist-cli`
 
 ```sh
 # install mist-cli
@@ -103,8 +97,8 @@ cd hello_mist/scala
 sbt package
 mist-cli apply -f conf
 
-# run it
-curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/endpoints/hello-mist-scala/jobs?force=true"
+# run it. ?force=true flag forces syncronous execution. By default function is executed in async mode 
+curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-scala/jobs?force=true"
 ```
 
 Java:
@@ -116,12 +110,12 @@ mvn package
 mist-cli apply -f conf
 
 # run it
-curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/endpoints/hello-mist-java/jobs?force=true"
+curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-java/jobs?force=true"
 ```
 
-NOTE: here we use `force=true` to get job result in same http req/resp pair,
+NOTE: here we use `force=true` to get job result syncronously in the same http req/resp pair,
 it could be useful for quick jobs, but you should not use that parameter for long-running jobs
-There are additional [reactive interfaces](/mist-docs/reactive_api.html) for jobs running
+Please check [reactive interfaces](/mist-docs/reactive_api.html) API as well.
 
 #### Scala - more details
 
@@ -262,14 +256,12 @@ public class HelloMist extends JMistFn<Double> {
 }
 ```
 
-### Connecting to your existing Apache Spark cluster
+### Connect to your existing Apache Spark cluster
 
-Exmaples above was intented to quickly meet a user with mist usage basics.
-Function invocation was done using on `local` spark node (default).
-The next important thing is to invoke them on a spark cluster.
-To do that we should configure a new `context` with cluster settings and change it for our endpoint:
-Lets continue to use `mist-cli`:
-- using your favorite editor we need to create a file with context settings:
+By default Mist is trying to connect `local[*]` Spark Master. See Spark [configuration docs](https://spark.apache.org/docs/latest/submitting-applications.html#master-urls) for more details.
+Configuring a particular function to be executed on a different Spark Cluster is as simple as changing `spark.master` configuration parameter for function's `context`:
+
+- create a new `context` file with the following settings:
   `hello_mist/scala/conf/10_cluster_context.conf`
   ```
   model = Context
@@ -282,12 +274,12 @@ Lets continue to use `mist-cli`:
   ```
   `spark-conf` is a section where we could set up or tune [spark settings](https://spark.apache.org/docs/latest/configuration.html) for a context
 
-- in `hello_mist/scala/conf/20_endpoint.conf` set `context = cluster_context`
+- set `context = cluster_context` in `hello_mist/scala/conf/20_function.conf`
 - send changes to mist:
   ```sh
   mist-cli apply -f conf
   ```
 
-If you want use your Yarn or Mesos cluster, there is not something special configuration from Mist side excluding `spark-master` conf.
+Yarn or Mesos cluster settings are managed the same way.
 Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
-Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set them up before starting Mist
+Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set it up before launching Mist Worker.
