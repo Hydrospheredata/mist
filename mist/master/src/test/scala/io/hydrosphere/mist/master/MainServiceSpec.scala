@@ -4,10 +4,10 @@ import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import mist.api.args.ArgInfo
@@ -30,7 +30,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
-    val jobInfoProviderService = mock[JobInfoProviderService]
+    val jobInfoProviderService = mock[FunctionInfoService]
 
     val artifactRepo = mock[ArtifactRepository]
 
@@ -38,7 +38,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(TestUtils.contextSettings.default)
 
     when(jobInfoProviderService.getJobInfo(any[String]))
-      .thenSuccess(Some(JobInfoData(
+      .thenSuccess(Some(FunctionInfoData(
         name = "name",
         path = "path.py",
         className = "MyJob",
@@ -66,19 +66,19 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
+    val jobInfoProvider = mock[FunctionInfoService]
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(JobInfoData(
+      .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
         "Test",
         "foo",
-        JobInfoData.PythonLang
+        FunctionInfoData.PythonLang
       )))
 
     val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
@@ -96,7 +96,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
+    val jobInfoProvider = mock[FunctionInfoService]
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
@@ -104,12 +104,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(JobInfoData(
+      .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
         "Test",
         "foo",
-        JobInfoData.PythonLang
+        FunctionInfoData.PythonLang
       )))
 
     when(contexts.getOrDefault(any[String]))
@@ -139,7 +139,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
+    val jobInfoProvider = mock[FunctionInfoService]
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
@@ -147,12 +147,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(JobInfoData(
+      .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
         "Test",
         "foo",
-        lang = JobInfoData.PythonLang,
+        lang = FunctionInfoData.PythonLang,
         tags = Seq(ArgInfo.StreamingContextTag)
       )))
 
@@ -184,7 +184,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[JobInfoProviderService]
+    val jobInfoProvider = mock[FunctionInfoService]
 
     val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
 
@@ -192,12 +192,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getJobInfo(any[String]))
-      .thenSuccess(Some(JobInfoData(
+      .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
         "Test",
         "foo",
-        JobInfoData.PythonLang,
+        FunctionInfoData.PythonLang,
         tags = Seq(ArgInfo.SqlContextTag)
       )))
 

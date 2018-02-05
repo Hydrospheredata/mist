@@ -9,13 +9,13 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
@@ -156,7 +156,7 @@ class HttpApiV2Spec extends FunSpec
     it("should update endpoint on create if endpoint created") {
 
       val endpoints = mock[FunctionConfigStorage]
-      val jobInfoProvider = mock[JobInfoProviderService]
+      val jobInfoProvider = mock[FunctionInfoService]
 
       val mainService = new MainService(
         mock[JobService],
@@ -175,7 +175,7 @@ class HttpApiV2Spec extends FunSpec
         .thenSuccess(test)
 
       when(jobInfoProvider.getJobInfoByConfig(any[FunctionConfig]))
-        .thenSuccess(JobInfoData(
+        .thenSuccess(FunctionInfoData(
           lang = "python",
           path = "test",
           defaultContext = "foo",
@@ -198,7 +198,7 @@ class HttpApiV2Spec extends FunSpec
         endpoints,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        mock[JobInfoProviderService]
+        mock[FunctionInfoService]
       )
       val test = FunctionConfig("test", "test", "test", "default")
       when(endpoints.update(any[FunctionConfig]))
@@ -216,7 +216,7 @@ class HttpApiV2Spec extends FunSpec
     it("should fail with invalid data for endpoint") {
       val endpointsStorage = mock[FunctionConfigStorage]
       val master = mock[MainService]
-      val jobInfoProvider = mock[JobInfoProviderService]
+      val jobInfoProvider = mock[FunctionInfoService]
       when(master.endpoints).thenReturn(endpointsStorage)
       when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
 

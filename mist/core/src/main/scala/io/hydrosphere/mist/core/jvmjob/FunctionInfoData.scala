@@ -10,7 +10,7 @@ case class ExtractedData(
   tags: Seq[String] = Seq.empty
 )
 
-case class JobInfoData(
+case class FunctionInfoData(
   name: String,
   path: String,
   className: String,
@@ -21,7 +21,7 @@ case class JobInfoData(
   tags: Seq[String] = Seq.empty
 )
 
-case object JobInfoData {
+case object FunctionInfoData {
   val PythonLang = "python"
   val JavaLang = "java"
   val ScalaLang = "scala"

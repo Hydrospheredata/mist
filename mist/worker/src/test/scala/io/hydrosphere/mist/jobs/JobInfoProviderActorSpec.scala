@@ -7,7 +7,7 @@ import akka.actor.{Actor, ActorSystem, Status}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData}
 import io.hydrosphere.mist.job.{Cache, JobInfo, JobInfoExtractor, JobInfoProviderActor}
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{ArgInfo, UserInputArgument}
@@ -56,7 +56,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         )))
       val testProbe = TestProbe()
       val jobInfoProvider = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
-      testProbe.send(jobInfoProvider, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProvider, GetFunctionInfo("Test", jobPath, "test"))
       testProbe.expectMsg(ExtractedData(
         lang = "scala",
         execute = Seq(UserInputArgument("test", MInt)),
@@ -70,7 +70,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProvider = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
       val notExistingFile = "not_existing_file.jar"
-      testProbe.send(jobInfoProvider, GetJobInfo("Test", notExistingFile, "test"))
+      testProbe.send(jobInfoProvider, GetFunctionInfo("Test", notExistingFile, "test"))
 
       testProbe.expectMsgType[Status.Failure]
     }
@@ -83,7 +83,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProvider = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProvider, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProvider, GetFunctionInfo("Test", jobPath, "test"))
 
       testProbe.expectMsgType[Status.Failure]
     }
@@ -99,7 +99,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters(
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters(
         "Test", jobPath, "test", Map.empty))
       testProbe.expectMsgType[Status.Success]
 
@@ -110,7 +110,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters(
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters(
         "Test", "not_existing_file.jar", "test", Map.empty))
 
       testProbe.expectMsgType[Status.Failure]
@@ -124,7 +124,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters(
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters(
         "Test", jobPath, "test", Map.empty))
       testProbe.expectMsgType[Status.Failure]
     }
@@ -144,7 +144,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters(
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters(
         "Test", jobPath, "test", Map.empty))
       testProbe.expectMsgType[Status.Failure]
     }
@@ -161,7 +161,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
 
-      testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProviderActor, GetFunctionInfo("Test", jobPath, "test"))
       testProbe.expectMsgType[ExtractedData]
       testProbe.send(jobInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
@@ -179,9 +179,9 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
-      testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProviderActor, GetFunctionInfo("Test", jobPath, "test"))
       testProbe.expectMsgType[ExtractedData]
-      testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProviderActor, GetFunctionInfo("Test", jobPath, "test"))
       verify(jobInfoExtractor, times(1)).extractInfo(any[File], any[String])
     }
 
@@ -198,9 +198,9 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
-      testProbe.send(jobInfoProviderActor, GetJobInfo("Test", jobPath, "test"))
+      testProbe.send(jobInfoProviderActor, GetFunctionInfo("Test", jobPath, "test"))
       testProbe.expectMsgType[ExtractedData]
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters("Test", jobPath, "test", Map.empty))
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters("Test", jobPath, "test", Map.empty))
       testProbe.expectMsgType[Status.Success]
 
       verify(jobInfoExtractor, times(1)).extractInfo(any[File], any[String])
@@ -219,7 +219,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
-      testProbe.send(jobInfoProviderActor, ValidateJobParameters("Test", jobPath, "test", Map.empty))
+      testProbe.send(jobInfoProviderActor, ValidateFunctionParameters("Test", jobPath, "test", Map.empty))
       testProbe.expectMsgType[Status.Success]
       testProbe.send(jobInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
@@ -239,7 +239,7 @@ class JobInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val jobInfoProviderActor = TestActorRef[Actor](JobInfoProviderActor.props(jobInfoExtractor))
       // heat up cache
       testProbe.send(jobInfoProviderActor,
-        GetAllJobInfo(List(GetJobInfo("Test", jobPath, "test"))))
+        GetAllFunctions(List(GetFunctionInfo("Test", jobPath, "test"))))
       testProbe.expectMsg(Seq(ExtractedData(
         "test",
         "scala",

@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.interfaces.http
 import java.lang.management._
 import java.time.LocalDateTime
 
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.models.ContextConfig
 import mist.api.args.UserInputArgument
 
@@ -26,7 +26,7 @@ object HttpJobInfo {
 
   def forPython(name: String) = HttpJobInfo(name = name, isPython = true)
 
-  def convert(info: JobInfoData): HttpJobInfo = {
+  def convert(info: FunctionInfoData): HttpJobInfo = {
     val argsMap = info.execute
       .collect { case u: UserInputArgument => u }
       .map { a => a.name -> HttpJobArg.convert(a.t) }
@@ -34,7 +34,7 @@ object HttpJobInfo {
 
     val jobInfo = HttpJobInfo(
       name = info.name,
-      isPython = info.lang == JobInfoData.PythonLang
+      isPython = info.lang == FunctionInfoData.PythonLang
     )
 
     if (info.isServe)
@@ -92,7 +92,7 @@ case class HttpEndpointInfoV2(
 
 object HttpEndpointInfoV2 {
 
-  def convert(info: JobInfoData): HttpEndpointInfoV2 = {
+  def convert(info: FunctionInfoData): HttpEndpointInfoV2 = {
     HttpEndpointInfoV2(
       name = info.name,
       path = info.path,

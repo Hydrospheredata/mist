@@ -4,7 +4,7 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData, JobsLoader, OldInstanceWrapper}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, FunctionInfoData, JobsLoader, OldInstanceWrapper}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{InternalArgument, MInt, UserInputArgument}

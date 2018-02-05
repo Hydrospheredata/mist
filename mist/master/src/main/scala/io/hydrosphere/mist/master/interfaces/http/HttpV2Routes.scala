@@ -155,7 +155,7 @@ object HttpV2Routes extends Logger {
   def endpointsRoutes(master: MainService): Route = {
     path( root / "endpoints" ) {
       get { complete {
-        master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
+        master.jobInfoProviderService.allFunctions.map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" ) {
@@ -170,7 +170,7 @@ object HttpV2Routes extends Logger {
                 Future.failed(e)
               case None =>
                 for {
-                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(req)
+                  fullInfo     <- master.jobInfoProviderService.getFunctionInfoByConfig(req)
                   updated      <- master.functions.update(req)
                   endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
                 } yield endpointInfo
@@ -191,7 +191,7 @@ object HttpV2Routes extends Logger {
           case Some(_) =>
             val res = for {
               updated      <- master.functions.update(req)
-              fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
+              fullInfo     <- master.jobInfoProviderService.getFunctionInfoByConfig(updated)
               endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
             } yield endpointInfo
 
@@ -202,7 +202,7 @@ object HttpV2Routes extends Logger {
     path( root / "endpoints" / Segment ) { endpointId =>
       get { completeOpt {
         master.jobInfoProviderService
-          .getJobInfo(endpointId)
+          .getFunctionInfo(endpointId)
           .map(_.map(HttpEndpointInfoV2.convert))
       }}
     } ~

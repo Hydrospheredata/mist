@@ -105,7 +105,7 @@ class JobInfoProviderActor(
   }
 
   def cached(cache: StateCache): Receive = {
-    case r: GetJobInfo =>
+    case r: GetFunctionInfo =>
       val (next, v) = usingCache(cache, r)
       val rsp = v match {
         case Succ(info) => info.data
@@ -116,7 +116,7 @@ class JobInfoProviderActor(
       sender() ! rsp
       context become cached(next)
 
-    case req: ValidateJobParameters =>
+    case req: ValidateFunctionParameters =>
       val (next, v) = usingCache(cache, req)
       val rsp = v.flatMap(i => TryLoad.fromEither(i.instance.validateParams(req.params))) match {
         case Succ(_) => Status.Success(())
@@ -127,7 +127,7 @@ class JobInfoProviderActor(
       sender() ! rsp
       context become cached(next)
 
-    case GetAllJobInfo(requests) =>
+    case GetAllFunctions(requests) =>
       //TODO send errors to master
       val (next, results) = requests.foldLeft((cache, Seq.empty[ExtractedData])){
         case ((cache, acc), req) =>
