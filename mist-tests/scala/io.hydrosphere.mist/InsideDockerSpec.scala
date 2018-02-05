@@ -59,7 +59,7 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
       val interface = MistHttpInterface("localhost", 2004)
       interface.uploadArtifact(jarName, Paths.get(envArgs.examplesJar))
-      interface.createEndpoint(
+      interface.createFunction(
         FunctionConfig(
           name = functionName,
           path = jarName,
