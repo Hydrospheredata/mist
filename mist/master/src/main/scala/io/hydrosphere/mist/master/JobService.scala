@@ -20,7 +20,7 @@ import scala.reflect.ClassTag
   *  Jobs starting/stopping, statuses, worker utility methods
   */
 class JobService(
-  val workerManager: ActorRef,
+  val execution: ActorRef,
   repo: JobRepository
 ) {
 
@@ -98,9 +98,9 @@ class JobService(
       job.status, job.endpoint, job.workerId, job.createTime
   )
 
-  def stopAllWorkers(): Future[Unit] = workerManager.ask(StopAllWorkers).map(_ => ())
+  def stopAllWorkers(): Future[Unit] = execution.ask(StopAllWorkers).map(_ => ())
 
-  def stopWorker(workerId: String): Future[Unit] = workerManager.ask(StopWorker(workerId)).map(_ => ())
+  def stopWorker(workerId: String): Future[Unit] = execution.ask(StopWorker(workerId)).map(_ => ())
 
   def startJob(req: JobStartRequest): Future[ExecutionInfo] = {
     import req._
@@ -117,15 +117,6 @@ class JobService(
 
     val startCmd = RunJobCommand(context, runMode, internalRequest)
 
-    val registrationCommand = Register(
-      request = internalRequest,
-      endpoint = endpoint.name,
-      context = context.name,
-      source = source,
-      externalId = externalId,
-      workerId = startCmd.computeWorkerId()
-    )
-
     //TODO: WOrkerID
     val details = JobDetails(
       endpoint.name,
@@ -135,7 +126,7 @@ class JobService(
       externalId, source, workerId = "")
     for {
       _ <- repo.update(details)
-      info <- workerManager.ask(startCmd).mapTo[ExecutionInfo]
+      info <- execution.ask(startCmd).mapTo[ExecutionInfo]
     } yield info
   }
 
@@ -145,7 +136,7 @@ class JobService(
 
     def tryCancel(d: JobDetails): Future[Unit] = {
       if (d.isCancellable ) {
-        val f = workerManager ? CancelJobCommand(d.workerId, CancelJobRequest(jobId))
+        val f = execution ? CancelJobCommand(d.context, CancelJobRequest(jobId))
         f.map(_ => ())
       } else Future.successful(())
     }
@@ -160,7 +151,7 @@ class JobService(
     out.value
   }
 
-  private def askManager[T: ClassTag](msg: Any): Future[T] = typedAsk[T](workerManager, msg)
+  private def askManager[T: ClassTag](msg: Any): Future[T] = typedAsk[T](execution, msg)
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
 
 }

@@ -19,6 +19,7 @@ class JobActor(
   import JobActor._
 
   override def preStart(): Unit = {
+    report.report(QueuedEvent(req.id))
     req.timeout match {
       case f: FiniteDuration =>
         timers.startSingleTimer(s"job-${req.id}", Event.Timeout, f)

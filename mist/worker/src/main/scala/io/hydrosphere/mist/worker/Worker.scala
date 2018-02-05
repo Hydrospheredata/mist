@@ -48,15 +48,6 @@ object WorkerArguments {
     opt[String]("name").action((x, a) => a.copy(name = x))
       .text("Uniq name of worker")
 
-    opt[String]("context-name").action((x, a) => a.copy(contextName = x))
-      .text("Mist context name")
-
-    opt[String]("mode").action((x, a) => a.copy(mode = x))
-      .validate({
-        case "exclusive" | "shared" => Right(())
-        case x => Left("Invalid mode, use:[shared, exclusive]")
-      })
-      .text("Worker mode: 'exclusive' or 'shared'")
   }
 
   def parse(args: Seq[String]): Option[WorkerArguments] = {
@@ -73,8 +64,6 @@ object WorkerArguments {
 
 object Worker extends App with Logger {
 
-  import scala.collection.JavaConverters._
-
   try {
 
     val arguments = WorkerArguments.forceParse(args)
@@ -83,11 +72,7 @@ object Worker extends App with Logger {
     val mode = arguments.workerMode
     logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
 
-//    val seedNodes = Seq(arguments.masterNode).asJava
-//    val roles = Seq(s"worker-$name").asJava
     val config = ConfigFactory.load("worker")
-//      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
-//      .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(arguments.bindPort))
 
@@ -105,8 +90,7 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    println(regHub)
-    val props = ClusterWorker2.props(
+    val props = ClusterWorker.props(
       id = arguments.name,
       regHub = regHub,
       workerInit = WorkerActor.propsFromInitInfo(name, arguments.contextName, mode)

@@ -13,11 +13,12 @@ class WorkerConnection(
   id: String,
   initInfo: WorkerInitInfo,
   remote: ActorRef,
-  ready: Promise[Unit],
+  ready: Promise[ActorRef],
   readyTimeout: FiniteDuration
 ) extends Actor with ActorLogging with Timers{
 
   override def preStart(): Unit = {
+    log.info(s"STARTED CONN $id")
     context watch remote
     remote ! initInfo
     timers.startSingleTimer(s"worker-conn-$id", WorkerConnection.InitTimeout, readyTimeout)
@@ -27,15 +28,16 @@ class WorkerConnection(
 
   private def initialiazing: Receive = {
     case WorkerReady(wId) if wId == id =>
-      ready.success(())
+      ready.success(self)
       context become process
+    case WorkerReady(wId) =>
+      log.warning("WTF?? {}", wId)
 
     case WorkerConnection.InitTimeout =>
       val msg = s"Worker $id was terminated during initialization"
       log.warning(msg)
       ready.failure(new RuntimeException(msg))
       context stop self
-      println("STOPPED")
 
     case Terminated(_) =>
       val msg = s"Worker $id was terminated during initialization"
@@ -54,13 +56,14 @@ class WorkerConnection(
 }
 
 object WorkerConnection {
+
   case object InitTimeout
 
   def props(
     id: String,
     initInfo: WorkerInitInfo,
     remote: ActorRef,
-    ready: Promise[Unit],
+    ready: Promise[ActorRef],
     readyTimeout: FiniteDuration
   ): Props = Props(classOf[WorkerConnection], id, initInfo, remote, ready, readyTimeout)
 

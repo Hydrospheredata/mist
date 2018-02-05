@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.FrontendStatus
+import io.hydrosphere.mist.master.execution.remote.WorkerConnector
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
@@ -38,7 +39,7 @@ trait FrontendBasics {
 class ContextFrontend(
   name: String,
   reporter: StatusReporter,
-  executorStarter: (String, ContextConfig) => Future[ActorRef],
+  connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
   jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter)]
 ) extends Actor
   with ActorLogging
@@ -46,6 +47,8 @@ class ContextFrontend(
   with FrontendBasics {
 
   import ContextFrontend._
+
+  implicit val ec = context.system.dispatcher
 
   override def receive: Receive = initial
 
@@ -73,17 +76,20 @@ class ContextFrontend(
       case req: RunJobRequest => becomeNext(mkJob(req, state, sender()))
       case CancelJobRequest(id) => becomeNext(cancelJob(id, state, sender()))
 
-      case Event.ExecutorStartSuccess(id, ref) if id == execId =>
+      case Event.ConnectorPrepared(id, executor) if id == execId =>
         log.info(s"Executor for $name started: $id")
-        context.watchWith(ref, Event.ExecutorDied(id, ref))
-        becomeWithExecutor(ctx, state, ref)
+        executor.whenTerminated().onComplete({
+          case Success(_) => self ! Event.ConnectorStopped(id)
+          case Failure(e) => self ! Event.ConnectorCrushed(id, e)
+        })
+        becomeWithConnector(ctx, state, UsedConnections.empty, executor)
 
-      case Event.ExecutorStartFailure(id, err) if id == execId =>
+      case Event.ConnectorStartFailure(id, err) if id == execId =>
         log.error(err, s"Executor $id startup failed")
 
       // handle Started/Completed in case if we updated executor
       // and there are jobs that started its execution on previous executor
-      case JobActor.Event.Started(id) if state.hasGranted(id) => becomeNext(state.toWorking(id))
+      case JobActor.Event.Started(id) if state.hasWaiting(id) => becomeNext(state)
       case JobActor.Event.Started(id) =>
         log.warning(s"Received unexpected started event from $id")
 
@@ -94,34 +100,73 @@ class ContextFrontend(
   }
 
   // handle state changes, starting new jobs if it's possible
-  private def becomeWithExecutor(ctx: ContextConfig, state: State, executor: ActorRef): Unit = {
-    val next = state.grantNext(ctx.maxJobs - state.inProgressSize)((id, ref) => {
-      log.info(s"Trying to start job $id")
-      ref ! JobActor.Event.Perform(executor)
-    })
-    context become withExecutor(ctx, next, executor)
+  private def becomeWithConnector(
+    ctx: ContextConfig,
+    state: State,
+    usedConnections: UsedConnections,
+    connector: WorkerConnector
+  ): Unit = {
+    def askConnection(): Unit = {
+      connector.askConnection().onComplete {
+        case Success(ref) => self ! Event.Connection(ref)
+        case Failure(e) => self ! Event.ConnectionFailure(e)
+      }
+    }
+
+    val available = ctx.maxJobs - usedConnections.all
+    val need = math.min(state.queued.size - usedConnections.asked, available)
+    log.info("NEED?:" + need + " " + state.queued.size)
+    val nextConn = {
+      if (need > 0) {
+        for (_ <- 0 until need) askConnection()
+        usedConnections.copy(asked = usedConnections.asked + need)
+      } else
+        usedConnections
+    }
+
+    context become withConnector(ctx, state, nextConn, connector)
   }
 
-  private def withExecutor(ctx: ContextConfig, state: State, executor: ActorRef): Receive = {
-    def becomeNext(state: State): Unit = becomeWithExecutor(ctx, state, executor)
+  private def withConnector(
+    ctx: ContextConfig,
+    state: State,
+    conns: UsedConnections,
+    connector: WorkerConnector): Receive = {
+
+    def becomeNextState(state: State): Unit = becomeWithConnector(ctx, state, conns, connector)
+    def becomeNextConn(conns: UsedConnections): Unit = becomeWithConnector(ctx, state, conns, connector)
+    def becomeNext(c: UsedConnections, s: State): Unit = becomeWithConnector(ctx, s, c, connector)
 
     {
       case Event.Status => sender() ! mkStatus(state)
       case Event.UpdateContext(updCtx) => log.warning("NON IMPLEMENTED")
 
-      case req: RunJobRequest => becomeNext(mkJob(req, state, sender()))
-      case CancelJobRequest(id) => becomeNext(cancelJob(id, state, sender()))
+      case req: RunJobRequest => becomeNextState(mkJob(req, state, sender()))
+      case CancelJobRequest(id) => becomeNextState(cancelJob(id, state, sender()))
 
-      case JobActor.Event.Started(id) if state.hasGranted(id) => becomeNext(state.toWorking(id))
+      case Event.Connection(worker) =>
+        log.info("Received new connection!")
+        //TODO cancel and unused!
+        val nextSt = state.nextOption.map({ case (k, ref) =>
+          ref ! JobActor.Event.Perform(worker)
+          state.toWorking(k)
+        })
+        becomeNext(conns.askSuccess, nextSt.getOrElse(state))
+
+      case Event.ConnectionFailure(e) =>
+        log.error(s"Ask new worker connection for $name failed")
+        becomeNextConn(conns.askFailure)
+
+      case JobActor.Event.Started(id) if state.hasWaiting(id) => becomeNextState(state)
       case JobActor.Event.Started(id) =>
         log.warning(s"Received unexpected started event from $id")
 
-      case JobActor.Event.Completed(id) if state.hasWorking(id) => becomeNext(state.done(id))
+      case JobActor.Event.Completed(id) if state.hasWorking(id) => becomeNext(conns.connectionReleased, state.done(id))
       case JobActor.Event.Completed(id) =>
         log.warning(s"Received unexpected completed event from $id")
 
       //TODO? restart timeouts
-      case Event.ExecutorDied(id, ref) if ref == executor =>
+      case Event.ConnectorCrushed(id, ref) if ref == connector =>
         log.error(s"Executor $id died")
         val newId = startExecutor(ctx)
         context become awaitExecutor(ctx, state, newId)
@@ -130,13 +175,12 @@ class ContextFrontend(
 
 
   private def startExecutor(ctx: ContextConfig): String = {
-    implicit val ec = context.system.dispatcher
 
     val id = UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
-    executorStarter(id, ctx).onComplete {
-      case Success(ref) => self ! Event.ExecutorStartSuccess(id, ref)
-      case Failure(err) => self ! Event.ExecutorStartFailure(id, err)
+    connectorStarter(id, ctx).onComplete {
+      case Success(ref) => self ! Event.ConnectorPrepared(id, ref)
+      case Failure(err) => self ! Event.ConnectorStartFailure(id, err)
     }
     id
   }
@@ -166,12 +210,17 @@ object ContextFrontend {
   sealed trait Event
   object Event {
     final case class UpdateContext(context: ContextConfig) extends Event
-    final case class ExecutorStartSuccess(id: String, ref: ActorRef) extends Event
-    final case class ExecutorStartFailure(id: String, err: Throwable) extends Event
-    final case class ExecutorDied(id: String, ref: ActorRef) extends Event
+
+    final case class ConnectorPrepared(id: String, connector: WorkerConnector) extends Event
+    final case class ConnectorStartFailure(id: String, err: Throwable) extends Event
+    final case class ConnectorCrushed(id: String, err: Throwable) extends Event
+    final case class ConnectorStopped(id: String) extends Event
 
     final case class JobDied(id: String) extends Event
     final case class JobCompleted(id: String) extends Event
+
+    final case class Connection(worker: ActorRef) extends Event
+    final case class ConnectionFailure(e: Throwable) extends Event
 
     case object Status extends Event
   }
@@ -184,10 +233,21 @@ object ContextFrontend {
     val empty: FrontendStatus = FrontendStatus(Map.empty, None)
   }
 
+  case class UsedConnections(used: Int, asked: Int) {
+    def all:Int = used + asked
+    def askSuccess: UsedConnections = copy(used = used + 1, asked - 1)
+    def askFailure: UsedConnections = copy(asked = asked - 1)
+    def connectionReleased: UsedConnections = copy(used = used - 1)
+  }
+
+  object UsedConnections {
+    val empty: UsedConnections = UsedConnections(0, 0)
+  }
+
   def props(
     name: String,
     status: StatusReporter,
-    executorStarter: (String, ContextConfig) => Future[ActorRef],
+    executorStarter: (String, ContextConfig) => Future[WorkerConnector],
     jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter)]
   ): Props = Props(classOf[ContextFrontend], name, status, executorStarter, jobFactory)
 
@@ -195,6 +255,6 @@ object ContextFrontend {
   def props(
     name: String,
     status: StatusReporter,
-    executorStarter: (String, ContextConfig) => Future[ActorRef]
+    executorStarter: (String, ContextConfig) => Future[WorkerConnector]
   ): Props = props(name, status, executorStarter, ActorF.props(JobActor.props _))
 }

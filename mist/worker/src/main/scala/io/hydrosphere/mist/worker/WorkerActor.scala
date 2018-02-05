@@ -95,39 +95,49 @@ class SharedWorkerActor(
     context.setReceiveTimeout(idleTimeout)
   }
 
-  override def receive: Receive = {
-    case req@RunJobRequest(id, params, _) =>
-      if (activeJobs.size == maxJobs) {
-        sender() ! WorkerIsBusy(id)
-      } else {
-        val jobStarted = startJob(req)
-        activeJobs += id -> ExecutionUnit(sender(), jobStarted)
-      }
+  override def receive: Receive = process()
 
-    // it does not work for streaming jobs
-    case CancelJobRequest(id) =>
-      activeJobs.get(id) match {
-        case Some(u) =>
-          namedContext.sparkContext.cancelJobGroup(id)
-          sender() ! JobIsCancelled(id)
-        case None =>
-          log.warning(s"Can not cancel unknown job $id")
-      }
+  private def process(): Receive = {
+    case req: RunJobRequest => tryRun(req, sender())
+    case CancelJobRequest(id) => tryCancel(id, sender())
+    case resp: JobResponse => onJobComplete(resp)
+    case CompeleteAndShutdown if activeJobs.isEmpty => self ! PoisonPill
+    case CompeleteAndShutdown => context become completeAndShutdown()
+  }
 
-    case x: JobResponse =>
-      log.info(s"Job execution done. Result $x")
-      activeJobs.get(x.id) match {
-        case Some(unit) =>
-          unit.requester forward x
-          activeJobs -= x.id
+  private def completeAndShutdown(): Receive = {
+    case CancelJobRequest(id) => tryCancel(id, sender())
+    case resp: JobResponse =>
+      onJobComplete(resp)
+      if (activeJobs.isEmpty) self ! PoisonPill
+  }
 
-        case None =>
-          log.warning(s"Corrupted worker state, unexpected receiving {}", x)
-      }
+  private def tryRun(req: RunJobRequest, respond: ActorRef): Unit = {
+    if (activeJobs.size == maxJobs) {
+      respond ! WorkerIsBusy(req.id)
+    } else {
+      val jobStarted = startJob(req)
+      activeJobs += req.id -> ExecutionUnit(respond, jobStarted)
+    }
+  }
 
-    case ReceiveTimeout if activeJobs.isEmpty =>
-      log.info(s"There is no activity on worker: $namedContext.. Stopping")
-      context.stop(self)
+
+  private def tryCancel(id: String, respond: ActorRef): Unit = activeJobs.get(id) match {
+    case Some(_) =>
+      namedContext.sparkContext.cancelJobGroup(id)
+      respond ! JobIsCancelled(id)
+    case None =>
+      log.warning(s"Can not cancel unknown job $id")
+  }
+
+  private def onJobComplete(resp: JobResponse): Unit = activeJobs.get(resp.id) match {
+    case Some(unit) =>
+      log.info(s"Job execution done. Result $resp")
+      unit.requester ! resp
+      activeJobs -= resp.id
+
+    case None =>
+      log.warning(s"Corrupted worker state, unexpected receiving {}", resp)
   }
 
   override def postStop(): Unit = {
@@ -149,60 +159,6 @@ object SharedWorkerActor {
   ): Props =
     Props(new SharedWorkerActor(runnerSelector, context, artifactDownloader, idleTimeout, maxJobs))
 
-}
-
-class ExclusiveWorkerActor(
-  val runnerSelector: RunnerSelector,
-  val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader
-) extends Actor with JobStarting with ActorLogging {
-
-  implicit val ec = {
-    val logger = LoggerFactory.getLogger(this.getClass)
-    val service = Executors.newSingleThreadExecutor()
-    ExecutionContext.fromExecutorService(service, t => logger.error("Error from thread pool", t))
-  }
-
-  override def receive: Receive = awaitRequest
-
-  override def preStart(): Unit = {
-    context.setReceiveTimeout(1.minute)
-  }
-
-  val awaitRequest: Receive = {
-    case req: RunJobRequest =>
-      val jobStarted = startJob(req)
-      context.become(execute(ExecutionUnit(sender(), jobStarted)))
-
-    case ReceiveTimeout =>
-      log.info("No job requests for a 1 minute - (cluster problems?)")
-      context.stop(self)
-  }
-
-  def execute(executionUnit: ExecutionUnit): Receive = {
-    case CancelJobRequest(id) =>
-      namedContext.sparkContext.cancelJobGroup(id)
-      sender() ! JobIsCancelled(id)
-      context.stop(self)
-
-    case x: JobResponse =>
-      log.info(s"Job execution done. Result $x")
-      executionUnit.requester forward x
-      context.stop(self)
-  }
-
-  override def postStop(): Unit = {
-    ec.shutdown()
-    artifactDownloader.stop()
-    namedContext.stop()
-  }
-
-}
-
-object ExclusiveWorkerActor {
-
-  def props(runnerSelector: RunnerSelector, context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
-    Props(new ExclusiveWorkerActor(runnerSelector, context, artifactDownloader))
 }
 
 object WorkerActor {
@@ -235,10 +191,7 @@ object WorkerActor {
       }
       val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
       val runnerSelector = new SimpleRunnerSelector
-      val props = mode match {
-        case Shared => SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
-        case Exclusive => ExclusiveWorkerActor.props(runnerSelector, namedContext, artifactDownloader)
-      }
+      val props = SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
       (namedContext, props)
     }
   }

@@ -179,7 +179,7 @@ object MainService extends Logger {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {
         logger.info(s"Precreate context for ${ctx.name}")
-        jobService.workerManager ! CreateContext(ctx)
+        jobService.execution ! CreateContext(ctx)
       })
       _ <- service.recoverJobs()
     } yield service

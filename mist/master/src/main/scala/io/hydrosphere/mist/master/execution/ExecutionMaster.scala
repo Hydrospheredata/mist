@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import io.hydrosphere.mist.master.Messages.JobExecution.{CancelJobCommand, RunJobCommand}
+import io.hydrosphere.mist.master.execution.remote.WorkerConnector
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -9,8 +10,8 @@ import scala.concurrent.Future
 
 class ExecutionMaster(
   status: StatusReporter,
-  executorStarter: (String, ContextConfig) => Future[ActorRef],
-  frontendFactory: (String, StatusReporter, (String, ContextConfig) => Future[ActorRef]) => Props
+  connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
+  frontendFactory: (String, StatusReporter, (String, ContextConfig) => Future[WorkerConnector]) => Props
 ) extends Actor with ActorLogging {
 
   override def receive: Receive = process(Map.empty)
@@ -21,7 +22,7 @@ class ExecutionMaster(
       frontend.get(name) match {
         case Some(ref) => ref forward run.request
         case None =>
-          val props = frontendFactory(name, status, executorStarter)
+          val props = frontendFactory(name, status, connectorStarter)
           val ref = context.actorOf(props)
           ref ! ContextFrontend.Event.UpdateContext(run.context)
           ref.forward(run.request)
@@ -41,13 +42,13 @@ object ExecutionMaster {
 
   def props(
     status: StatusReporter,
-    executorStarter: (String, ContextConfig) => Future[ActorRef],
-    frontendFactory: (String, StatusReporter, (String, ContextConfig) => Future[ActorRef]) => Props
+    executorStarter: (String, ContextConfig) => Future[WorkerConnector],
+    frontendFactory: (String, StatusReporter, (String, ContextConfig) => Future[WorkerConnector]) => Props
   ): Props = Props(classOf[ExecutionMaster], status, executorStarter, frontendFactory)
 
   def props(
     status: StatusReporter,
-    executorStarter: (String, ContextConfig) => Future[ActorRef]
+    executorStarter: (String, ContextConfig) => Future[WorkerConnector]
   ): Props = props(status, executorStarter, ContextFrontend.props)
 
 }

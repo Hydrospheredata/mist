@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import akka.actor.Address
+import akka.actor.{ActorRef, Address}
 
 object WorkerState {
   /**

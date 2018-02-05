@@ -11,7 +11,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.remote.Executor
+import io.hydrosphere.mist.master.execution.remote.WorkerConnector
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.{ExecutionMaster, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
@@ -109,7 +109,7 @@ object MasterServer extends Logger {
       logger.info("RegHub:" + regHub.regPath)
       val execMaster = system.actorOf(ExecutionMaster.props(
         statusR,
-        Executor.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
+        WorkerConnector.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
       ))
 
 //      val workerManager = system.actorOf(

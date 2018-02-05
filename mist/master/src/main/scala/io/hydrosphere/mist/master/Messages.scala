@@ -36,30 +36,12 @@ object Messages {
     final case class ReceivedLogs(id: String, events: Seq[LogEvent], fileOffset: Long) extends SystemEvent
     case object KeepAliveEvent extends SystemEvent
 
-    // return full job details
-//    case object RunningJobs
-//    case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
-//    case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
-//    case class GetById(id: String)
-//    case class RunningJobsByWorker(id: String, workerState: WorkerState)
-
   }
 
   object JobExecution {
 
-    case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest) {
-
-      def computeWorkerId(): String = {
-        val name = context.name
-        mode match {
-          case RunMode.Shared => name
-          case RunMode.ExclusiveContext(id) =>
-            val postfix = id.map(s => s"$s-${request.id}").getOrElse(request.id)
-            s"$name-$postfix"
-        }
-      }
-    }
-    case class CancelJobCommand(workerId: String, request: CancelJobRequest)
+    case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest)
+    case class CancelJobCommand(context: String, request: CancelJobRequest)
 
     case class CreateContext(context: ContextConfig)
 
