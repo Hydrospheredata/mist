@@ -166,7 +166,7 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
 
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
 
-  override def getByEndpointId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
+  override def getByFunctionId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
     val byId = table.filter(_.function === id)
     val filtered = if (statuses.nonEmpty) byId.filter(_.status inSet statuses) else byId
     val query = filtered.sortBy(_.createTime.desc)

@@ -60,7 +60,7 @@ class StatusService(
       store.getByWorkerIdBeforeDate(id, state.timestamp) pipeTo sender()
 
     case GetFunctionHistory(id, limit, offset, statuses) =>
-      store.getByEndpointId(id, limit, offset, statuses) pipeTo sender()
+      store.getByFunctionId(id, limit, offset, statuses) pipeTo sender()
 
     case GetHistory(limit, offset, statuses) =>
       store.getAll(limit, offset, statuses) pipeTo sender()
