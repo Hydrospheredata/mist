@@ -35,8 +35,8 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
   def jobStatusById(id: String): Future[Option[JobDetails]] =
     askStatus[Option[JobDetails]](GetById(id))
 
-  def endpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-    askStatus[Seq[JobDetails]](GetEndpointHistory(id, limit, offset, statuses))
+  def functionJobHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
+    askStatus[Seq[JobDetails]](GetFunctionHistory(id, limit, offset, statuses))
 
   def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
     askStatus[Seq[JobDetails]](GetHistory(limit, offset, statuses))
@@ -106,8 +106,8 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
     val internalRequest = RunJobRequest(
       id = id,
       JobParams(
-        filePath = endpoint.path,
-        className = endpoint.className,
+        filePath = function.path,
+        className = function.className,
         arguments = parameters,
         action = action
       )
@@ -117,7 +117,7 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
 
     val registrationCommand = Register(
       request = internalRequest,
-      endpoint = endpoint.name,
+      function = function.name,
       context = context.name,
       source = source,
       externalId = externalId,

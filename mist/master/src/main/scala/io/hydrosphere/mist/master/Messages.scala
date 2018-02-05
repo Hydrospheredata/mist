@@ -13,7 +13,7 @@ object Messages {
 
     case class Register(
       request: RunJobRequest,
-      endpoint: String,
+      function: String,
       context: String,
       source: Source,
       externalId: Option[String],
@@ -39,7 +39,7 @@ object Messages {
     // return full job details
     case object RunningJobs
     case class GetHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
-    case class GetEndpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
+    case class GetFunctionHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status])
     case class GetById(id: String)
     case class RunningJobsByWorker(id: String, workerState: WorkerState)
 

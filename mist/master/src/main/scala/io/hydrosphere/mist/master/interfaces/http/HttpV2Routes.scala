@@ -209,7 +209,7 @@ object HttpV2Routes extends Logger {
     path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.endpointHistory(
+          master.jobService.functionJobHistory(
             endpointId,
             limits.limit, limits.offset, statuses)
         }

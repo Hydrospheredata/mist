@@ -27,7 +27,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val future = service.startJob(
         JobStartRequest(
           id = "id",
-          endpoint = JobInfoData("name", path="path", className="className", defaultContext="context"),
+          function = JobInfoData("name", path="path", className="className", defaultContext="context"),
           context = TestUtils.contextSettings.default,
           parameters = Map("1" -> 2),
           runMode = RunMode.Shared,

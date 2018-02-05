@@ -52,7 +52,7 @@ case class EndpointStartRequest(
 
 case class JobStartRequest(
   id: String,
-  endpoint: JobInfoData,
+  function: JobInfoData,
   context: ContextConfig,
   parameters: Map[String, Any],
   runMode: RunMode,

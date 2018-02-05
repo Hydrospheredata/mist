@@ -83,7 +83,7 @@ class MainService(
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
-        endpoint = info,
+        function = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
@@ -143,7 +143,7 @@ class MainService(
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
         id = req.id,
-        endpoint = info,
+        function = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
