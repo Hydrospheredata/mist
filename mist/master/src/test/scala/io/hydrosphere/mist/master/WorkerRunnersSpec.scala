@@ -23,7 +23,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         security = None,
         raw = ConfigFactory.empty(),
         contextsPath = "",
-        endpointsPath = "",
+        functionsPath = "",
         jobsSavePath = "/tmp",
         artifactRepositoryPath = "/tmp",
         srcConfigPath = "",

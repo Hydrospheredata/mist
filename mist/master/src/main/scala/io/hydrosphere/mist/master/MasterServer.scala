@@ -81,7 +81,7 @@ object MasterServer extends Logger {
       override def receive: Receive = { case _ => }
     }), CommonData.HealthActorName)
 
-    val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
+    val endpointsStorage = EndpointsStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
     val store = H2JobsRepository(config.dbPath)
 
