@@ -93,7 +93,7 @@ class JobService(val workerManager: ActorRef, statusService: ActorRef) {
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
-      job.status, job.endpoint, job.workerId, job.createTime
+      job.status, job.function, job.workerId, job.createTime
   )
 
   def stopAllWorkers(): Future[Unit] = workerManager.ask(StopAllWorkers).map(_ => ())

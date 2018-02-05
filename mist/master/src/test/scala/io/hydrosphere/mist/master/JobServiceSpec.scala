@@ -50,7 +50,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
   describe("jobs stopping") {
 
     val startedDetails = JobDetails(
-      endpoint = "endpoint",
+      function = "endpoint",
       jobId = "jobId",
       params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
       context = "context",
@@ -84,7 +84,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     def mkDetails(status: JobDetails.Status): JobDetails = {
       JobDetails(
-        endpoint = "endpoint",
+        function = "endpoint",
         jobId = "jobId",
         params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
         context = "context",

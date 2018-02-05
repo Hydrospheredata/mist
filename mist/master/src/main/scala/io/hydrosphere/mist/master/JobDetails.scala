@@ -84,7 +84,7 @@ object JobDetails {
 /**
   * Full information about job invocation
   *
-  * @param endpoint - name of endpoint(route)
+  * @param function - name of endpoint(route)
   * @param jobId - uniqId
   * @param params - filePath, className, args
   * @param context - target context/namespace
@@ -92,7 +92,7 @@ object JobDetails {
   * @param source - run request source
   */
 case class JobDetails(
-  endpoint: String,
+  function: String,
   jobId: String,
   params: JobParams,
   context: String,

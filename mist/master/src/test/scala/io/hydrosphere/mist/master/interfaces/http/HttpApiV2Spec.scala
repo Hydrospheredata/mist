@@ -126,7 +126,7 @@ class HttpApiV2Spec extends FunSpec
     //      }
     //    }
 
-    it("should return history for endpoint") {
+    it("should return history for function") {
       val jobService = mock[JobService]
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobService)
@@ -244,7 +244,7 @@ class HttpApiV2Spec extends FunSpec
       params = JobParams("path", "className", Map.empty, Action.Execute),
       jobId = "id",
       source = Source.Http,
-      endpoint = "endpoint",
+      function = "function",
       context = "context",
       externalId = None,
       workerId = "workerId"

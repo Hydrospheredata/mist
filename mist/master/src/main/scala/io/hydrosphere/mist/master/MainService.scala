@@ -111,7 +111,7 @@ class MainService(
   def recoverJobs(): Future[Unit] = {
 
     def restartJob(job: JobDetails): Future[Unit] = {
-      val req = EndpointStartRequest(job.endpoint, job.params.arguments, job.externalId, id = job.jobId)
+      val req = EndpointStartRequest(job.function, job.params.arguments, job.externalId, id = job.jobId)
       runJob(req, job.source).map(_ => ())
     }
 

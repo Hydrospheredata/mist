@@ -63,7 +63,7 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
       params = JobParams("path", "className", Map.empty, Action.Execute),
       jobId = jobId,
       source = Source.Http,
-      endpoint = "endpoint",
+      function = "function",
       context = "context",
       externalId = None,
       status = status,
