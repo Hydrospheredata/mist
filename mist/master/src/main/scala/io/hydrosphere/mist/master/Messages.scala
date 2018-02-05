@@ -78,7 +78,4 @@ object Messages {
     case class GetInitInfo(id: String)
   }
 
-  // only for cli
-  case object ListRoutes
-  case class RunJobCli(endpointId: String, extId: Option[String], params: Map[String, Any])
 }

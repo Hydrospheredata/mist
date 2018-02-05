@@ -97,31 +97,31 @@ class FunctionInfoService(
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] =
     ref.ask(msg).mapTo[T]
 
-  private def createJobInfoData(endpoint: FunctionConfig, data: ExtractedData): FunctionInfoData = FunctionInfoData(
-    endpoint.name,
-    endpoint.path,
-    endpoint.className,
-    endpoint.defaultContext,
+  private def createJobInfoData(function: FunctionConfig, data: ExtractedData): FunctionInfoData = FunctionInfoData(
+    function.name,
+    function.path,
+    function.className,
+    function.defaultContext,
     data.lang,
     data.execute,
     data.isServe,
     data.tags
   )
 
-  private def createGetInfoMsg(endpoint: FunctionConfig, file: File): GetFunctionInfo = GetFunctionInfo(
-    endpoint.className,
+  private def createGetInfoMsg(function: FunctionConfig, file: File): GetFunctionInfo = GetFunctionInfo(
+    function.className,
     file.getAbsolutePath,
-    endpoint.name
+    function.name
   )
 
   private def createValidateParamsMsg(
-    endpoint: FunctionConfig,
+    function: FunctionConfig,
     file: File,
     params: Map[String, Any]
   ): ValidateFunctionParameters = ValidateFunctionParameters(
-    endpoint.className,
+    function.className,
     file.getAbsolutePath,
-    endpoint.name,
+    function.name,
     params
   )
 }

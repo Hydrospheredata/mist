@@ -110,7 +110,7 @@ class ArtifactRepositorySpec extends FunSpecLike
     }
 
     it("should list all files in endpoint default storage") {
-      val endpointStorage = mock[FunctionConfigStorage]
+      val functions = mock[FunctionConfigStorage]
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
 

@@ -99,7 +99,7 @@ class HttpApiV2Spec extends FunSpec
       when(master.runJob(any[EndpointStartRequest], any[Source]))
         .thenSuccess(Some(JobStartResponse("1")))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
       Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -131,7 +131,7 @@ class HttpApiV2Spec extends FunSpec
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobService)
 
-      when(jobService.endpointHistory(
+      when(jobService.functionJobHistory(
         any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
       )).thenSuccess(Seq(
         JobDetails("id", "1",
@@ -139,7 +139,7 @@ class HttpApiV2Spec extends FunSpec
           "context", None, JobDetails.Source.Http, workerId = "workerId")
       ))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
       Get("/v2/api/endpoints/id/jobs?status=started") ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -174,7 +174,7 @@ class HttpApiV2Spec extends FunSpec
       when(endpoints.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      when(jobInfoProvider.getJobInfoByConfig(any[FunctionConfig]))
+      when(jobInfoProvider.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenSuccess(FunctionInfoData(
           lang = "python",
           path = "test",
@@ -183,7 +183,7 @@ class HttpApiV2Spec extends FunSpec
           name = "test"
         ))
 
-      val route = HttpV2Routes.endpointsRoutes(mainService)
+      val route = HttpV2Routes.functionRoutes(mainService)
 
       Post("/v2/api/endpoints", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -204,7 +204,7 @@ class HttpApiV2Spec extends FunSpec
       when(endpoints.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
       Post("/v2/api/endpoints?force=true", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -217,20 +217,20 @@ class HttpApiV2Spec extends FunSpec
       val endpointsStorage = mock[FunctionConfigStorage]
       val master = mock[MainService]
       val jobInfoProvider = mock[FunctionInfoService]
-      when(master.endpoints).thenReturn(endpointsStorage)
+      when(master.functions).thenReturn(endpointsStorage)
       when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
 
-      val endpointConfig = FunctionConfig("name", "path", "className", "context")
+      val functionConfig = FunctionConfig("name", "path", "className", "context")
 
       when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
       when(endpointsStorage.update(any[FunctionConfig]))
-        .thenReturn(Future.successful(endpointConfig))
-      when(jobInfoProvider.getJobInfoByConfig(any[FunctionConfig]))
+        .thenReturn(Future.successful(functionConfig))
+      when(jobInfoProvider.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenFailure(new Exception("test failure"))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
-      Post("/v2/api/endpoints", endpointConfig.toEntity) ~> route ~> check {
+      Post("/v2/api/endpoints", functionConfig.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.BadRequest
       }
 

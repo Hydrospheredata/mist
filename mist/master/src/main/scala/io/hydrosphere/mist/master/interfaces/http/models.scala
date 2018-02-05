@@ -77,7 +77,7 @@ object HttpJobArg {
 }
 
 
-case class HttpEndpointInfoV2(
+case class HttpFunctionInfoV2(
   name: String,
   lang: String,
   execute: Map[String, HttpJobArg] = Map.empty,
@@ -90,10 +90,10 @@ case class HttpEndpointInfoV2(
 
 )
 
-object HttpEndpointInfoV2 {
+object HttpFunctionInfoV2 {
 
-  def convert(info: FunctionInfoData): HttpEndpointInfoV2 = {
-    HttpEndpointInfoV2(
+  def convert(info: FunctionInfoData): HttpFunctionInfoV2 = {
+    HttpFunctionInfoV2(
       name = info.name,
       path = info.path,
       className = info.className,

@@ -23,8 +23,8 @@ class StatusService(
   val activeStatuses = List(Status.Queued, Status.Started, Status.Initialized)
 
   override def receive: Receive = {
-    case Register(req, endpoint, ctx, source, externalId, workerId) =>
-      val details = JobDetails(endpoint, req.id, req.params, ctx, externalId, source, workerId = workerId)
+    case Register(req, function, ctx, source, externalId, workerId) =>
+      val details = JobDetails(function, req.id, req.params, ctx, externalId, source, workerId = workerId)
       val s = sender()
       jobsLogger.info(req.id, s"Register $details")
       store.update(details).map(_ => {

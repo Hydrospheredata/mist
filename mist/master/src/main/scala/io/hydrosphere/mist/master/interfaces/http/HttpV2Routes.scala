@@ -152,10 +152,10 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def endpointsRoutes(master: MainService): Route = {
+  def functionRoutes(master: MainService): Route = {
     path( root / "endpoints" ) {
       get { complete {
-        master.jobInfoProviderService.allFunctions.map(_.map(HttpEndpointInfoV2.convert))
+        master.jobInfoProviderService.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
     path( root / "endpoints" ) {
@@ -172,8 +172,8 @@ object HttpV2Routes extends Logger {
                 for {
                   fullInfo     <- master.jobInfoProviderService.getFunctionInfoByConfig(req)
                   updated      <- master.functions.update(req)
-                  endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-                } yield endpointInfo
+                  functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+                } yield functionInfo
             })
 
             completeF(rsp, StatusCodes.BadRequest)
@@ -192,33 +192,33 @@ object HttpV2Routes extends Logger {
             val res = for {
               updated      <- master.functions.update(req)
               fullInfo     <- master.jobInfoProviderService.getFunctionInfoByConfig(updated)
-              endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-            } yield endpointInfo
+              functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+            } yield functionInfo
 
             completeF(res, StatusCodes.BadRequest)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment ) { endpointId =>
+    path( root / "endpoints" / Segment ) { functionId =>
       get { completeOpt {
         master.jobInfoProviderService
-          .getFunctionInfo(endpointId)
-          .map(_.map(HttpEndpointInfoV2.convert))
+          .getFunctionInfo(functionId)
+          .map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "endpoints" / Segment / "jobs" ) { functionId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
           master.jobService.functionJobHistory(
-            endpointId,
+            functionId,
             limits.limit, limits.offset, statuses)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "endpoints" / Segment / "jobs" ) { functionId =>
       post( postJobQuery { query =>
         entity(as[Map[String, Any]]) { params =>
-          val jobReq = buildStartRequest(endpointId, query, params)
+          val jobReq = buildStartRequest(functionId, query, params)
           if (query.force) {
             completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
           } else {
@@ -371,7 +371,7 @@ object HttpV2Routes extends Logger {
           complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
       }
     handleExceptions(exceptionHandler) {
-      endpointsRoutes(masterService) ~
+      functionRoutes(masterService) ~
       jobsRoutes(masterService) ~
       workerRoutes(masterService.jobService) ~
       contextsRoutes(masterService.contexts) ~

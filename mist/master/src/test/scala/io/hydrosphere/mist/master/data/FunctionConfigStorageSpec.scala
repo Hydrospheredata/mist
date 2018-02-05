@@ -8,7 +8,7 @@ import org.scalatest.{BeforeAndAfter, Matchers, FunSpec}
 
 class FunctionConfigStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
-  val path = "./target/data/endps_store_test"
+  val path = "./target/data/func_store_test"
 
   before {
     val f = Paths.get(path).toFile
@@ -19,31 +19,31 @@ class FunctionConfigStorageSpec extends FunSpec with Matchers with BeforeAndAfte
   import io.hydrosphere.mist.master.TestUtils._
 
   it("should update") {
-    val endpoints = testStorage()
+    val functions = testStorage()
 
-    endpoints.all.await.size shouldBe 1
+    functions.all.await.size shouldBe 1
 
-    endpoints.update(FunctionConfig("second", "path", "className", "foo")).await
-    endpoints.all.await.size shouldBe 2
+    functions.update(FunctionConfig("second", "path", "className", "foo")).await
+    functions.all.await.size shouldBe 2
   }
 
   it("should get") {
-    val endpoints = testStorage()
+    val functions = testStorage()
 
-    endpoints.get("first").await.isDefined shouldBe true
-    endpoints.get("second").await.isDefined shouldBe false
+    functions.get("first").await.isDefined shouldBe true
+    functions.get("second").await.isDefined shouldBe false
 
-    endpoints.update(FunctionConfig("second", "path", "className", "foo")).await
-    endpoints.get("second").await.isDefined shouldBe true
+    functions.update(FunctionConfig("second", "path", "className", "foo")).await
+    functions.get("second").await.isDefined shouldBe true
   }
 
   it("should override defaults") {
-    val endpoints = testStorage()
+    val functions = testStorage()
 
-    endpoints.get("first").await.get.className shouldBe "className"
+    functions.get("first").await.get.className shouldBe "className"
 
-    endpoints.update(FunctionConfig("first", "path", "anotherClassName", "foo")).await
-    endpoints.get("first").await.get.className shouldBe "anotherClassName"
+    functions.update(FunctionConfig("first", "path", "anotherClassName", "foo")).await
+    functions.get("first").await.get.className shouldBe "anotherClassName"
   }
 
   def testStorage(

@@ -81,7 +81,7 @@ object MasterServer extends Logger {
       override def receive: Receive = { case _ => }
     }), CommonData.HealthActorName)
 
-    val endpointsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
+    val functionsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
     val store = H2JobsRepository(config.dbPath)
 
@@ -112,7 +112,7 @@ object MasterServer extends Logger {
 
     val artifactRepository = ArtifactRepository.create(
       config.artifactRepositoryPath,
-      endpointsStorage.defaults,
+      functionsStorage.defaults,
       config.jobsSavePath
     )
 
@@ -130,13 +130,13 @@ object MasterServer extends Logger {
       jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
       jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
-                                      endpointsStorage,
+                                      functionsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
       jobsService            =  runJobService(logService.getLogger)
       masterService          <- start("Main service", MainService.start(
                                                         jobsService,
-                                                        endpointsStorage,
+                                                        functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,
                                                         jobInfoProviderService
