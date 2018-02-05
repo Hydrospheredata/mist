@@ -168,12 +168,12 @@ object MainService extends Logger {
 
   def start(
     jobService: JobService,
-    endpoints: FunctionConfigStorage,
+    functions: FunctionConfigStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
     jobInfoProvider: FunctionInfoService
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logsPaths, jobInfoProvider)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

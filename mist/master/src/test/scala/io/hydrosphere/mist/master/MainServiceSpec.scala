@@ -26,7 +26,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   import TestUtils._
 
   it("should run job") {
-    val endpoints = mock[FunctionConfigStorage]
+    val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
@@ -37,7 +37,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(contexts.getOrDefault(any[String]))
       .thenSuccess(TestUtils.contextSettings.default)
 
-    when(jobInfoProviderService.getJobInfo(any[String]))
+    when(jobInfoProviderService.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
         name = "name",
         path = "path.py",
@@ -45,7 +45,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         defaultContext = "namespace"
       )))
 
-    when(jobInfoProviderService.validateJob(any[String], any[Map[String, Any]]))
+    when(jobInfoProviderService.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
@@ -53,7 +53,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       status = JobDetails.Status.Queued
     ))
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProviderService)
+    val service = new MainService(jobService, functions, contexts, logs, jobInfoProviderService)
 
     val req = EndpointStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -61,18 +61,18 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   }
 
   it("should return failed future on validating params") {
-    val endpoints = mock[FunctionConfigStorage]
+    val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
     val jobInfoProvider = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logs, jobInfoProvider)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
+    when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
-    when(jobInfoProvider.getJobInfo(any[String]))
+    when(jobInfoProvider.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
@@ -91,19 +91,19 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
   it("should fail job execution when context config filled with incorrect worker mode") {
-    val endpoints = mock[FunctionConfigStorage]
+    val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logs, jobInfoProvider)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
+    when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
-    when(jobInfoProvider.getJobInfo(any[String]))
+    when(jobInfoProvider.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
@@ -134,19 +134,19 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   }
 
   it("should select exclusive run mode on streaming jobs") {
-    val endpoints = mock[FunctionConfigStorage]
+    val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
-    val jobInfoProvider = mock[FunctionInfoService]
+    val functionInfoService = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logs, functionInfoService)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
+    when(functionInfoService.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
-    when(jobInfoProvider.getJobInfo(any[String]))
+    when(functionInfoService.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
@@ -179,19 +179,19 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
 
   it("should select run mode from context config when job is not streaming") {
-    val endpoints = mock[FunctionConfigStorage]
+    val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[JobService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, endpoints, contexts, logs, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logs, jobInfoProvider)
 
-    when(jobInfoProvider.validateJob(any[String], any[Map[String, Any]]))
+    when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
-    when(jobInfoProvider.getJobInfo(any[String]))
+    when(jobInfoProvider.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
         "test",
         "test",
