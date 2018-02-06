@@ -2,12 +2,12 @@ package com.dimafeng.testcontainers
 
 import java.io.File
 
+import com.github.dockerjava.api.command.InspectContainerResponse
+import com.github.dockerjava.api.model.{Bind, VolumesFrom}
 import org.junit.runner.Description
 import org.scalatest._
 import org.testcontainers.containers.traits.LinkableContainer
 import org.testcontainers.containers.{FailureDetectingExternalResource, TestContainerAccessor, DockerComposeContainer => OTCDockerComposeContainer, GenericContainer => OTCGenericContainer}
-import org.testcontainers.shaded.com.github.dockerjava.api.command.InspectContainerResponse
-import org.testcontainers.shaded.com.github.dockerjava.api.model.{Bind, VolumesFrom}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future

@@ -8,7 +8,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{GetAllJobInfo, GetJobInfo, ValidateJobParameters}
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
@@ -29,16 +29,17 @@ class JobInfoProviderService(
     val f = for {
       endpoint <- OptionT(endpointStorage.get(id))
       file     <- OptionT.fromOption[Future](artifactRepository.get(endpoint.path))
-      jobInfo  <- OptionT.liftF(askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file)))
-    } yield jobInfo
-
+      data     <- OptionT.liftF(askInfoProvider[ExtractedData](createGetInfoMsg(endpoint, file)))
+      info     =  createJobInfoData(endpoint, data)
+    } yield info
     f.value
   }
 
   def getJobInfoByConfig(endpoint: EndpointConfig): Future[JobInfoData] = {
     artifactRepository.get(endpoint.path) match {
       case Some(file) =>
-        askInfoProvider[JobInfoData](createGetInfoMsg(endpoint, file))
+        askInfoProvider[ExtractedData](createGetInfoMsg(endpoint, file))
+          .map(data => createJobInfoData(endpoint, data))
       case None => Future.failed(new IllegalArgumentException(s"file should exists by path ${endpoint.path}"))
     }
   }
@@ -70,15 +71,20 @@ class JobInfoProviderService(
         .map(f => createGetInfoMsg(e, f))
     }
     for {
-      endpoints <- endpointStorage.all
-      data      <-
+      endpoints   <- endpointStorage.all
+      enpointsMap =  endpoints.map(e => e.name -> e).toMap
+      data        <-
         if (endpoints.nonEmpty) {
-          val requests =  endpoints.flatMap(toJobInfoRequest).toList
-          val timeout =  Timeout(timeoutDuration * requests.size.toLong)
-          askInfoProvider[Seq[JobInfoData]](GetAllJobInfo(requests), timeout)
+          val requests = endpoints.flatMap(toJobInfoRequest).toList
+          val timeout = Timeout(timeoutDuration * requests.size.toLong)
+          askInfoProvider[Seq[ExtractedData]](GetAllJobInfo(requests), timeout)
         } else
           Future.successful(Seq.empty)
-    } yield data
+    } yield {
+      data.flatMap(d => {
+        enpointsMap.get(d.name).map { ep => createJobInfoData(ep, d)}
+      })
+    }
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any, t: Timeout): Future[T] =
@@ -91,12 +97,21 @@ class JobInfoProviderService(
   private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] =
     ref.ask(msg).mapTo[T]
 
+  private def createJobInfoData(endpoint: EndpointConfig, data: ExtractedData): JobInfoData = JobInfoData(
+    endpoint.name,
+    endpoint.path,
+    endpoint.className,
+    endpoint.defaultContext,
+    data.lang,
+    data.execute,
+    data.isServe,
+    data.tags
+  )
+
   private def createGetInfoMsg(endpoint: EndpointConfig, file: File): GetJobInfo = GetJobInfo(
     endpoint.className,
     file.getAbsolutePath,
-    endpoint.name,
-    endpoint.path,
-    endpoint.defaultContext
+    endpoint.name
   )
 
   private def createValidateParamsMsg(
@@ -107,8 +122,6 @@ class JobInfoProviderService(
     endpoint.className,
     file.getAbsolutePath,
     endpoint.name,
-    endpoint.path,
-    endpoint.defaultContext,
     params
   )
 }
