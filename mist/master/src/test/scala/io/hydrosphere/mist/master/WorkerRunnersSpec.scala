@@ -17,7 +17,7 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
         mqtt = None,
         kafka = None,
         logs = LogServiceConfig("logsHost", 5000, ""),
-        workers = WorkersSettingsConfig("local", 20 seconds, "", 0, "", ""),
+        workers = WorkersSettingsConfig("local", 20 seconds, 2500, "", 0, "", ""),
         contextsSettings = ContextsSettings(contextConfig),
         dbPath = "",
         security = None,

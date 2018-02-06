@@ -75,7 +75,7 @@ class HttpApiV2Spec extends FunSpec
       when(jobService.getWorkerInfo(any[String]))
         .thenSuccess(Some(WorkerFullInfo(
           "id", "test", None, Seq(),
-          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "/tmp"))))
+          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000, "/tmp"))))
 
       val route = HttpV2Routes.workerRoutes(jobService)
 
@@ -84,7 +84,7 @@ class HttpApiV2Spec extends FunSpec
         val resp = responseAs[WorkerFullInfo]
         resp.name shouldBe "id"
         resp.jobs shouldBe empty
-        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "/tmp")
+        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000, "/tmp")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
       }

@@ -74,7 +74,8 @@ class WorkerManagerSpec extends TestKit(ActorSystem(systemName, config))
         streamingDuration = 30 seconds,
         logService = "yoyo:9090",
         masterHttpConf = "localhost:2004",
-        jobsSavePath = "/tmp"
+        jobsSavePath = "/tmp",
+        maxArtifactSize = 262144000
       ))
 
 
