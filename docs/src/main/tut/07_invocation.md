@@ -18,7 +18,7 @@ Steps on Mist after receiving a new job request:
 - assign `id` fo job.
   For example if you use http:
   ```sh
-  $ curl -d '{"numbers": [1, 2, 3]}' "http://localhost:2004/v2/api/endpoints/spark-ctx-example/jobs"
+  $ curl -d '{"numbers": [1, 2, 3]}' "http://localhost:2004/v2/api/functions/spark-ctx-example/jobs"
   # response:
   # {"id":"2a1c90c5-8eb7-4bde-84a2-d176147fc24f"}
   ```
