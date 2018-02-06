@@ -5,12 +5,12 @@ import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData.{Action, GetAllJobInfo, GetJobInfo, ValidateJobParameters}
+import io.hydrosphere.mist.core.CommonData.{Action, GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.EndpointsStorage
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.data.FunctionConfigStorage
+import io.hydrosphere.mist.master.models.FunctionConfig
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
@@ -18,7 +18,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits._
 
-class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
+class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
   with FunSpecLike
   with MockitoSugar
   with Matchers
@@ -40,28 +40,28 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
     FileUtils.deleteQuietly(f)
   }
 
-  describe("by endpoint config methods") {
-    it("should get job info from endpoint") {
+  describe("by function config methods") {
+    it("should get job info from function") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfoByConfig(EndpointConfig(
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
-      probe.expectMsgType[GetJobInfo]
-      probe.reply(ExtractedData(
+      probe.expectMsgType[GetFunctionInfo]
+      probe.reply(ExtractedFunctionData(
         name="test",
         lang="scala"
       ))
 
       val result = Await.result(f, Duration.Inf)
 
-      result shouldBe JobInfoData(
+      result shouldBe FunctionInfoData(
         name="test",
         lang="scala",
         path=jobPath,
@@ -70,20 +70,20 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       )
     }
 
-    it("should validate job parameters by endpoint") {
+    it("should validate job parameters by function") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), Map.empty)
 
-      probe.expectMsgType[ValidateJobParameters]
+      probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Success(()))
 
       Await.result(f, Duration.Inf)
@@ -91,14 +91,14 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should return none on get job info when artifact not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfoByConfig(EndpointConfig(
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
 
@@ -109,15 +109,15 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should fail on validate job parameters when artifact not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
 
-      val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
+      val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), Map.empty)
 
@@ -129,17 +129,17 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should fail when get job info from actor failed") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfoByConfig(EndpointConfig(
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
-      probe.expectMsgType[GetJobInfo]
+      probe.expectMsgType[GetFunctionInfo]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 
       intercept[IllegalArgumentException] {
@@ -148,18 +148,18 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
     }
     it("should fail validate job if actor failed") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJobByConfig(EndpointConfig(
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), Map.empty)
 
-      probe.expectMsgType[ValidateJobParameters]
+      probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 
       intercept[IllegalArgumentException] {
@@ -168,25 +168,25 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
     }
   }
 
-  describe("by endpoint id methods") {
-    it("should get job info from endpoint id") {
+  describe("by function id methods") {
+    it("should get job info from function id") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfo("test")
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfo("test")
 
-      probe.expectMsgType[GetJobInfo]
-      probe.reply(ExtractedData(
+      probe.expectMsgType[GetFunctionInfo]
+      probe.reply(ExtractedFunctionData(
         name="test",
         lang="scala"
       ))
@@ -194,7 +194,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val result = Await.result(f, Duration.Inf)
 
       result shouldBe defined
-      result.get shouldBe JobInfoData(
+      result.get shouldBe FunctionInfoData(
         name="test",
         lang="scala",
         path=jobPath,
@@ -203,23 +203,23 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       )
     }
 
-    it ("should validate job parameters by endpoint id") {
+    it ("should validate job parameters by function id") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParams("test", Map.empty)
 
-      probe.expectMsgType[ValidateJobParameters]
+      probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Success(()))
 
       val result = Await.result(f, Duration.Inf)
@@ -228,19 +228,19 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     }
 
-    it("should return none on get job info when endpoint not found") {
+    it("should return none on get job info when function not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
+      when(functions.get(any[String]))
         .thenSuccess(None)
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfo("test")
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
 
@@ -250,19 +250,19 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should return none on get job info when artifact not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfo("test")
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
 
@@ -270,19 +270,19 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     }
 
-    it("should return none on validate job parameters when endpoint not found") {
+    it("should return none on validate job parameters when function not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
+      when(functions.get(any[String]))
         .thenSuccess(None)
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParams("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -291,19 +291,19 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should return none on validate job parameters when artifact not found") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParams("test", Map.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -312,20 +312,20 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should fail get job info from actor failed") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.getJobInfo("test")
-      probe.expectMsgType[GetJobInfo]
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.getFunctionInfo("test")
+      probe.expectMsgType[GetFunctionInfo]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 
       intercept[IllegalArgumentException] {
@@ -334,20 +334,20 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
     }
     it("should fail validate job if actor failed") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.get(any[String]))
-        .thenSuccess(Some(EndpointConfig(
+      when(functions.get(any[String]))
+        .thenSuccess(Some(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.validateJob("test", Map.empty)
-      probe.expectMsgType[ValidateJobParameters]
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.validateFunctionParams("test", Map.empty)
+      probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 
       intercept[IllegalArgumentException] {
@@ -360,37 +360,37 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
 
     it("should return all job infos") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.all)
-        .thenSuccess(Seq(EndpointConfig(
+      when(functions.all)
+        .thenSuccess(Seq(FunctionConfig(
           "test", jobPath, "Test", "foo"
         )))
 
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.allJobInfos
-      probe.expectMsgType[GetAllJobInfo]
-      probe.reply(Seq(ExtractedData(name="test")))
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.allFunctions
+      probe.expectMsgType[GetAllFunctions]
+      probe.reply(Seq(ExtractedFunctionData(name="test")))
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 1
     }
 
-    it("shouldn't fail with empty endpoints") {
+    it("shouldn't fail with empty functions") {
       val probe = TestProbe()
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val artifactRepo = mock[ArtifactRepository]
 
-      when(endpoints.all).thenSuccess(Seq.empty)
+      when(functions.all).thenSuccess(Seq.empty)
 
       when(artifactRepo.get(any[String])).thenReturn(Some(new File(jobPath)))
 
-      val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
-      val f = jobInfoProviderService.allJobInfos
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val f = functionInfoService.allFunctions
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 0

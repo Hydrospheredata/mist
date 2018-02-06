@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.TestUtils.AwaitSyntax
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import org.apache.commons.io.FileUtils
 import org.mockito.Mockito.{never, times, verify}
 import org.scalatest.concurrent.ScalaFutures
@@ -91,7 +91,7 @@ class ArtifactRepositorySpec extends FunSpecLike
   }
   describe("DefaultArtifactRepositorySpec") {
 
-    it("should get existing default endpoint job file path") {
+    it("should get existing default function job file path") {
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
       val localStorageFile = artifactRepo.get(testArtifactName)
@@ -100,7 +100,7 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile.get.getName shouldBe testArtifactName
     }
 
-    it("should not get missing default endpoint job file path") {
+    it("should not get missing default function job file path") {
       val artifactRepo = new DefaultArtifactRepository(Map())
       val testFilePath = Paths.get(dir.toString, testArtifactName)
 
@@ -109,8 +109,8 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile should not be defined
     }
 
-    it("should list all files in endpoint default storage") {
-      val endpointStorage = mock[EndpointsStorage]
+    it("should list all files in function default storage") {
+      val functions = mock[FunctionConfigStorage]
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
 

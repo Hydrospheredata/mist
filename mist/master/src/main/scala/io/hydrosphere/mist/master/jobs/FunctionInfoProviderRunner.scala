@@ -3,13 +3,13 @@ package io.hydrosphere.mist.master.jobs
 import akka.actor.{Actor, ActorRef, ActorSystem, Props, ReceiveTimeout}
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
-import io.hydrosphere.mist.master.JobInfoProviderConfig
+import io.hydrosphere.mist.master.FunctionInfoProviderConfig
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Future, Promise}
 import scala.sys.process.Process
 
-class JobInfoProviderRunner(
+class FunctionInfoProviderRunner(
   runTimeout: FiniteDuration,
   cacheEntryTtl: FiniteDuration,
   masterHost: String,
@@ -20,7 +20,7 @@ class JobInfoProviderRunner(
   def run()(implicit system: ActorSystem): Future[ActorRef] = {
     val refWaiter = ActorRefWaiter(runTimeout)(system)
     val cmd =
-      Seq(s"${sys.env("MIST_HOME")}/bin/mist-job-info-provider",
+      Seq(s"${sys.env("MIST_HOME")}/bin/mist-function-info-provider",
         "--master", masterHost,
         "--cluster-port", clusterPort.toString,
         "--cache-entry-ttl", cacheEntryTtl.toMillis.toString)
@@ -57,7 +57,7 @@ object ActorRefWaiter {
         context stop self
 
       case ReceiveTimeout =>
-        pr.failure(new IllegalStateException("Initialization of JobInfoProvider failed of timeout"))
+        pr.failure(new IllegalStateException("Initialization of FunctionInfoProvider failed of timeout"))
         context stop self
     }
   }
@@ -65,20 +65,20 @@ object ActorRefWaiter {
   def apply(initTimeout: Duration)(implicit system: ActorSystem): ActorRefWaiter = new ActorRefWaiter {
     override def waitRef(): Future[ActorRef] = {
       val pr = Promise[ActorRef]
-      system.actorOf(Props(new IdentityActor(pr, initTimeout)), CommonData.JobInfoProviderRegisterActorName)
+      system.actorOf(Props(new IdentityActor(pr, initTimeout)), CommonData.FunctionInfoProviderRegisterActorName)
       pr.future
     }
   }
 
 }
 
-object JobInfoProviderRunner {
+object FunctionInfoProviderRunner {
 
 
-  def create(config: JobInfoProviderConfig, masterHost: String, clusterPort: Int): JobInfoProviderRunner = {
+  def create(config: FunctionInfoProviderConfig, masterHost: String, clusterPort: Int): FunctionInfoProviderRunner = {
     sys.env.get("SPARK_HOME") match {
       case Some(_) =>
-        new JobInfoProviderRunner(config.runTimeout, config.cacheEntryTtl, masterHost, clusterPort, config.sparkConf)
+        new FunctionInfoProviderRunner(config.runTimeout, config.cacheEntryTtl, masterHost, clusterPort, config.sparkConf)
       case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for running mist")
     }
 

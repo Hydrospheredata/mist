@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.args.UserInputArgument
 
-case class ExtractedData(
+case class ExtractedFunctionData(
   name: String = "",
   lang: String = "",
   execute: Seq[UserInputArgument] = Seq.empty,
@@ -10,7 +10,7 @@ case class ExtractedData(
   tags: Seq[String] = Seq.empty
 )
 
-case class JobInfoData(
+case class FunctionInfoData(
   name: String,
   path: String,
   className: String,
@@ -21,7 +21,7 @@ case class JobInfoData(
   tags: Seq[String] = Seq.empty
 )
 
-case object JobInfoData {
+case object FunctionInfoData {
   val PythonLang = "python"
   val JavaLang = "java"
   val ScalaLang = "scala"

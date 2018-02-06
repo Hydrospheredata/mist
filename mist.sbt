@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC6"
+  version := "1.0.0-RC7"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -139,7 +139,7 @@ lazy val root = project.in(file("."))
 
     stageDirectory in runStage := target.value / s"mist-run-${version.value}",
     stageActions in runStage ++= {
-      val mkJEndpoints = Seq(
+      val mkJfunctions = Seq(
         ("spark-ctx-example", "SparkContextExample$"),
         ("jspark-ctx-example", "JavaSparkContextExample"),
         ("streaming-ctx-example", "StreamingExample$"),
@@ -151,7 +151,7 @@ lazy val root = project.in(file("."))
         ("jpi-example", "JavaPiExample")
       ).map({case (name, clazz) => {
         Write(
-          s"data/endpoints/$name.conf",
+          s"data/functions/$name.conf",
           s"""path = mist-examples.jar
              |className = "$clazz"
              |namespace = foo""".stripMargin
@@ -160,14 +160,14 @@ lazy val root = project.in(file("."))
         .as(s"mist-examples.jar")
         .to("data/artifacts")
 
-      val mkPyEndpoints = Seq(
+      val mkPyfunctions = Seq(
         ("simple_context.py", "SimpleContext"),
         ("session_job.py", "SessionJob")
       ).flatMap({case (file, clazz) => {
         val name = file.replace(".py", "")
         Seq(
           Write(
-            s"data/endpoints/$name.conf",
+            s"data/functions/$name.conf",
             s"""path = $file
                |className = "$clazz"
                |namespace = foo""".stripMargin
@@ -176,7 +176,7 @@ lazy val root = project.in(file("."))
         )
       }})
 
-      Seq(MkDir("data/artifacts"), MkDir("data/endpoints")) ++ mkJEndpoints ++ mkPyEndpoints
+      Seq(MkDir("data/artifacts"), MkDir("data/functions")) ++ mkJfunctions ++ mkPyfunctions
     }
   ).settings(
     sparkLocal := {

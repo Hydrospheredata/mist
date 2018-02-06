@@ -132,7 +132,7 @@ trait JsonCodecs extends SprayJsonSupport
       "name", "execute", "serve",
       "isHiveJob", "isSqlJob","isStreamingJob", "isMLJob", "isPython")))
 
-  implicit val httpJobInfoV2F = rootFormat(lazyFormat(jsonFormat(HttpEndpointInfoV2.apply,
+  implicit val httpJobInfoV2F = rootFormat(lazyFormat(jsonFormat(HttpFunctionInfoV2.apply,
     "name", "lang", "execute", "tags", "path", "className", "defaultContext")))
 
   implicit val workerLinkF = jsonFormat3(WorkerLink)
@@ -196,10 +196,10 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val runSettingsF = jsonFormat2(RunSettings.apply)
 
-  implicit val jobStartRequestF = jsonFormat5(EndpointStartRequest)
-  implicit val asynJobStartRequestF = jsonFormat4(AsyncEndpointStartRequest)
+  implicit val jobStartRequestF = jsonFormat5(FunctionStartRequest)
+  implicit val asynJobStartRequestF = jsonFormat4(AsyncFunctionStartRequest)
 
-  implicit val endpointConfigF = jsonFormat4(EndpointConfig.apply)
+  implicit val functionConfigF = jsonFormat4(FunctionConfig.apply)
 
   implicit val jobResultFormatF = jsonFormat3(JobResult.apply)
 

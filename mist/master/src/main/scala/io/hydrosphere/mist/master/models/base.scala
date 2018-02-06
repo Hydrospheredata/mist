@@ -17,7 +17,7 @@ case class ContextConfig(
   streamingDuration: Duration
 ) extends NamedConfig
 
-case class EndpointConfig(
+case class FunctionConfig(
   name: String,
   path: String,
   className: String,

@@ -37,7 +37,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
 
     status ! Register(
       RunJobRequest("id", params),
-      "endpoint",
+      "function",
       "context",
        JobDetails.Source.Async("Kafka"),
        None,
@@ -57,7 +57,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
         params = params,
         jobId = "id",
         source = JobDetails.Source.Http,
-        endpoint = "endpoint",
+        function = "function",
         context = "context",
         externalId = None,
         workerId = "workerId"
@@ -87,7 +87,7 @@ class StatusServiceSpec extends TestKit(ActorSystem("testFront"))
         params = params,
         jobId = "id",
         source = JobDetails.Source.Http,
-        endpoint = "endpoint",
+        function = "function",
         context = "context",
         externalId = None,
         workerId = "workerId"
