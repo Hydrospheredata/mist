@@ -13,13 +13,9 @@ By default it is turned off. Check out [configuration](/mist-docs/configuration.
 Run-job request is json message and should has following format:
 ```js
 {
-  "endpointId": "endpointId",
+  "functionId": "functionId",
   "parameters": {"foo": "bar"}, // job arguments
   "externalId": "myId" // optional
-  "runSettings": {
-      "contextId": "default" // optional should be used to override endpoint context
-      "workerId": "worker-postfix" // optional should be used to identify worker by this postfix
-  } // optional
 }
 ```
 Then you can listen `publish-topic` to catch events from the job

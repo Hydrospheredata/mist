@@ -10,6 +10,14 @@ _See full configuration [here](https://github.com/Hydrospheredata/mist/blob/mast
 
 Configuration files are in [HOCON format](https://github.com/typesafehub/config/blob/master/HOCON.md)
 
+| Property name                         | Default value         | Meaning                     |
+|---------------------------------------|-----------------------|-----------------------------|
+|`mist.cluster.host`                    | 0.0.0.0               | default communication host  |
+|`mist.cluster.port`                    | 2551                  | default communication port  |
+|`mist.http.host`                       | 0.0.0.0               | default http host           |
+|`mist.http.port`                       | 2004                  | default http port           |
+|`workers.runner-init-timeout`          | 2 minutes             | Worker creation timeout     |
+
 ### Enable async interfaces to receive events
 
 Kafka:
