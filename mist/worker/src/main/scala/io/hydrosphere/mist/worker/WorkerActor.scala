@@ -233,7 +233,7 @@ object WorkerActor {
       val (h, p) = info.masterHttpConf.split(':') match {
         case Array(host, port) => (host, port.toInt)
       }
-      val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
+      val artifactDownloader = ArtifactDownloader.create(h, p, info.maxArtifactSize, info.jobsSavePath)
       val runnerSelector = new SimpleRunnerSelector
       val props = mode match {
         case Shared => SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)

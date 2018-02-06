@@ -2,7 +2,7 @@ package io.hydrosphere.mist.worker.runners
 
 import java.io.File
 import java.net.URLEncoder
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -14,17 +14,19 @@ import akka.stream.scaladsl.FileIO
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FilenameUtils
 
-import _root_.scala.concurrent.{ExecutionContext, Future}
+import _root_.scala.concurrent.Future
 
 trait ArtifactDownloader {
   def downloadArtifact(filePath: String): Future[File]
+
   def stop(): Unit
 }
 
 case class HttpArtifactDownloader(
   masterHttpHost: String,
   masterHttpPort: Int,
-  savePath: String
+  savePath: String,
+  maxArtifactSize: Long
 ) extends ArtifactDownloader {
 
   implicit val system = ActorSystem("job-downloading")
@@ -40,11 +42,11 @@ case class HttpArtifactDownloader(
         Future.successful(absFile)
       case filePath if locallyResolvedFile.exists() =>
         for {
-          checksum          <- getChecksum(filePath)
-          localFileChecksum =  DigestUtils.sha1Hex(Files.newInputStream(locallyResolvedFile.toPath))
-          file              <- if (checksum == localFileChecksum)
-                                 Future.successful(locallyResolvedFile)
-                               else downloadFile(filePath)
+          checksum <- getChecksum(filePath)
+          localFileChecksum = DigestUtils.sha1Hex(Files.newInputStream(locallyResolvedFile.toPath))
+          file <- if (checksum == localFileChecksum)
+            Future.successful(locallyResolvedFile)
+          else downloadFile(filePath)
         } yield file
       case filePath =>
         downloadFile(filePath)
@@ -55,9 +57,9 @@ case class HttpArtifactDownloader(
     val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}/sha"
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
-      r        <- Http().singleRequest(request)
-      resp     =  checkResponse(uri, r)
-      checksum <- Unmarshal(resp.entity).to[String]
+      r <- Http().singleRequest(request)
+      resp = checkResponse(uri, r)
+      checksum <- Unmarshal(resp.entity.withSizeLimit(maxArtifactSize)).to[String]
     } yield checksum
   }
 
@@ -65,11 +67,14 @@ case class HttpArtifactDownloader(
     val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
-      r    <- Http().singleRequest(request)
-      resp =  checkResponse(uri, r)
-      file =  localFile(filePath)
-      _    <- resp.entity.dataBytes.runWith(FileIO.toFile(file))
-    } yield file
+      r <- Http().singleRequest(request)
+      resp = checkResponse(uri, r)
+      path = localFilepath(filePath)
+      _ <- resp.entity
+        .withSizeLimit(maxArtifactSize)
+        .dataBytes
+        .runWith(FileIO.toPath(path))
+    } yield path.toFile
   }
 
   private def encode(filePath: String): String = URLEncoder.encode(filePath, "UTF-8")
@@ -79,7 +84,7 @@ case class HttpArtifactDownloader(
     else throw new IllegalArgumentException(s"Http error occurred in request $uri. Status ${resp.status}")
   }
 
-  private def localFile(filePath: String): File = {
+  private def localFilepath(filePath: String): Path = {
     def isRemote: Boolean = filePath.startsWith("mvn://") || filePath.startsWith("hdfs://")
 
     val fileName = if (isRemote)
@@ -87,7 +92,7 @@ case class HttpArtifactDownloader(
     else
       FilenameUtils.getName(filePath)
 
-    Paths.get(savePath, fileName).toFile
+    Paths.get(savePath, fileName)
   }
 
   override def stop(): Unit = {
@@ -100,8 +105,11 @@ object ArtifactDownloader {
   def create(
     masterHttpHost: String,
     masterHttpPort: Int,
+    maxArtifactSize: Long,
     savePath: String
-  ): ArtifactDownloader = HttpArtifactDownloader(masterHttpHost, masterHttpPort, savePath)
+  ): ArtifactDownloader = HttpArtifactDownloader(
+    masterHttpHost, masterHttpPort, savePath, maxArtifactSize
+  )
 
 }
 
