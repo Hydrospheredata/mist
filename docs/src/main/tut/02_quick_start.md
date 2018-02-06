@@ -73,9 +73,9 @@ Demo:
 ### Build your own function
 
 Mist provides typeful library for writing functions in scala/java.
-For a quick start please check out a [demo project](https://github.com/dos65/hello_mist). Demo setup includes:
-- simple function example in [Scala](https://github.com/dos65/hello_mist/blob/master/scala/src/main/scala/HelloMist.scala) 
-and [Java](https://github.com/dos65/hello_mist/blob/master/java/src/main/java/HelloMist.java)
+For a quick start please check out a [demo project](https://github.com/Hydrospheredata/hello_mist). Demo setup includes:
+- simple function example in [Scala](https://github.com/Hydrospheredata/hello_mist/blob/master/scala/src/main/scala/HelloMist.scala) 
+and [Java](https://github.com/Hydrospheredata/hello_mist/blob/master/java/src/main/java/HelloMist.java)
 - build setup (sbt/mvn)
 - configuration files for `mist-cli`
 
@@ -86,7 +86,7 @@ pip install mist-cli
 easy_install mist-cli
 
 # clone examples
-git clone https://github.com/dos65/hello_mist.git
+git clone https://github.com/Hydrospheredata/hello_mist.git
 ```
 
 Scala:
