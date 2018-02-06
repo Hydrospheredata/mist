@@ -104,7 +104,7 @@ case class JobDetails(
   endTime: Option[Long] = None,
   jobResult: Option[Either[String, JsLikeData]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  workerId: String,
+  workerId: Option[String] = None,
   createTime: Long = System.currentTimeMillis()
 ) {
 

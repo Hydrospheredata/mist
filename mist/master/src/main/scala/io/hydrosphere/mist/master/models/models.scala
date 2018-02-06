@@ -122,6 +122,6 @@ case class JobDetailsLink(
   endTime: Option[Long] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
   endpoint: String,
-  workerId: String,
+  workerId: Option[String],
   createTime: Long = System.currentTimeMillis()
 )

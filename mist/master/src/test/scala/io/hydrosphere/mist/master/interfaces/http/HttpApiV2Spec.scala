@@ -136,7 +136,7 @@ class HttpApiV2Spec extends FunSpec
       )).thenSuccess(Seq(
         JobDetails("id", "1",
           JobParams("path", "className", Map.empty, Action.Execute),
-          "context", None, JobDetails.Source.Http, workerId = "workerId")
+          "context", None, JobDetails.Source.Http)
       ))
 
       val route = HttpV2Routes.endpointsRoutes(master)
@@ -246,8 +246,7 @@ class HttpApiV2Spec extends FunSpec
       source = Source.Http,
       endpoint = "endpoint",
       context = "context",
-      externalId = None,
-      workerId = "workerId"
+      externalId = None
     )
 
     it("should return jobs status by id") {

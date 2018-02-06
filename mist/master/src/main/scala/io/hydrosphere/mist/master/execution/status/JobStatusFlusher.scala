@@ -80,6 +80,7 @@ object JobStatusFlusher {
           d
         else
           d.withEndTime(time).withStatus(Status.Failed).withFailure(error)
+      case WorkerAssigned(_, workerId) => d.copy(workerId = Some(workerId))
     }
   }
 }

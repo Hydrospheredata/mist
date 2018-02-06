@@ -7,7 +7,6 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest, WorkerInitInfo}
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.ExecutionInfo
 import io.hydrosphere.mist.master.execution.WorkerState._
 import io.hydrosphere.mist.master.models._
@@ -54,15 +53,17 @@ class JobService(
     res.value
   }
 
+  //TODO!
   private def fetchWorkerLink(job: JobDetails): Future[Option[WorkerLink]] = {
-    val res = for {
-      startTime  <- OptionT.fromOption[Future](job.startTime)
-      (state, _) <- OptionT(workerInitInfo(job.workerId))
-      l          <- OptionT.fromOption[Future](toWorkerLink(state))
-      link       <- OptionT.fromOption[Future](if (state.timestamp <= startTime) Some(l) else None)
-      workerLink =  link.copy(name = job.workerId)
-    } yield workerLink
-    res.value
+    Future.successful(None)
+//    val res = for {
+//      startTime  <- OptionT.fromOption[Future](job.startTime)
+//      (state, _) <- OptionT(workerInitInfo(job.workerId))
+//      l          <- OptionT.fromOption[Future](toWorkerLink(state))
+//      link       <- OptionT.fromOption[Future](if (state.timestamp <= startTime) Some(l) else None)
+//      workerLink =  link.copy(name = job.workerId)
+//    } yield workerLink
+//    res.value
   }
 
   private def toWorkerLink(state: WorkerState): Option[WorkerLink] = state match {
@@ -117,13 +118,12 @@ class JobService(
 
     val startCmd = RunJobCommand(context, runMode, internalRequest)
 
-    //TODO: WOrkerID
     val details = JobDetails(
       endpoint.name,
       req.id,
       internalRequest.params,
       context.name,
-      externalId, source, workerId = "")
+      externalId, source)
     for {
       _ <- repo.update(details)
       info <- execution.ask(startCmd).mapTo[ExecutionInfo]

@@ -51,16 +51,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   describe("jobs stopping") {
 
-    val startedDetails = JobDetails(
-      endpoint = "endpoint",
-      jobId = "jobId",
-      params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
-      context = "context",
-      externalId = None,
-      source = JobDetails.Source.Http,
-      status = JobDetails.Status.Started,
-      workerId = "workerId"
-    )
+    val details = mkDetails(JobDetails.Status.Started)
 
     it("should stop job") {
       //TODO

@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.execution
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.execution.remote.WorkerConnection
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import mist.api.data.JsLikeData
 
@@ -34,22 +35,23 @@ class JobActor(
     case Event.Timeout => cancelFinally("timeout")
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
-    case Event.Perform(executor) =>
-      executor ! req
-      context watch executor
-      context become starting(executor)
+    case Event.Perform(connection) =>
+      report.report(WorkerAssigned(req.id, connection.id))
+      connection.ref ! req
+      context watch connection.ref
+      context become starting(connection)
   }
 
-  def cancelRemotely(cancelRespond: ActorRef, executor: ActorRef, reason: String): Unit = {
+  def cancelRemotely(cancelRespond: ActorRef, connection: WorkerConnection, reason: String): Unit = {
     log.info(s"Start cancelling ${req.id} remotely: $reason")
-    executor ! CancelJobRequest(req.id)
-    context become cancellingOnExecutor(Seq(cancelRespond), executor, reason)
+    connection.ref ! CancelJobRequest(req.id)
+    context become cancellingOnExecutor(Seq(cancelRespond), connection, reason)
   }
 
-  private def starting(executor: ActorRef, workerRespond: Boolean = false): Receive = {
+  private def starting(connection: WorkerConnection, workerRespond: Boolean = false): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Queued
-    case Event.Cancel => cancelRemotely(sender(), executor, "user request")
-    case Event.Timeout => cancelRemotely(sender(), executor, "timeout")
+    case Event.Cancel => cancelRemotely(sender(), connection, "user request")
+    case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
     case Terminated(_) =>
       if (workerRespond) onExecutorTermination()
@@ -61,20 +63,20 @@ class JobActor(
     case JobFileDownloading(id, time) =>
       report.report(JobFileDownloadingEvent(id, time))
       callback ! Event.Started(id)
-      context become starting(executor, true)
+      context become starting(connection, true)
 
     case JobStarted(id, time) =>
       report.report(StartedEvent(id, time))
       if (!workerRespond) {
         callback ! Event.Started(id)
       }
-      context become completion(callback, executor)
+      context become completion(callback, connection)
   }
 
-  private def completion(callback: ActorRef, executor: ActorRef): Receive = {
+  private def completion(callback: ActorRef, connection: WorkerConnection): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Started
-    case Event.Cancel => cancelRemotely(sender(), executor, "user request")
-    case Event.Timeout => cancelRemotely(sender(), executor, "timeout")
+    case Event.Cancel => cancelRemotely(sender(), connection, "user request")
+    case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
     case Terminated(_) => onExecutorTermination()
 
@@ -82,9 +84,9 @@ class JobActor(
     case JobFailure(_, err) => completeFailure(err)
   }
 
-  private def cancellingOnExecutor(cancelRespond: Seq[ActorRef], executor: ActorRef, reason: String): Receive = {
+  private def cancellingOnExecutor(cancelRespond: Seq[ActorRef], connection: WorkerConnection, reason: String): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Cancelling
-    case Event.Cancel => context become cancellingOnExecutor(cancelRespond :+ sender(), executor, reason)
+    case Event.Cancel => context become cancellingOnExecutor(cancelRespond :+ sender(), connection, reason)
     case Event.Timeout => log.info(s"Timeout exceeded for ${req.id} that is in cancelling process")
 
     case Terminated(_) =>
@@ -144,7 +146,7 @@ object JobActor {
   object Event {
     case object Cancel extends Event
     case object Timeout extends Event
-    final case class Perform(ref: ActorRef) extends Event
+    final case class Perform(connection: WorkerConnection) extends Event
     final case class Started(id: String) extends Event
     final case class Completed(id: String) extends Event
     case object GetStatus extends Event

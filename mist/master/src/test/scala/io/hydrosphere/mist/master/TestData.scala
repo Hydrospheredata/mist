@@ -13,8 +13,7 @@ trait TestData {
       context = "context",
       externalId = None,
       source = JobDetails.Source.Http,
-      status = status,
-      workerId = "workerId"
+      status = status
     )
   }
 

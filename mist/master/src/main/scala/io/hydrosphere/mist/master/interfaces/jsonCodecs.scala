@@ -248,6 +248,7 @@ trait JsonCodecs extends SprayJsonSupport
 
     implicit val receivedLogF = jsonFormat3(ReceivedLogs)
     implicit val fileDownloadingF = jsonFormat2(JobFileDownloadingEvent)
+    implicit val workerAssigned = jsonFormat2(WorkerAssigned)
 
     override def write(obj: SystemEvent): JsValue = {
       val (name, initial) = obj match {
@@ -259,6 +260,7 @@ trait JsonCodecs extends SprayJsonSupport
         case x: FailedEvent => "failed" -> x.toJson
         case x: ReceivedLogs => "logs" -> x.toJson
         case x: JobFileDownloadingEvent => "job-file-downloading" -> x.toJson
+        case x: WorkerAssigned => "worker-assigned" -> x.toJson
         case KeepAliveEvent => "keep-alive" -> JsObject(Map.empty[String, JsValue])
       }
 

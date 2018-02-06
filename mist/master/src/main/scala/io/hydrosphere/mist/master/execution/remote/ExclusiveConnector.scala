@@ -28,9 +28,8 @@ class ExclusiveConnector(
       counter = counter + 1
       startWorker(wId, ctx).onComplete({
         case Success(worker) =>
-          log.info("Worker started")
           val wrapped = ExclusiveConnector.ConnectionWrapper.wrap(worker)
-          resolve.success(wrapped)
+          resolve.success(WorkerConnection(wId, wrapped))
         case Failure(e) => resolve.failure(e)
       })
   }

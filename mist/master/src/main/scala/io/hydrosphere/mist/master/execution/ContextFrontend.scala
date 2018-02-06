@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.FrontendStatus
-import io.hydrosphere.mist.master.execution.remote.WorkerConnector
+import io.hydrosphere.mist.master.execution.remote.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
@@ -146,12 +146,15 @@ class ContextFrontend(
 
       case Event.Connection(worker) =>
         log.info("Received new connection!")
-        //TODO cancel and unused!
-        val nextSt = state.nextOption.map({ case (k, ref) =>
-          ref ! JobActor.Event.Perform(worker)
-          state.toWorking(k)
-        })
-        becomeNext(conns.askSuccess, nextSt.getOrElse(state))
+        state.nextOption match {
+          case Some((id, ref)) =>
+            ref ! JobActor.Event.Perform(worker)
+            becomeNext(conns.askSuccess, state.toWorking(id))
+          case None =>
+            //TODO notify connection that it's unused
+            //TODO exclusive workers leak
+            log.warning("NOT IMLEMETED")
+        }
 
       case Event.ConnectionFailure(e) =>
         log.error(s"Ask new worker connection for $name failed")
@@ -175,7 +178,6 @@ class ContextFrontend(
 
 
   private def startExecutor(ctx: ContextConfig): String = {
-
     val id = UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
     connectorStarter(id, ctx).onComplete {
@@ -219,7 +221,7 @@ object ContextFrontend {
     final case class JobDied(id: String) extends Event
     final case class JobCompleted(id: String) extends Event
 
-    final case class Connection(worker: ActorRef) extends Event
+    final case class Connection(conn: WorkerConnection) extends Event
     final case class ConnectionFailure(e: Throwable) extends Event
 
     case object Status extends Event

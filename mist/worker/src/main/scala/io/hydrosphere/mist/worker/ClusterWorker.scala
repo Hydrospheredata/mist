@@ -1,10 +1,9 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor._
-import akka.cluster.Cluster
-import akka.cluster.ClusterEvent._
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.ActorRegHub
+import io.hydrosphere.mist.worker.ClusterWorker.ReceiveInitTimeout
 
 import scala.concurrent.duration._
 
@@ -12,11 +11,14 @@ class ClusterWorker(
   id: String,
   regHub: ActorRef,
   workerInit: WorkerInitInfo => (NamedContext, Props)
-) extends Actor with ActorLogging {
+) extends Actor with ActorLogging with Timers {
+
+  val initTimerKey = s"$id-receive-init-data"
 
   override def preStart: Unit = {
     regHub ! ActorRegHub.Register(id)
     log.info("send registration to {}", regHub)
+    timers.startSingleTimer(initTimerKey, ReceiveInitTimeout, 1 minute)
   }
 
   override def receive: Receive = waitInit
@@ -35,6 +37,10 @@ class ClusterWorker(
       log.info("become work")
 
       context become work(sender(), ref)
+
+    case ReceiveInitTimeout =>
+      log.error("Initial data wasn't received for a minutes - shutdown")
+      shutdown()
   }
 
   private def work(remote: ActorRef, worker: ActorRef): Receive = {
@@ -56,8 +62,10 @@ class ClusterWorker(
 
 object ClusterWorker {
 
+  case object ReceiveInitTimeout
+
   def props(id: String, regHub: ActorRef, workerInit: WorkerInitInfo => (NamedContext, Props)): Props = {
-    Props(classOf[ClusterWorker2], id, regHub, workerInit)
+    Props(classOf[ClusterWorker], id, regHub, workerInit)
   }
 }
 
