@@ -255,7 +255,7 @@ lazy val root = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
       "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it",
-      "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
+      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
