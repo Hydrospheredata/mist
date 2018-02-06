@@ -2,7 +2,7 @@ package io.hydrosphere.mist.core.jvmjob
 
 import mist.api.args._
 import mist.api.data._
-import mist.api.internal.BaseJobInstance
+import mist.api.internal.BaseFunctionInstance
 import mist.api.{FullFnContext}
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import io.hydrosphere.mist.core.CommonData.Action
@@ -12,7 +12,7 @@ import org.apache.spark.streaming.Duration
 
 import scala.reflect.ClassTag
 
-class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
+class FunctionInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
   val conf = new SparkConf()
     .setMaster("local[2]")
@@ -80,8 +80,8 @@ class JobInstanceSpec extends FunSpec with Matchers with BeforeAndAfterAll {
     )
   }
 
-  def instanceFor[A](action: Action)(implicit tag: ClassTag[A]): BaseJobInstance = {
+  def instanceFor[A](action: Action)(implicit tag: ClassTag[A]): BaseFunctionInstance = {
     val clz = tag.runtimeClass
-    JobsLoader.Common.loadJobInstance(clz.getCanonicalName, action).get
+    FunctionInstanceLoader.Common.loadFnInstance(clz.getCanonicalName, action).get
   }
 }

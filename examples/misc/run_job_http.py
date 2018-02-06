@@ -4,8 +4,8 @@ import requests
 import json
 from time import sleep
 
-def runJob(endpoint, data):
-  r = requests.post("http://localhost:2004/v2/api/endpoints/" + endpoint + "/jobs", json = data)
+def runJob(function, data):
+  r = requests.post("http://localhost:2004/v2/api/functions/" + function + "/jobs", json = data)
   job_id = r.json()["id"]
   finished = False
   while not finished:

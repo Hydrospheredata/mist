@@ -1,0 +1,1 @@
+ALTER TABLE `job_details` ALTER COLUMN endpoint RENAME TO function;

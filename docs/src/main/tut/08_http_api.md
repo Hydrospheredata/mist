@@ -8,8 +8,8 @@ position: 8
 
 Glosssary:
 
-- Endpoint (previously was routers) - thing that describe job (path to artifact, class name, job parameters)
-- Job - fact of endpoint invocation
+- Function (previously was routers) - thing that describe job (path to artifact, class name, job parameters)
+- Job - fact of function invocation
 - Namespace - SparkContext configs and Mist configs for given SparkContext 
 - Worker - Mist slave instance that holds Spark Driver application
 - Mode - job can be run in two worker modes: `shared` or `exclusive` ([context configuration](/mist-docs/contexts.html))
@@ -18,7 +18,7 @@ Glosssary:
 
 #### Rest
 
-**Endpoints**:
+**Functions**:
 <table>
   <thead>
     <tr>
@@ -31,21 +31,21 @@ Glosssary:
   <tbody>
     <tr>
       <td>GET</td>
-      <td>/v2/api/endpoints</td>
+      <td>/v2/api/functions</td>
       <td>None</td>
-      <td>List of all endpoints</td>
+      <td>List of all functions</td>
     </tr>
     <tr>
       <td>GET</td>
-      <td>/v2/api/endpoints/{id}</td>
+      <td>/v2/api/functions/{id}</td>
       <td>None</td>
-      <td>Get endpoint by id</td>
+      <td>Get function by id</td>
     </tr>
     <tr>
       <td>POST</td>
-      <td>/v2/api/endpoints</td>
+      <td>/v2/api/functions</td>
       <td>
-        <p>Post body - json: endpoint configuration:
+        <p>Post body - json: function configuration:
           <ul>
             <li>name</li>
             <li>path</li>
@@ -54,13 +54,13 @@ Glosssary:
           </ul>
         </p>
       </td>
-      <td>Create endpoint</td>
+      <td>Create function</td>
     </tr>
     <tr>
       <td>POST</td>
-      <td>/v2/api/endpoints/{id}/jobs</td>
+      <td>/v2/api/functions/{id}/jobs</td>
       <td>
-        <p>Post body: endpoint (MistJob) arguments </p>
+        <p>Post body: function (MistFn) arguments </p>
         <p>Query params:
           <ul>
             <li>context - Not required, specify contextId/namespace/spark conf </li>
@@ -68,11 +68,11 @@ Glosssary:
           </ul>
         </p>
       </td>
-      <td>Start job on endpoint</td>
+      <td>Start job on function</td>
     </tr>
     <tr>
       <td>GET</td>
-      <td>/v2/api/endpoints/{id}/jobs</td>
+      <td>/v2/api/functions/{id}/jobs</td>
       <td>Query params:
         <ul>
           <li>limit - optional (default 25)</li>
@@ -80,7 +80,7 @@ Glosssary:
           <li>status - optional, repeated (values: started, finished ... )</li>
         </ul>
       </td>
-      <td>List of jobs that was run with given endpoint</td>
+      <td>List of jobs that was run with given function</td>
     </tr>
 
   </tbody>
@@ -107,7 +107,7 @@ Glosssary:
           <li>status - optional, repeated (values: started, finished ... )</li>
         </ul>
       </td>
-      <td>List of all jobs that was runned on all endpoints</td>
+      <td>List of all jobs that was runned on all functions</td>
     </tr>
     <tr>
       <td>GET</td>

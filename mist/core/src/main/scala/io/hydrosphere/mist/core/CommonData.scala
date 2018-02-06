@@ -101,7 +101,7 @@ object CommonData {
     }
   }
 
-  val JobInfoProviderRegisterActorName = "job-info-provider-register"
+  val FunctionInfoProviderRegisterActorName = "job-info-provider-register"
   val HealthActorName = "health"
 
   case class RegisterJobInfoProvider(ref: ActorRef)
@@ -113,22 +113,22 @@ object CommonData {
     val jobPath: String
     val name: String
   }
-  case class GetJobInfo(
+  case class GetFunctionInfo(
     className: String,
     jobPath: String,
     name: String
   ) extends InfoRequest
 
-  case class ValidateJobParameters(
+  case class ValidateFunctionParameters(
     className: String,
     jobPath: String,
     name: String,
     params: Map[String, Any]
   ) extends InfoRequest
 
-  case class GetAllJobInfo(
+  case class GetAllFunctions(
     //TODO: find out why akka messages requires List but fails for Seq
-    requests: List[GetJobInfo]
+    requests: List[GetFunctionInfo]
   ) extends JobInfoMessage
 
   case object EvictCache extends JobInfoMessage

@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker.runners
 import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
-import io.hydrosphere.mist.core.jvmjob.JobsLoader
+import io.hydrosphere.mist.core.jvmjob.FunctionInstanceLoader
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import io.hydrosphere.mist.worker.NamedContext
@@ -25,8 +25,8 @@ class ScalaRunner(jobFile: File) extends JobRunner {
     } else {
       context.addJar(jobFile.toString)
       val loader = prepareClassloader(jobFile)
-      val jobsLoader = new JobsLoader(loader)
-      val instance = jobsLoader.loadJobInstance(className, action) match {
+      val jobsLoader = new FunctionInstanceLoader(loader)
+      val instance = jobsLoader.loadFnInstance(className, action) match {
         case Succ(i) => Right(i)
         case Err(ex) => Left(ex)
       }

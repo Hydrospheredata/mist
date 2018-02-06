@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.SupervisorStrategy.Resume
 import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.jvmjob.ExtractedData
+import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 
 import scala.concurrent.duration._
@@ -80,12 +80,12 @@ case class TTLCache[K, V](
 }
 
 
-class JobInfoProviderActor(
-  jobInfoExtractor: JobInfoExtractor,
+class FunctionInfoProviderActor(
+  jobInfoExtractor: FunctionInfoExtractor,
   ttl: FiniteDuration
 ) extends Actor with ActorLogging {
 
-  type StateCache = Cache[String, TryLoad[JobInfo]]
+  type StateCache = Cache[String, TryLoad[FunctionInfo]]
 
   implicit val ec = context.dispatcher
 
@@ -97,7 +97,7 @@ class JobInfoProviderActor(
 
   context.system.scheduler.schedule(ttl, ttl, self, EvictCache)
 
-  override def receive: Receive = cached(Cache[String, TryLoad[JobInfo]](ttl))
+  override def receive: Receive = cached(Cache[String, TryLoad[FunctionInfo]](ttl))
 
   private def wrapError(e: Throwable): Throwable = e match {
     case e: Error => new RuntimeException(e)
@@ -105,7 +105,7 @@ class JobInfoProviderActor(
   }
 
   def cached(cache: StateCache): Receive = {
-    case r: GetJobInfo =>
+    case r: GetFunctionInfo =>
       val (next, v) = usingCache(cache, r)
       val rsp = v match {
         case Succ(info) => info.data
@@ -116,7 +116,7 @@ class JobInfoProviderActor(
       sender() ! rsp
       context become cached(next)
 
-    case req: ValidateJobParameters =>
+    case req: ValidateFunctionParameters =>
       val (next, v) = usingCache(cache, req)
       val rsp = v.flatMap(i => TryLoad.fromEither(i.instance.validateParams(req.params))) match {
         case Succ(_) => Status.Success(())
@@ -127,9 +127,9 @@ class JobInfoProviderActor(
       sender() ! rsp
       context become cached(next)
 
-    case GetAllJobInfo(requests) =>
+    case GetAllFunctions(requests) =>
       //TODO send errors to master
-      val (next, results) = requests.foldLeft((cache, Seq.empty[ExtractedData])){
+      val (next, results) = requests.foldLeft((cache, Seq.empty[ExtractedFunctionData])){
         case ((cache, acc), req) =>
           val (upd, v) = usingCache(cache, req)
           val nextAcc = v match {
@@ -151,7 +151,7 @@ class JobInfoProviderActor(
       context become cached(cache.evictAll)
   }
 
-  private def usingCache(cache: StateCache, req: InfoRequest): (StateCache, TryLoad[JobInfo]) = {
+  private def usingCache(cache: StateCache, req: InfoRequest): (StateCache, TryLoad[FunctionInfo]) = {
     val file = new File(req.jobPath)
     if (file.exists() && file.isFile) {
       val key = cacheKey(req, file)
@@ -159,7 +159,7 @@ class JobInfoProviderActor(
     } else cache -> Err(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
   }
 
-  private def jobInfo(req: InfoRequest): TryLoad[JobInfo] = {
+  private def jobInfo(req: InfoRequest): TryLoad[FunctionInfo] = {
     import req._
     val f = new File(jobPath)
     jobInfoExtractor.extractInfo(f, className).map(e => e.copy(data = e.data.copy(name = req.name)))
@@ -171,10 +171,10 @@ class JobInfoProviderActor(
 
 }
 
-object JobInfoProviderActor {
+object FunctionInfoProviderActor {
 
-  def props(jobInfoExtractor: JobInfoExtractor, ttl: FiniteDuration = 3600 seconds): Props =
-    Props(new JobInfoProviderActor(jobInfoExtractor, ttl))
+  def props(jobInfoExtractor: FunctionInfoExtractor, ttl: FiniteDuration = 3600 seconds): Props =
+    Props(new FunctionInfoProviderActor(jobInfoExtractor, ttl))
 
 }
 

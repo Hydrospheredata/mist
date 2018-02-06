@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, NamedConfig}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig}
 
 import scala.concurrent.duration._
 
@@ -19,9 +19,9 @@ object ConfigRepr {
 
   import scala.collection.JavaConverters._
 
-  implicit val EndpointsRepr = new ConfigRepr[EndpointConfig] {
+  implicit val EndpointsRepr = new ConfigRepr[FunctionConfig] {
 
-    override def toConfig(a: EndpointConfig): Config = {
+    override def toConfig(a: FunctionConfig): Config = {
       import ConfigValueFactory._
       val map = Map(
         "path" -> fromAnyRef(a.path),
@@ -31,8 +31,8 @@ object ConfigRepr {
       fromMap(map.asJava).toConfig
     }
 
-    override def fromConfig(config: Config): EndpointConfig = {
-      EndpointConfig(
+    override def fromConfig(config: Config): FunctionConfig = {
+      FunctionConfig(
         config.getString("name"),
         config.getString("path"),
         config.getString("className"),

@@ -11,7 +11,7 @@ import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-case class JobInfoProviderArguments(
+case class FunctionInfoProviderArguments(
   masterHost: String = "localhost",
   clusterPort: Int = 2551,
   savePath: String = "/tmp",
@@ -21,8 +21,8 @@ case class JobInfoProviderArguments(
   def clusterAddr: String = s"$masterHost:$clusterPort"
 }
 
-object JobInfoProviderArguments {
-  val parser = new scopt.OptionParser[JobInfoProviderArguments]("mist-job-executor") {
+object FunctionInfoProviderArguments {
+  val parser = new scopt.OptionParser[FunctionInfoProviderArguments]("mist-job-executor") {
 
     override def errorOnUnknownArgument: Boolean = false
 
@@ -40,16 +40,16 @@ object JobInfoProviderArguments {
       .text("Cache entry ttl value in milliseconds")
   }
 
-  def parse(args: Seq[String]): Option[JobInfoProviderArguments] =
-    parser.parse(args, JobInfoProviderArguments())
+  def parse(args: Seq[String]): Option[FunctionInfoProviderArguments] =
+    parser.parse(args, FunctionInfoProviderArguments())
 
 }
 
 
-object JobInfoProvider extends App with Logger {
+object FunctionInfoProvider extends App with Logger {
 
   try {
-    val jobInfoProviderArguments = JobInfoProviderArguments.parse(args) match {
+    val functionInfoProviderArguments = FunctionInfoProviderArguments.parse(args) match {
       case Some(x) => x
       case None =>
         throw new IllegalStateException("please provide arguments")
@@ -58,10 +58,10 @@ object JobInfoProvider extends App with Logger {
     implicit val system = ActorSystem("mist", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
-    val jobInfoProviderRef = system.actorOf(
-      JobInfoProviderActor.props(
-        JobInfoExtractor(),
-        jobInfoProviderArguments.cacheEntryTtl
+    val functionInfoProviderRef = system.actorOf(
+      FunctionInfoProviderActor.props(
+        FunctionInfoExtractor(),
+        functionInfoProviderArguments.cacheEntryTtl
       ),"job-info-provider")
 
     def resolveRemote(path: String): ActorRef = {
@@ -76,19 +76,19 @@ object JobInfoProvider extends App with Logger {
     }
 
     def remotePath(name: String): String = {
-      s"akka.tcp://mist@${jobInfoProviderArguments.clusterAddr}/user/$name"
+      s"akka.tcp://mist@${functionInfoProviderArguments.clusterAddr}/user/$name"
     }
 
-    val registerRef = resolveRemote(remotePath(CommonData.JobInfoProviderRegisterActorName))
+    val registerRef = resolveRemote(remotePath(CommonData.FunctionInfoProviderRegisterActorName))
     val heathRef = resolveRemote(remotePath(CommonData.HealthActorName))
 
     WhenTerminated(heathRef, {
       logger.info("Remote system was terminated, shutdown app")
-      jobInfoProviderRef ! PoisonPill
+      functionInfoProviderRef ! PoisonPill
       system.terminate()
     })
 
-    registerRef ! RegisterJobInfoProvider(jobInfoProviderRef)
+    registerRef ! RegisterJobInfoProvider(functionInfoProviderRef)
 
 
     Await.result(system.whenTerminated, Duration.Inf)

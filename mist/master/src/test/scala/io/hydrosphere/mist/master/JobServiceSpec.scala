@@ -3,10 +3,10 @@ package io.hydrosphere.mist.master
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.Messages.StatusMessages.{GetById, Register}
-import io.hydrosphere.mist.master.models.{EndpointConfig, JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.models.{FunctionConfig, JobStartRequest, RunMode}
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
@@ -27,7 +27,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val future = service.startJob(
         JobStartRequest(
           id = "id",
-          endpoint = JobInfoData("name", path="path", className="className", defaultContext="context"),
+          function = FunctionInfoData("name", path="path", className="className", defaultContext="context"),
           context = TestUtils.contextSettings.default,
           parameters = Map("1" -> 2),
           runMode = RunMode.Shared,
@@ -50,7 +50,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
   describe("jobs stopping") {
 
     val startedDetails = JobDetails(
-      endpoint = "endpoint",
+      function = "function",
       jobId = "jobId",
       params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
       context = "context",
@@ -84,7 +84,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     def mkDetails(status: JobDetails.Status): JobDetails = {
       JobDetails(
-        endpoint = "endpoint",
+        function = "function",
         jobId = "jobId",
         params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
         context = "context",

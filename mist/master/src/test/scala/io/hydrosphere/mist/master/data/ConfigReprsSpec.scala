@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -19,11 +19,11 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       """.stripMargin)
 
       val parsed = ConfigRepr.EndpointsRepr.fromConfig("name", cfg)
-      parsed shouldBe EndpointConfig("name", "jar_path.jar", "MyJob1", "namespace")
+      parsed shouldBe FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
     }
 
     it("should render to raw") {
-      val e = EndpointConfig("name", "jar_path.jar", "MyJob1", "namespace")
+      val e = FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
       val raw = ConfigRepr.EndpointsRepr.toConfig(e)
 
       raw.getString("path") shouldBe "jar_path.jar"

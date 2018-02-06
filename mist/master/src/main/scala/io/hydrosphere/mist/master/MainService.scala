@@ -7,12 +7,12 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
@@ -24,16 +24,16 @@ import scala.util.{Failure, Success}
 
 class MainService(
   val jobService: JobService,
-  val endpoints: EndpointsStorage,
+  val functions: FunctionConfigStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
-  val jobInfoProviderService: JobInfoProviderService
+  val functionInfoService: FunctionInfoService
 ) extends Logger {
 
   implicit val timeout: Timeout = Timeout(5 seconds)
 
   def runJob(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source
   ): Future[Option[JobStartResponse]] = {
     val out = for {
@@ -43,7 +43,7 @@ class MainService(
   }
 
   def forceJobRun(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[Option[JobResult]] = {
@@ -69,7 +69,7 @@ class MainService(
     action: Action = Action.Execute
   ): Future[ExecutionInfo] = {
 
-    val endpoint = EndpointConfig(
+    val function = FunctionConfig(
       name = req.fakeName,
       path = req.path,
       className = req.className,
@@ -77,13 +77,13 @@ class MainService(
     )
 
     for {
-      info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
+      info          <- functionInfoService.getFunctionInfoByConfig(function)
       context       <- contexts.getOrDefault(req.context)
-      _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters)
+      _             <- functionInfoService.validateFunctionParamsByConfig(function, req.parameters)
       runMode       =  selectRunMode(context, info, req.workerId)
       executionInfo <- jobService.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
-        endpoint = info,
+        function = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
@@ -96,7 +96,7 @@ class MainService(
 
   private def selectRunMode(
     config: ContextConfig,
-    info: JobInfoData,
+    info: FunctionInfoData,
     workerId: Option[String]
   ): RunMode = {
     if (info.tags.contains(ArgInfo.StreamingContextTag)) ExclusiveContext(workerId)
@@ -111,7 +111,7 @@ class MainService(
   def recoverJobs(): Future[Unit] = {
 
     def restartJob(job: JobDetails): Future[Unit] = {
-      val req = EndpointStartRequest(job.endpoint, job.params.arguments, job.externalId, id = job.jobId)
+      val req = FunctionStartRequest(job.function, job.params.arguments, job.externalId, id = job.jobId)
       runJob(req, job.source).map(_ => ())
     }
 
@@ -133,17 +133,17 @@ class MainService(
   }
 
   private def runJobRaw(
-    req: EndpointStartRequest,
+    req: FunctionStartRequest,
     source: JobDetails.Source,
     action: Action = Action.Execute): Future[Option[ExecutionInfo]] = {
     val out = for {
-      info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
-      _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters))
+      info         <- OptionT(functionInfoService.getFunctionInfo(req.functionId))
+      _            <- OptionT.liftF(functionInfoService.validateFunctionParams(req.functionId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
       runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
         id = req.id,
-        endpoint = info,
+        function = info,
         context = context,
         parameters = req.parameters,
         runMode = runMode,
@@ -157,7 +157,7 @@ class MainService(
     out.value
   }
 
-  private def selectContext(req: EndpointStartRequest, context: String): Future[ContextConfig] = {
+  private def selectContext(req: FunctionStartRequest, context: String): Future[ContextConfig] = {
     val name = req.runSettings.contextId.getOrElse(context)
     contexts.getOrDefault(name)
   }
@@ -168,12 +168,12 @@ object MainService extends Logger {
 
   def start(
     jobService: JobService,
-    endpoints: EndpointsStorage,
+    functions: FunctionConfigStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
-    jobInfoProvider: JobInfoProviderService
+    jobInfoProvider: FunctionInfoService
   ): Future[MainService] = {
-    val service = new MainService(jobService, endpoints, contexts, logsPaths, jobInfoProvider)
+    val service = new MainService(jobService, functions, contexts, logsPaths, jobInfoProvider)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {
