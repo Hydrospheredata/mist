@@ -4,25 +4,24 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.{JobInfoData, JobsLoader}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData, JobsLoader}
+import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.args.{InternalArgument, UserInputArgument}
 import mist.api.internal.{BaseJobInstance, JavaJobInstance, JobInstance}
 import org.apache.commons.io.FilenameUtils
 
-import scala.util.{Failure, Success, Try}
-
 case class JobInfo(
   instance: BaseJobInstance = JobInstance.NoOpInstance,
-  data: JobInfoData
+  data: ExtractedData
 )
 
 trait JobInfoExtractor {
-  def extractInfo(file: File, className: String): Try[JobInfo]
+  def extractInfo(file: File, className: String): TryLoad[JobInfo]
 }
 
 class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoExtractor {
 
-  override def extractInfo(file: File, className: String): Try[JobInfo] = {
+  override def extractInfo(file: File, className: String): TryLoad[JobInfo] = {
     val prev = Thread.currentThread().getContextClassLoader
     try {
       val existing = this.getClass.getClassLoader
@@ -37,11 +36,10 @@ class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoEx
           case _: JavaJobInstance => JobInfoData.JavaLang
           case _ => JobInfoData.ScalaLang
         }
-        JobInfo(instance, JobInfoData(
+        JobInfo(instance, ExtractedData(
           lang = lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeJobInstance.isSuccess,
-          className = className,
           tags = instance.describe()
             .collect { case InternalArgument(t) => t }
             .flatten
@@ -51,11 +49,11 @@ class JvmJobInfoExtractor(mkLoader: ClassLoader => JobsLoader) extends JobInfoEx
       // wrap error with better explanation +
       // transporting it over Future leads to unclear error
       // see scala.concurrent.impl.Promise.resolver
-      case e: NoClassDefFoundError =>
-        val msg = s"Handled NoClassDefFound: ${e.getMessage} (check your artifact or mist library version compatibility)"
+      case e: LinkageError =>
+        val msg = s"Handled LinkageError: ${e.getClass} ${e.getMessage} (check your artifact or mist library version compatibility)"
         val err = new IllegalStateException(msg)
-        Failure(err)
-      case e: Throwable => Failure(e)
+        Err(err)
+      case e: Throwable => Err(e)
     } finally {
       Thread.currentThread().setContextClassLoader(prev)
     }
@@ -70,10 +68,9 @@ object JvmJobInfoExtractor {
 }
 
 class PythonJobInfoExtractor extends JobInfoExtractor {
-  override def extractInfo(file: File, className: String) = Success(
-    JobInfo(data = JobInfoData(
-      lang = JobInfoData.PythonLang,
-      className = className
+  override def extractInfo(file: File, className: String) = Succ(
+    JobInfo(data = ExtractedData(
+      lang = JobInfoData.PythonLang
     )))
 }
 
@@ -82,7 +79,7 @@ class BaseJobInfoExtractor(
   pythonJobInfoExtractor: PythonJobInfoExtractor
 ) extends JobInfoExtractor {
 
-  override def extractInfo(file: File, className: String): Try[JobInfo] =
+  override def extractInfo(file: File, className: String): TryLoad[JobInfo] =
     selectExtractor(file)
       .extractInfo(file, className)
 

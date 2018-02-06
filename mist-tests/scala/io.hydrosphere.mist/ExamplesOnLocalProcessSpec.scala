@@ -34,7 +34,6 @@ class ExamplesOnLocalProcessSpec
 
   private def startMist: ServerInstance = {
     val mistHome = sys.props.get("mistHome").get
-    println(mistHome)
     val cfgStr =
       s"""
          |mist {

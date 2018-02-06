@@ -74,8 +74,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getJobInfo(any[String]))
       .thenSuccess(Some(JobInfoData(
-        lang = JobInfoData.PythonLang,
-        name = "test"
+        "test",
+        "test",
+        "Test",
+        "foo",
+        JobInfoData.PythonLang
       )))
 
     val req = EndpointStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
@@ -102,8 +105,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     when(jobInfoProvider.getJobInfo(any[String]))
       .thenSuccess(Some(JobInfoData(
-        lang = JobInfoData.PythonLang,
-        name = "test"
+        "test",
+        "test",
+        "Test",
+        "foo",
+        JobInfoData.PythonLang
       )))
 
     when(contexts.getOrDefault(any[String]))
@@ -142,8 +148,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     when(jobInfoProvider.getJobInfo(any[String]))
       .thenSuccess(Some(JobInfoData(
+        "test",
+        "test",
+        "Test",
+        "foo",
         lang = JobInfoData.PythonLang,
-        name = "test",
         tags = Seq(ArgInfo.StreamingContextTag)
       )))
 
@@ -184,8 +193,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     when(jobInfoProvider.getJobInfo(any[String]))
       .thenSuccess(Some(JobInfoData(
-        lang = JobInfoData.PythonLang,
-        name = "test",
+        "test",
+        "test",
+        "Test",
+        "foo",
+        JobInfoData.PythonLang,
         tags = Seq(ArgInfo.SqlContextTag)
       )))
 

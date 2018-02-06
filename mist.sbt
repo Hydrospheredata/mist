@@ -25,7 +25,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC6"
+  version := "1.0.0-RC7"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -257,7 +257,7 @@ lazy val root = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
       "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it",
-      "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
+      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),

@@ -115,23 +115,17 @@ object CommonData {
     val className: String
     val jobPath: String
     val name: String
-    val originalPath: String
-    val defaultContext: String
   }
   case class GetJobInfo(
     className: String,
     jobPath: String,
-    name: String,
-    originalPath: String,
-    defaultContext: String
+    name: String
   ) extends InfoRequest
 
   case class ValidateJobParameters(
     className: String,
     jobPath: String,
     name: String,
-    originalPath: String,
-    defaultContext: String,
     params: Map[String, Any]
   ) extends InfoRequest
 

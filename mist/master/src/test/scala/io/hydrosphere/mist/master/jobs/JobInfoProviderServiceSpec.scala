@@ -7,7 +7,7 @@ import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetAllJobInfo, GetJobInfo, ValidateJobParameters}
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.{ExtractedData, JobInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.EndpointsStorage
 import io.hydrosphere.mist.master.models.EndpointConfig
@@ -54,12 +54,9 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
         "test", jobPath, "Test", "foo"
       ))
       probe.expectMsgType[GetJobInfo]
-      probe.reply(JobInfoData(
+      probe.reply(ExtractedData(
         name="test",
-        path=jobPath,
-        defaultContext="foo",
-        lang="scala",
-        className="Test"
+        lang="scala"
       ))
 
       val result = Await.result(f, Duration.Inf)
@@ -189,12 +186,9 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val f = jobInfoProviderService.getJobInfo("test")
 
       probe.expectMsgType[GetJobInfo]
-      probe.reply(JobInfoData(
+      probe.reply(ExtractedData(
         name="test",
-        path=jobPath,
-        defaultContext="foo",
-        lang="scala",
-        className="Test"
+        lang="scala"
       ))
 
       val result = Await.result(f, Duration.Inf)
@@ -380,7 +374,7 @@ class JobInfoProviderServiceSpec extends TestKit(ActorSystem("test"))
       val jobInfoProviderService = new JobInfoProviderService(probe.ref, endpoints, artifactRepo)
       val f = jobInfoProviderService.allJobInfos
       probe.expectMsgType[GetAllJobInfo]
-      probe.reply(Seq(JobInfoData()))
+      probe.reply(Seq(ExtractedData(name="test")))
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 1

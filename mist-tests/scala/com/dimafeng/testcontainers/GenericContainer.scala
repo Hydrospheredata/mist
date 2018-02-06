@@ -2,7 +2,6 @@ package com.dimafeng.testcontainers
 
 import org.testcontainers.containers.wait.WaitStrategy
 import org.testcontainers.containers.{BindMode, FixedHostPortGenericContainer => OTCGenericContainer}
-import org.testcontainers.shaded.com.github.dockerjava.api.model.VolumesFrom
 
 class GenericContainer(imageName: String,
   fixedPorts: Map[Int, Int] = Map.empty,
