@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.execution.remote
+package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
 import io.hydrosphere.mist.core.CommonData.{CompeleteAndShutdown, RunJobRequest}
@@ -10,7 +10,7 @@ import scala.util._
 class ExclusiveConnector(
   id: String,
   ctx: ContextConfig,
-  startWorker: (String, ContextConfig) => Future[ActorRef]
+  startConnection: (String, ContextConfig) => Future[WorkerConnection]
 ) extends Actor with ActorLogging {
 
   import WorkerConnector._
@@ -21,15 +21,14 @@ class ExclusiveConnector(
 
   var counter: Int = 1
 
-  //TODO mutate state
   private def process(): Receive = {
     case Event.AskConnection(resolve) =>
       val wId = id + "_" + counter
       counter = counter + 1
-      startWorker(wId, ctx).onComplete({
+      startConnection(wId, ctx).onComplete({
         case Success(worker) =>
           val wrapped = ExclusiveConnector.ConnectionWrapper.wrap(worker)
-          resolve.success(WorkerConnection(wId, wrapped))
+          resolve.success(wrapped)
         case Failure(e) => resolve.failure(e)
       })
   }
@@ -46,10 +45,10 @@ object ExclusiveConnector {
 
     override def receive: Receive = process(false)
 
-    private def process(compeleteSended: Boolean): Receive = {
+    private def process(completeSent: Boolean): Receive = {
       case req: RunJobRequest =>
         conn forward req
-        if (!compeleteSended) {
+        if (!completeSent) {
           conn ! CompeleteAndShutdown
           context become process(true)
         }
@@ -61,14 +60,15 @@ object ExclusiveConnector {
 
   object ConnectionWrapper {
     def props(conn: ActorRef): Props = Props(classOf[ConnectionWrapper], conn)
-    def wrap(conn: ActorRef)(implicit fa: ActorRefFactory): ActorRef = {
-      fa.actorOf(props(conn))
+    def wrap(conn: WorkerConnection)(implicit fa: ActorRefFactory): WorkerConnection = {
+      val actor = fa.actorOf(props(conn.ref))
+      conn.copy(ref = actor)
     }
   }
 
   def props(
     id: String,
     ctx: ContextConfig,
-    startWorker: (String, ContextConfig) => Future[ActorRef]
+    startWorker: (String, ContextConfig) => Future[WorkerConnection]
   ): Props = Props(classOf[ExclusiveConnector], id, ctx, startWorker)
 }

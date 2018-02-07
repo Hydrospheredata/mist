@@ -30,8 +30,9 @@ class ClusterWorker(
       val ref = context.actorOf(props)
 
       val remoteConnection = sender()
+      val sparkUI = SparkUtils.getSparkUiAddress(nm.sparkContext)
 
-      remoteConnection ! WorkerReady(id)
+      remoteConnection ! WorkerReady(id, sparkUI)
       context watch remoteConnection
       context watch ref
       log.info("become work")

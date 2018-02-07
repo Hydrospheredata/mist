@@ -11,7 +11,10 @@ object CommonData {
     * Request data for creating spark/mist context on worker
     */
   case class WorkerInitInfoReq(contextName: String)
-  case class WorkerReady(id: String)
+  case class WorkerReady(
+    id: String,
+    sparkUi: Option[String]
+  )
   case object CompeleteAndShutdown
 
   /**

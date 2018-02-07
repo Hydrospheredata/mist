@@ -11,13 +11,14 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.remote.WorkerConnector
+import io.hydrosphere.mist.master.execution.workers.{StandaloneWorkersMirror, WorkerConnector, WorkersMirror}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.{ExecutionMaster, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
+import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
@@ -107,9 +108,16 @@ object MasterServer extends Logger {
 
       val regHub = ActorRegHub("regHub", system)
       logger.info("RegHub:" + regHub.regPath)
+
+      val workersMirror = new StandaloneWorkersMirror
+      val defaultStater = WorkerConnector.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
+      val connectorStarter = (id: String, ctx: ContextConfig) => {
+        val conntor = defaultStater(id, ctx)
+        workersMirror.spy(conntor)
+      }
       val execMaster = system.actorOf(ExecutionMaster.props(
         statusR,
-        WorkerConnector.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
+        connectorStarter
       ))
 
 //      val workerManager = system.actorOf(
@@ -120,7 +128,7 @@ object MasterServer extends Logger {
 //          infoProvider
 //        ), "workers-manager")
 
-      new JobService(execMaster, store)
+      new JobService(execMaster, workersMirror, store)
     }
 
     val artifactRepository = ArtifactRepository.create(

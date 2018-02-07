@@ -8,7 +8,7 @@ import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest, WorkerInitInfo}
 import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.execution.ExecutionInfo
-import io.hydrosphere.mist.master.execution.WorkerState._
+import io.hydrosphere.mist.master.execution.workers.WorkersMirror
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
 
@@ -20,6 +20,7 @@ import scala.reflect.ClassTag
   */
 class JobService(
   val execution: ActorRef,
+  workersMirror: WorkersMirror,
   repo: JobRepository
 ) {
 
@@ -42,65 +43,48 @@ class JobService(
   def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
     repo.getAll(limit, offset, statuses)
 
-  def workers(): Future[Seq[WorkerLink]] =
-    askManager[Seq[WorkerLink]](GetWorkers)
+  def workers(): Seq[WorkerLink] = workersMirror.workers()
 
   def workerByJobId(jobId: String): Future[Option[WorkerLink]] = {
     val res = for {
       job        <- OptionT(jobStatusById(jobId))
-      workerLink <- OptionT(fetchWorkerLink(job))
+      workerId   <- OptionT.fromOption[Future](job.workerId)
+      workerLink <- OptionT.fromOption[Future](workersMirror.worker(workerId))
     } yield workerLink
     res.value
   }
 
-  //TODO!
-  private def fetchWorkerLink(job: JobDetails): Future[Option[WorkerLink]] = {
-    Future.successful(None)
-//    val res = for {
-//      startTime  <- OptionT.fromOption[Future](job.startTime)
-//      (state, _) <- OptionT(workerInitInfo(job.workerId))
-//      l          <- OptionT.fromOption[Future](toWorkerLink(state))
-//      link       <- OptionT.fromOption[Future](if (state.timestamp <= startTime) Some(l) else None)
-//      workerLink =  link.copy(name = job.workerId)
-//    } yield workerLink
-//    res.value
-  }
-
-  private def toWorkerLink(state: WorkerState): Option[WorkerLink] = state match {
-    case Started(addr, sparkUi) => Some(WorkerLink("", addr.toString, sparkUi))
-    case _                            => None
-  }
-
   def getWorkerInfo(workerId: String): Future[Option[WorkerFullInfo]] = {
-    val res = for {
-      workerInfo                       <- OptionT(workerInitInfo(workerId))
-      jobs                             <- OptionT.liftF(jobsByWorker(workerId, workerInfo._1))
-      jobsLink                         =  jobs.map(toJobLinks)
-      (initInfo, address, sparkUi)     =  workerInfo match {
-                                            case (Started(a, s), i) => (i, a.toString, s)
-                                            case (_, i) => (i, "", None)
-                                          }
-    } yield WorkerFullInfo(workerId, address, sparkUi, jobsLink, initInfo)
-
-    res.value
+    workersMirror.worker(workerId) match {
+      case Some(link) =>
+        // TODO
+        repo.getByWorkerId(workerId).map(jobs => Some(WorkerFullInfo(
+          name = link.name,
+          address = link.address,
+          sparkUi = link.sparkUi,
+          jobs = jobs.map(toJobLinks),
+          initInfo = WorkerInitInfo(
+            sparkConf = Map.empty,
+            maxJobs = 0,
+            downtime = 1 hour,
+            streamingDuration = 1 minute,
+            logService = "",
+            masterHttpConf = "",
+            jobsSavePath = ""
+          ))
+        ))
+      case None => Future.successful(None)
+    }
   }
-
-  private def workerInitInfo(workerId: String): Future[Option[(WorkerState, WorkerInitInfo)]] =
-    askManager[Option[(WorkerState, WorkerInitInfo)]](GetInitInfo(workerId))
-
-  private def jobsByWorker(
-    workerId: String,
-    state: WorkerState
-  ): Future[Seq[JobDetails]] =
-    repo.getByWorkerIdBeforeDate(workerId, state.timestamp)
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
       job.status, job.endpoint, job.workerId, job.createTime
   )
 
+  // TODO
   def stopAllWorkers(): Future[Unit] = execution.ask(StopAllWorkers).map(_ => ())
-
+  // TODO
   def stopWorker(workerId: String): Future[Unit] = execution.ask(StopWorker(workerId)).map(_ => ())
 
   def startJob(req: JobStartRequest): Future[ExecutionInfo] = {

@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.execution.remote
+package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}

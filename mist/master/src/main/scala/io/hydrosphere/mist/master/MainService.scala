@@ -11,7 +11,9 @@ import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.execution.ContextFrontend.Event.UpdateContext
 import io.hydrosphere.mist.master.execution.ExecutionInfo
+import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._

@@ -4,7 +4,7 @@ import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.TestUtils
-import io.hydrosphere.mist.master.execution.remote.{WorkerConnection, WorkerConnector}
+import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.utils.akka.ActorF
 import mist.api.data.JsLikeNumber

@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution
 import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.execution.remote.WorkerConnection
+import io.hydrosphere.mist.master.execution.workers.WorkerConnection
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import mist.api.data.JsLikeData
 
