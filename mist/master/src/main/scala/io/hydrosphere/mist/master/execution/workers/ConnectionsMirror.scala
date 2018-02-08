@@ -1,40 +1,39 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import io.hydrosphere.mist.master.WorkerLink
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.concurrent.TrieMap
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Collects alive worker connections
   */
-trait WorkersMirror extends Logger { self =>
+trait ConnectionsMirror extends Logger { self =>
 
-  import WorkersMirror._
+  import ConnectionsMirror._
 
-  private val workersMap = TrieMap.empty[String, WorkerLink]
+  private val workersMap = TrieMap.empty[String, WorkerConnection]
 
-  private def add(workerLink: WorkerLink): Unit = workersMap.update(workerLink.name, workerLink)
+  private def add(conn: WorkerConnection): Unit = workersMap.update(conn.data.name, conn)
   private def remove(id: String): Unit = workersMap.remove(id)
 
-  def workers(): Seq[WorkerLink] = workersMap.values.toSeq
+  def workerConnections(): Seq[WorkerConnection] = workersMap.values.toSeq
 
-  def worker(id: String): Option[WorkerLink] = workersMap.get(id)
+  def workerConnection(id: String): Option[WorkerConnection] = workersMap.get(id)
 
   def spy(connector: WorkerConnector): WorkerConnector = spiedConnector(self, connector)
 
 }
 
-object WorkersMirror extends Logger {
+object ConnectionsMirror extends Logger {
 
   /**
     * Used for spying over connectors and report created connections to mirror
     */
   class MirrorSpyConnector(
-    mirror: WorkersMirror,
+    mirror: ConnectionsMirror,
     underlying: WorkerConnector
   ) extends WorkerConnector {
 
@@ -48,17 +47,17 @@ object WorkersMirror extends Logger {
     }
 
     private def spy(conn: WorkerConnection): Unit = {
-      mirror.add(conn.data)
+      mirror.add(conn)
       conn.whenTerminated.onComplete(_ => mirror.remove(conn.data.name))
     }
   }
 
   private def spiedConnector(
-    mirror: WorkersMirror,
+    mirror: ConnectionsMirror,
     connector: WorkerConnector
   ): WorkerConnector = new MirrorSpyConnector(mirror, connector)
 
-}
+  def standalone(): ConnectionsMirror = new ConnectionsMirror {}
 
-class StandaloneWorkersMirror extends WorkersMirror
+}
 

@@ -6,10 +6,10 @@ import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.{JobDetails, JobResult, WorkerFullInfo, WorkerLink}
+import io.hydrosphere.mist.master.execution.{WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
-import mist.api.args.{ArgType, MBoolean}
+import io.hydrosphere.mist.master.{JobDetails, JobResult}
 import mist.api.data._
 import spray.json._
 
@@ -55,7 +55,6 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 trait MDataFormat {
 
   implicit val mDataFormat = new RootJsonFormat[JsLikeData] {
-    //TODO: MORE TYPES!!!
     override def read(json: JsValue): JsLikeData = {
       json match {
         case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
@@ -132,10 +131,37 @@ trait JsonCodecs extends SprayJsonSupport
       "name", "execute", "serve",
       "isHiveJob", "isSqlJob","isStreamingJob", "isMLJob", "isPython")))
 
+  implicit val durationF = new JsonFormat[Duration] {
+
+    override def write(obj: Duration): JsValue = {
+      obj match {
+        case x :FiniteDuration => JsString(s"${x.toSeconds}s")
+        case _ => JsString("Inf")
+      }
+    }
+
+    override def read(json: JsValue): Duration = json match {
+      case JsString("Inf") => Duration.Inf
+      case JsString(s) =>
+        if (s.endsWith("s")) {
+          val millis = s.replace("s", "").toLong
+          millis.seconds
+        } else {
+          throw DeserializationException(s"$s should have format [Inf|%d+s] ")
+        }
+      case x => throw DeserializationException(s"Duration should be JsString")
+    }
+  }
+
   implicit val httpJobInfoV2F = rootFormat(lazyFormat(jsonFormat(HttpEndpointInfoV2.apply,
     "name", "lang", "execute", "tags", "path", "className", "defaultContext")))
 
-  implicit val workerLinkF = jsonFormat3(WorkerLink)
+
+  implicit val workerInitInfoF = rootFormat(lazyFormat(jsonFormat(WorkerInitInfo.apply,
+    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterHttpConf", "jobsSavePath")))
+
+  implicit val workerLinkF = rootFormat(lazyFormat(jsonFormat(WorkerLink.apply,
+    "name", "address", "sparkUi", "initInfo")))
 
   implicit val localDateF = new JsonFormat[LocalDateTime] {
     val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -168,11 +194,7 @@ trait JsonCodecs extends SprayJsonSupport
     override def write(obj: RunMode): JsValue = {
       obj match {
         case RunMode.Shared => JsObject(("type", JsString("shared")))
-        case RunMode.ExclusiveContext(id) =>
-          JsObject(
-            ("type", JsString("exclusive")),
-            ("id", id.map(JsString(_)).getOrElse(JsNull))
-          )
+        case RunMode.ExclusiveContext => JsObject(("type", JsString("exclusive")))
       }
     }
 
@@ -184,17 +206,12 @@ trait JsonCodecs extends SprayJsonSupport
       }
       modeType match {
         case "shared" => RunMode.Shared
-        case "exclusive" =>
-          val id = obj.fields.get("id") match {
-            case Some(JsString(i)) => Some(i)
-            case _ => None
-          }
-          RunMode.ExclusiveContext(id)
+        case "exclusive" => RunMode.ExclusiveContext
       }
     }
   }
 
-  implicit val runSettingsF = jsonFormat2(RunSettings.apply)
+  implicit val runSettingsF = jsonFormat1(RunSettings.apply)
 
   implicit val jobStartRequestF = jsonFormat5(EndpointStartRequest)
   implicit val asynJobStartRequestF = jsonFormat4(AsyncEndpointStartRequest)
@@ -207,30 +224,8 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
-  implicit val durationF = new JsonFormat[Duration] {
-
-    override def write(obj: Duration): JsValue = {
-      obj match {
-        case x :FiniteDuration => JsString(s"${x.toSeconds}s")
-        case _ => JsString("Inf")
-      }
-    }
-
-    override def read(json: JsValue): Duration = json match {
-      case JsString("Inf") => Duration.Inf
-      case JsString(s) =>
-        if (s.endsWith("s")) {
-          val millis = s.replace("s", "").toLong
-          millis.seconds
-        } else {
-          throw DeserializationException(s"$s should have format [Inf|%d+s] ")
-        }
-      case x => throw DeserializationException(s"Duration should be JsString")
-    }
-  }
 
   implicit val jobDetailsLinkF = jsonFormat8(JobDetailsLink)
-  implicit val WorkerInitInfoF = jsonFormat7(WorkerInitInfo)
   implicit val workerFullInfoF = jsonFormat5(WorkerFullInfo)
 
   implicit val contextConfigF = jsonFormat8(ContextConfig.apply)

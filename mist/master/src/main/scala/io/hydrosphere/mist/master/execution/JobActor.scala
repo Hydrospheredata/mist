@@ -10,6 +10,13 @@ import mist.api.data.JsLikeData
 import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
 
+sealed trait ExecStatus
+object ExecStatus {
+  case object Queued extends ExecStatus
+  case object Started extends ExecStatus
+  case object Cancelling extends ExecStatus
+}
+
 class JobActor(
   callback: ActorRef,
   req: RunJobRequest,
@@ -48,28 +55,18 @@ class JobActor(
     context become cancellingOnExecutor(Seq(cancelRespond), connection, reason)
   }
 
-  private def starting(connection: WorkerConnection, workerRespond: Boolean = false): Receive = {
+  private def starting(connection: WorkerConnection): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Queued
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
-    case Terminated(_) =>
-      if (workerRespond) onExecutorTermination()
-      else {
-        log.info(s"Returning job: {} back to initial state, worker didn't respond on start request", req.id)
-        context become initial
-      }
+    case Terminated(_) => onExecutorTermination()
 
     case JobFileDownloading(id, time) =>
       report.report(JobFileDownloadingEvent(id, time))
-      callback ! Event.Started(id)
-      context become starting(connection, true)
 
     case JobStarted(id, time) =>
       report.report(StartedEvent(id, time))
-      if (!workerRespond) {
-        callback ! Event.Started(id)
-      }
       context become completion(callback, connection)
   }
 
@@ -147,7 +144,6 @@ object JobActor {
     case object Cancel extends Event
     case object Timeout extends Event
     final case class Perform(connection: WorkerConnection) extends Event
-    final case class Started(id: String) extends Event
     final case class Completed(id: String) extends Event
     case object GetStatus extends Event
   }

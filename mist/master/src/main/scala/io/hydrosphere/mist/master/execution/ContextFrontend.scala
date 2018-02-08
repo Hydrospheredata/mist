@@ -112,7 +112,7 @@ class ContextFrontend(
 
     {
       case Event.Status => sender() ! mkStatus(state)
-      case Event.UpdateContext(updCtx) => log.warning("NON IMPLEMENTED")
+      case Event.UpdateContext(updCtx) => log.warning("Not implemented")
 
       case req: RunJobRequest => becomeNextState(mkJob(req, state, sender()))
       case CancelJobRequest(id) => becomeNextState(cancelJob(id, state, sender()))
@@ -138,7 +138,12 @@ class ContextFrontend(
         log.warning(s"Received unexpected completed event from $id")
 
       //TODO? restart timeouts
-      case Event.ConnectorCrushed(id, ref) if ref == connector =>
+      case Event.ConnectorCrushed(id, e) =>
+        log.error(e, "Executor {} died", id)
+        val (newId, newConn) = startConnector(ctx)
+        becomeWithConnector(ctx, state, UsedConnections.empty, newConn)
+
+      case Event.ConnectorStopped(id) =>
         log.error(s"Executor $id died")
         val (newId, newConn) = startConnector(ctx)
         becomeWithConnector(ctx, state, UsedConnections.empty, newConn)
@@ -152,8 +157,11 @@ class ContextFrontend(
     id -> connectorStarter(id, ctx)
   }
 
-  private def cancelJob(id: String, state: State, respond: ActorRef): State = state.get(id) match {
-    case Some(ref) =>
+  private def cancelJob(id: String, state: State, respond: ActorRef): State = state.getWithState(id) match {
+    case Some((ref, Working)) =>
+      ref.tell(JobActor.Event.Cancel, respond)
+      state
+    case Some((ref, Waiting)) =>
       ref.tell(JobActor.Event.Cancel, respond)
       state.remove(id)
     case None =>

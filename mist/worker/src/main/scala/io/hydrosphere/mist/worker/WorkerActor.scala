@@ -101,8 +101,8 @@ class SharedWorkerActor(
     case req: RunJobRequest => tryRun(req, sender())
     case CancelJobRequest(id) => tryCancel(id, sender())
     case resp: JobResponse => onJobComplete(resp)
-    case CompeleteAndShutdown if activeJobs.isEmpty => self ! PoisonPill
-    case CompeleteAndShutdown => context become completeAndShutdown()
+    case CompleteAndShutdown if activeJobs.isEmpty => self ! PoisonPill
+    case CompleteAndShutdown => context become completeAndShutdown()
   }
 
   private def completeAndShutdown(): Receive = {

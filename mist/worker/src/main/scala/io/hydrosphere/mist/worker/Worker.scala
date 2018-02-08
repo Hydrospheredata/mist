@@ -90,7 +90,7 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val props = ClusterWorker.props(
+    val props = MasterBridge.props(
       id = arguments.name,
       regHub = regHub,
       workerInit = WorkerActor.propsFromInitInfo(name, arguments.contextName, mode)

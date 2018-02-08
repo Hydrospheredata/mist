@@ -7,7 +7,7 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.ExecutionInfo
+import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
@@ -29,7 +29,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should run job") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
+    val jobService = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val jobInfoProviderService = mock[JobInfoProviderService]
 
@@ -63,7 +63,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should return failed future on validating params") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
+    val jobService = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
@@ -93,7 +93,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should fail job execution when context config filled with incorrect worker mode") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
+    val jobService = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
@@ -136,7 +136,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should select exclusive run mode on streaming jobs") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
+    val jobService = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]
@@ -181,7 +181,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should select run mode from context config when job is not streaming") {
     val endpoints = mock[EndpointsStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[JobService]
+    val jobService = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[JobInfoProviderService]

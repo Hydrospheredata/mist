@@ -3,11 +3,11 @@ package io.hydrosphere.mist.worker
 import akka.actor._
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.ActorRegHub
-import io.hydrosphere.mist.worker.ClusterWorker.ReceiveInitTimeout
+import io.hydrosphere.mist.worker.MasterBridge.ReceiveInitTimeout
 
 import scala.concurrent.duration._
 
-class ClusterWorker(
+class MasterBridge(
   id: String,
   regHub: ActorRef,
   workerInit: WorkerInitInfo => (NamedContext, Props)
@@ -25,6 +25,7 @@ class ClusterWorker(
 
   private def waitInit: Receive = {
     case init:WorkerInitInfo =>
+      timers.cancel(initTimerKey)
       log.info("received init info, {}", init)
       val (nm, props) = workerInit(init)
       val ref = context.actorOf(props)
@@ -52,6 +53,12 @@ class ClusterWorker(
     case Terminated(ref) if ref == worker =>
       log.info("Underlying worker was terminated - shutdown")
       shutdown()
+
+    case ForceShutdown =>
+      log.info("Received force shutdown")
+      worker ! PoisonPill
+      shutdown()
+
     case x => worker forward x
   }
 
@@ -61,12 +68,12 @@ class ClusterWorker(
   }
 }
 
-object ClusterWorker {
+object MasterBridge {
 
   case object ReceiveInitTimeout
 
   def props(id: String, regHub: ActorRef, workerInit: WorkerInitInfo => (NamedContext, Props)): Props = {
-    Props(classOf[ClusterWorker], id, regHub, workerInit)
+    Props(classOf[MasterBridge], id, regHub, workerInit)
   }
 }
 

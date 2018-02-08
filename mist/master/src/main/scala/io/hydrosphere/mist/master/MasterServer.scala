@@ -1,19 +1,19 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
+import akka.pattern.gracefulStop
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
-import akka.pattern.gracefulStop
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.workers.{StandaloneWorkersMirror, WorkerConnector, WorkersMirror}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.{ExecutionMaster, SpawnSettings}
+import io.hydrosphere.mist.master.execution.workers.{ConnectionsMirror, WorkerConnector, WorkerHub, WorkerRunner}
+import io.hydrosphere.mist.master.execution.{ContextsMaster, ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
@@ -25,8 +25,8 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.language.reflectiveCalls
 import scala.util._
 
@@ -99,36 +99,17 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runJobService(jobsLogger: JobsLogger): JobService = {
+    def runExecutionService(jobsLogger: JobsLogger): ExecutionService = {
       val workerRunner = WorkerRunner.create(config)
-      val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
-
-//      val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
-      val statusR = StatusReporter.reporter(store, streamer)
-
-      val regHub = ActorRegHub("regHub", system)
-      logger.info("RegHub:" + regHub.regPath)
-
-      val workersMirror = new StandaloneWorkersMirror
-      val defaultStater = WorkerConnector.default(regHub, SpawnSettings(workerRunner, 2 minutes), system)
-      val connectorStarter = (id: String, ctx: ContextConfig) => {
-        val conntor = defaultStater(id, ctx)
-        workersMirror.spy(conntor)
-      }
-      val execMaster = system.actorOf(ExecutionMaster.props(
-        statusR,
-        connectorStarter
-      ))
-
-//      val workerManager = system.actorOf(
-//        WorkersManager.props(
-//          status, workerRunner,
-//          jobsLogger,
-//          config.workers.runnerInitTimeout,
-//          infoProvider
-//        ), "workers-manager")
-
-      new JobService(execMaster, workersMirror, store)
+      val spawnSettings = SpawnSettings(
+        runner = workerRunner,
+        timeout = config.workers.runnerInitTimeout,
+        akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
+        logAddress = s"${config.http.host}:${config.http.port}",
+        httpAddress = s"${config.http.host}:${config.http.port}",
+        jobsSavePath = config.artifactRepositoryPath
+      )
+      ExecutionService(spawnSettings, system, streamer, store)
     }
 
     val artifactRepository = ArtifactRepository.create(
@@ -154,7 +135,7 @@ object MasterServer extends Logger {
                                       endpointsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      jobsService            =  runJobService(logService.getLogger)
+      jobsService            =  runExecutionService(logService.getLogger)
       masterService          <- start("Main service", MainService.start(
                                                         jobsService,
                                                         endpointsStorage,

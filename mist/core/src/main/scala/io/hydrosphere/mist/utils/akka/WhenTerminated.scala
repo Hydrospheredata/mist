@@ -2,9 +2,12 @@ package io.hydrosphere.mist.utils.akka
 
 import akka.actor._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
+
 class WhenTerminated(
   ref: ActorRef,
-  f: => Unit
+  promise: Promise[Unit]
 ) extends Actor {
 
   override def preStart: Unit = {
@@ -13,16 +16,21 @@ class WhenTerminated(
 
   def receive: Receive = {
     case Terminated(_) =>
-      f
+      promise.success(())
       context.stop(self)
   }
 }
 
 object WhenTerminated {
 
-  def apply(ref: ActorRef, action: => Unit)(implicit f: ActorRefFactory): ActorRef = {
-    val props = Props(classOf[WhenTerminated], ref, () => action)
-    f.actorOf(props)
+  def apply(ref: ActorRef)(implicit fa: ActorRefFactory): Future[Unit] = {
+    val promise = Promise[Unit]
+    val props = Props(classOf[WhenTerminated], ref, promise)
+    fa.actorOf(props)
+    promise.future
   }
+
+  def apply(ref: ActorRef, action: => Unit)(implicit fa: ActorRefFactory): Unit =
+    apply(ref).onComplete(_ => action)
 
 }

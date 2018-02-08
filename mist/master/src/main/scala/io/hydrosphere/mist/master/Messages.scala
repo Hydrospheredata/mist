@@ -41,7 +41,7 @@ object Messages {
 
   object JobExecution {
 
-    case class RunJobCommand(context: ContextConfig, mode: RunMode, request: RunJobRequest)
+    case class RunJobCommand(context: ContextConfig, request: RunJobRequest)
     case class CancelJobCommand(context: String, request: CancelJobRequest)
 
     case class CreateContext(context: ContextConfig)

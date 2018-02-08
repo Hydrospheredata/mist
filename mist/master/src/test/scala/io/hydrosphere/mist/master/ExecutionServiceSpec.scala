@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.execution.ExecutionInfo
+import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
 import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode}
 import io.hydrosphere.mist.master.store.JobRepository
 import org.scalatest._
@@ -14,7 +14,7 @@ import org.scalatest._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
+class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
   with Matchers
   with MockitoSugar
@@ -27,7 +27,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val repo = mock[JobRepository]
       when(repo.update(any[JobDetails])).thenSuccess(())
 
-      val service = new JobService(execution.ref, repo)
+      val service = new ExecutionService(execution.ref, repo)
 
       val future = service.startJob(
         JobStartRequest(
@@ -59,7 +59,7 @@ class JobServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val repo = mock[JobRepository]
       when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
 
-      val service = new JobService(execution.ref, repo)
+      val service = new ExecutionService(execution.ref, repo)
 
       val future = service.stopJob("id")
 

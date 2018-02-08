@@ -7,15 +7,12 @@ import scala.concurrent.duration.Duration
 
 object CommonData {
 
-  /**
-    * Request data for creating spark/mist context on worker
-    */
-  case class WorkerInitInfoReq(contextName: String)
   case class WorkerReady(
     id: String,
     sparkUi: Option[String]
   )
-  case object CompeleteAndShutdown
+  case object CompleteAndShutdown
+  case object ForceShutdown
 
   /**
     * Data for creation spark/mist context on worker
@@ -28,15 +25,6 @@ object CommonData {
     logService: String,
     masterHttpConf: String,
     jobsSavePath: String
-  )
-
-  /**
-    * Initial message to master when worker ready to work
-    */
-  case class WorkerRegistration(
-    name: String,
-    address: String,
-    sparkUi: Option[String]
   )
 
   case class JobParams(

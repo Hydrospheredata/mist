@@ -25,7 +25,7 @@ class SharedConnector(
 
   private def connecting(requests: Seq[Promise[WorkerConnection]]): Receive = {
     case Event.AskConnection(req) =>
-      context become connecting(requests :+ req)
+      context become connecting(req +: requests)
 
     case akka.actor.Status.Failure(e) =>
       log.error(e, s"Could not start worker connection for $id")

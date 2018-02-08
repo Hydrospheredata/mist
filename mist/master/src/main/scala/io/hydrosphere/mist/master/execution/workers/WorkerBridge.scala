@@ -1,11 +1,10 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated, Timers}
-import io.hydrosphere.mist.core.CommonData.{WorkerInitInfo, WorkerReady}
-import io.hydrosphere.mist.master.WorkerLink
-import io.hydrosphere.mist.utils.akka.WhenTerminated
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated, Timers}
+import io.hydrosphere.mist.core.CommonData.{ForceShutdown, WorkerInitInfo, WorkerReady}
+import io.hydrosphere.mist.master.execution.WorkerLink
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -26,25 +25,25 @@ class WorkerBridge(
   override def preStart(): Unit = {
     context watch remote
     remote ! initInfo
-    timers.startSingleTimer(initTimerKey, Event.InitTimeout, readyTimeout)
+    timers.startSingleTimer(initTimerKey, InitTimeout, readyTimeout)
   }
 
-  override def receive: Receive = initialiazing
+  override def receive: Receive = connecting
 
-  private def initialiazing: Receive = {
+  private def connecting: Receive = {
     case WorkerReady(wId, sparkUi) if wId == id =>
       timers.cancel(initTimerKey)
       val terminated = Promise[Unit]
       val connection = WorkerConnection(
         id = id,
         ref = self,
-        data = WorkerLink(id, sender().path.toString, sparkUi),
+        data = WorkerLink(id, sender().path.toString, sparkUi, initInfo),
         whenTerminated = terminated.future
       )
       ready.success(connection)
       context become process(terminated)
 
-    case Event.InitTimeout =>
+    case InitTimeout =>
       val msg = s"Worker $id was terminated during initialization"
       log.warning(msg)
       ready.failure(new RuntimeException(msg))
@@ -62,6 +61,12 @@ class WorkerBridge(
       terminated.success(())
       context stop self
 
+    case ForceShutdown =>
+      log.info("Received force shutdown")
+      remote ! ForceShutdown
+      terminated.failure(new RuntimeException(s"Connection $id was stopped forcibly"))
+      context stop self
+
     case other => remote forward other
   }
 
@@ -69,17 +74,25 @@ class WorkerBridge(
 
 object WorkerBridge {
 
-  sealed trait Event
-  object Event {
-    case object InitTimeout
-  }
+  case object InitTimeout
 
   def props(
     id: String,
     initInfo: WorkerInitInfo,
-    remote: ActorRef,
+    readyTimeout: FiniteDuration,
     ready: Promise[WorkerConnection],
-    readyTimeout: FiniteDuration
+    remote: ActorRef
   ): Props = Props(classOf[WorkerBridge], id, initInfo, remote, ready, readyTimeout)
+
+  def connect(
+    id: String,
+    initInfo: WorkerInitInfo,
+    readyTimeout: FiniteDuration,
+    remote: ActorRef
+  )(implicit af: ActorRefFactory): Future[WorkerConnection] = {
+    val ready = Promise[WorkerConnection]
+    af.actorOf(props(id, initInfo, readyTimeout, ready, remote))
+    ready.future
+  }
 
 }

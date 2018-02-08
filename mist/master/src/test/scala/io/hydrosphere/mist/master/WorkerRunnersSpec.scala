@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.master.execution.workers.ShellWorkerScript
 import io.hydrosphere.mist.master.models.RunMode
 import org.scalatest.{FunSpec, Matchers}
 

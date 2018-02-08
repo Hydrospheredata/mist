@@ -1,26 +1,28 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.master.execution
 
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest, WorkerInitInfo}
+import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.execution.ExecutionInfo
-import io.hydrosphere.mist.master.execution.workers.WorkersMirror
+import io.hydrosphere.mist.master.execution.ContextFrontend.Event.UpdateContext
+import io.hydrosphere.mist.master.execution.status.StatusReporter
+import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
+import io.hydrosphere.mist.master.{EventsStreamer, JobDetails}
+import io.hydrosphere.mist.utils.akka.ActorF
 
 import scala.concurrent.Future
-import scala.reflect.ClassTag
 
 /**
   *  Jobs starting/stopping, statuses, worker utility methods
   */
-class JobService(
-  val execution: ActorRef,
-  workersMirror: WorkersMirror,
+class ExecutionService(
+  contextsMaster: ActorRef,
+  workersHub: WorkerHub,
   repo: JobRepository
 ) {
 
@@ -43,36 +45,31 @@ class JobService(
   def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
     repo.getAll(limit, offset, statuses)
 
-  def workers(): Seq[WorkerLink] = workersMirror.workers()
+  def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
 
   def workerByJobId(jobId: String): Future[Option[WorkerLink]] = {
     val res = for {
-      job        <- OptionT(jobStatusById(jobId))
-      workerId   <- OptionT.fromOption[Future](job.workerId)
-      workerLink <- OptionT.fromOption[Future](workersMirror.worker(workerId))
-    } yield workerLink
+      job      <- OptionT(jobStatusById(jobId))
+      workerId <- OptionT.fromOption[Future](job.workerId)
+      conn     <- OptionT.fromOption[Future](workersHub.workerConnection(workerId))
+    } yield conn.data
     res.value
   }
 
   def getWorkerInfo(workerId: String): Future[Option[WorkerFullInfo]] = {
-    workersMirror.worker(workerId) match {
-      case Some(link) =>
-        // TODO
-        repo.getByWorkerId(workerId).map(jobs => Some(WorkerFullInfo(
-          name = link.name,
-          address = link.address,
-          sparkUi = link.sparkUi,
-          jobs = jobs.map(toJobLinks),
-          initInfo = WorkerInitInfo(
-            sparkConf = Map.empty,
-            maxJobs = 0,
-            downtime = 1 hour,
-            streamingDuration = 1 minute,
-            logService = "",
-            masterHttpConf = "",
-            jobsSavePath = ""
-          ))
-        ))
+
+    def mkFullInfo(link: WorkerLink, jobs: Seq[JobDetails]): WorkerFullInfo = {
+      WorkerFullInfo(
+        name = link.name,
+        address = link.address,
+        sparkUi = link.sparkUi,
+        jobs = jobs.map(toJobLinks),
+        initInfo = link.initInfo
+      )
+    }
+
+    workersHub.workerConnection(workerId) match {
+      case Some(conn) => repo.getByWorkerId(workerId).map(jobs => mkFullInfo(conn.data, jobs).some)
       case None => Future.successful(None)
     }
   }
@@ -83,9 +80,10 @@ class JobService(
   )
 
   // TODO
-  def stopAllWorkers(): Future[Unit] = execution.ask(StopAllWorkers).map(_ => ())
-  // TODO
-  def stopWorker(workerId: String): Future[Unit] = execution.ask(StopWorker(workerId)).map(_ => ())
+  def stopAllWorkers(): Future[Unit] = contextsMaster.ask(StopAllWorkers).map(_ => ())
+
+  def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
+
 
   def startJob(req: JobStartRequest): Future[ExecutionInfo] = {
     import req._
@@ -100,7 +98,7 @@ class JobService(
       )
     )
 
-    val startCmd = RunJobCommand(context, runMode, internalRequest)
+    val startCmd = RunJobCommand(context, internalRequest)
 
     val details = JobDetails(
       endpoint.name,
@@ -110,7 +108,7 @@ class JobService(
       externalId, source)
     for {
       _ <- repo.update(details)
-      info <- execution.ask(startCmd).mapTo[ExecutionInfo]
+      info <- contextsMaster.ask(startCmd).mapTo[ExecutionInfo]
     } yield info
   }
 
@@ -120,7 +118,7 @@ class JobService(
 
     def tryCancel(d: JobDetails): Future[Unit] = {
       if (d.isCancellable ) {
-        val f = execution ? CancelJobCommand(d.context, CancelJobRequest(jobId))
+        val f = contextsMaster ? CancelJobCommand(d.context, CancelJobRequest(jobId))
         f.map(_ => ())
       } else Future.successful(())
     }
@@ -135,8 +133,29 @@ class JobService(
     out.value
   }
 
-  private def askManager[T: ClassTag](msg: Any): Future[T] = typedAsk[T](execution, msg)
-  private def typedAsk[T: ClassTag](ref: ActorRef, msg: Any): Future[T] = ref.ask(msg).mapTo[T]
+
+}
+
+object ExecutionService {
+
+  def apply(
+    spawn: SpawnSettings,
+    system: ActorSystem,
+    streamer: EventsStreamer,
+    repo: JobRepository
+  ): ExecutionService = {
+    val hub = WorkerHub(spawn, system)
+    val reporter = StatusReporter.reporter(repo, streamer)(system)
+
+    val mkContext = ActorF[ContextConfig]((ctx, af) => {
+      val props = ContextFrontend.props(ctx.name, reporter, hub.start)
+      val ref = af.actorOf(props)
+      ref ! UpdateContext(ctx)
+      ref
+    })
+    val contextsMaster = system.actorOf(ContextsMaster.props(mkContext))
+    new ExecutionService(contextsMaster, hub, repo)
+  }
 
 }
 

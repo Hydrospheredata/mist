@@ -14,6 +14,7 @@ import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
 import io.hydrosphere.mist.master.models._
@@ -46,7 +47,7 @@ class HttpApiV2Spec extends FunSpec
   describe("workers") {
 
     it("should return workers") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       when(jobService.workers()).thenReturn(Future.successful(Seq(
         WorkerLink("worker", "address", None)
       )))
@@ -61,7 +62,7 @@ class HttpApiV2Spec extends FunSpec
     }
 
     it("should stop worker") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       when(jobService.stopWorker(any[String])).thenReturn(Future.successful(()))
 
       val route = HttpV2Routes.workerRoutes(jobService)
@@ -71,7 +72,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should get full worker info") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       when(jobService.getWorkerInfo(any[String]))
         .thenSuccess(Some(WorkerFullInfo(
           "id", "test", None, Seq(),
@@ -127,7 +128,7 @@ class HttpApiV2Spec extends FunSpec
     //    }
 
     it("should return history for endpoint") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobService)
 
@@ -159,7 +160,7 @@ class HttpApiV2Spec extends FunSpec
       val jobInfoProvider = mock[JobInfoProviderService]
 
       val mainService = new MainService(
-        mock[JobService],
+        mock[ExecutionService],
         endpoints,
         mock[ContextsStorage],
         mock[LogStoragePaths],
@@ -194,7 +195,7 @@ class HttpApiV2Spec extends FunSpec
     it("should return different entity when forcibly update") {
       val endpoints = mock[EndpointsStorage]
       val master = new MainService(
-        mock[JobService],
+        mock[ExecutionService],
         endpoints,
         mock[ContextsStorage],
         mock[LogStoragePaths],
@@ -250,7 +251,7 @@ class HttpApiV2Spec extends FunSpec
     )
 
     it("should return jobs status by id") {
-      val jobsService = mock[JobService]
+      val jobsService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobsService)
       when(jobsService.jobStatusById(any[String]))
@@ -265,7 +266,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 400 on logs request when job not found") {
-      val jobsService = mock[JobService]
+      val jobsService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobsService)
       when(jobsService.jobStatusById(any[String]))
@@ -277,7 +278,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return worker info") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService)
         .thenReturn(jobService)
@@ -292,7 +293,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 404 when worker not found") {
-      val jobService = mock[JobService]
+      val jobService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService)
         .thenReturn(jobService)
@@ -305,7 +306,7 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 200 empty response on logs request when job log file not exists") {
-      val jobsService = mock[JobService]
+      val jobsService = mock[ExecutionService]
       val master = mock[MainService]
       val logStorageMappings = mock[LogStoragePaths]
       when(master.jobService).thenReturn(jobsService)

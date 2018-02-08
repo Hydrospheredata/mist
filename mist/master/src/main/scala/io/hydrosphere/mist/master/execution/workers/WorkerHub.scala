@@ -1,29 +1,48 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import akka.actor.ActorSystem
 import io.hydrosphere.mist.master.execution.SpawnSettings
 import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.utils.akka.ActorRegHub
 
-case class MasterConnectionSettings(
-  akkaAddress: String,
-  logAddress: String,
-  httpAddress: String
-)
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
-trait ConnectorStarter {
-
-  def start(id: String, context: ContextConfig): WorkerConnector
-
-}
-
-
+/**
+  * Mix connections mirror and connector starter
+  */
 class WorkerHub(
-  connSettings: MasterConnectionSettings,
-  spawnSettings: SpawnSettings
-) extends ConnectorStarter with WorkersMirror  {
+  mkConnector: (String, ContextConfig) => WorkerConnector
+) extends ConnectionsMirror  {
 
-  override def start(id: String, context: ContextConfig): WorkerConnector = ???
+  def start(id: String, ctx: ContextConfig): WorkerConnector = {
+    val connector = mkConnector(id, ctx)
+    spy(connector)
+  }
+
+  // stopping connection return failed future
+  // because it stops worker focibly
+  // calling stop from here means that user understands it
+  private def shutdownConn(conn: WorkerConnection): Future[Unit] =
+    conn.shutdown().recover({case _ => ()})
+
+  def shutdownWorker(id: String): Future[Unit] = workerConnection(id) match {
+    case Some(connection) => shutdownConn(connection)
+    case None => Future.failed(new IllegalStateException(s"Unknown worker $id"))
+  }
+
+  def shutdownAllWorkers(): Future[Unit] =
+    Future.sequence(workerConnections().map(conn => shutdownConn(conn))).map(_ => ())
 
 }
 
+object WorkerHub {
+
+  def apply(spawn: SpawnSettings, system: ActorSystem): WorkerHub = {
+    val regHub = ActorRegHub("regHub", system)
+    val mkConnector = WorkerConnector.default(regHub, spawn, system)(_, _)
+    new WorkerHub(mkConnector)
+  }
+}
 
 

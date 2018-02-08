@@ -2,23 +2,17 @@ package io.hydrosphere.mist.master
 
 import java.util.UUID
 
-import akka.actor._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.Messages.JobExecution.CreateContext
 import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.ContextFrontend.Event.UpdateContext
-import io.hydrosphere.mist.master.execution.ExecutionInfo
-import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest
+import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
 import io.hydrosphere.mist.master.jobs.JobInfoProviderService
-import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
-import mist.api.args.ArgInfo
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -26,7 +20,7 @@ import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 class MainService(
-  val jobService: JobService,
+  val execution: ExecutionService,
   val endpoints: EndpointsStorage,
   val contexts: ContextsStorage,
   val logsPaths: LogStoragePaths,
@@ -83,32 +77,16 @@ class MainService(
       info          <- jobInfoProviderService.getJobInfoByConfig(endpoint)
       context       <- contexts.getOrDefault(req.context)
       _             <- jobInfoProviderService.validateJobByConfig(endpoint, req.parameters)
-      runMode       =  selectRunMode(context, info, req.workerId)
-      executionInfo <- jobService.startJob(JobStartRequest(
+      executionInfo <- execution.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
         endpoint = info,
         context = context,
         parameters = req.parameters,
-        runMode = runMode,
         source = source,
         externalId = req.externalId,
         action = action
       ))
     } yield executionInfo
-  }
-
-  private def selectRunMode(
-    config: ContextConfig,
-    info: JobInfoData,
-    workerId: Option[String]
-  ): RunMode = {
-    if (info.tags.contains(ArgInfo.StreamingContextTag)) ExclusiveContext(workerId)
-    else config.workerMode match {
-      case "exclusive" => ExclusiveContext(workerId)
-      case "shared" => Shared
-      case _ =>
-        throw new IllegalArgumentException(s"unknown worker run mode ${config.workerMode} for context ${config.name}")
-    }
   }
 
   def recoverJobs(): Future[Unit] = {
@@ -122,10 +100,10 @@ class MainService(
       case a: Async => restartJob(d)
       case _ =>
         logger.info(s"Mark job $d as failed")
-        jobService.markJobFailed(d.jobId, "Worker was stopped")
+        execution.markJobFailed(d.jobId, "Worker was stopped")
     }
 
-    jobService.activeJobs().flatMap(notCompleted => {
+    execution.activeJobs().flatMap(notCompleted => {
       val processed = notCompleted.map(d => failOrRestart(d).recoverWith {
         case e: Throwable =>
           logger.error(s"Error occurred during recovering ${d.jobId}", e)
@@ -143,18 +121,16 @@ class MainService(
       info         <- OptionT(jobInfoProviderService.getJobInfo(req.endpointId))
       _            <- OptionT.liftF(jobInfoProviderService.validateJob(req.endpointId, req.parameters))
       context      <- OptionT.liftF(selectContext(req, info.defaultContext))
-      runMode      =  selectRunMode(context, info, req.runSettings.workerId)
       jobStartReq  =  JobStartRequest(
         id = req.id,
         endpoint = info,
         context = context,
         parameters = req.parameters,
-        runMode = runMode,
         source = source,
         externalId = req.externalId,
         action = action
       )
-      executionInfo <- OptionT.liftF(jobService.startJob(jobStartReq))
+      executionInfo <- OptionT.liftF(execution.startJob(jobStartReq))
     } yield executionInfo
 
     out.value
@@ -170,7 +146,7 @@ class MainService(
 object MainService extends Logger {
 
   def start(
-    jobService: JobService,
+    jobService: ExecutionService,
     endpoints: EndpointsStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
@@ -181,7 +157,7 @@ object MainService extends Logger {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {
         logger.info(s"Precreate context for ${ctx.name}")
-        jobService.execution ! CreateContext(ctx)
+        //TODO create context
       })
       _ <- service.recoverJobs()
     } yield service

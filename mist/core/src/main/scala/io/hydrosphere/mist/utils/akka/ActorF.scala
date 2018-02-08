@@ -20,7 +20,7 @@ trait ActorF[A] {
   */
 trait ActorFSyntax {
 
-  implicit class ActorFromCurryied[A](af: ActorF[A])(implicit fa: ActorRefFactory) {
+  implicit class ActorFromFactory[A](af: ActorF[A])(implicit fa: ActorRefFactory) {
     def create(a: A): ActorRef = af.createF(a)(fa)
   }
 
