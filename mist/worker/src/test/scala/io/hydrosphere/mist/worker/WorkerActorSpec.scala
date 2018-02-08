@@ -54,7 +54,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val workers = Table[String, WorkerProps](
       ("name", "f"),
-      ("shared", (r: RunnerSelector) => SharedWorkerActor.props(r, context, artifactDownloader, Duration.Inf, 10)),
+      ("shared", (r: RunnerSelector) => WorkerActor.props(r, context, artifactDownloader, Duration.Inf, 10)),
       ("exclusive", (r: RunnerSelector) => ExclusiveWorkerActor.props(r, context, artifactDownloader))
     )
 
@@ -125,8 +125,8 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     when(artifactDownloader.downloadArtifact(any[String]))
       .thenSuccess(new File("doesn't matter"))
 
-    val props = SharedWorkerActor.props(runnerSelector, context, artifactDownloader, Duration.Inf, 2)
-    val worker = TestActorRef[SharedWorkerActor](props)
+    val props = WorkerActor.props(runnerSelector, context, artifactDownloader, Duration.Inf, 2)
+    val worker = TestActorRef[WorkerActor](props)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
     probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))

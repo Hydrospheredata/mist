@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated, Timers}
-import io.hydrosphere.mist.core.CommonData.{ForceShutdown, WorkerInitInfo, WorkerReady}
+import io.hydrosphere.mist.core.CommonData.{ForceShutdown, WorkerInitInfo, WorkerReady, WorkerStartFailed}
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.{Future, Promise}
@@ -42,6 +42,13 @@ class WorkerBridge(
       )
       ready.success(connection)
       context become process(terminated)
+
+    case WorkerStartFailed(wId, msg) if wId == id =>
+      timers.cancel(initTimerKey)
+      val expl = s"Worker $id instantiation failed:" + msg
+      log.error(expl)
+      ready.failure(new RuntimeException(expl))
+      context stop self
 
     case InitTimeout =>
       val msg = s"Worker $id was terminated during initialization"

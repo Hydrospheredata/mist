@@ -11,6 +11,7 @@ object CommonData {
     id: String,
     sparkUi: Option[String]
   )
+  case class WorkerStartFailed(id: String, message: String)
   case object CompleteAndShutdown
   case object ForceShutdown
 

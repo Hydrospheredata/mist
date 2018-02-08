@@ -72,15 +72,12 @@ trait JobStarting {
   }
 }
 
-class SharedWorkerActor(
+class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
   val artifactDownloader: ArtifactDownloader,
-  idleTimeout: Duration,
   maxJobs: Int
 ) extends Actor with JobStarting with ActorLogging {
-
-  val activeJobs = mutable.Map[String, ExecutionUnit]()
 
   implicit val ec = {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -91,9 +88,7 @@ class SharedWorkerActor(
     )
   }
 
-  override def preStart(): Unit = {
-    context.setReceiveTimeout(idleTimeout)
-  }
+  val activeJobs = mutable.Map[String, ExecutionUnit]()
 
   override def receive: Receive = process()
 
@@ -143,57 +138,61 @@ class SharedWorkerActor(
   override def postStop(): Unit = {
     ec.shutdown()
     artifactDownloader.stop()
-    namedContext.stop()
   }
-
-}
-
-object SharedWorkerActor {
-
-  def props(
-    runnerSelector: RunnerSelector,
-    context: NamedContext,
-    artifactDownloader: ArtifactDownloader,
-    idleTimeout: Duration,
-    maxJobs: Int
-  ): Props =
-    Props(new SharedWorkerActor(runnerSelector, context, artifactDownloader, idleTimeout, maxJobs))
 
 }
 
 object WorkerActor {
 
-  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => (NamedContext, Props) = {
+  def props(
+    context: NamedContext,
+    artifactDownloader: ArtifactDownloader,
+    maxJobs: Int,
+    runnerSelector: RunnerSelector
+  ): Props =
+    Props(new WorkerActor(runnerSelector, context, artifactDownloader, maxJobs))
 
-    def mkNamedContext(info: WorkerInitInfo): NamedContext = {
-      import info._
-
-      val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
-      val sparkContext = new SparkContext(conf)
-
-      val centralLoggingConf = {
-        val hostPort = logService.split(":")
-        CentralLoggingConf(hostPort(0), hostPort(1).toInt)
-      }
-
-      new NamedContext(
-        sparkContext,
-        contextName,
-        org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
-        Option(centralLoggingConf)
-      )
-    }
-
-    (info: WorkerInitInfo) => {
-      val namedContext = mkNamedContext(info)
-      val (h, p) = info.masterHttpConf.split(':') match {
-        case Array(host, port) => (host, port.toInt)
-      }
-      val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
-      val runnerSelector = new SimpleRunnerSelector
-      val props = SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
-      (namedContext, props)
-    }
-  }
-
+  def props(
+    context: NamedContext,
+    artifactDownloader: ArtifactDownloader,
+    maxJobs: Int
+  ): Props =
+    Props(new WorkerActor(new SimpleRunnerSelector, context, artifactDownloader, maxJobs))
 }
+
+//object WorkerActor {
+//
+//  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => (NamedContext, Props) = {
+//
+//    def mkNamedContext(info: WorkerInitInfo): NamedContext = {
+//      import info._
+//
+//      val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
+//      val sparkContext = new SparkContext(conf)
+//
+//      val centralLoggingConf = {
+//        val hostPort = logService.split(":")
+//        CentralLoggingConf(hostPort(0), hostPort(1).toInt)
+//      }
+//
+//      new NamedContext(
+//        sparkContext,
+//        contextName,
+//        org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
+//        Option(centralLoggingConf)
+//      )
+//    }
+//
+//    (info: WorkerInitInfo) => {
+//      val namedContext = mkNamedContext(info)
+//      val (h, p) = info.masterHttpConf.split(':') match {
+//        case Array(host, port) => (host, port.toInt)
+//      }
+//      val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
+//      val runnerSelector = new SimpleRunnerSelector
+//      val props = WorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
+//      (namedContext, props)
+//    }
+//  }
+//
+//}

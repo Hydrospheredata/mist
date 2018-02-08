@@ -2,28 +2,18 @@ package io.hydrosphere.mist.worker
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
-import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
   masterAddress: String = "",
-  name: String = "",
-  contextName: String = "",
-  mode: String = "shared"
+  name: String = ""
 ) {
 
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
-
-  def workerMode: WorkerMode = mode match {
-    case "shared" => Shared
-    case "exclusive" => Exclusive
-    case arg => throw new IllegalArgumentException(s"Unknown worker mode $arg")
-  }
 
   def bindHost: String = bindAddress.split(":")(0)
   def bindPort: Int = bindAddress.split(":")(1).toInt
@@ -69,7 +59,6 @@ object Worker extends App with Logger {
     val arguments = WorkerArguments.forceParse(args)
     val name = arguments.name
 
-    val mode = arguments.workerMode
     logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
 
     val config = ConfigFactory.load("worker")
@@ -90,18 +79,14 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val props = MasterBridge.props(
-      id = arguments.name,
-      regHub = regHub,
-      workerInit = WorkerActor.propsFromInitInfo(name, arguments.contextName, mode)
-    )
+    val props = MasterBridge.props(arguments.name, regHub)
     system.actorOf(props, s"worker-$name")
 
-    val msg = s"Worker $name is started, context ${arguments.contextName}, mode = $mode"
+    val msg = s"Worker $name is started, context ${arguments.name}"
     logger.info(msg)
 
     Await.result(system.whenTerminated, Duration.Inf)
-    logger.info(s"Shutdown worker application $name ${arguments.contextName}")
+    logger.info(s"Shutdown worker application $name ${arguments.name}")
     sys.exit()
   } catch {
     case e: Throwable =>

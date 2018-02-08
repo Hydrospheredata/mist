@@ -1,16 +1,15 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.{ActorRef, ActorRefFactory, ActorSystem}
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ForceShutdown, WorkerInitInfo}
+import akka.actor.{ActorRef, ActorRefFactory}
+import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ForceShutdown}
 import io.hydrosphere.mist.master.execution.SpawnSettings
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.{ActorRegHub, WhenTerminated}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
-
-import scala.concurrent.ExecutionContext.Implicits.global
 
 trait WorkerConnector {
 
