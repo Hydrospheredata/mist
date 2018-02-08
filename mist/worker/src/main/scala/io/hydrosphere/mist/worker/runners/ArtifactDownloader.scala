@@ -59,7 +59,7 @@ case class HttpArtifactDownloader(
     for {
       r <- Http().singleRequest(request)
       resp = checkResponse(uri, r)
-      checksum <- Unmarshal(resp.entity.withSizeLimit(maxArtifactSize)).to[String]
+      checksum <- Unmarshal(resp.entity).to[String]
     } yield checksum
   }
 
