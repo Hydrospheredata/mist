@@ -19,7 +19,8 @@ class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
       LogServiceConfig("logHost", 999, ""),
       HttpConfig("localhost", 2004, "ui", 30 seconds),
       contexts,
-      "/tmp"
+      "/tmp",
+      WorkersSettingsConfig("local", 1 second, 250000, "localhost", 24, "none", "none")
     )
 
     val info = provider.workerInitInfo("foo").await
@@ -31,6 +32,7 @@ class InfoProviderSpec extends FunSpec with Matchers with MockitoSugar {
     info.logService shouldBe "logHost:999"
     info.masterHttpConf shouldBe "localhost:2004"
     info.jobsSavePath shouldBe "/tmp"
+    info.maxArtifactSize shouldBe 250000
   }
 
 }

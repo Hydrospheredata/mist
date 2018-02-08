@@ -96,7 +96,13 @@ object MasterServer extends Logger {
 
     def runJobService(jobsLogger: JobsLogger): JobService = {
       val workerRunner = WorkerRunner.create(config)
-      val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
+      val infoProvider = new InfoProvider(
+        config.logs,
+        config.http,
+        contextsStorage,
+        config.jobsSavePath,
+        config.workers
+      )
 
       val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
       val workerManager = system.actorOf(

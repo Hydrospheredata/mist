@@ -10,7 +10,8 @@ class InfoProvider(
   logServiceConfig: LogServiceConfig,
   httpConfig: HttpConfig,
   contextsStorage: ContextsStorage,
-  jobsSavePath: String
+  jobsSavePath: String,
+  workerConfig: WorkersSettingsConfig
 ) {
 
   def workerInitInfo(contextName: String): Future[WorkerInitInfo] = {
@@ -22,6 +23,7 @@ class InfoProvider(
         streamingDuration = contextConfig.streamingDuration,
         logService = s"${logServiceConfig.host}:${logServiceConfig.port}",
         masterHttpConf = s"${httpConfig.host}:${httpConfig.port}",
+        maxArtifactSize = workerConfig.maxArtifactSize,
         jobsSavePath = jobsSavePath
       ))
   }

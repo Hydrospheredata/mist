@@ -90,6 +90,7 @@ object AsyncInterfaceConfig {
 case class WorkersSettingsConfig(
   runner: String,
   runnerInitTimeout: Duration,
+  maxArtifactSize: Long,
   dockerHost: String,
   dockerPort: Int,
   cmd: String,
@@ -102,6 +103,7 @@ object WorkersSettingsConfig {
     WorkersSettingsConfig(
       runner = config.getString("runner"),
       runnerInitTimeout = Duration(config.getString("runner-init-timeout")),
+      maxArtifactSize = config.getBytes("max-artifact-size"),
       dockerHost = config.getString("docker-host"),
       dockerPort = config.getInt("docker-port"),
       cmd = config.getString("cmd"),
