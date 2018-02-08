@@ -118,8 +118,7 @@ object MasterServer extends Logger {
 
     val artifactRepository = ArtifactRepository.create(
       config.artifactRepositoryPath,
-      functionsStorage.defaults,
-      config.jobsSavePath
+      functionsStorage.defaults
     )
 
 

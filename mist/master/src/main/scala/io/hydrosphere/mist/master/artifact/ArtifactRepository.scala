@@ -91,8 +91,7 @@ object ArtifactRepository {
 
   def create(
     storagePath: String,
-    defaultEndpoints: Seq[FunctionConfig],
-    jobsSavePath: String
+    defaultEndpoints: Seq[FunctionConfig]
   ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
     val defaultJobsPath = defaultEndpoints
