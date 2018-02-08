@@ -6,8 +6,6 @@ import java.io.File
   * Trait for various job path definition
   *
   * @see [[LocalResolver]]
-  * @see [[HDFSResolver]]
-  * @see [[MavenArtifactResolver]]
   */
 trait JobResolver {
 
@@ -20,16 +18,25 @@ trait JobResolver {
 
 }
 
+class LocalResolver(path: String) extends JobResolver {
+
+  override def exists: Boolean = {
+    val file = new File(path)
+    file.exists() && !file.isDirectory
+  }
+
+  override def resolve(): File = {
+    if (!exists) {
+      throw new RuntimeException(s"file $path not found")
+    }
+
+    new File(path)
+  }
+}
+
 object JobResolver {
 
   val DefaultSavePath = "/tmp"
 
-  def fromPath(jobPath: String, savePath: String = DefaultSavePath): JobResolver = {
-    if (jobPath.startsWith("hdfs://"))
-      new HDFSResolver(jobPath, savePath)
-    else if(jobPath.startsWith("mvn://"))
-      MavenArtifactResolver.fromPath(jobPath, savePath)
-    else
-      new LocalResolver(jobPath)
-  }
+  def apply(jobPath: String): JobResolver = new LocalResolver(jobPath)
 }

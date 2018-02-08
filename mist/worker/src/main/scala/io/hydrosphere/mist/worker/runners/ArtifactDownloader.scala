@@ -85,12 +85,8 @@ case class HttpArtifactDownloader(
   }
 
   private def localFilepath(filePath: String): Path = {
-    def isRemote: Boolean = filePath.startsWith("mvn://") || filePath.startsWith("hdfs://")
 
-    val fileName = if (isRemote)
-      UUID.randomUUID().toString + ".jar"
-    else
-      FilenameUtils.getName(filePath)
+    val fileName = FilenameUtils.getName(filePath)
 
     Paths.get(savePath, fileName)
   }

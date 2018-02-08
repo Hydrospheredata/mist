@@ -77,8 +77,8 @@ System parameters like corresponded Java/Python classpath and Spark Context name
 Create or edit file `./my_config/router.conf` to add a router for our log search application:
 ````hocon
 streaming-log-search = {
-    path = '/jobs/log-streaming.jar', // local, HDFS or Maven file path
-    className = StreamingTextSearch$',
+    path = '/jobs/log-streaming.jar'
+    className = StreamingTextSearch$'
     namespace = 'streaming'
 }
 ````
@@ -121,7 +121,7 @@ docker run \
 ```
 
 ### (4/6) Deploying a job
-Compile and copy the job binary file into local directory mounted to the Mist docker container or HDFS.
+Compile and copy the job binary file into local directory mounted to the Mist docker container.
 
 ```
 sbt clean package

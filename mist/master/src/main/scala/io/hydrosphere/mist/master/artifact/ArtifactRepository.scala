@@ -95,19 +95,15 @@ object ArtifactRepository {
     jobsSavePath: String
   ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-    val toFile = fromEndpointConfig(_: FunctionConfig, jobsSavePath)
-    // TODO there is enough one map and collect
     val defaultJobsPath = defaultEndpoints
-      .map(e => e.path -> toFile(e))
+      .map(e => e.path -> new File(e.path))
+      .filter(_._2.exists())
       .toMap
-      .collect { case (key, Success(file)) => key -> file }
 
     val defaultArtifactRepo = new DefaultArtifactRepository(defaultJobsPath)(ec)
     val fsArtifactRepo = new FsArtifactRepository(data.checkDirectory(storagePath).toString)(ec)
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 
-  private def fromEndpointConfig(e: FunctionConfig, savePath: String): Try[File] =
-    Try { JobResolver.fromPath(e.path, savePath).resolve() }
 
 }
