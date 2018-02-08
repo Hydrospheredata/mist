@@ -8,7 +8,6 @@ import io.hydrosphere.mist.master.data
 import io.hydrosphere.mist.master.models.FunctionConfig
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Success, Try}
 
 
 trait ArtifactRepository {
