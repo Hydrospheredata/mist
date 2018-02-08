@@ -73,8 +73,8 @@ Create or edit file `./configs/router.conf` to add an ml model training and serv
 
 ````
 classification = {
-    path = '/jobs/ml-realtime.jar', // local or HDFS file path
-    className = MLClassification$',
+    path = '/jobs/ml-realtime.jar' 
+    className = MLClassification$'
     namespace = 'production-namespace'
 }
 ````

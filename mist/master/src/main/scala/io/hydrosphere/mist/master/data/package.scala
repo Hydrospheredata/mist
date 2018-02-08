@@ -2,8 +2,6 @@ package io.hydrosphere.mist.master
 
 import java.nio.file.{Files, Path, Paths}
 
-import org.apache.commons.io.FileUtils
-
 package object data {
 
   def checkDirectory(path: String): Path = {

@@ -41,13 +41,7 @@ class ArtifactRepositorySpec extends FunSpecLike
         _ shouldBe testArtifactName
       }
     }
-    it("should not fail when calling with hdfs or mvn path keys") {
-      val artifactRepo = new FsArtifactRepository(dir.toString)
-      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
-      val hdfsPath = "hdfs://localhost:0/test.jar"
-      artifactRepo.get(hdfsPath) should not be defined
-      artifactRepo.get(mvnPath) should not be defined
-    }
+
     it("should get file by name") {
       val artifactRepo = new FsArtifactRepository(dir.toString)
 
@@ -118,22 +112,6 @@ class ArtifactRepositorySpec extends FunSpecLike
 
       files.size should equal(1)
 
-    }
-    it("should get full path of hdfs or mvn artifact") {
-      val testFilePath = Paths.get(dir.toString, testArtifactName)
-      val testFile = testFilePath.toFile
-      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
-      val hdfsPath = "hdfs://localhost:0/test.jar"
-      val artifactRepo = new DefaultArtifactRepository(Map(
-        mvnPath -> testFile,
-        hdfsPath -> testFile,
-        testArtifactName -> testFile
-      ))
-
-      val paths = artifactRepo.listPaths().await
-
-      paths.size should equal(3)
-      paths shouldBe Set(testArtifactName, mvnPath, hdfsPath)
     }
 
     it("should return exception when storing file") {

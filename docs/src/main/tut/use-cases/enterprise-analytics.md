@@ -109,14 +109,14 @@ docker run \
 
 ### (5/6) Deploying a job
 
-Use `sbt package` or your own favourite build tool to package Scala programs. Then copy compiled .jar or Python .py file into the path attribute specified in log-search route (see step 3/5). It could be local folder, HDFS directory or Maven URL.
+Use `sbt package` or your own favourite build tool to package Scala programs. Then copy compiled .jar or Python .py file into the path attribute specified in log-search route (see step 3/5). 
 
 ```sh
 sbt package
 cp ./target/scala-2.11/search-job.jar ./jobs
 ```
 
-That’s it - all that you need to deploy a job is to copy it to the local or HDFS directory Mist has access to. 
+That’s it - all that you need to deploy a job is to copy it to the local folder Mist has access to. 
 
 Please note that Mist is a service, so it is not required to be restarted every time you update / deploy a new job or edit Router config. So you can iterate multiple times without restarting Mist. 
 

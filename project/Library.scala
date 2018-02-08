@@ -43,17 +43,6 @@ object Library {
     }
   }
 
-  val hadoopCommon = "org.apache.hadoop" % "hadoop-common" % "2.6.4"
-  val hadoopMinicluster = Seq(
-    "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4" % "test"
-  ).map(_.exclude("javax.servlet", "servlet-api"))
-
   val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
   val scalajHttp = "org.scalaj" %% "scalaj-http" % "2.3.0"
 
