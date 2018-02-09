@@ -82,12 +82,11 @@ lazy val master = project.in(file("mist/master"))
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
       Library.cats,
 
-      Library.hadoopCommon, Library.commonsCodec, Library.scalajHttp,
+      Library.commonsCodec, Library.scalajHttp,
 
       Library.scalaTest % "test",
       Library.mockito % "test"
     ),
-    libraryDependencies ++= Library.hadoopMinicluster
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
     buildInfoPackage := "io.hydrosphere.mist"

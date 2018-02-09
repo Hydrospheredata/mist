@@ -110,27 +110,6 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         Await.result(fileF, 30.seconds)
       }
     }
-
-    it("should download handle all types of path: mvn, hdfs") {
-
-      val routes = Flow[HttpRequest].map {request =>
-        HttpResponse(status = StatusCodes.OK, entity = "JARJAR")
-      }
-
-      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
-      val hdfsPath = "hdfs://localhost:0/test.jar"
-
-      val (f, f2) = Await.result(MockHttpServer.onServer(routes, binding => {
-        val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
-        val f = Await.result(downloader.downloadArtifact(mvnPath), Duration.Inf)
-        val f2 = Await.result(downloader.downloadArtifact(hdfsPath), Duration.Inf)
-        (f, f2)
-      }), Duration.Inf)
-
-      f.getName should endWith (".jar")
-      f2.getName should endWith (".jar")
-    }
   }
 
 }
