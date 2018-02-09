@@ -19,6 +19,15 @@ object ConfigRepr {
 
   import scala.collection.JavaConverters._
 
+  implicit class ToConfigSyntax[A <: NamedConfig](a: A)(implicit repr: ConfigRepr[A]) {
+    def toConfig: Config = repr.toConfig(a)
+  }
+
+  implicit class FromCongixSyntax(config: Config){
+    def to[A <: NamedConfig](implicit repr: ConfigRepr[A]): A = repr.fromConfig(config)
+    def to[A <: NamedConfig](name: String)(implicit repr: ConfigRepr[A]): A = repr.fromConfig(name, config)
+  }
+
   implicit val EndpointsRepr = new ConfigRepr[FunctionConfig] {
 
     override def toConfig(a: FunctionConfig): Config = {
@@ -41,7 +50,7 @@ object ConfigRepr {
     }
   }
 
-  implicit val ContextConfigRepr = new ConfigRepr[ContextConfig] {
+  implicit val ContextConfigRepr: ConfigRepr[ContextConfig] = new ConfigRepr[ContextConfig] {
 
     val allowedTypes = Set(
       ConfigValueType.STRING,
@@ -50,11 +59,12 @@ object ConfigRepr {
     )
 
     override def fromConfig(config: Config): ContextConfig = {
+      def cleanKey(key: String): String = key.replaceAll("\"", "")
       ContextConfig(
         name = config.getString("name"),
         sparkConf = config.getConfig("spark-conf").entrySet().asScala
           .filter(entry => allowedTypes.contains(entry.getValue.valueType()))
-          .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
+          .map(entry => cleanKey(entry.getKey) -> entry.getValue.unwrapped().toString)
           .toMap,
         downtime = Duration(config.getString("downtime")),
         maxJobs = config.getInt("max-parallel-jobs"),
