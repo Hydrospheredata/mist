@@ -10,19 +10,16 @@ import akka.stream.scaladsl.Sink
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
-import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.{ConnectionsMirror, WorkerConnector, WorkerHub, WorkerRunner}
-import io.hydrosphere.mist.master.execution.{ContextsMaster, ExecutionService, SpawnSettings}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.execution.workers.WorkerRunner
+import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
+import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
 import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
-import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -86,7 +83,7 @@ object MasterServer extends Logger {
       override def receive: Receive = { case _ => }
     }), CommonData.HealthActorName)
 
-    val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
+    val functionsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
     val store = H2JobsRepository(config.dbPath)
 
@@ -107,6 +104,7 @@ object MasterServer extends Logger {
         akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
         logAddress = s"${config.http.host}:${config.http.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
+        maxArtifactSize = config.workers.maxArtifactSize,
         jobsSavePath = config.artifactRepositoryPath
       )
       ExecutionService(spawnSettings, system, streamer, store)
@@ -114,14 +112,14 @@ object MasterServer extends Logger {
 
     val artifactRepository = ArtifactRepository.create(
       config.artifactRepositoryPath,
-      endpointsStorage.defaults,
+      functionsStorage.defaults,
       config.jobsSavePath
     )
 
 
     val security = bootstrapSecurity(config)
 
-    val jobExtractorRunner = JobInfoProviderRunner.create(
+    val jobExtractorRunner = FunctionInfoProviderRunner.create(
       config.jobInfoProviderConfig,
       config.cluster.host,
       config.cluster.port
@@ -130,15 +128,15 @@ object MasterServer extends Logger {
     for {
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
-      jobInfoProviderService =  new JobInfoProviderService(
+      jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
-                                      endpointsStorage,
+                                      functionsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
       jobsService            =  runExecutionService(logService.getLogger)
       masterService          <- start("Main service", MainService.start(
                                                         jobsService,
-                                                        endpointsStorage,
+                                                        functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,
                                                         jobInfoProviderService

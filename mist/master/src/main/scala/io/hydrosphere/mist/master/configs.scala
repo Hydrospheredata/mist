@@ -90,6 +90,7 @@ object AsyncInterfaceConfig {
 case class WorkersSettingsConfig(
   runner: String,
   runnerInitTimeout: Duration,
+  maxArtifactSize: Long,
   dockerHost: String,
   dockerPort: Int,
   cmd: String,
@@ -102,6 +103,7 @@ object WorkersSettingsConfig {
     WorkersSettingsConfig(
       runner = config.getString("runner"),
       runnerInitTimeout = Duration(config.getString("runner-init-timeout")),
+      maxArtifactSize = config.getBytes("max-artifact-size"),
       dockerHost = config.getString("docker-host"),
       dockerPort = config.getInt("docker-port"),
       cmd = config.getString("cmd"),
@@ -141,16 +143,16 @@ object ContextsSettings {
 
 }
 
-case class JobInfoProviderConfig(
+case class FunctionInfoProviderConfig(
   runTimeout: FiniteDuration,
   cacheEntryTtl: FiniteDuration,
   sparkConf: Map[String, String]
 )
-object JobInfoProviderConfig {
+object FunctionInfoProviderConfig {
   import scala.collection.JavaConverters._
 
-  def apply(c: Config): JobInfoProviderConfig = {
-    JobInfoProviderConfig(
+  def apply(c: Config): FunctionInfoProviderConfig = {
+    FunctionInfoProviderConfig(
       c.getFiniteDuration("init-timeout"),
       c.getFiniteDuration("cache-entry-ttl"),
       c.getConfig("spark-conf").entrySet().asScala
@@ -191,9 +193,9 @@ case class MasterConfig(
   contextsSettings: ContextsSettings,
   dbPath: String,
   contextsPath: String,
-  endpointsPath: String,
+  functionsPath: String,
   security: Option[SecurityConfig],
-  jobInfoProviderConfig: JobInfoProviderConfig,
+  jobInfoProviderConfig: FunctionInfoProviderConfig,
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
@@ -230,11 +232,11 @@ object MasterConfig {
       contextsSettings = ContextsSettings(mist),
       dbPath = mist.getString("db.filepath"),
       contextsPath = mist.getString("contexts-store.path"),
-      endpointsPath = mist.getString("endpoints-store.path"),
+      functionsPath = mist.getString("functions-store.path"),
       jobsSavePath = mist.getString("jobs-resolver.save-path"),
       artifactRepositoryPath = mist.getString("artifact-repository.save-path"),
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
-      jobInfoProviderConfig = JobInfoProviderConfig(mist.getConfig("job-extractor")),
+      jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       raw = config
     )

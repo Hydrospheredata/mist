@@ -122,9 +122,9 @@ object HttpV2Base {
     routeId: String,
     queryParams: JobRunQueryParams,
     parameters: Map[String, Any]
-  ): EndpointStartRequest = {
+  ): FunctionStartRequest = {
     val runSettings = queryParams.buildRunSettings()
-    EndpointStartRequest(routeId, parameters, queryParams.externalId, runSettings)
+    FunctionStartRequest(routeId, parameters, queryParams.externalId, runSettings)
   }
 }
 
@@ -151,28 +151,28 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def endpointsRoutes(master: MainService): Route = {
-    path( root / "endpoints" ) {
+  def functionRoutes(master: MainService): Route = {
+    path( root / "functions" ) {
       get { complete {
-        master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
+        master.functionInfoService.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" ) {
+    path( root / "functions" ) {
       post(parameter('force? false) { force =>
-        entity(as[EndpointConfig]) { req =>
+        entity(as[FunctionConfig]) { req =>
           if (force) {
-            completeF(master.endpoints.update(req), StatusCodes.BadRequest)
+            completeF(master.functions.update(req), StatusCodes.BadRequest)
           } else {
-            val rsp = master.endpoints.get(req.name).flatMap({
+            val rsp = master.functions.get(req.name).flatMap({
               case Some(ep) =>
                 val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
                 Future.failed(e)
               case None =>
                 for {
-                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(req)
-                  updated      <- master.endpoints.update(req)
-                  endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-                } yield endpointInfo
+                  fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(req)
+                  updated      <- master.functions.update(req)
+                  functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+                } yield functionInfo
             })
 
             completeF(rsp, StatusCodes.BadRequest)
@@ -180,44 +180,44 @@ object HttpV2Routes extends Logger {
         }
       })
     } ~
-    path( root / "endpoints" ) {
-      put { entity(as[EndpointConfig]) { req =>
+    path( root / "functions" ) {
+      put { entity(as[FunctionConfig]) { req =>
 
-        onSuccess(master.endpoints.get(req.name)) {
+        onSuccess(master.functions.get(req.name)) {
           case None =>
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
             val res = for {
-              updated      <- master.endpoints.update(req)
-              fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
-              endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-            } yield endpointInfo
+              updated      <- master.functions.update(req)
+              fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(updated)
+              functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+            } yield functionInfo
 
             completeF(res, StatusCodes.BadRequest)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment ) { endpointId =>
+    path( root / "functions" / Segment ) { functionId =>
       get { completeOpt {
-        master.jobInfoProviderService
-          .getJobInfo(endpointId)
-          .map(_.map(HttpEndpointInfoV2.convert))
+        master.functionInfoService
+          .getFunctionInfo(functionId)
+          .map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.execution.endpointHistory(
-            endpointId,
+          master.execution.functionJobHistory(
+            functionId,
             limits.limit, limits.offset, statuses)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       post( postJobQuery { query =>
         entity(as[Map[String, Any]]) { params =>
-          val jobReq = buildStartRequest(endpointId, query, params)
+          val jobReq = buildStartRequest(functionId, query, params)
           if (query.force) {
             completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
           } else {
@@ -370,7 +370,7 @@ object HttpV2Routes extends Logger {
           complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
       }
     handleExceptions(exceptionHandler) {
-      endpointsRoutes(masterService) ~
+      functionRoutes(masterService) ~
       jobsRoutes(masterService) ~
       workerRoutes(masterService.execution) ~
       contextsRoutes(masterService.contexts) ~

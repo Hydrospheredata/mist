@@ -3,7 +3,7 @@ package io.hydrosphere.mist
 import java.nio.file.Paths
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.models.FunctionConfig
 import org.junit.runner.Description
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
 import org.testcontainers.containers.BindMode
@@ -54,20 +54,20 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
     it("should deploy and invoke") {
       val jarName = "docker-examples.jar"
-      val endpointName = "spark-ctx"
+      val functionName = "spark-ctx"
       val clazz = "SparkContextExample$"
 
       val interface = MistHttpInterface("localhost", 2004)
       interface.uploadArtifact(jarName, Paths.get(envArgs.examplesJar))
-      interface.createEndpoint(
-        EndpointConfig(
-          name = endpointName,
+      interface.createFunction(
+        FunctionConfig(
+          name = functionName,
           path = jarName,
           className = clazz,
           defaultContext = "default"
         )
       )
-      val result = interface.runJob(endpointName, "numbers" -> Seq(1,2,3,4))
+      val result = interface.runJob(functionName, "numbers" -> Seq(1,2,3,4))
       assert(result.success)
     }
   }

@@ -59,7 +59,7 @@ object Worker extends App with Logger {
     val arguments = WorkerArguments.forceParse(args)
     val name = arguments.name
 
-    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
+    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}, master: ${arguments.masterNode}")
 
     val config = ConfigFactory.load("worker")
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))

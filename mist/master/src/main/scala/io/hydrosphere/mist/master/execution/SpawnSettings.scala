@@ -12,6 +12,7 @@ case class SpawnSettings(
   akkaAddress: String,
   logAddress: String,
   httpAddress: String,
+  maxArtifactSize: Long,
   jobsSavePath: String
 ) {
 
@@ -23,6 +24,7 @@ case class SpawnSettings(
       streamingDuration = ctx.streamingDuration,
       logService = this.logAddress,
       masterHttpConf = this.httpAddress,
+      maxArtifactSize = this.maxArtifactSize,
       jobsSavePath = this.jobsSavePath
     )
 }

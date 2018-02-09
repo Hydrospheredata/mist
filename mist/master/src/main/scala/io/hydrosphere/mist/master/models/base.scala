@@ -42,7 +42,7 @@ case class ContextConfig(
   }
 }
 
-case class EndpointConfig(
+case class FunctionConfig(
   name: String,
   path: String,
   className: String,

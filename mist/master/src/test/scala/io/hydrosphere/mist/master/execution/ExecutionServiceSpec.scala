@@ -1,14 +1,12 @@
-package io.hydrosphere.mist.master
+package io.hydrosphere.mist.master.execution
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
-import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.master.store.JobRepository
+import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
 import org.scalatest._
 
 import scala.concurrent.Await

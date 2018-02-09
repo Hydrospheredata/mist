@@ -13,9 +13,9 @@ trait JobRepository {
 
   def get(jobId: String): Future[Option[JobDetails]]
 
-  def getByEndpointId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
-  def getByEndpointId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] =
-    getByEndpointId(id, limit, offset, Seq.empty)
+  def getByFunctionId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]]
+  def getByFunctionId(id: String, limit: Int, offset: Int): Future[Seq[JobDetails]] =
+    getByFunctionId(id, limit, offset, Seq.empty)
 
   def update(jobDetails: JobDetails): Future[Unit]
 

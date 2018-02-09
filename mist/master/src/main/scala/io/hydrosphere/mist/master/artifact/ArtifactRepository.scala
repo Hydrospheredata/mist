@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths, StandardCopyOption}
 import java.util.concurrent.Executors
 
 import io.hydrosphere.mist.master.data
-import io.hydrosphere.mist.master.models.EndpointConfig
+import io.hydrosphere.mist.master.models.FunctionConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Success, Try}
@@ -91,11 +91,11 @@ object ArtifactRepository {
 
   def create(
     storagePath: String,
-    defaultEndpoints: Seq[EndpointConfig],
+    defaultEndpoints: Seq[FunctionConfig],
     jobsSavePath: String
   ): ArtifactRepository = {
     val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(2))
-    val toFile = fromEndpointConfig(_: EndpointConfig, jobsSavePath)
+    val toFile = fromEndpointConfig(_: FunctionConfig, jobsSavePath)
     // TODO there is enough one map and collect
     val defaultJobsPath = defaultEndpoints
       .map(e => e.path -> toFile(e))
@@ -107,7 +107,7 @@ object ArtifactRepository {
     new SimpleArtifactRepository(fsArtifactRepo, defaultArtifactRepo)(ec)
   }
 
-  private def fromEndpointConfig(e: EndpointConfig, savePath: String): Try[File] =
+  private def fromEndpointConfig(e: FunctionConfig, savePath: String): Try[File] =
     Try { JobResolver.fromPath(e.path, savePath).resolve() }
 
 }

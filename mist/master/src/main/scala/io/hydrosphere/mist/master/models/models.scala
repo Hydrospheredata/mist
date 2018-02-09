@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.models
 import java.util.UUID
 
 import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
 
 
@@ -22,8 +22,8 @@ object RunSettings {
   * Request for starting job by name
   * New version api
   */
-case class EndpointStartRequest(
-  endpointId: String,
+case class FunctionStartRequest(
+  functionId: String,
   parameters: Map[String, Any],
   externalId: Option[String] = None,
   runSettings: RunSettings = RunSettings.Default,
@@ -32,7 +32,7 @@ case class EndpointStartRequest(
 
 case class JobStartRequest(
   id: String,
-  endpoint: JobInfoData,
+  function: FunctionInfoData,
   context: ContextConfig,
   parameters: Map[String, Any],
   source: JobDetails.Source,
@@ -46,16 +46,16 @@ case class JobStartResponse(id: String)
   * Like JobStartRequest, but for async interfaces
   * (spray json not support default values)
   */
-case class AsyncEndpointStartRequest(
-  endpointId: String,
+case class AsyncFunctionStartRequest(
+  functionId: String,
   parameters: Option[Map[String, Any]],
   externalId: Option[String],
   runSettings: Option[RunSettings]
 ) {
 
-  def toCommon: EndpointStartRequest =
-    EndpointStartRequest(
-      endpointId,
+  def toCommon: FunctionStartRequest =
+    FunctionStartRequest(
+      functionId,
       parameters.getOrElse(Map.empty),
       externalId,
       runSettings.getOrElse(RunSettings.Default))
@@ -100,7 +100,7 @@ case class JobDetailsLink(
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  endpoint: String,
+  function: String,
   workerId: Option[String],
   createTime: Long = System.currentTimeMillis()
 )

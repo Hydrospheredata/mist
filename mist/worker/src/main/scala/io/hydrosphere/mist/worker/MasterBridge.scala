@@ -110,7 +110,7 @@ object MasterBridge {
       val (h, p) = init.masterHttpConf.split(':') match {
         case Array(host, port) => (host, port.toInt)
       }
-      val downloader = ArtifactDownloader.create(h, p, init.jobsSavePath)
+      val downloader = ArtifactDownloader.create(h, p, init.maxArtifactSize, init.jobsSavePath)
       af.actorOf(WorkerActor.props(ctx, downloader, init.maxJobs))
     }})
     props(id, regHub, mkContext, workerF)

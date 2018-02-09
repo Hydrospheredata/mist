@@ -20,7 +20,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
   val basePath = "./target/artifacts"
 
   it("should create SimpleArtifactDownloader") {
-    val downloader = ArtifactDownloader.create("localhost", 2004, basePath)
+    val downloader = ArtifactDownloader.create("localhost", 2004, 262144000, basePath)
     downloader shouldBe a[HttpArtifactDownloader]
   }
 
@@ -46,7 +46,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
     it("should download file if it not found locally") {
       val fileContent = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
         val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
         new String(Files.readAllBytes(file.toPath))
       })
@@ -58,7 +58,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
 
       val fileContent = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
         val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
         new String(Files.readAllBytes(file.toPath))
       })
@@ -71,7 +71,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
 
       val fileF = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
         val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
         file
       })
@@ -84,7 +84,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
 
       val fileF = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, "/tmp")
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, "/tmp")
         val file = Await.result(downloader.downloadArtifact(s"$basePath/test.jar"), Duration.Inf)
         file
       })
@@ -100,7 +100,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
 
       val fileF = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
 
         val fileF = downloader.downloadArtifact("test.jar")
         Await.result(fileF, Duration.Inf)
@@ -122,7 +122,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
 
       val (f, f2) = Await.result(MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, basePath)
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
         val f = Await.result(downloader.downloadArtifact(mvnPath), Duration.Inf)
         val f2 = Await.result(downloader.downloadArtifact(hdfsPath), Duration.Inf)
         (f, f2)

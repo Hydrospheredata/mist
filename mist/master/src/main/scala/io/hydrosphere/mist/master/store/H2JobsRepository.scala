@@ -74,7 +74,7 @@ trait JobsTable {
     def namespace = column[String]("namespace")
     def parameters = column[Map[String, Any]]("parameters")
     def externalId = column[Option[String]]("external_id")
-    def endpoint = column[String]("endpoint")
+    def function = column[String]("function")
     def action = column[Action]("action")
     def source = column[JobDetails.Source]("source")
     def jobId = column[String]("job_id", O.PrimaryKey)
@@ -92,7 +92,7 @@ trait JobsTable {
         namespace,
         parameters,
         externalId,
-        endpoint,
+        function,
         action,
         source,
         jobId,
@@ -105,7 +105,7 @@ trait JobsTable {
         ).shaped
       shapedValue.<>({
         tuple => JobDetails(
-          endpoint = tuple._6,
+          function = tuple._6,
           jobId = tuple._9,
           params = JobParams(tuple._1, tuple._2, tuple._4, tuple._7),
           context = tuple._3,
@@ -121,7 +121,7 @@ trait JobsTable {
       }, {
         (j: JobDetails) => Some(
           (j.params.filePath, j.params.className, j.context, j.params.arguments, j.externalId,
-            j.endpoint, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status, j.workerId, j.createTime)
+            j.function, j.params.action, j.source, j.jobId, j.startTime, j.endTime, j.jobResult, j.status, j.workerId, j.createTime)
         )
       })
     }
@@ -171,8 +171,8 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
 
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
 
-  override def getByEndpointId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
-    val byId = table.filter(_.endpoint === id)
+  override def getByFunctionId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
+    val byId = table.filter(_.function === id)
     val filtered = if (statuses.nonEmpty) byId.filter(_.status inSet statuses) else byId
     val query = filtered.sortBy(_.createTime.desc)
       .drop(offset).take(limit)

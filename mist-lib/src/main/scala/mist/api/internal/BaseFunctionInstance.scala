@@ -7,7 +7,7 @@ import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
 
-trait BaseJobInstance {
+trait BaseFunctionInstance {
 
   def describe(): Seq[ArgInfo]
 
@@ -16,7 +16,7 @@ trait BaseJobInstance {
   def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
 }
 
-class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
+class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle
 
@@ -38,7 +38,7 @@ class ScalaJobInstance(instance: MistFn[_]) extends BaseJobInstance {
   }
 }
 
-class JavaJobInstance(instance: JMistFn[_]) extends BaseJobInstance {
+class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle.underlying
 
@@ -60,9 +60,9 @@ class JavaJobInstance(instance: JMistFn[_]) extends BaseJobInstance {
 
 }
 
-object JobInstance {
+object FunctionInstance {
 
-  val NoOpInstance = new BaseJobInstance {
+  val NoOpInstance = new BaseFunctionInstance {
 
     override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
 
@@ -77,16 +77,16 @@ object JobInstance {
   def isScalaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
   def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
 
-  def loadScala(clazz: Class[_]): ScalaJobInstance = {
+  def loadScala(clazz: Class[_]): ScalaFunctionInstance = {
     val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn[_]]
-    new ScalaJobInstance(i)
+    new ScalaFunctionInstance(i)
   }
 
-  def loadJava(clazz: Class[_]): JavaJobInstance = {
+  def loadJava(clazz: Class[_]): JavaFunctionInstance = {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new JavaJobInstance(i.asInstanceOf[JMistFn[_]])
+    new JavaFunctionInstance(i.asInstanceOf[JMistFn[_]])
   }
 
   @tailrec

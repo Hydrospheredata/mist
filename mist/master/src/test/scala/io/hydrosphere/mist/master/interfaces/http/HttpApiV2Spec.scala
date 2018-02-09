@@ -9,14 +9,14 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.JobInfoData
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
 import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerFullInfo, WorkerLink}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.jobs.JobInfoProviderService
+import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
@@ -76,7 +76,7 @@ class HttpApiV2Spec extends FunSpec
       when(jobService.getWorkerInfo(any[String]))
         .thenSuccess(Some(WorkerFullInfo(
           "id", "test", None, Seq(),
-          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "/tmp"))))
+          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000, "/tmp"))))
 
       val route = HttpV2Routes.workerRoutes(jobService)
 
@@ -85,7 +85,7 @@ class HttpApiV2Spec extends FunSpec
         val resp = responseAs[WorkerFullInfo]
         resp.name shouldBe "id"
         resp.jobs shouldBe empty
-        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "/tmp")
+        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000, "/tmp")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
       }
@@ -93,46 +93,26 @@ class HttpApiV2Spec extends FunSpec
 
   }
 
-  describe("endpoints") {
+  describe("functions") {
 
     it("should run job") {
       val master = mock[MainService]
-      when(master.runJob(any[EndpointStartRequest], any[Source]))
+      when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenSuccess(Some(JobStartResponse("1")))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
-      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         status shouldBe StatusCodes.OK
       }
     }
 
-
-
-
-    //    it("should return endpoints") {
-    //      val epConfig = EndpointConfig("name", "path", "className", "context")
-    //      val infos = Seq( PyJobInfo, testScalaJob ).map(i => FullEndpointInfo(epConfig, i))
-    //
-    //      val master = mock[MainService]
-    //      when(master.endpointsInfo).thenSuccess(infos)
-    //
-    //      val route = HttpV2Routes.endpointsRoutes(master)
-    //
-    //      Get("/v2/api/endpoints") ~> route ~> check {
-    //        status shouldBe StatusCodes.OK
-    //
-    //        val endpoints = responseAs[Seq[HttpEndpointInfoV2]]
-    //        endpoints.size shouldBe 2
-    //      }
-    //    }
-
-    it("should return history for endpoint") {
+    it("should return history for function") {
       val jobService = mock[ExecutionService]
       val master = mock[MainService]
       when(master.jobService).thenReturn(jobService)
 
-      when(jobService.endpointHistory(
+      when(jobService.functionJobHistory(
         any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
       )).thenSuccess(Seq(
         JobDetails("id", "1",
@@ -140,9 +120,9 @@ class HttpApiV2Spec extends FunSpec
           "context", None, JobDetails.Source.Http)
       ))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
-      Get("/v2/api/endpoints/id/jobs?status=started") ~> route ~> check {
+      Get("/v2/api/functions/id/jobs?status=started") ~> route ~> check {
         status shouldBe StatusCodes.OK
 
         val jobs = responseAs[Seq[JobDetails]]
@@ -152,31 +132,31 @@ class HttpApiV2Spec extends FunSpec
 
   }
 
-  describe("endpoint creation") {
+  describe("function creation") {
 
-    it("should update endpoint on create if endpoint created") {
+    it("should update function on create if function created") {
 
-      val endpoints = mock[EndpointsStorage]
-      val jobInfoProvider = mock[JobInfoProviderService]
+      val functions = mock[FunctionConfigStorage]
+      val functionInfoService = mock[FunctionInfoService]
 
       val mainService = new MainService(
         mock[ExecutionService],
-        endpoints,
+        functions,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        jobInfoProvider
+        functionInfoService
       )
 
-      val test = EndpointConfig("test", "test", "test", "default")
+      val test = FunctionConfig("test", "test", "test", "default")
 
-      when(endpoints.get(any[String]))
+      when(functions.get(any[String]))
         .thenSuccess(None)
 
-      when(endpoints.update(any[EndpointConfig]))
+      when(functions.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
-        .thenSuccess(JobInfoData(
+      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
+        .thenSuccess(FunctionInfoData(
           lang = "python",
           path = "test",
           defaultContext = "foo",
@@ -184,54 +164,54 @@ class HttpApiV2Spec extends FunSpec
           name = "test"
         ))
 
-      val route = HttpV2Routes.endpointsRoutes(mainService)
+      val route = HttpV2Routes.functionRoutes(mainService)
 
-      Post("/v2/api/endpoints", test.toEntity) ~> route ~> check {
+      Post("/v2/api/functions", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(endpoints, times(1)).update(any[EndpointConfig])
+        verify(functions, times(1)).update(any[FunctionConfig])
       }
     }
 
     it("should return different entity when forcibly update") {
-      val endpoints = mock[EndpointsStorage]
+      val functions = mock[FunctionConfigStorage]
       val master = new MainService(
         mock[ExecutionService],
-        endpoints,
+        functions,
         mock[ContextsStorage],
         mock[LogStoragePaths],
-        mock[JobInfoProviderService]
+        mock[FunctionInfoService]
       )
-      val test = EndpointConfig("test", "test", "test", "default")
-      when(endpoints.update(any[EndpointConfig]))
+      val test = FunctionConfig("test", "test", "test", "default")
+      when(functions.update(any[FunctionConfig]))
         .thenSuccess(test)
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
-      Post("/v2/api/endpoints?force=true", test.toEntity) ~> route ~> check {
+      Post("/v2/api/functions?force=true", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(endpoints, times(1)).update(any[EndpointConfig])
-        responseAs[EndpointConfig] shouldBe test
+        verify(functions, times(1)).update(any[FunctionConfig])
+        responseAs[FunctionConfig] shouldBe test
       }
     }
 
-    it("should fail with invalid data for endpoint") {
-      val endpointsStorage = mock[EndpointsStorage]
+    it("should fail with invalid data for function") {
+      val functionsStorage = mock[FunctionConfigStorage]
       val master = mock[MainService]
-      val jobInfoProvider = mock[JobInfoProviderService]
-      when(master.endpoints).thenReturn(endpointsStorage)
-      when(master.jobInfoProviderService).thenReturn(jobInfoProvider)
+      val functionInfoService = mock[FunctionInfoService]
+      when(master.functions).thenReturn(functionsStorage)
+      when(master.functionInfoService).thenReturn(functionInfoService)
 
-      val endpointConfig = EndpointConfig("name", "path", "className", "context")
+      val functionConfig = FunctionConfig("name", "path", "className", "context")
 
-      when(endpointsStorage.get(any[String])).thenReturn(Future.successful(None))
-      when(endpointsStorage.update(any[EndpointConfig]))
-        .thenReturn(Future.successful(endpointConfig))
-      when(jobInfoProvider.getJobInfoByConfig(any[EndpointConfig]))
+      when(functionsStorage.get(any[String])).thenReturn(Future.successful(None))
+      when(functionsStorage.update(any[FunctionConfig]))
+        .thenReturn(Future.successful(functionConfig))
+      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenFailure(new Exception("test failure"))
 
-      val route = HttpV2Routes.endpointsRoutes(master)
+      val route = HttpV2Routes.functionRoutes(master)
 
-      Post("/v2/api/endpoints", endpointConfig.toEntity) ~> route ~> check {
+      Post("/v2/api/functions", functionConfig.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.BadRequest
       }
 
@@ -245,7 +225,7 @@ class HttpApiV2Spec extends FunSpec
       params = JobParams("path", "className", Map.empty, Action.Execute),
       jobId = "id",
       source = Source.Http,
-      endpoint = "endpoint",
+      function = "function",
       context = "context",
       externalId = None
     )
@@ -478,11 +458,11 @@ class HttpApiV2Spec extends FunSpec
     it("should return bad request on futures failed illegal argument exception") {
       val master = mock[MainService]
 
-      when(master.runJob(any[EndpointStartRequest], any[Source]))
+      when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenFailure(new IllegalArgumentException("argument missing"))
 
       val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
-      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         responseAs[String] shouldBe "Bad request: argument missing"
         status shouldBe StatusCodes.BadRequest
       }
@@ -491,12 +471,12 @@ class HttpApiV2Spec extends FunSpec
     it("should return 500 on future`s any exception except iae") {
       val master = mock[MainService]
 
-      when(master.runJob(any[EndpointStartRequest], any[Source]))
+      when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenFailure(new RuntimeException("some exception"))
 
       val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
 
-      Post(s"/v2/api/endpoints/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         status shouldBe StatusCodes.InternalServerError
       }
     }

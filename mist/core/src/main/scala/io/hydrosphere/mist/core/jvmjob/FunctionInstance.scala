@@ -5,7 +5,7 @@ import java.lang.reflect.InvocationTargetException
 import io.hydrosphere.mist.api._
 import io.hydrosphere.mist.utils.EitherOps
 import EitherOps._
-import io.hydrosphere.mist.core.jvmjob.JobInstance._
+import io.hydrosphere.mist.core.jvmjob.FunctionInstance._
 import mist.api.args.{ArgInfo, InternalArgument, UserInputArgument}
 import mist.api.args.ArgType
 
@@ -18,7 +18,7 @@ import scala.reflect.runtime.universe._
   * @param clazz  - original class
   * @param method - target method for invocation (execute, train, serve)
   */
-class JobInstance(clazz: Class[_], method: MethodSymbol) {
+class FunctionInstance(clazz: Class[_], method: MethodSymbol) {
 
   def run(conf: SetupConfiguration, params: Map[String, Any]): Either[Throwable, Map[String, Any]] =
     for {
@@ -100,7 +100,7 @@ class JobInstance(clazz: Class[_], method: MethodSymbol) {
   }
 }
 
-object JobInstance {
+object FunctionInstance {
 
   val ClassOfStreaming = classOf[StreamingSupport]
   val ClassOfSql = classOf[SQLSupport]

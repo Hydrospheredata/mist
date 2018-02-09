@@ -23,7 +23,7 @@ public class JavaPiExample extends JMistFn<Double> {
                 return x*x + y*y < 1;
             }).count();
 
-            double pi = (4 * count) / n;
+            double pi = (4.0 * count) / n;
             return RetValues.of(pi);
         });
     }

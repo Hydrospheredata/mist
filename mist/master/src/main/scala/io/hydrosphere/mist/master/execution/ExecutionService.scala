@@ -39,8 +39,8 @@ class ExecutionService(
 
   def jobStatusById(id: String): Future[Option[JobDetails]] = repo.get(id)
 
-  def endpointHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-    repo.getByEndpointId(id, limit, offset, statuses)
+  def functionJobHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
+    repo.getByFunctionId(id, limit, offset, statuses)
 
   def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
     repo.getAll(limit, offset, statuses)
@@ -76,7 +76,7 @@ class ExecutionService(
 
   private def toJobLinks(job: JobDetails): JobDetailsLink = JobDetailsLink(
       job.jobId, job.source, job.startTime, job.endTime,
-      job.status, job.endpoint, job.workerId, job.createTime
+      job.status, job.function, job.workerId, job.createTime
   )
 
   // TODO
@@ -91,8 +91,8 @@ class ExecutionService(
     val internalRequest = RunJobRequest(
       id = id,
       JobParams(
-        filePath = endpoint.path,
-        className = endpoint.className,
+        filePath = function.path,
+        className = function.className,
         arguments = parameters,
         action = action
       )
@@ -101,7 +101,7 @@ class ExecutionService(
     val startCmd = RunJobCommand(context, internalRequest)
 
     val details = JobDetails(
-      endpoint.name,
+      function.name,
       req.id,
       internalRequest.params,
       context.name,

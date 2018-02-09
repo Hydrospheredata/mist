@@ -16,7 +16,7 @@ Mist Library provides a DSL for Mist Functions that could be deployed and execut
 `MistFn[A]` is a base interface for function definition.
 
 `PiExample.scala`:
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -120,7 +120,7 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
 ```
 
 If your function doesn't require any arguments, there are similar methods available from `MistFn`
-```tut
+```tut:silent
 
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
@@ -142,7 +142,7 @@ For that purpose `ArgDef[A]` has special methods to validate arguments:
 - `validated(f: A => Boolean)`
 - `validated(f: A => Boolean, explanation: String)`
 
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -189,7 +189,7 @@ to have that extra information in a function body.
 Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
 These utilities are called `MistExtras`. Example:
 
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
