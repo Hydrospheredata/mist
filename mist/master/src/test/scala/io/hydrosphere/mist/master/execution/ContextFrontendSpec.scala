@@ -1,26 +1,26 @@
 package io.hydrosphere.mist.master.execution
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.TestUtils
-import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
+import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.utils.akka.ActorF
-import mist.api.data.JsLikeNumber
+import io.hydrosphere.mist.master.TestData
 import org.scalatest._
 
 import scala.concurrent._
-import scala.concurrent.duration._
 
 class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
   with FunSpecLike
   with Matchers
-  with TestUtils {
+  with TestUtils
+  with TestData {
 
   it("should execute jobs") {
     val connectionActor = TestProbe()
-    val connection = WorkerConnection("id", connectionActor.ref)
+    val connection = WorkerConnection("id", connectionActor.ref, workerLinkData, Promise[Unit].future)
 
     val connector = new WorkerConnector {
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
@@ -35,7 +35,7 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
-      executorStarter = (_, _) => Future.successful(connector),
+      executorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref)
     )
     val frontend = TestActorRef[ContextFrontend](props)

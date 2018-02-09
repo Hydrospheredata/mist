@@ -31,7 +31,9 @@ import scala.concurrent.duration._
 class HttpApiV2Spec extends FunSpec
   with Matchers
   with MockitoSugar
-  with ScalatestRouteTest {
+  with ScalatestRouteTest
+  with TestData
+  with TestUtils {
 
   import JsonCodecs._
 
@@ -47,12 +49,10 @@ class HttpApiV2Spec extends FunSpec
   describe("workers") {
 
     it("should return workers") {
-      val jobService = mock[ExecutionService]
-      when(jobService.workers()).thenReturn(Future.successful(Seq(
-        WorkerLink("worker", "address", None)
-      )))
+      val execution = mock[ExecutionService]
+      when(execution.workers()).thenReturn(Seq(workerLinkData))
 
-      val route = HttpV2Routes.workerRoutes(jobService)
+      val route = HttpV2Routes.workerRoutes(execution)
 
       Get("/v2/api/workers") ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -62,23 +62,23 @@ class HttpApiV2Spec extends FunSpec
     }
 
     it("should stop worker") {
-      val jobService = mock[ExecutionService]
-      when(jobService.stopWorker(any[String])).thenReturn(Future.successful(()))
+      val execution = mock[ExecutionService]
+      when(execution.stopWorker(any[String])).thenSuccess(())
 
-      val route = HttpV2Routes.workerRoutes(jobService)
+      val route = HttpV2Routes.workerRoutes(execution)
 
       Delete("/v2/api/workers/id") ~> route ~> check {
         status shouldBe StatusCodes.OK
       }
     }
     it("should get full worker info") {
-      val jobService = mock[ExecutionService]
-      when(jobService.getWorkerInfo(any[String]))
+      val execution = mock[ExecutionService]
+      when(execution.getWorkerInfo(any[String]))
         .thenSuccess(Some(WorkerFullInfo(
           "id", "test", None, Seq(),
           WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000, "/tmp"))))
 
-      val route = HttpV2Routes.workerRoutes(jobService)
+      val route = HttpV2Routes.workerRoutes(execution)
 
       Get("/v2/api/workers/id") ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -108,11 +108,11 @@ class HttpApiV2Spec extends FunSpec
     }
 
     it("should return history for function") {
-      val jobService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
-      when(master.jobService).thenReturn(jobService)
+      when(master.execution).thenReturn(execution)
 
-      when(jobService.functionJobHistory(
+      when(execution.functionJobHistory(
         any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
       )).thenSuccess(Seq(
         JobDetails("id", "1",
@@ -231,10 +231,10 @@ class HttpApiV2Spec extends FunSpec
     )
 
     it("should return jobs status by id") {
-      val jobsService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
-      when(master.jobService).thenReturn(jobsService)
-      when(jobsService.jobStatusById(any[String]))
+      when(master.execution).thenReturn(execution)
+      when(execution.jobStatusById(any[String]))
         .thenSuccess(Some(jobDetails))
 
       val route = HttpV2Routes.jobsRoutes(master)
@@ -246,10 +246,10 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 400 on logs request when job not found") {
-      val jobsService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
-      when(master.jobService).thenReturn(jobsService)
-      when(jobsService.jobStatusById(any[String]))
+      when(master.execution).thenReturn(execution)
+      when(execution.jobStatusById(any[String]))
         .thenSuccess(None)
 
       val route = HttpV2Routes.jobsRoutes(master)
@@ -258,12 +258,12 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return worker info") {
-      val jobService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
-      when(master.jobService)
-        .thenReturn(jobService)
-      when(jobService.workerByJobId(any[String]))
-        .thenSuccess(Some(WorkerLink("test", "localhost:0", None)))
+      when(master.execution)
+        .thenReturn(execution)
+      when(execution.workerByJobId(any[String]))
+        .thenSuccess(Some(workerLinkData))
 
       val route = HttpV2Routes.jobsRoutes(master)
 
@@ -273,11 +273,11 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 404 when worker not found") {
-      val jobService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
-      when(master.jobService)
-        .thenReturn(jobService)
-      when(jobService.workerByJobId(any[String]))
+      when(master.execution)
+        .thenReturn(execution)
+      when(execution.workerByJobId(any[String]))
         .thenSuccess(None)
       val route = HttpV2Routes.jobsRoutes(master)
 
@@ -286,12 +286,12 @@ class HttpApiV2Spec extends FunSpec
       }
     }
     it("should return 200 empty response on logs request when job log file not exists") {
-      val jobsService = mock[ExecutionService]
+      val execution = mock[ExecutionService]
       val master = mock[MainService]
       val logStorageMappings = mock[LogStoragePaths]
-      when(master.jobService).thenReturn(jobsService)
+      when(master.execution).thenReturn(execution)
       when(master.logsPaths).thenReturn(logStorageMappings)
-      when(jobsService.jobStatusById(any[String]))
+      when(execution.jobStatusById(any[String]))
         .thenSuccess(Some(jobDetails))
       when(logStorageMappings.pathFor(any[String]))
         .thenReturn(Paths.get(".", UUID.randomUUID().toString))
@@ -309,7 +309,7 @@ class HttpApiV2Spec extends FunSpec
 
     it("should create jobs with optional parameters") {
       val contextStorage = mock[ContextsStorage]
-      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", "shared", 1 seconds)
+      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", RunMode.Shared, 1 seconds)
       val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None, None)
 
       when(contextStorage.defaultConfig)
@@ -323,7 +323,7 @@ class HttpApiV2Spec extends FunSpec
       Post(s"/v2/api/contexts", contextToCreate.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
         verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
-          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", "shared", 1 seconds
+          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", RunMode.Shared, 1 seconds
         )))
       }
     }

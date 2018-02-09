@@ -36,12 +36,10 @@ class WorkerRunnersSpec extends FunSpec with Matchers{
       val mode = RunMode.Shared
 
 
-      val result = ShellWorkerScript.workerArgs(name, context, mode, cfg)
+      val result = ShellWorkerScript.workerArgs(name, context, cfg)
         val x = Seq(
         "--master", "0.0.0.0:2345",
         "--name", "worker-name",
-        "--context-name", "foo",
-        "--mode", "shared",
         "--run-options", "--opt"
       )
       result should contain theSameElementsAs x

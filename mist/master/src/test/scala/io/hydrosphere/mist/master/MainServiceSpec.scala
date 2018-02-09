@@ -7,6 +7,7 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
 import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
@@ -90,52 +91,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
 
-  it("should select exclusive run mode on streaming jobs") {
-    val functions = mock[FunctionConfigStorage]
-    val contexts = mock[ContextsStorage]
-    val jobService = mock[ExecutionService]
-    val logs = mock[LogStoragePaths]
-    val artifactRepository = mock[ArtifactRepository]
-    val functionInfoService = mock[FunctionInfoService]
-
-    val service = new MainService(jobService, functions, contexts, logs, functionInfoService)
-
-    when(functionInfoService.validateFunctionParams(any[String], any[Map[String, Any]]))
-      .thenSuccess(Some(()))
-
-    when(functionInfoService.getFunctionInfo(any[String]))
-      .thenSuccess(Some(FunctionInfoData(
-        "test",
-        "test",
-        "Test",
-        "foo",
-        lang = FunctionInfoData.PythonLang,
-        tags = Seq(ArgInfo.StreamingContextTag)
-      )))
-
-    when(contexts.getOrDefault(any[String]))
-      .thenSuccess(ContextConfig(
-        "default",
-        Map.empty,
-        Duration.Inf,
-        20,
-        precreated = false,
-        "",
-        "shared",
-        1 seconds
-      ))
-    when(jobService.startJob(any[JobStartRequest]))
-      .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
-
-    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
-    Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
-    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
-    verify(jobService, times(1)).startJob(argCapture.capture())
-    argCapture.getValue.runMode shouldBe ExclusiveContext(None)
-  }
-
-
-  it("should select run mode from context config when job is not streaming") {
+  it("should select run mode from context config") {
     val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
     val jobService = mock[ExecutionService]
@@ -166,7 +122,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         20,
         precreated = false,
         "",
-        "shared",
+        RunMode.Shared,
         1 seconds
       ))
     when(jobService.startJob(any[JobStartRequest]))
@@ -174,8 +130,9 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
-    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
-    verify(jobService, times(1)).startJob(argCapture.capture())
-    argCapture.getValue.runMode shouldBe Shared
+    fail("todo")
+//    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
+//    verify(jobService, times(1)).startJob(argCapture.capture())
+//    argCapture.getValue.runMode shouldBe Shared
   }
 }

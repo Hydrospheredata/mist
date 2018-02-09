@@ -27,8 +27,7 @@ trait ShellWorkerScript {
 
     Seq[String](
       "--master", s"${config.cluster.host}:${config.cluster.port}",
-      "--name", name,
-      "--context-name", context.name
+      "--name", name
     ) ++ mkRunOptions(context)
   }
 
@@ -93,7 +92,6 @@ class DockerWorkerRunner(config: MasterConfig)
   *   bin/mist-worker --runner local\
   *         --master \u0024MIST_MASTER_ADDRESS\
   *         --name \u0024MIST_WORKER_NAME\
-  *         --context-name \u0024MIST_WORKER_CONTEXT\
   * </code>
   * </pre>
   */
@@ -107,7 +105,6 @@ class ManualWorkerRunner(
       None,
       "MIST_MASTER_ADDRESS" -> s"${config.cluster.host}:${config.cluster.port}",
       "MIST_WORKER_NAME" -> name,
-      "MIST_WORKER_CONTEXT" -> context.name,
       "MIST_WORKER_RUN_OPTIONS" -> context.runOptions,
 
       "MIST_WORKER_JAR_PATH" -> jarPath

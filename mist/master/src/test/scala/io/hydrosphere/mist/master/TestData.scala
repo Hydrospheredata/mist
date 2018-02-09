@@ -2,12 +2,13 @@ package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
+import io.hydrosphere.mist.master.execution.WorkerLink
 
 trait TestData {
 
   def mkDetails(status: JobDetails.Status): JobDetails = {
     JobDetails(
-      endpoint = "endpoint",
+      function = "function",
       jobId = "jobId",
       params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
       context = "context",
@@ -59,8 +60,11 @@ trait TestData {
     streamingDuration = FooContext.streamingDuration,
     logService = "localhost:2005",
     masterHttpConf = "localhost:2004",
+    maxArtifactSize = 1000L,
     jobsSavePath = "/tmp"
   )
+
+  val workerLinkData = WorkerLink("worker", "address", None, workerInitData)
 
 }
 

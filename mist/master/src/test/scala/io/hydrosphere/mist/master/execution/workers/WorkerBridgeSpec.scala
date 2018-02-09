@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.ActorRef
-import akka.testkit.{TestActorRef, TestProbe}
+import akka.testkit.TestProbe
 import io.hydrosphere.mist.core.CommonData.{WorkerInitInfo, WorkerReady}
 import io.hydrosphere.mist.master.{ActorSpec, TestData, TestUtils}
 
@@ -13,12 +12,12 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
   it("should init and watch worker") {
     val remote = TestProbe()
 
-    val promise = Promise[ActorRef]
-    val props = WorkerBridge.props("id", workerInitData, remote.ref, promise, 1 minute)
+    val promise = Promise[WorkerConnection]
+    val props = WorkerBridge.props("id", workerInitData, 1 minute, promise, remote.ref)
     val connection = system.actorOf(props)
 
     remote.expectMsgType[WorkerInitInfo]
-    remote.send(connection, WorkerReady("id"))
+    remote.send(connection, WorkerReady("id", None))
 
     promise.future.await(1 second) shouldBe connection
 
@@ -28,8 +27,8 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
 
   it("should be failed by timeout") {
     val remote = TestProbe()
-    val promise = Promise[ActorRef]
-    val props = WorkerBridge.props("id", workerInitData, remote.ref, promise, 1 second)
+    val promise = Promise[WorkerConnection]
+    val props = WorkerBridge.props("id", workerInitData, 1 second, promise, remote.ref)
 
     val connection = system.actorOf(props)
 

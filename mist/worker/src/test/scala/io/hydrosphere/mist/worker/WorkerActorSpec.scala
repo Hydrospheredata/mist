@@ -2,19 +2,14 @@ package io.hydrosphere.mist.worker
 
 import java.io.File
 
-import mist.api.data._
-
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
-import mist.api.data.JsLikeData
+import mist.api.data.{JsLikeData, _}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
-import org.scalatest.prop.TableDrivenPropertyChecks._
-
-import scala.concurrent.duration._
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
@@ -52,65 +47,57 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     when(artifactDownloader.downloadArtifact(any[String]))
       .thenSuccess(new File("doesn't matter"))
 
-    val workers = Table[String, WorkerProps](
-      ("name", "f"),
-      ("shared", (r: RunnerSelector) => WorkerActor.props(r, context, artifactDownloader, Duration.Inf, 10)),
-      ("exclusive", (r: RunnerSelector) => ExclusiveWorkerActor.props(r, context, artifactDownloader))
-    )
+    it(s"should execute jobs") {
+      val runner = SuccessRunnerSelector(JsLikeNumber(42))
+      val worker = createActor(runner)
+      val probe = TestProbe()
 
-    forAll(workers) { (name, makeProps) =>
-      it(s"should execute jobs in $name mode") {
-        val runner = SuccessRunnerSelector(JsLikeNumber(42))
-        val worker = createActor(makeProps(runner))
+      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
-        val probe = TestProbe()
-
-        probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-        probe.expectMsgType[JobFileDownloading]
-        probe.expectMsgType[JobStarted]
-        probe.expectMsgPF(){
-          case JobSuccess("id", r) =>
-            r shouldBe JsLikeNumber(42)
-        }
+      probe.expectMsgType[JobFileDownloading]
+      probe.expectMsgType[JobStarted]
+      probe.expectMsgPF(){
+        case JobSuccess("id", r) =>
+          r shouldBe JsLikeNumber(42)
       }
-
-      it(s"should respond failure in $name mode") {
-        val runner = FailureRunnerSelector("Expected error")
-        val worker = createActor(makeProps(runner))
-
-        val probe = TestProbe()
-        probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-        probe.expectMsgType[JobFileDownloading]
-        probe.expectMsgType[JobStarted]
-        probe.expectMsgPF() {
-          case JobFailure("id", e) =>
-            e should not be empty
-        }
-      }
-
-      it(s"should cancel job in $name mode") {
-        val runnerSelector = RunnerSelector(new JobRunner {
-          override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
-            val sc = c.sparkContext
-            val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-            Right(JsLikeMap("r" -> JsLikeString("Ok")))
-          }
-        })
-
-        val worker = createActor(makeProps(runnerSelector))
-
-        val probe = TestProbe()
-        probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-        probe.send(worker, CancelJobRequest("id"))
-
-        probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
-      }
-      def createActor(props: Props): ActorRef = {
-        TestActorRef[Actor](props)
-      }
-
     }
+
+    it(s"should respond failure") {
+      val runner = FailureRunnerSelector("Expected error")
+      val worker = createActor(runner)
+
+      val probe = TestProbe()
+      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+      probe.expectMsgType[JobFileDownloading]
+      probe.expectMsgType[JobStarted]
+      probe.expectMsgPF() {
+        case JobFailure("id", e) =>
+          e should not be empty
+      }
+    }
+
+    it(s"should cancel job") {
+      val runnerSelector = RunnerSelector(new JobRunner {
+        override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
+          val sc = c.sparkContext
+          val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
+          Right(JsLikeMap("r" -> JsLikeString("Ok")))
+        }
+      })
+
+      val worker = createActor(runnerSelector)
+
+      val probe = TestProbe()
+      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+      probe.send(worker, CancelJobRequest("id"))
+
+      probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
+    }
+    def createActor(runnerSelector: RunnerSelector): ActorRef = {
+      val props  = WorkerActor.props(context, artifactDownloader, 10, runnerSelector)
+      TestActorRef[WorkerActor](props)
+    }
+
   }
 
   it("should limit jobs") {
@@ -125,7 +112,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     when(artifactDownloader.downloadArtifact(any[String]))
       .thenSuccess(new File("doesn't matter"))
 
-    val props = WorkerActor.props(runnerSelector, context, artifactDownloader, Duration.Inf, 2)
+    val props = WorkerActor.props(context, artifactDownloader, 2, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))

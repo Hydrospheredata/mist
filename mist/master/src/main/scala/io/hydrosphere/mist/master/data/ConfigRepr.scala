@@ -94,7 +94,7 @@ object ConfigRepr {
         "downtime" -> fromDuration(a.downtime),
         "max-parallel-jobs" -> fromAnyRef(a.maxJobs),
         "precreated" -> fromAnyRef(a.precreated),
-        "worker-mode" -> fromAnyRef(a.workerMode),
+        "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration)
       )

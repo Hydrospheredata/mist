@@ -3,8 +3,10 @@ package io.hydrosphere.mist.master.execution
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.models.RunMode
+import io.hydrosphere.mist.master.execution.workers.WorkerHub
+import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode}
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
 import org.scalatest._
@@ -23,17 +25,17 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
     it("should start job") {
       val execution = TestProbe()
       val repo = mock[JobRepository]
+      val hub = mock[WorkerHub]
       when(repo.update(any[JobDetails])).thenSuccess(())
 
-      val service = new ExecutionService(execution.ref, repo)
+      val service = new ExecutionService(execution.ref, hub, repo)
 
       val future = service.startJob(
         JobStartRequest(
           id = "id",
-          endpoint = JobInfoData("name", path="path", className="className", defaultContext="context"),
+          function = FunctionInfoData("name", path="path", className="className", defaultContext="context"),
           context = TestUtils.contextSettings.default,
           parameters = Map("1" -> 2),
-          runMode = RunMode.Shared,
           source = JobDetails.Source.Http,
           externalId = None
       ))
@@ -49,15 +51,14 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   describe("jobs stopping") {
 
-    val details = mkDetails(JobDetails.Status.Started)
-
     it("should stop job") {
       //TODO
       val execution = TestProbe()
       val repo = mock[JobRepository]
+      val hub = mock[WorkerHub]
       when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
 
-      val service = new ExecutionService(execution.ref, repo)
+      val service = new ExecutionService(execution.ref, hub, repo)
 
       val future = service.stopJob("id")
 
