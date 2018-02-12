@@ -22,14 +22,14 @@ import scala.concurrent.duration._
 class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   with FunSpecLike
   with Matchers
-  with MockitoSugar {
-
-  import TestUtils._
+  with MockitoSugar
+  with TestUtils
+  with TestData {
 
   it("should run job") {
     val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[ExecutionService]
+    val execution = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val jobInfoProviderService = mock[FunctionInfoService]
 
@@ -49,11 +49,11 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
     when(jobInfoProviderService.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
-    when(jobService.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
+    when(execution.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
       req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute))
     ))
 
-    val service = new MainService(jobService, functions, contexts, logs, jobInfoProviderService)
+    val service = new MainService(execution, functions, contexts, logs, jobInfoProviderService)
 
     val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
@@ -63,12 +63,12 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
   it("should return failed future on validating params") {
     val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[ExecutionService]
+    val execution = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepo = mock[ArtifactRepository]
     val jobInfoProvider = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, functions, contexts, logs, jobInfoProvider)
+    val service = new MainService(execution, functions, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenFailure(new IllegalArgumentException("INVALID"))
@@ -91,48 +91,35 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
   }
 
-  it("should select run mode from context config") {
+  it("should use context in request") {
     val functions = mock[FunctionConfigStorage]
     val contexts = mock[ContextsStorage]
-    val jobService = mock[ExecutionService]
+    val execution = mock[ExecutionService]
     val logs = mock[LogStoragePaths]
     val artifactRepository = mock[ArtifactRepository]
     val jobInfoProvider = mock[FunctionInfoService]
 
-    val service = new MainService(jobService, functions, contexts, logs, jobInfoProvider)
+    val service = new MainService(execution, functions, contexts, logs, jobInfoProvider)
 
     when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getFunctionInfo(any[String]))
-      .thenSuccess(Some(FunctionInfoData(
-        "test",
-        "test",
-        "Test",
-        "foo",
-        FunctionInfoData.PythonLang,
-        tags = Seq(ArgInfo.SqlContextTag)
-      )))
+      .thenSuccess(Some(functionInfoData))
 
-    when(contexts.getOrDefault(any[String]))
-      .thenSuccess(ContextConfig(
-        "default",
-        Map.empty,
-        Duration.Inf,
-        20,
-        precreated = false,
-        "",
-        RunMode.Shared,
-        1 seconds
-      ))
-    when(jobService.startJob(any[JobStartRequest]))
+    when(contexts.getOrDefault(any[String])).thenSuccess(FooContext)
+    when(execution.startJob(any[JobStartRequest]))
       .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
 
     val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
     Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
-    fail("todo")
-//    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
-//    verify(jobService, times(1)).startJob(argCapture.capture())
-//    argCapture.getValue.runMode shouldBe Shared
+
+    val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])
+    verify(execution, times(1)).startJob(argCapture.capture())
+
+    val jobStartReq = argCapture.getValue
+
+    jobStartReq.function shouldBe functionInfoData
+    jobStartReq.context shouldBe FooContext
   }
 }

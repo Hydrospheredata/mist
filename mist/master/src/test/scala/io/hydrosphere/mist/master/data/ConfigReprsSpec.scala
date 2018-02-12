@@ -61,7 +61,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       context.maxJobs shouldBe 100
       context.precreated shouldBe false
       context.runOptions shouldBe "--key"
-      context.workerMode shouldBe "shared"
+      context.workerMode shouldBe RunMode.Shared
       context.streamingDuration shouldBe 30.seconds
     }
 

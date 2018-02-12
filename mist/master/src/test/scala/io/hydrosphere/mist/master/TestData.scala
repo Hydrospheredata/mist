@@ -2,7 +2,9 @@ package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
+import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.execution.WorkerLink
+import mist.api.args.ArgInfo
 
 trait TestData {
 
@@ -52,6 +54,15 @@ trait TestData {
     }
     contextSettings.contexts.get("foo").get
   }
+
+  val functionInfoData = FunctionInfoData(
+    "test",
+    "test",
+    "Test",
+    "foo",
+    FunctionInfoData.PythonLang,
+    tags = Seq(ArgInfo.SqlContextTag)
+  )
 
   val workerInitData = WorkerInitInfo(
     sparkConf = FooContext.sparkConf,

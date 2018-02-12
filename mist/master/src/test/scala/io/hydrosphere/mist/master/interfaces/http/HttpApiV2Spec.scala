@@ -269,7 +269,7 @@ class HttpApiV2Spec extends FunSpec
 
       Get("/v2/api/jobs/id/worker") ~> route ~> check {
         status shouldBe StatusCodes.OK
-        responseAs[WorkerLink].name shouldBe "test"
+        responseAs[WorkerLink].name shouldBe "worker"
       }
     }
     it("should return 404 when worker not found") {

@@ -1,31 +1,50 @@
 package io.hydrosphere.mist.master.execution.status
 
+import java.util.concurrent.atomic.AtomicReference
+
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit}
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.{JobDetails, TestData}
 import mist.api.data._
+import org.scalatest.concurrent.Eventually
 import org.scalatest.{FunSpecLike, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
+import org.scalatest.time.{Seconds, Span}
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 class JobStatusFlusherSpec extends TestKit(ActorSystem("job-status-flusher"))
   with FunSpecLike
   with Matchers
-  with TestData {
+  with TestData
+  with Eventually {
 
   it("should flush status correctly") {
+    val initial = Promise[JobDetails]
+
+    val updateResult = new AtomicReference[Option[JobDetails]](None)
     val props = JobStatusFlusher.props(
       id = "id",
-      get = (_) => Future.successful(mkDetails(JobDetails.Status.Initialized)),
-      update = (_) => Future.successful(())
+      get = (_) => initial.future,
+      update = (d: JobDetails) => {updateResult.set(Some(d));Future.successful(())}
     )
     val flusher = TestActorRef(props)
 
+    flusher ! QueuedEvent("id")
     flusher ! StartedEvent("id", System.currentTimeMillis())
-    fail("no implemented")
+    flusher ! FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42))
+
+    initial.success(mkDetails(JobDetails.Status.Initialized))
+
+    eventually(timeout(Span(3, Seconds))) {
+      val value = updateResult.get
+      value.isDefined shouldBe true
+
+      val d = value.get
+      d.status shouldBe JobDetails.Status.Finished
+    }
   }
 
   describe("event conversion") {

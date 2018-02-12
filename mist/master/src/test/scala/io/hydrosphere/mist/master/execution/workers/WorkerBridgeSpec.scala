@@ -14,15 +14,17 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
 
     val promise = Promise[WorkerConnection]
     val props = WorkerBridge.props("id", workerInitData, 1 minute, promise, remote.ref)
-    val connection = system.actorOf(props)
+    val bridge = system.actorOf(props)
 
     remote.expectMsgType[WorkerInitInfo]
-    remote.send(connection, WorkerReady("id", None))
+    remote.send(bridge, WorkerReady("id", None))
 
-    promise.future.await(1 second) shouldBe connection
+    val connection = promise.future.await(1 second)
+    connection.ref shouldBe bridge
+    connection.id shouldBe "id"
 
     system.stop(remote.ref)
-    shouldTerminate(1 second)(connection)
+    shouldTerminate(1 second)(bridge)
   }
 
   it("should be failed by timeout") {
@@ -30,12 +32,12 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
     val promise = Promise[WorkerConnection]
     val props = WorkerBridge.props("id", workerInitData, 1 second, promise, remote.ref)
 
-    val connection = system.actorOf(props)
+    val bridge = system.actorOf(props)
 
     intercept[Exception] {
       promise.future.await(3 second)
     }
-    shouldTerminate(1 second)(connection)
+    shouldTerminate(1 second)(bridge)
   }
 
 }
