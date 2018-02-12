@@ -116,13 +116,13 @@ case class EndpointCreateRequest(
 
 case class ContextCreateRequest(
   name: String,
-  sparkConf: Option[Map[String, String]],
-  downtime: Option[Duration],
-  maxJobs: Option[Int],
-  precreated: Option[Boolean],
-  workerMode: Option[RunMode],
+  sparkConf: Option[Map[String, String]] = None,
+  downtime: Option[Duration] = None,
+  maxJobs: Option[Int] = None,
+  precreated: Option[Boolean] = None,
+  workerMode: Option[RunMode] = None,
   runOptions: Option[String] = None,
-  streamingDuration: Option[Duration]
+  streamingDuration: Option[Duration] = None
 ) {
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =

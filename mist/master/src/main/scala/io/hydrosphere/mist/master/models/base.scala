@@ -14,6 +14,11 @@ sealed trait RunMode {
 
 object RunMode {
 
+  def fromName(n: String): RunMode = n match {
+    case "shared" => RunMode.Shared
+    case "exclusive" => RunMode.ExclusiveContext
+    case x => throw new IllegalArgumentException(s"Unknown mode $x")
+  }
   /** Job will share one worker with jobs that are running on the same namespace */
   case object Shared extends RunMode
   /** There will be created unique worker for job execution */
