@@ -59,7 +59,7 @@ object WorkerConnector extends Logger {
     val initInfo = toWorkerInitInfo(ctx)
     for {
       ref <- regHub.waitRef(id, timeout)
-      connection <- WorkerBridge.connect(id, initInfo, 1 minutes, ref)(af)
+      connection <- WorkerBridge.connect(id, initInfo, readyTimeout, ref)(af)
     } yield connection
 }
 

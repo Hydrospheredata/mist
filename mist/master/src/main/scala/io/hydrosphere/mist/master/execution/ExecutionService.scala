@@ -34,7 +34,7 @@ class ExecutionService(
   def activeJobs(): Future[Seq[JobDetails]] = repo.running()
 
   def markJobFailed(id: String, reason: String): Future[Unit] = {
-    repo.path(id)(d => d.withEndTime(System.currentTimeMillis()).withFailure(reason))
+    repo.path(id)(d => d.withEndTime(System.currentTimeMillis()).withFailure(reason).withStatus(JobDetails.Status.Failed))
   }
 
   def jobStatusById(id: String): Future[Option[JobDetails]] = repo.get(id)

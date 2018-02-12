@@ -101,6 +101,7 @@ object MasterServer extends Logger {
       val spawnSettings = SpawnSettings(
         runner = workerRunner,
         timeout = config.workers.runnerInitTimeout,
+        readyTimeout = config.workers.readyTimeout,
         akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
         logAddress = s"${config.http.host}:${config.http.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
