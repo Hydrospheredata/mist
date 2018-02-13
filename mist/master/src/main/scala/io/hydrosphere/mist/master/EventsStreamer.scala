@@ -18,14 +18,14 @@ trait EventsStreamer {
   */
 object EventsStreamer {
 
-  private val BufferSize = 500
+  private val BufferSize = 10000
 
   def apply(system: ActorSystem): EventsStreamer = {
     val actor = system.actorOf(Props(new BroadcastSource))
 
     new EventsStreamer {
       override def eventsSource(): Source[SystemEvent, akka.NotUsed] = {
-        Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropTail)
+        Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropHead)
           .mapMaterializedValue(ref => {actor.tell("subscribe", ref); akka.NotUsed})
       }
 
