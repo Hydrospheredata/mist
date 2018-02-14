@@ -72,6 +72,7 @@ class FrontendJobExecutor(
       sender() ! jobs.values.map(i => JobExecutionStatus(i.request.id, name, status = i.status))
 
     case FailRemainingJobs(reason) =>
+      log.warning("Fail remaining job")
       jobs.keySet
         .map(JobFailure(_, reason))
         .foreach(onJobDone)
@@ -166,7 +167,7 @@ class FrontendJobExecutor(
           info.promise.success(r)
           FinishedEvent(id, System.currentTimeMillis(), r)
       }
-      statusService ! statusEvent
+      sendStatusUpdate(statusEvent)
     })
   }
 
