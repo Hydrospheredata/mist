@@ -88,7 +88,7 @@ trait LogStreams extends Logger {
     writer: LogsWriter,
     streamer: EventsStreamer
   )(implicit mat: ActorMaterializer): ActorRef = {
-    val source = Source.actorRef[LogEvent](10000, OverflowStrategy.dropHead)
+    val source = Source.actorRef[LogEvent](LogStreams.LogEventBufferSize, OverflowStrategy.dropHead)
 
     val sink = eventStreamerSink(streamer)
 
@@ -135,6 +135,8 @@ class LogService(
 }
 
 object LogStreams extends LogStreams {
+
+  val LogEventBufferSize = 10000
 
   def runService(
     host: String,
