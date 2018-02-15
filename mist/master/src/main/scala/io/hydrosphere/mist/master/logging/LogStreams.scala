@@ -15,6 +15,7 @@ import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 trait LogStreams extends Logger {
@@ -44,7 +45,7 @@ trait LogStreams extends Logger {
     }
 
     Flow[LogEvent]
-      .batch(1000, e => Vector(e))((events, e) => events :+ e)
+      .groupedWithin(LogStreams.BatchSize, LogStreams.BatchWindowTime)
       .mapAsync(1)(batchWrite)
       .withAttributes(supervisionStrategy(resumingDecider))
       .mapConcat(identity)
@@ -137,6 +138,8 @@ class LogService(
 object LogStreams extends LogStreams {
 
   val LogEventBufferSize = 10000
+  val BatchSize = 1000
+  val BatchWindowTime = 1 second
 
   def runService(
     host: String,
