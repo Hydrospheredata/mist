@@ -43,22 +43,6 @@ object Messages {
 
     case class RunJobCommand(context: ContextConfig, request: RunJobRequest)
     case class CancelJobCommand(context: String, request: CancelJobRequest)
-
-    case class CreateContext(context: ContextConfig)
-
-    case object GetWorkers
-    case object GetActiveJobs
-    case class FailRemainingJobs(reason: String)
-
-    case class StopWorker(name: String)
-    case object StopAllWorkers
-
-    case class WorkerUp(ref: ActorRef)
-    case object WorkerDown
-
-    case class CheckWorkerUp(id: String)
-
-    case class GetInitInfo(id: String)
   }
 
 }

@@ -38,6 +38,7 @@ object ConnectionsMirror extends Logger {
   ) extends WorkerConnector {
 
     override def shutdown(force: Boolean): Future[Unit] = underlying.shutdown(force)
+    override def warmUp(): Unit = underlying.warmUp()
     override def whenTerminated(): Future[Unit] = underlying.whenTerminated()
     override def askConnection(): Future[WorkerConnection] = {
       underlying.askConnection().andThen {

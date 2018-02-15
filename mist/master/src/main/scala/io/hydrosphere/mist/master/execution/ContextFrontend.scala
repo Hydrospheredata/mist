@@ -48,12 +48,19 @@ class ContextFrontend(
 
   import ContextFrontend._
 
-  implicit val ec = context.system.dispatcher
+  import context.dispatcher
 
   override def receive: Receive = initial
 
   private def initial: Receive = {
-    case Event.UpdateContext(ctx) => context become awaitRequest(ctx)
+    case Event.UpdateContext(ctx) =>
+      if (ctx.precreated) {
+        val (id, connector) = startConnector(ctx)
+        connector.warmUp()
+        becomeWithConnector(ctx, FrontendState.empty, UsedConnections.empty, connector)
+      } else {
+        context become awaitRequest(ctx)
+      }
   }
 
   private def awaitRequest(ctx: ContextConfig): Receive = {
@@ -154,7 +161,12 @@ class ContextFrontend(
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
     val id = UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
-    id -> connectorStarter(id, ctx)
+    val connector = connectorStarter(id, ctx)
+    connector.whenTerminated().onComplete({
+      case Success(_) => self ! Event.ConnectorStopped(id)
+      case Failure(e) => self ! Event.ConnectorCrushed(id, e)
+    })
+    id -> connector
   }
 
   private def cancelJob(id: String, state: State, respond: ActorRef): State = state.getWithState(id) match {

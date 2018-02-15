@@ -28,6 +28,8 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
       override def askConnection(): Future[WorkerConnection] = Future.successful(connection)
 
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
+
+      override def warmUp(): Unit = ()
     }
 
     val job = TestProbe()

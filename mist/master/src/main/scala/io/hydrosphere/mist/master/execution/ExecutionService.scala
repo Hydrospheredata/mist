@@ -79,8 +79,7 @@ class ExecutionService(
       job.status, job.function, job.workerId, job.createTime
   )
 
-  // TODO
-  def stopAllWorkers(): Future[Unit] = contextsMaster.ask(StopAllWorkers).map(_ => ())
+  def stopAllWorkers(): Future[Unit] = workersHub.shutdownAllWorkers()
 
   def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
 
@@ -133,6 +132,8 @@ class ExecutionService(
     out.value
   }
 
+  def updateContext(ctx: ContextConfig): Unit =
+    contextsMaster ! ContextFrontend.Event.UpdateContext(ctx)
 
 }
 
