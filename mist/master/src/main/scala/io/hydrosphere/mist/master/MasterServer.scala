@@ -1,12 +1,14 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
 import akka.pattern.gracefulStop
+import akka.stream.ActorAttributes.supervisionStrategy
+import akka.stream.Supervision.resumingDecider
+import akka.stream.{ActorAttributes, ActorMaterializer, Supervision}
+import akka.stream.scaladsl.{Keep, Sink}
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -20,8 +22,8 @@ import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.language.reflectiveCalls
 import scala.util._
 
@@ -225,11 +227,15 @@ object MasterServer extends Logger {
     val streamer = EventsStreamer(sys)
 
     def startStream(f: SystemEvent => Unit, name: String, close: () => Unit): Unit = {
-      val complete = Sink.onComplete[Unit]({
+      val doneF = streamer.eventsSource()
+        .toMat(Sink.foreach(f))(Keep.right)
+        .withAttributes(supervisionStrategy(resumingDecider))
+        .run()
+      doneF.onComplete {
         case Success(_) => logger.info(s"Event streaming for $name stopped")
         case Failure(e) => logger.error(s"Event streaming for $name was completed with error", e)
-      })
-      streamer.eventsSource().map(f).to(complete).run()
+      }
+
       logger.info(s"Event streaming for $name started")
     }
 

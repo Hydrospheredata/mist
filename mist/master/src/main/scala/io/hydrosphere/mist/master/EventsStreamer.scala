@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl._
-import io.hydrosphere.mist.master.Messages.StatusMessages.{SystemEvent, UpdateStatusEvent}
+import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.logging.LogStreams
 
 trait EventsStreamer {
