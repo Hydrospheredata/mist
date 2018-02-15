@@ -187,7 +187,6 @@ class WorkersManager(
         val reason = s"Worker $id initialization timeout: not being responsive for $runnerInitTimeout"
         log.warning(reason)
         setWorkerDown(id)
-        state.frontend ! FailRemainingJobs(reason)
       case _ =>
     })
   }
@@ -228,7 +227,9 @@ class WorkersManager(
           case _ =>
             workerStates -= name
             s.frontend ! WorkerDown
-            log.info(s"Worker for $name is marked down")
+            val msg = s"Worker for $name is marked down"
+            s.frontend ! FailRemainingJobs(msg)
+            log.info(msg)
             workerRunner.onStop(name)
         }
 
