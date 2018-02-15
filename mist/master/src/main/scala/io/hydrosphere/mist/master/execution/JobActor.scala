@@ -38,14 +38,18 @@ class JobActor(
   override def receive: Receive = initial
 
   private def initial: Receive = {
-    case Event.Cancel => cancelFinally("user request")
+    case Event.Cancel =>
+      sender() ! JobIsCancelled(req.id)
+      cancelFinally("user request")
+
     case Event.Timeout => cancelFinally("timeout")
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
       report.report(WorkerAssigned(req.id, connection.id))
       connection.ref ! req
-      context watch connection.ref
+
+      connection.whenTerminated.onComplete(_ => self ! Event.ConnectionTerminated)(context.dispatcher)
       context become starting(connection)
   }
 
@@ -60,7 +64,7 @@ class JobActor(
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
-    case Terminated(_) => onExecutorTermination()
+    case Event.ConnectionTerminated => onConnectionTermination()
 
     case JobFileDownloading(id, time) =>
       report.report(JobFileDownloadingEvent(id, time))
@@ -75,7 +79,7 @@ class JobActor(
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
-    case Terminated(_) => onExecutorTermination()
+    case Event.ConnectionTerminated => onConnectionTermination()
 
     case JobSuccess(_, data) => completeSuccess(data)
     case JobFailure(_, err) => completeFailure(err)
@@ -86,10 +90,10 @@ class JobActor(
     case Event.Cancel => context become cancellingOnExecutor(cancelRespond :+ sender(), connection, reason)
     case Event.Timeout => log.info(s"Timeout exceeded for ${req.id} that is in cancelling process")
 
-    case Terminated(_) =>
+    case Event.ConnectionTerminated =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Executor was terminated"))
       cancelRespond.foreach(_ ! msg)
-      onExecutorTermination()
+      onConnectionTermination()
 
     case ev @ JobIsCancelled(_, _) =>
       cancelRespond.foreach(_ ! ev)
@@ -117,7 +121,7 @@ class JobActor(
     self ! PoisonPill
   }
 
-  private def onExecutorTermination(): Unit = completeFailure("Executor was terminated")
+  private def onConnectionTermination(): Unit = completeFailure("Executor was terminated")
 
   private def completeSuccess(data: JsLikeData): Unit = {
     promise.success(data)
@@ -146,6 +150,7 @@ object JobActor {
     final case class Perform(connection: WorkerConnection) extends Event
     final case class Completed(id: String) extends Event
     case object GetStatus extends Event
+    case object ConnectionTerminated extends Event
   }
 
   def props(
