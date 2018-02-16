@@ -4,9 +4,8 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
-import io.hydrosphere.mist.master.Messages.JobExecution._
 import io.hydrosphere.mist.master.execution.workers.WorkerHub
-import io.hydrosphere.mist.master.models.{JobStartRequest, RunMode}
+import io.hydrosphere.mist.master.models.JobStartRequest
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
 import org.scalatest._
@@ -40,7 +39,7 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
           externalId = None
       ))
 
-      execution.expectMsgType[RunJobCommand]
+      execution.expectMsgType[ContextEvent.RunJobCommand]
       execution.reply(ExecutionInfo(req = mkRunReq("id")))
 
       val executionInfo = Await.result(future, Duration.Inf)
@@ -62,7 +61,7 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
       val future = service.stopJob("id")
 
-      execution.expectMsgType[CancelJobCommand]
+      execution.expectMsgType[ContextEvent.CancelJobCommand]
       execution.reply(())
 
       when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Canceled)))

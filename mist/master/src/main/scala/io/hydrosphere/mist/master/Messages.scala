@@ -39,10 +39,4 @@ object Messages {
 
   }
 
-  object JobExecution {
-
-    case class RunJobCommand(context: ContextConfig, request: RunJobRequest)
-    case class CancelJobCommand(context: String, request: CancelJobRequest)
-  }
-
 }

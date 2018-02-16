@@ -6,8 +6,6 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
-import io.hydrosphere.mist.master.Messages.JobExecution._
-import io.hydrosphere.mist.master.execution.ContextFrontend.Event.UpdateContext
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.models._
@@ -97,7 +95,7 @@ class ExecutionService(
       )
     )
 
-    val startCmd = RunJobCommand(context, internalRequest)
+    val startCmd = ContextEvent.RunJobCommand(context, internalRequest)
 
     val details = JobDetails(
       function.name,
@@ -117,7 +115,7 @@ class ExecutionService(
 
     def tryCancel(d: JobDetails): Future[Unit] = {
       if (d.isCancellable ) {
-        val f = contextsMaster ? CancelJobCommand(d.context, CancelJobRequest(jobId))
+        val f = contextsMaster ? ContextEvent.CancelJobCommand(d.context, CancelJobRequest(jobId))
         f.map(_ => ())
       } else Future.successful(())
     }
@@ -133,7 +131,7 @@ class ExecutionService(
   }
 
   def updateContext(ctx: ContextConfig): Unit =
-    contextsMaster ! ContextFrontend.Event.UpdateContext(ctx)
+    contextsMaster ! ContextEvent.UpdateContext(ctx)
 
 }
 
@@ -151,7 +149,7 @@ object ExecutionService {
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
       val props = ContextFrontend.props(ctx.name, reporter, hub.start)
       val ref = af.actorOf(props)
-      ref ! UpdateContext(ctx)
+      ref ! ContextEvent.UpdateContext(ctx)
       ref
     })
     val contextsMaster = system.actorOf(ContextsMaster.props(mkContext))

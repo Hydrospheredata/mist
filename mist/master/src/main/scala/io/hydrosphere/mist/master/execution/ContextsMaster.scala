@@ -1,8 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import io.hydrosphere.mist.master.Messages.JobExecution.{CancelJobCommand, RunJobCommand}
-import io.hydrosphere.mist.master.execution.ContextFrontend.Event.UpdateContext
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 
@@ -15,21 +13,23 @@ class ContextsMaster(
   override def receive: Receive = process(Map.empty)
 
   private def process(state: State): Receive = {
-    case run: RunJobCommand =>
+    case run: ContextEvent.RunJobCommand =>
       val (next, ref) = getOrCreate(state, run.context)
       ref forward run.request
       context become process(next)
 
-    case c @ CancelJobCommand(name, req) =>
+    case c @ ContextEvent.CancelJobCommand(name, req) =>
       state.get(name) match {
         case Some(ref) => ref forward req
         case None => sender() ! akka.actor.Status.Failure(new IllegalStateException("Can't cancel job on stopped/unknown context"))
       }
 
-    case upd @ ContextFrontend.Event.UpdateContext(ctx) =>
+    case upd @ ContextEvent.UpdateContext(ctx) =>
       state.get(ctx.name) match {
         case Some(ref) => ref forward upd
-        case None => getOrCreate(state, ctx)
+        case None =>
+          val (next, ref) = getOrCreate(state, ctx)
+          context become process(next)
       }
 
   }
@@ -46,6 +46,7 @@ class ContextsMaster(
   }
 
 }
+
 
 object ContextsMaster {
 
