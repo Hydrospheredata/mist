@@ -104,7 +104,7 @@ object MasterServer extends Logger {
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
         akkaAddress = masterService,
-        logAddress = s"${config.http.host}:${config.http.port}",
+        logAddress = s"${config.logs.host}:${config.logs.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize,
         jobsSavePath = config.artifactRepositoryPath
