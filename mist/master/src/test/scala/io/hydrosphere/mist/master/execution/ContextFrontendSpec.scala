@@ -78,6 +78,14 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     fail("not imlemented")
   }
 
+  it("should restart connector 'til max start times and then sleep") {
+    fail("not implemented")
+  }
+
+  it("should ask connection 'til max ask times and then sleep") {
+    fail("not implemented")
+  }
+
   def successfulConnector(conn: ActorRef): WorkerConnector = {
     val connection = WorkerConnection("id", conn, workerLinkData, Promise[Unit].future)
     new WorkerConnector {

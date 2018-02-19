@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
+import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.FrontendStatus
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
@@ -65,41 +66,41 @@ class ContextFrontend(
     case req: RunJobRequest =>
       val next = mkJob(req, FrontendState.empty, sender())
       val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, next, ConnectedState.initial(id, connector))
+      becomeWithConnector(ctx, next, ConnectorState.initial(id, connector))
   }
 
   // handle UpdateContext for awaitRequest/initial
   private def nonConnectedCtxUpd(ctx: ContextConfig, state: State)(stayReceive: => Receive): Unit = {
     if (ctx.precreated) {
       val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, state, ConnectedState.initial(id, connector))
+      becomeWithConnector(ctx, state, ConnectorState.initial(id, connector))
     } else {
       context become stayReceive
     }
   }
 
-  // handle state changes, starting new jobs if it's possible
+  // handle currentState changes, starting new jobs if it's possible
   private def becomeWithConnector(
     ctx: ContextConfig,
     state: State,
-    connectedState: ConnectedState
+    connectorState: ConnectorState
   ): Unit = {
 
     def askConnection(): Unit = {
-      connectedState.connector.askConnection().onComplete {
+      connectorState.connector.askConnection().onComplete {
         case Success(connection) => self ! Event.Connection(connection)
         case Failure(e) => self ! Event.ConnectionFailure(e)
       }
     }
 
-    val available = ctx.maxJobs - connectedState.all
-    val need = math.min(state.queued.size - connectedState.asked, available)
+    val available = ctx.maxJobs - connectorState.all
+    val need = math.min(state.queued.size - connectorState.asked, available)
     val nextConnState = {
       if (need > 0) {
         for (_ <- 0 until need) askConnection()
-        connectedState.copy(asked = connectedState.asked + need)
+        connectorState.copy(asked = connectorState.asked + need)
       } else
-        connectedState
+        connectorState
     }
 
     context become withConnector(ctx, state, nextConnState)
@@ -107,29 +108,29 @@ class ContextFrontend(
 
   private def withConnector(
     ctx: ContextConfig,
-    state: State,
-    connectedState: ConnectedState
+    currentState: State,
+    connectorState: ConnectorState
   ): Receive = {
 
-    def becomeNextState(next: State): Unit = becomeWithConnector(ctx, next, connectedState)
-    def becomeNextConn(next: ConnectedState): Unit = becomeWithConnector(ctx, state, next)
-    def becomeNext(c: ConnectedState, s: State): Unit = becomeWithConnector(ctx, s, c)
+    def becomeNextState(next: State): Unit = becomeWithConnector(ctx, next, connectorState)
+    def becomeNextConn(next: ConnectorState): Unit = becomeWithConnector(ctx, currentState, next)
+    def becomeNext(c: ConnectorState, s: State): Unit = becomeWithConnector(ctx, s, c)
 
     {
-      case Event.Status => sender() ! mkStatus(state, connectedState.id)
+      case Event.Status => sender() ! mkStatus(currentState, connectorState.id)
       case ContextEvent.UpdateContext(updCtx) =>
         val (id, connector) = startConnector(updCtx)
-        becomeWithConnector(ctx, state, connectedState.copy(id = id, connector = connector))
+        becomeWithConnector(ctx, currentState, connectorState.copy(id = id, connector = connector))
 
-      case req: RunJobRequest => becomeNextState(mkJob(req, state, sender()))
-      case CancelJobRequest(id) => becomeNextState(cancelJob(id, state, sender()))
+      case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
+      case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
 
       case Event.Connection(worker) =>
         log.info("Received new connection!")
-        state.nextOption match {
+        currentState.nextOption match {
           case Some((id, ref)) =>
             ref ! JobActor.Event.Perform(worker)
-            becomeNext(connectedState.askSuccess, state.toWorking(id))
+            becomeNext(connectorState.askSuccess, currentState.toWorking(id))
           case None =>
             //TODO notify connection that it's unused
             //TODO exclusive workers leak
@@ -138,27 +139,44 @@ class ContextFrontend(
 
       case Event.ConnectionFailure(e) =>
         log.error(s"Ask new worker connection for $name failed")
-        becomeNextConn(connectedState.askFailure)
+        if (connectorState.failed > ConnectionFailedMaxTimes) {
+          connectorState.connector.shutdown(true)
+          context become sleepingTilUpdate(ctx, e)
+        } else {
+          becomeNextConn(connectorState.askFailure)
+        }
 
-      case JobActor.Event.Completed(id) if state.hasWorking(id) =>
-        becomeNext(connectedState.connectionReleased, state.done(id))
+      case JobActor.Event.Completed(id) if currentState.hasWorking(id) =>
+        becomeNext(connectorState.connectionReleased, currentState.done(id))
 
       case JobActor.Event.Completed(id) =>
         log.warning(s"Received unexpected completed event from $id")
 
-      //TODO? restart timeouts
       case Event.ConnectorCrushed(id, e) =>
         log.error(e, "Executor {} died", id)
-        val (newId, newConn) = startConnector(ctx)
-        becomeWithConnector(ctx, state, connectedState.copy(id = newId, connector = newConn))
+        val newState = connectorState.connectorFailed
+        if (newState.connectorFailedTimes > ConnectorFailedMaxTimes) {
+          connectorState.connector.shutdown(true)
+          context become sleepingTilUpdate(ctx, e)
+        } else {
+          val (newId, newConn) = startConnector(ctx)
+          becomeWithConnector(ctx, currentState, newState.copy(id = newId, connector = newConn))
+        }
 
       case Event.ConnectorStopped(id) =>
         log.error(s"Executor $id died")
         val (newId, newConn) = startConnector(ctx)
-        becomeWithConnector(ctx, state, connectedState.copy(id = newId, connector = newConn))
+        becomeWithConnector(ctx, currentState, connectorState.copy(id = newId, connector = newConn))
     }
   }
 
+  private def sleepingTilUpdate(brokenCtx: ContextConfig, error: Throwable): Receive = {
+    case Event.Status => mkStatus(FrontendState.empty) // TODO: return failed currentState
+    case ContextEvent.UpdateContext(updCtx) =>
+      nonConnectedCtxUpd(updCtx, FrontendState.empty)(sleepingTilUpdate(brokenCtx, error))
+    case req: RunJobRequest =>
+      respondWithError(brokenCtx, req, sender(), error)
+  }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
     val id = UUID.randomUUID().toString
@@ -193,9 +211,28 @@ class ContextFrontend(
     st.enqueue(req.id, ref)
   }
 
+  private def respondWithError(brokenCtx: ContextConfig, req: RunJobRequest, respond: ActorRef, error: Throwable): Unit = {
+    val msg = buildErrorMessage(
+      s"Please update context ${brokenCtx.name} before running function ${req.params.className} invocation",
+      error
+    )
+    val promise = Promise[JsLikeData].failure(error)
+    reporter.report(FailedEvent(req.id, System.currentTimeMillis(), msg))
+    respond ! ExecutionInfo(req, promise)
+  }
+
+  private def buildErrorMessage(prefix: String, err: Throwable): String = {
+    val msg = Option(err.getMessage).getOrElse("")
+    val trace = err.getStackTrace.map(e => e.toString).mkString(";\n")
+    val suffix = s"Type: ${err.getClass.getCanonicalName}, message: $msg, trace \n$trace"
+    s"$prefix: $suffix"
+  }
+
 }
 
 object ContextFrontend {
+  val ConnectionFailedMaxTimes = 50
+  val ConnectorFailedMaxTimes = 50
 
   sealed trait Event
   object Event {
@@ -219,21 +256,25 @@ object ContextFrontend {
     val empty: FrontendStatus = FrontendStatus(Map.empty, None)
   }
 
-  case class ConnectedState(
+  case class ConnectorState(
     id: String,
     connector: WorkerConnector,
     used: Int,
-    asked: Int
+    asked: Int,
+    failed: Int,
+    connectorFailedTimes: Int
   ) {
+
     def all: Int = used + asked
-    def askSuccess: ConnectedState = copy(used = used + 1, asked = asked - 1)
-    def askFailure: ConnectedState = copy(asked = asked - 1)
-    def connectionReleased: ConnectedState = copy(used = used - 1)
+    def askSuccess: ConnectorState = copy(used = used + 1, asked = asked - 1, failed = 0, connectorFailedTimes = 0)
+    def askFailure: ConnectorState = copy(asked = asked - 1, failed = failed + 1)
+    def connectionReleased: ConnectorState = copy(used = used - 1)
+    def connectorFailed: ConnectorState = copy(failed = 0, connectorFailedTimes = connectorFailedTimes + 1)
   }
 
-  object ConnectedState {
-    def initial(id: String, connector: WorkerConnector): ConnectedState =
-      ConnectedState(id, connector, 0, 0)
+  object ConnectorState {
+    def initial(id: String, connector: WorkerConnector): ConnectorState =
+      ConnectorState(id, connector, 0, 0, 0, 0)
   }
 
   def props(
