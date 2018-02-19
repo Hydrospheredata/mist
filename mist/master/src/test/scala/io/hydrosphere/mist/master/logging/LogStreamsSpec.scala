@@ -6,6 +6,7 @@ import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.testkit.TestKit
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.master.FilteredException
 import org.mockito.Mockito.verify
 import org.scalatest.{FunSpecLike, Matchers}
 
@@ -40,9 +41,9 @@ class LogStreamsSpec extends TestKit(ActorSystem("log-service-test"))
     val writer = mock[LogsWriter]
     when(writer.write(any[String], any[Seq[LogEvent]]))
       .thenSuccess(LogUpdate("id", Seq(event), 1))
-      .thenFailure(new RuntimeException("error"))
+      .thenFailure(FilteredException())
       .thenSuccess(LogUpdate("id", Seq(event), 1))
-      .thenFailure(new RuntimeException("error"))
+      .thenFailure(FilteredException())
       .thenSuccess(LogUpdate("id", Seq(event), 1))
 
     val in = (1 to 5).map(i => LogEvent.mkDebug(s"job-$i", "message"))

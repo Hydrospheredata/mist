@@ -3,7 +3,8 @@ package io.hydrosphere.mist.master
 import akka.actor._
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl._
-import io.hydrosphere.mist.master.Messages.StatusMessages.{UpdateStatusEvent, SystemEvent}
+import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
+import io.hydrosphere.mist.master.logging.LogStreams
 
 trait EventsStreamer {
 
@@ -18,14 +19,13 @@ trait EventsStreamer {
   */
 object EventsStreamer {
 
-  private val BufferSize = 500
 
   def apply(system: ActorSystem): EventsStreamer = {
     val actor = system.actorOf(Props(new BroadcastSource))
 
     new EventsStreamer {
       override def eventsSource(): Source[SystemEvent, akka.NotUsed] = {
-        Source.actorRef[UpdateStatusEvent](BufferSize, OverflowStrategy.dropTail)
+        Source.actorRef[SystemEvent](LogStreams.LogEventBufferSize, OverflowStrategy.dropHead)
           .mapMaterializedValue(ref => {actor.tell("subscribe", ref); akka.NotUsed})
       }
 

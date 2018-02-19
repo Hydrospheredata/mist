@@ -258,6 +258,9 @@ public class HelloMist extends JMistFn<Double> {
 
 ### Connect to your existing Apache Spark cluster
 
+**Note** For this section it's recommended to use mist from binary distributive. Using mist from docker 
+and connecting it to remote cluster requires additional networking configuration.
+
 By default Mist is trying to connect `local[*]` Spark Master. See Spark [configuration docs](https://spark.apache.org/docs/latest/submitting-applications.html#master-urls) for more details.
 Configuring a particular function to be executed on a different Spark Cluster is as simple as changing `spark.master` configuration parameter for function's `context`:
 
