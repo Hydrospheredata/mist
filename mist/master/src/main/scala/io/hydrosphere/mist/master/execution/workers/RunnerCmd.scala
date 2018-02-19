@@ -1,16 +1,14 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import java.io.File
-
 import io.hydrosphere.mist.master._
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.sys.process._
 
-trait WorkerRunner {
+trait RunnerCmd {
 
   def runWorker(name: String, context: ContextConfig): Unit
 
@@ -22,11 +20,11 @@ trait ShellWorkerScript {
   def workerArgs(
     name: String,
     context: ContextConfig,
-    config: MasterConfig
+    masterAddress: String
   ): Seq[String] = {
 
     Seq[String](
-      "--master", s"${config.cluster.host}:${config.cluster.port}",
+      "--master", masterAddress,
       "--name", name
     ) ++ mkRunOptions(context)
   }
@@ -51,13 +49,13 @@ object ShellWorkerScript extends ShellWorkerScript
 /**
   * Spawn workers on the same host
   */
-class LocalWorkerRunner(config: MasterConfig)
-  extends WorkerRunner with ShellWorkerScript with Logger {
+class LocalRunnerCmd(masterAddress: String)
+  extends RunnerCmd with ShellWorkerScript with Logger {
 
   override def runWorker(name: String, context: ContextConfig): Unit = {
     val cmd =
       Seq[String](s"${sys.env("MIST_HOME")}/bin/mist-worker", "--runner", "local") ++
-      workerArgs(name, context, config)
+      workerArgs(name, context, masterAddress)
 
     logger.info(s"Try run local worker with $cmd")
     val builder = Process(cmd)
@@ -66,16 +64,16 @@ class LocalWorkerRunner(config: MasterConfig)
 
 }
 
-class DockerWorkerRunner(config: MasterConfig)
-  extends WorkerRunner with ShellWorkerScript {
+class DockerRunnerCmd(masterAddress: String, dockerHost: String, dockerPort: Int)
+  extends RunnerCmd with ShellWorkerScript {
 
   override def runWorker(name: String, context: ContextConfig): Unit = {
     val cmd =
       Seq(s"${sys.env("MIST_HOME")}/bin/mist-worker",
           "--runner", "docker",
-          "--docker-host", config.workers.dockerHost,
-          "--docker-port", config.workers.dockerPort.toString) ++
-      workerArgs(name, context, config)
+          "--docker-host", dockerHost,
+          "--docker-port", dockerPort.toString) ++
+      workerArgs(name, context, masterAddress)
     val builder = Process(cmd)
     builder.run(false)
   }
@@ -95,19 +93,15 @@ class DockerWorkerRunner(config: MasterConfig)
   * </code>
   * </pre>
   */
-class ManualWorkerRunner(
-  config: MasterConfig,
-  jarPath: String) extends WorkerRunner {
+class ManualRunnerCmd(masterAddress: String, cmdStart: String, cmdStop: String) extends RunnerCmd {
 
   override def runWorker(name: String, context: ContextConfig): Unit = {
     Process(
-      Seq("bash", "-c", config.workers.cmd),
+      Seq("bash", "-c", cmdStart),
       None,
-      "MIST_MASTER_ADDRESS" -> s"${config.cluster.host}:${config.cluster.port}",
+      "MIST_MASTER_ADDRESS" -> masterAddress,
       "MIST_WORKER_NAME" -> name,
-      "MIST_WORKER_RUN_OPTIONS" -> context.runOptions,
-
-      "MIST_WORKER_JAR_PATH" -> jarPath
+      "MIST_WORKER_RUN_OPTIONS" -> context.runOptions
     ).run(false)
   }
 
@@ -120,29 +114,25 @@ class ManualWorkerRunner(
   }
 
   private def withStopCommand(f: String => Unit): Unit = {
-    val cmd = config.workers.cmdStop
-    if (cmd.nonEmpty) f(cmd)
+    if (cmdStop.nonEmpty) f(cmdStop)
   }
 
 }
 
 
-object WorkerRunner {
+object RunnerCmd {
 
-  def create(config: MasterConfig): WorkerRunner = {
-    val runnerType = config.workers.runner
+  def create(masterAddress: String, workersSettings: WorkersSettingsConfig): RunnerCmd = {
+    val runnerType = workersSettings.runner
     runnerType match {
       case "local" =>
         sys.env.get("SPARK_HOME") match {
           case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
-          case Some(home) => new LocalWorkerRunner(config)
+          case Some(_) => new LocalRunnerCmd(masterAddress)
         }
-      case "docker" => new DockerWorkerRunner(config)
-      case "manual" =>
-        val jarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath).toString
-        new ManualWorkerRunner(config, jarPath)
-      case _ =>
-        throw new IllegalArgumentException(s"Unknown worker runner type $runnerType")
+      case "docker" => new DockerRunnerCmd(masterAddress, workersSettings.dockerHost, workersSettings.dockerPort)
+      case "manual" => new ManualRunnerCmd(masterAddress, workersSettings.cmd, workersSettings.cmdStop)
+      case _ => throw new IllegalArgumentException(s"Unknown worker runner type $runnerType")
 
     }
   }

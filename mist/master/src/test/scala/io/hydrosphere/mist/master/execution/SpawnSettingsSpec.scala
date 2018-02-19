@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution
 
 import io.hydrosphere.mist.master.TestData
-import io.hydrosphere.mist.master.execution.workers.WorkerRunner
+import io.hydrosphere.mist.master.execution.workers.RunnerCmd
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
 
   it("should build worker init info") {
-    val noop = new WorkerRunner {
+    val noop = new RunnerCmd {
       def runWorker(name: String, context: ContextConfig): Unit = {}
     }
     val spawnSettings = SpawnSettings(

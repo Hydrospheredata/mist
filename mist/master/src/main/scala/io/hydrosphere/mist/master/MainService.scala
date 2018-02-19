@@ -9,6 +9,7 @@ import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
+import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest
 import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
@@ -21,10 +22,10 @@ import scala.util.{Failure, Success}
 class MainService(
   val execution: ExecutionService,
   val functions: FunctionConfigStorage,
-  val contexts: ContextsStorage,
+  val contextsStorage: ContextsStorage,
   val logsPaths: LogStoragePaths,
   val functionInfoService: FunctionInfoService
-) extends Logger {
+) extends Logger with ContextsCRUDMixin {
 
   implicit val timeout: Timeout = Timeout(5 seconds)
 
@@ -74,7 +75,7 @@ class MainService(
 
     for {
       info          <- functionInfoService.getFunctionInfoByConfig(function)
-      context       <- contexts.getOrDefault(req.context)
+      context       <- contextsStorage.getOrDefault(req.context)
       _             <- functionInfoService.validateFunctionParamsByConfig(function, req.parameters)
       executionInfo <- execution.startJob(JobStartRequest(
         id = UUID.randomUUID().toString,
@@ -137,9 +138,18 @@ class MainService(
 
   private def selectContext(req: FunctionStartRequest, context: String): Future[ContextConfig] = {
     val name = req.runSettings.contextId.getOrElse(context)
-    contexts.getOrDefault(name)
+    contextsStorage.getOrDefault(name)
   }
 
+//  def updateContext(ctx: ContextConfig): Future[ContextConfig] = for {
+//    upd <- contexts.update(ctx)
+//    _ = execution.updateContext(upd)
+//  } yield upd
+//
+//  def createContext(req: ContextCreateRequest): Future[ContextConfig] = {
+//    val ctx = req.toContextWithFallback(contexts.defaultConfig)
+//    update(ctx)
+//  }
 }
 
 object MainService extends Logger {

@@ -308,48 +308,21 @@ class HttpApiV2Spec extends FunSpec
   describe("contexts") {
 
     it("should create context") {
-      val contextStorage = mock[ContextsStorage]
-      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.Shared, 1 seconds)
+      val crud = new ContextsCRUDLike {
+        def create(req: ContextCreateRequest): Future[ContextConfig] = Future.successful(FooContext)
+        def getAll(): Future[Seq[ContextConfig]] = ???
+        def update(a: ContextConfig): Future[ContextConfig] = ???
+        def get(id: String): Future[Option[ContextConfig]] = ???
+      }
 
+      val route = HttpV2Routes.contextsRoutes(crud)
       val req = ContextCreateRequest("yoyo", workerMode = Some(RunMode.ExclusiveContext))
-
-      when(contextStorage.defaultConfig)
-        .thenReturn(defaultValue)
-
-      when(contextStorage.update(any[ContextConfig]))
-        .thenReturn(Future.successful(defaultValue))
-
-      val route = HttpV2Routes.contextsRoutes(contextStorage)
       Post(s"/v2/api/contexts", req.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
-          "yoyo", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.ExclusiveContext, 1 seconds
-        )))
       }
     }
-
-    it("should create ctx with optional parameters") {
-      val contextStorage = mock[ContextsStorage]
-      val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "--opt", RunMode.Shared, 1 seconds)
-      val contextToCreate = ContextCreateRequest("yoyo", None, None, Some(25), None, None, None, None)
-
-      when(contextStorage.defaultConfig)
-        .thenReturn(defaultValue)
-
-      when(contextStorage.update(any[ContextConfig]))
-        .thenReturn(Future.successful(defaultValue))
-
-      val route = HttpV2Routes.contextsRoutes(contextStorage)
-
-      Post(s"/v2/api/contexts", contextToCreate.toEntity) ~> route ~> check {
-        status shouldBe StatusCodes.OK
-        verify(contextStorage, times(1)).update(mockitoEq(ContextConfig(
-          "yoyo", Map.empty, Duration.Inf, 25, precreated = false, "--opt", RunMode.Shared, 1 seconds
-        )))
-      }
-    }
-
   }
+
   describe("artifact") {
     it("should list all unique file names in artifact repository") {
       val artifactRepo = mock[ArtifactRepository]

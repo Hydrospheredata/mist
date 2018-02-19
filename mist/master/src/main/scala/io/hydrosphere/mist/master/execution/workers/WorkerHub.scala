@@ -6,22 +6,36 @@ import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
+import scala.util.{Failure, Success}
 
 /**
   * Mix connections mirror and connector starter
   */
 class WorkerHub(
-  mkConnector: (String, ContextConfig) => WorkerConnector
+  runner: WorkerRunner,
+  mkConnector: (String, ContextConfig, WorkerRunner) => WorkerConnector
 ) extends ConnectionsMirror  {
 
-  def start(id: String, ctx: ContextConfig): WorkerConnector = {
-    val connector = mkConnector(id, ctx)
-    spy(connector)
+  private val wrappedRunner = new WorkerRunner {
+    override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
+      val pr = Promise[WorkerConnection]
+      runner(id, ctx).onComplete {
+        case Success(conn) =>
+          add(conn)
+          conn.whenTerminated.onComplete({_ => remove(conn.id)})
+          pr.success(conn)
+        case Failure(e) => pr.failure(e)
+      }
+      pr.future
+    }
+
   }
 
+  def start(id: String, ctx: ContextConfig): WorkerConnector = mkConnector(id, ctx, wrappedRunner)
+
   // stopping connection return failed future
-  // because it stops worker focibly
+  // because it stops worker forcibly
   // calling stop from here means that user understands it
   private def shutdownConn(conn: WorkerConnection): Future[Unit] =
     conn.shutdown().recover({case _ => ()})
@@ -40,8 +54,11 @@ object WorkerHub {
 
   def apply(spawn: SpawnSettings, system: ActorSystem): WorkerHub = {
     val regHub = ActorRegHub("regHub", system)
-    val mkConnector = WorkerConnector.default(regHub, spawn, system)(_, _)
-    new WorkerHub(mkConnector)
+    val runner =  WorkerRunner.default(spawn, regHub, system)
+    val mkConnector = (id: String, ctx: ContextConfig, runner: WorkerRunner) => {
+      WorkerConnector.actorBased(id,ctx, runner, system)
+    }
+    new WorkerHub(runner, mkConnector)
   }
 }
 

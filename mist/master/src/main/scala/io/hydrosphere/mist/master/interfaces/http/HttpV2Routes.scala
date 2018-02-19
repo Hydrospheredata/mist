@@ -13,7 +13,7 @@ import cats.implicits._
 import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{JobDetails, MainService}
+import io.hydrosphere.mist.master.{ContextsCRUDLike, JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
@@ -328,23 +328,22 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def contextsRoutes(contexts: ContextsStorage): Route = {
+  def contextsRoutes(ctxCrud: ContextsCRUDLike): Route = {
     path ( root / "contexts" ) {
-      get { complete(contexts.all) }
+      get { complete(ctxCrud.getAll()) }
     } ~
     path ( root / "contexts" / Segment ) { id =>
-      get { completeOpt(contexts.get(id)) }
+      get { completeOpt(ctxCrud.get(id)) }
     } ~
     path ( root / "contexts" ) {
-      post { entity(as[ContextCreateRequest]) { context =>
-        val config = context.toContextWithFallback(contexts.defaultConfig)
-        complete { contexts.update(config) }
+      post { entity(as[ContextCreateRequest]) { req =>
+        complete(ctxCrud.create(req))
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
       put { entity(as[ContextConfig]) { context =>
-        onSuccess(contexts.get(context.name)) {
-          case Some(_) => complete { contexts.update(context) }
+        onSuccess(ctxCrud.get(id)) {
+          case Some(_) => complete { ctxCrud.update(context) }
           case None =>
             val rsp = HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found")
             complete(rsp)
@@ -373,7 +372,7 @@ object HttpV2Routes extends Logger {
       functionRoutes(masterService) ~
       jobsRoutes(masterService) ~
       workerRoutes(masterService.execution) ~
-      contextsRoutes(masterService.contexts) ~
+      contextsRoutes(masterService) ~
       artifactRoutes(artifacts) ~
       statusApi
     }
