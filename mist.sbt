@@ -44,7 +44,8 @@ lazy val mistLib = project.in(file("mist-lib"))
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
     ),
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    coverageExcludedPackages := "io\\.hydrosphere\\.mist\\.api.*"
   )
 
 lazy val core = project.in(file("mist/core"))
