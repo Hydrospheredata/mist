@@ -7,7 +7,7 @@ import io.hydrosphere.mist.master.models.ContextConfig
 import scala.concurrent.duration._
 
 case class SpawnSettings(
-  runner: RunnerCmd,
+  runnerCmd: RunnerCmd,
   timeout: Duration,
   readyTimeout: FiniteDuration,
   akkaAddress: String,
