@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.master.execution
-
-import akka.actor.ActorSystem
-import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.master.JobDetails
-import io.hydrosphere.mist.master.Messages.JobExecution.WorkerUp
-import io.hydrosphere.mist.master.Messages.StatusMessages._
-import mist.api.data._
-import org.scalatest.{FunSpecLike, Matchers}
+//
+//import akka.actor.ActorSystem
+//import akka.testkit.{TestKit, TestProbe}
+//import io.hydrosphere.mist.core.CommonData._
+//import io.hydrosphere.mist.master.JobDetails
+//import io.hydrosphere.mist.master.Messages.JobExecution.WorkerUp
+//import io.hydrosphere.mist.master.Messages.StatusMessages._
+//import mist.api.data._
+//import org.scalatest.{FunSpecLike, Matchers}
 
 //class FrontendExecutorSpec extends TestKit(ActorSystem("testFront"))
 //  with FunSpecLike
