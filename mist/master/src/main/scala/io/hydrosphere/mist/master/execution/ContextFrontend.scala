@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
-import io.hydrosphere.mist.master.execution.ContextFrontend.FrontendStatus
+import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.models.ContextConfig
@@ -21,20 +21,21 @@ trait FrontendBasics {
   type State = FrontendState[String, ActorRef]
   val State = FrontendState
 
-  def mkStatus(state: State, executorId: Option[String]): FrontendStatus = {
+  def mkStatus(state: State, conn: Option[ConnectorState]): FrontendStatus = {
     val jobs =
       state.queued.map({case (k, _) => k -> ExecStatus.Queued}) ++
       state.active.map({case (k, _) => k -> ExecStatus.Started})
 
     FrontendStatus(
       jobs = jobs,
-      executorId
+      conn.map(_.id),
+      conn.map(_.failed).getOrElse(0),
+      conn.map(_.connectorFailedTimes).getOrElse(0)
     )
   }
 
   def mkStatus(state: State): FrontendStatus = mkStatus(state, None)
-  def mkStatus(state: State, execId: String): FrontendStatus = mkStatus(state, Some(execId))
-
+  def mkStatus(state: State, conn: ConnectorState): FrontendStatus = mkStatus(state, Some(conn))
 }
 
 class ContextFrontend(
@@ -117,7 +118,7 @@ class ContextFrontend(
     def becomeNext(c: ConnectorState, s: State): Unit = becomeWithConnector(ctx, s, c)
 
     {
-      case Event.Status => sender() ! mkStatus(currentState, connectorState.id)
+      case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
         val (id, connector) = startConnector(updCtx)
         becomeWithConnector(ctx, currentState, connectorState.copy(id = id, connector = connector))
@@ -139,11 +140,12 @@ class ContextFrontend(
 
       case Event.ConnectionFailure(e) =>
         log.error(s"Ask new worker connection for $name failed")
-        if (connectorState.failed > ConnectionFailedMaxTimes) {
+        val newConnState = connectorState.askFailure
+        if (newConnState.failed >= ConnectionFailedMaxTimes) {
           connectorState.connector.shutdown(true)
-          context become sleepingTilUpdate(ctx, e)
+          context become sleepingTilUpdate(currentState, newConnState, ctx, e)
         } else {
-          becomeNextConn(connectorState.askFailure)
+          becomeNextConn(newConnState)
         }
 
       case JobActor.Event.Completed(id) if currentState.hasWorking(id) =>
@@ -155,9 +157,8 @@ class ContextFrontend(
       case Event.ConnectorCrushed(id, e) =>
         log.error(e, "Executor {} died", id)
         val newState = connectorState.connectorFailed
-        if (newState.connectorFailedTimes > ConnectorFailedMaxTimes) {
-          connectorState.connector.shutdown(true)
-          context become sleepingTilUpdate(ctx, e)
+        if (newState.connectorFailedTimes >= ConnectorFailedMaxTimes) {
+          context become sleepingTilUpdate(currentState, newState, ctx, e)
         } else {
           val (newId, newConn) = startConnector(ctx)
           becomeWithConnector(ctx, currentState, newState.copy(id = newId, connector = newConn))
@@ -170,10 +171,10 @@ class ContextFrontend(
     }
   }
 
-  private def sleepingTilUpdate(brokenCtx: ContextConfig, error: Throwable): Receive = {
-    case Event.Status => mkStatus(FrontendState.empty) // TODO: return failed currentState
+  private def sleepingTilUpdate(state: State, conn: ConnectorState, brokenCtx: ContextConfig, error: Throwable): Receive = {
+    case Event.Status => sender() ! mkStatus(state, conn)
     case ContextEvent.UpdateContext(updCtx) =>
-      nonConnectedCtxUpd(updCtx, FrontendState.empty)(sleepingTilUpdate(brokenCtx, error))
+      nonConnectedCtxUpd(updCtx, FrontendState.empty)(awaitRequest(updCtx))
     case req: RunJobRequest =>
       respondWithError(brokenCtx, req, sender(), error)
   }
@@ -250,10 +251,12 @@ object ContextFrontend {
 
   case class FrontendStatus(
     jobs: Map[String, ExecStatus],
-    executorId: Option[String]
+    executorId: Option[String],
+    connFails: Int,
+    connectorFails: Int
   )
   object FrontendStatus {
-    val empty: FrontendStatus = FrontendStatus(Map.empty, None)
+    val empty: FrontendStatus = FrontendStatus(Map.empty, None, 0, 0)
   }
 
   case class ConnectorState(
