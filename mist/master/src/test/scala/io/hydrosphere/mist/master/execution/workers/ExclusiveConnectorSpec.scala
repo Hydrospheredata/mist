@@ -46,4 +46,25 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
     originalRef.expectMsgType[RunJobRequest]
     originalRef.expectMsgType[CompleteAndShutdown.type]
   }
+
+  describe("Exclusive conn wrapper") {
+
+    it("should handle unused") {
+      val connRef = TestProbe()
+      val termination = Promise[Unit]
+      val connection = WorkerConnection(
+        id = "id",
+        ref = connRef.ref,
+        data = workerLinkData,
+        whenTerminated = termination.future
+      )
+      val wrapped = ExclusiveConnector.ConnectionWrapper.wrap(connection)
+
+      wrapped.markUnused()
+      connRef.expectMsgType[CompleteAndShutdown.type]
+
+      wrapped.ref ! mkRunReq("id")
+      connRef.expectMsgType[RunJobRequest]
+    }
+  }
 }

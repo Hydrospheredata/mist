@@ -125,16 +125,14 @@ class ContextFrontend(
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
       case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
 
-      case Event.Connection(worker) =>
+      case Event.Connection(connection) =>
         log.info("Received new connection!")
         currentState.nextOption match {
           case Some((id, ref)) =>
-            ref ! JobActor.Event.Perform(worker)
+            ref ! JobActor.Event.Perform(connection)
             becomeNext(connectorState.askSuccess, currentState.toWorking(id))
           case None =>
-            //TODO notify connection that it's unused
-            //TODO exclusive workers leak
-            log.warning("NOT IMpLEMETED")
+            connection.markUnused()
         }
 
       case Event.ConnectionFailure(e) =>
