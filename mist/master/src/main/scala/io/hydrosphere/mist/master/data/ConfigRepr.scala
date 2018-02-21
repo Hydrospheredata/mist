@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig, RunMode}
 
 import scala.concurrent.duration._
 
@@ -59,6 +59,11 @@ object ConfigRepr {
     )
 
     override def fromConfig(config: Config): ContextConfig = {
+      def runMode(s: String): RunMode = s match {
+        case "shared" => RunMode.Shared
+        case "exclusive" => RunMode.ExclusiveContext
+      }
+
       def cleanKey(key: String): String = key.replaceAll("\"", "")
       ContextConfig(
         name = config.getString("name"),
@@ -69,7 +74,7 @@ object ConfigRepr {
         downtime = Duration(config.getString("downtime")),
         maxJobs = config.getInt("max-parallel-jobs"),
         precreated = config.getBoolean("precreated"),
-        workerMode = config.getString("worker-mode"),
+        workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration"))
       )
@@ -89,7 +94,7 @@ object ConfigRepr {
         "downtime" -> fromDuration(a.downtime),
         "max-parallel-jobs" -> fromAnyRef(a.maxJobs),
         "precreated" -> fromAnyRef(a.precreated),
-        "worker-mode" -> fromAnyRef(a.workerMode),
+        "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration)
       )

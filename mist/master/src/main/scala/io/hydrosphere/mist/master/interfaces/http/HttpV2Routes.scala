@@ -13,12 +13,13 @@ import cats.implicits._
 import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{JobDetails, JobService, MainService}
+import io.hydrosphere.mist.master.{ContextsCRUDLike, JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
 
+import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,12 +29,11 @@ import scala.util._
 case class JobRunQueryParams(
   force: Boolean,
   externalId: Option[String],
-  context: Option[String],
-  workerId: Option[String]
+  context: Option[String]
 ) {
 
   def buildRunSettings(): RunSettings = {
-    RunSettings(context, workerId)
+    RunSettings(context)
   }
 }
 
@@ -62,8 +62,7 @@ object HttpV2Base {
     parameters(
       'force ? (false),
       'externalId ?,
-      'context ?,
-      'workerId ?
+      'context ?
     ).as(JobRunQueryParams)
 
   val jobsQuery = {
@@ -138,7 +137,7 @@ object HttpV2Routes extends Logger {
 
   import HttpV2Base._
 
-  def workerRoutes(jobService: JobService): Route = {
+  def workerRoutes(jobService: ExecutionService): Route = {
     path( root / "workers" ) {
       get { complete(jobService.workers()) }
     } ~
@@ -209,7 +208,7 @@ object HttpV2Routes extends Logger {
     path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.functionJobHistory(
+          master.execution.functionJobHistory(
             functionId,
             limits.limit, limits.offset, statuses)
         }
@@ -292,18 +291,18 @@ object HttpV2Routes extends Logger {
     path( root / "jobs" ) {
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.getHistory(limits.limit, limits.offset, statuses)
+          master.execution.getHistory(limits.limit, limits.offset, statuses)
         }
       }}
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       get { completeOpt {
-        master.jobService.jobStatusById(jobId)
+        master.execution.jobStatusById(jobId)
       }}
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
-        onSuccess(master.jobService.jobStatusById(jobId)) {
+        onSuccess(master.execution.jobStatusById(jobId)) {
           case Some(_) =>
             master.logsPaths.pathFor(jobId).toFile match {
               case file if file.exists => getFromFile(file)
@@ -316,7 +315,7 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "jobs" / Segment / "worker" ) { jobId =>
       get {
-        onSuccess(master.jobService.workerByJobId(jobId)) {
+        onSuccess(master.execution.workerByJobId(jobId)) {
           case Some(worker) => complete { worker }
           case None => complete { HttpResponse(StatusCodes.NotFound, entity=s"Worker by jobId $jobId not found") }
         }
@@ -324,28 +323,27 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       delete { completeOpt {
-        master.jobService.stopJob(jobId)
+        master.execution.stopJob(jobId)
       }}
     }
   }
 
-  def contextsRoutes(contexts: ContextsStorage): Route = {
+  def contextsRoutes(ctxCrud: ContextsCRUDLike): Route = {
     path ( root / "contexts" ) {
-      get { complete(contexts.all) }
+      get { complete(ctxCrud.getAll()) }
     } ~
     path ( root / "contexts" / Segment ) { id =>
-      get { completeOpt(contexts.get(id)) }
+      get { completeOpt(ctxCrud.get(id)) }
     } ~
     path ( root / "contexts" ) {
-      post { entity(as[ContextCreateRequest]) { context =>
-        val config = context.toContextWithFallback(contexts.defaultConfig)
-        complete { contexts.update(config) }
+      post { entity(as[ContextCreateRequest]) { req =>
+        complete(ctxCrud.create(req))
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
       put { entity(as[ContextConfig]) { context =>
-        onSuccess(contexts.get(context.name)) {
-          case Some(_) => complete { contexts.update(context) }
+        onSuccess(ctxCrud.get(id)) {
+          case Some(_) => complete { ctxCrud.update(context) }
           case None =>
             val rsp = HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found")
             complete(rsp)
@@ -373,8 +371,8 @@ object HttpV2Routes extends Logger {
     handleExceptions(exceptionHandler) {
       functionRoutes(masterService) ~
       jobsRoutes(masterService) ~
-      workerRoutes(masterService.jobService) ~
-      contextsRoutes(masterService.contexts) ~
+      workerRoutes(masterService.execution) ~
+      contextsRoutes(masterService) ~
       artifactRoutes(artifacts) ~
       statusApi
     }

@@ -4,7 +4,7 @@ import java.lang.management._
 import java.time.LocalDateTime
 
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
-import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import mist.api.args.UserInputArgument
 
 import scala.concurrent.duration.Duration
@@ -116,21 +116,14 @@ case class EndpointCreateRequest(
 
 case class ContextCreateRequest(
   name: String,
-  sparkConf: Option[Map[String, String]],
-  downtime: Option[Duration],
-  maxJobs: Option[Int],
-  precreated: Option[Boolean],
-  workerMode: Option[String],
+  sparkConf: Option[Map[String, String]] = None,
+  downtime: Option[Duration] = None,
+  maxJobs: Option[Int] = None,
+  precreated: Option[Boolean] = None,
+  workerMode: Option[RunMode] = None,
   runOptions: Option[String] = None,
-  streamingDuration: Option[Duration]
+  streamingDuration: Option[Duration] = None
 ) {
-
-  workerMode match {
-    case Some(m) =>
-      require(ContextCreateRequest.AvailableRunMode.contains(m),
-        s"Worker mode should be in ${ContextCreateRequest.AvailableRunMode}")
-    case _ =>
-  }
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =
     ContextConfig(

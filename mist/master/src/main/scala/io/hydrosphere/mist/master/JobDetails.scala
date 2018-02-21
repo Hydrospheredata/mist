@@ -1,6 +1,8 @@
 package io.hydrosphere.mist.master
 
 import io.hydrosphere.mist.core.CommonData.JobParams
+import io.hydrosphere.mist.master.JobDetails.Status
+import io.hydrosphere.mist.master.Messages.StatusMessages._
 import mist.api.data.JsLikeData
 
 object JobDetails {
@@ -102,7 +104,7 @@ case class JobDetails(
   endTime: Option[Long] = None,
   jobResult: Option[Either[String, JsLikeData]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
-  workerId: String,
+  workerId: Option[String] = None,
   createTime: Long = System.currentTimeMillis()
 ) {
 
@@ -125,5 +127,6 @@ case class JobDetails(
     copy(status = status)
 
   def isCancellable: Boolean = !status.isFinished
+
 }
 

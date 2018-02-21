@@ -66,11 +66,8 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
       function = "function",
       context = "context",
       externalId = None,
-      status = status,
-      workerId = "workerId"
+      status = status
     )
   }
 
 }
-
-

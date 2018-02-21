@@ -57,6 +57,7 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       Library.slf4j,
       Library.reflect,
+      Library.Akka.testKit % "test",
       Library.mockito % "test", Library.scalaTest % "test"
     )
   )
@@ -84,7 +85,7 @@ lazy val master = project.in(file("mist/master"))
 
       Library.scalaTest % "test",
       Library.mockito % "test"
-    ),
+    )
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
     buildInfoPackage := "io.hydrosphere.mist"

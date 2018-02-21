@@ -6,35 +6,15 @@ import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
 
-/** Specify how use context/workers */
-sealed trait RunMode {
-
-  def name: String = this match {
-    case RunMode.Shared => "shared"
-    case e:RunMode.ExclusiveContext => "exclusive"
-  }
-
-}
-
-object RunMode {
-
-  /** Job will share one worker with jobs that are running on the same namespace */
-  case object Shared extends RunMode
-  /** There will be created unique worker for job execution */
-  case class ExclusiveContext(id: Option[String]) extends RunMode
-
-}
 
 case class RunSettings(
-  /** Context name that overrides function context */
-  contextId: Option[String],
-  /** Worker name postfix */
-  workerId: Option[String]
+  /** Context name that overrides endpoint context */
+  contextId: Option[String]
 )
 
 object RunSettings {
 
-  val Default = RunSettings(None, None)
+  val Default = RunSettings(None)
 
 }
 
@@ -55,7 +35,6 @@ case class JobStartRequest(
   function: FunctionInfoData,
   context: ContextConfig,
   parameters: Map[String, Any],
-  runMode: RunMode,
   source: JobDetails.Source,
   externalId: Option[String],
   action: Action = Action.Execute
@@ -122,6 +101,6 @@ case class JobDetailsLink(
   endTime: Option[Long] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
   function: String,
-  workerId: String,
+  workerId: Option[String],
   createTime: Long = System.currentTimeMillis()
 )
