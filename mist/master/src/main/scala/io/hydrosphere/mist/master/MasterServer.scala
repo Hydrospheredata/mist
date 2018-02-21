@@ -18,7 +18,7 @@ import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
-import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
+import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
@@ -98,7 +98,7 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runExecutionService(jobsLogger: JobsLogger): ExecutionService = {
+    def runExecutionService(logService: LogService): ExecutionService = {
       val masterService = s"${config.cluster.host}:${config.cluster.port}"
       val workerRunner = RunnerCmd.create(masterService, config.workers)
       val spawnSettings = SpawnSettings(
@@ -111,7 +111,7 @@ object MasterServer extends Logger {
         maxArtifactSize = config.workers.maxArtifactSize,
         jobsSavePath = config.artifactRepositoryPath
       )
-      ExecutionService(spawnSettings, system, streamer, store)
+      ExecutionService(spawnSettings, system, streamer, store, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(
@@ -136,9 +136,9 @@ object MasterServer extends Logger {
                                       functionsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      jobsService            =  runExecutionService(logService.getLogger)
+      executionService       =  runExecutionService(logService)
       masterService          <- start("Main service", MainService.start(
-                                                        jobsService,
+                                                        executionService,
                                                         functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,

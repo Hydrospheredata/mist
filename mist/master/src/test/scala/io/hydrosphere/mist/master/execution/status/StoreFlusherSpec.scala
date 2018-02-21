@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import akka.testkit.TestActorRef
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.logging.JobLogger
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData}
 import mist.api.data.JsLikeNumber
 import org.scalatest.concurrent.Eventually
@@ -30,8 +31,8 @@ class StoreFlusherSpec extends ActorSpec("store-flusher") with TestData with Eve
           case "2" => updateResult2.set(Some(d))
         }
         Future.successful(())
-      }
-
+      },
+      jobLoggerF = _ => JobLogger.NOOP
     )
     val flusher = TestActorRef(props)
 

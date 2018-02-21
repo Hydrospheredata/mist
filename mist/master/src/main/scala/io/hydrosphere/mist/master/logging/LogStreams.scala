@@ -128,9 +128,7 @@ class LogService(
   storeInput: ActorRef,
   serverBinding: Tcp.ServerBinding
 ) {
-
-  def getLogger: JobsLogger = JobsLogger.fromActorRef(storeInput)
-
+  def getJobLogger(id: String): JobLogger = JobLogger.fromActorRef(id, storeInput)
   def close(): Future[Unit] = serverBinding.unbind()
 
 }

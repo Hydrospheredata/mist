@@ -7,6 +7,7 @@ import akka.testkit.{TestActorRef, TestKit}
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData}
+import io.hydrosphere.mist.master.logging.JobLogger
 import mist.api.data._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FunSpecLike, Matchers}
@@ -24,7 +25,8 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
     val props = JobStatusFlusher.props(
       id = "id",
       get = (_) => initial.future,
-      update = (d: JobDetails) => {updateResult.set(Some(d));Future.successful(())}
+      update = (d: JobDetails) => {updateResult.set(Some(d));Future.successful(())},
+      loggerF = _ => JobLogger.NOOP
     )
     val flusher = TestActorRef(props)
 
