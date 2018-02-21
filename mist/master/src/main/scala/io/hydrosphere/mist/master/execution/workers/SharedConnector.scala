@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
 import akka.pattern.pipe
+import io.hydrosphere.mist.core.CommonData.{ConnectionUnused, ShutdownCommand}
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -36,9 +37,10 @@ class SharedConnector(
       context stop self
 
     case conn: WorkerConnection =>
-      requests.foreach(_.success(conn))
+      val wrapped = SharedConnector.ConnectionWrapper.wrap(conn)
+      requests.foreach(_.success(wrapped))
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated)
-      context become connected(conn)
+      context become connected(wrapped)
   }
 
   private def connected(conn: WorkerConnection): Receive = {
@@ -50,6 +52,28 @@ class SharedConnector(
 }
 
 object SharedConnector {
+
+  class ConnectionWrapper(target: ActorRef) extends Actor {
+
+    override def preStart(): Unit = {
+      context watch target
+    }
+
+    override def receive: Receive = {
+      case ConnectionUnused => // ignore connection shutdown - only connector could stop it
+      case Terminated(_) => context stop self
+      case x => target forward x
+    }
+  }
+
+  object ConnectionWrapper {
+    def props(ref: ActorRef): Props = Props(classOf[ConnectionWrapper], ref)
+    def wrap(connection: WorkerConnection)(implicit af: ActorRefFactory): WorkerConnection = {
+      val wrappedRef = af.actorOf(props(connection.ref))
+      connection.copy(ref = wrappedRef)
+    }
+  }
+
 
   def props(
     id: String,

@@ -71,7 +71,7 @@ class WorkerBridge(
     case ForceShutdown =>
       log.info("Received force shutdown")
       remote ! ForceShutdown
-      terminated.failure(new RuntimeException(s"Connection $id was stopped forcibly"))
+      terminated.success(())
       context stop self
 
     case other => remote forward other

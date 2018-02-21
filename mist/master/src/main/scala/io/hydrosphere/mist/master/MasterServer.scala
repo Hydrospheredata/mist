@@ -102,7 +102,7 @@ object MasterServer extends Logger {
       val masterService = s"${config.cluster.host}:${config.cluster.port}"
       val workerRunner = RunnerCmd.create(masterService, config.workers)
       val spawnSettings = SpawnSettings(
-        runner = workerRunner,
+        runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
         akkaAddress = masterService,
