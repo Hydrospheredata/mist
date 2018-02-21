@@ -12,8 +12,11 @@ object CommonData {
     sparkUi: Option[String]
   )
   case class WorkerStartFailed(id: String, message: String)
-  case object CompleteAndShutdown
-  case object ForceShutdown
+
+  case object ConnectionUnused
+  sealed trait ShutdownCommand
+  case object CompleteAndShutdown extends ShutdownCommand
+  case object ForceShutdown extends ShutdownCommand
 
   /**
     * Data for creation spark/mist context on worker

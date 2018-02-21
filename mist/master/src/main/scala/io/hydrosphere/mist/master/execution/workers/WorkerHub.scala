@@ -38,7 +38,7 @@ class WorkerHub(
   // because it stops worker forcibly
   // calling stop from here means that user understands it
   private def shutdownConn(conn: WorkerConnection): Future[Unit] =
-    conn.shutdown().recover({case _ => ()})
+    conn.shutdown(true).recover({case _ => ()})
 
   def shutdownWorker(id: String): Future[Unit] = workerConnection(id) match {
     case Some(connection) => shutdownConn(connection)

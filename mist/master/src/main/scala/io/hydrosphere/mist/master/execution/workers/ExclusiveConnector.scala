@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ConnectionUnused, RunJobRequest}
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.Future
@@ -54,6 +54,8 @@ object ExclusiveConnector {
           conn ! CompleteAndShutdown
           context become process(true)
         }
+
+      case ConnectionUnused => conn ! CompleteAndShutdown
 
       case Terminated(_) => context stop self
       case x => conn forward x

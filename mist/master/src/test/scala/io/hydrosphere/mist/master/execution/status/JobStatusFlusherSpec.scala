@@ -6,7 +6,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit}
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.{JobDetails, TestData}
+import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData}
 import mist.api.data._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FunSpecLike, Matchers}
@@ -15,11 +15,7 @@ import org.scalatest.time.{Seconds, Span}
 
 import scala.concurrent.{Future, Promise}
 
-class JobStatusFlusherSpec extends TestKit(ActorSystem("job-status-flusher"))
-  with FunSpecLike
-  with Matchers
-  with TestData
-  with Eventually {
+class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData with Eventually {
 
   it("should flush status correctly") {
     val initial = Promise[JobDetails]
