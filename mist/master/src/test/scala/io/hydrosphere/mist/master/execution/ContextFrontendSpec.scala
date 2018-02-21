@@ -1,21 +1,26 @@
 package io.hydrosphere.mist.master.execution
 
-import akka.actor.{ActorRef, ActorSystem}
-import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
-import io.hydrosphere.mist.master.{FilteredException, TestData, TestUtils}
+import akka.actor.ActorRef
+import akka.testkit.{TestActorRef, TestProbe}
+import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
+import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData, TestUtils}
 import io.hydrosphere.mist.utils.akka.ActorF
-import org.scalatest._
+import org.mockito.Mockito.verify
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
 
 import scala.concurrent._
+import scala.concurrent.duration._
 
-class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
-  with FunSpecLike
-  with Matchers
+
+class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   with TestUtils
-  with TestData {
+  with TestData
+  with MockitoSugar
+  with Eventually {
 
   it("should execute jobs") {
     val connectionActor = TestProbe()
@@ -25,8 +30,9 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
-      executorStarter = (_, _) => connector,
-      jobFactory = ActorF.static(job.ref)
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
     )
     val frontend = TestActorRef[ContextFrontend](props)
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
@@ -61,20 +67,104 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     status3.jobs.isEmpty shouldBe true
   }
 
-  it("should restart connector") {
-//    fail("not imlemented")
-  }
-
   it("should warmup precreated") {
-//    fail("not imlemented")
+    val connector = mock[WorkerConnector]
+    when(connector.whenTerminated).thenReturn(Promise[Unit].future)
+
+    val job = TestProbe()
+    val props = ContextFrontend.props(
+      name = "name",
+      status = StatusReporter.NOOP,
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
+    )
+    val frontend = TestActorRef[ContextFrontend](props)
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(precreated = true))
+
+    eventually(timeout(Span(3, Seconds))) {
+      verify(connector).warmUp()
+    }
   }
 
-  it("should respect idle timeout") {
-//    fail("not imlemented")
+  it("should respect idle timeout - awaitRequest") {
+    val connectionActor = TestProbe()
+    val connector = successfulConnector(connectionActor.ref)
+
+    val job = TestProbe()
+    val props = ContextFrontend.props(
+      name = "name",
+      status = StatusReporter.NOOP,
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 1 second
+    )
+    val frontend = TestActorRef[ContextFrontend](props)
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
+
+    shouldTerminate(3 seconds)(frontend)
+  }
+
+  it("should respect idle timeout - emptyConnected") {
+    val connectionActor = TestProbe()
+    val connector = successfulConnector(connectionActor.ref)
+
+    val job = TestProbe()
+    val props = ContextFrontend.props(
+      name = "name",
+      status = StatusReporter.NOOP,
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 1 second
+    )
+    val frontend = TestActorRef[ContextFrontend](props)
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(downtime = Duration.Inf))
+
+    val probe = TestProbe()
+    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.expectMsgPF(){
+      case info: ExecutionInfo =>
+        info.request.id shouldBe "idx"
+        info.promise.future
+    }
+    job.expectMsgType[JobActor.Event.Perform]
+    job.send(frontend, JobActor.Event.Completed("idx"))
+
+    shouldTerminate(3 seconds)(frontend)
   }
 
   it("should release unused connections") {
-//    fail("not imlemented")
+//    val connectionActor = TestProbe()
+
+    val connectionPromise = Promise[WorkerConnection]
+    val connector = oneTimeConnector(connectionPromise.future)
+
+    val job = TestProbe()
+    val props = ContextFrontend.props(
+      name = "name",
+      status = StatusReporter.NOOP,
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
+    )
+
+    val frontend = TestActorRef[ContextFrontend](props)
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
+    val probe = TestProbe()
+    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.expectMsgPF(){
+      case info: ExecutionInfo =>
+        info.request.id shouldBe "idx"
+        info.promise.future
+    }
+
+    probe.send(frontend, CancelJobRequest("idx"))
+    job.expectMsgType[JobActor.Event.Cancel.type]
+    job.send(frontend, JobActor.Event.Completed("idx"))
+
+    val connProbe = TestProbe()
+    connectionPromise.success(WorkerConnection("id", connProbe.ref, workerLinkData, Promise[Unit].future))
+    connProbe.expectMsgType[ConnectionUnused.type]
   }
 
   it("should restart connector 'til max start times and then sleep") {
@@ -83,8 +173,9 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
-      executorStarter = (_, _) => connector,
-      jobFactory = ActorF.static(job.ref)
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
     )
     val frontend = TestActorRef[ContextFrontend](props)
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
@@ -112,8 +203,9 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
-      executorStarter = (_, _) => connector,
-      jobFactory = ActorF.static(job.ref)
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
     )
     val frontend = TestActorRef[ContextFrontend](props)
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
@@ -139,8 +231,9 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
-      executorStarter = (_, _) => connector,
-      jobFactory = ActorF.static(job.ref)
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
     )
     val frontend = TestActorRef[ContextFrontend](props)
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
@@ -181,6 +274,15 @@ class ContextFrontendSpec extends TestKit(ActorSystem("ctx-frontend-spec"))
       override def askConnection(): Future[WorkerConnection] = Promise[WorkerConnection].future
       override def warmUp(): Unit = ()
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
+    }
+  }
+
+  def oneTimeConnector(future: Future[WorkerConnection]): WorkerConnector = {
+    new WorkerConnector {
+      override def whenTerminated(): Future[Unit] = Promise[Unit].future
+      override def askConnection(): Future[WorkerConnection] = future
+      override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
+      override def warmUp(): Unit = ()
     }
   }
 

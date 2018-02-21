@@ -73,6 +73,7 @@ class FrontendState[K, V](
   def hasWaiting(k: K): Boolean = getWithState(k).exists(_._2 == Waiting)
   def hasWorking(k: K): Boolean = getWithState(k).exists(_._2 == Working)
 
+  def isEmpty: Boolean = waiting.isEmpty && working.isEmpty
 }
 
 object FrontendState {
