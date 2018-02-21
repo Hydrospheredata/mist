@@ -25,7 +25,7 @@ trait ArtifactDownloader {
 case class HttpArtifactDownloader(
   masterHttpHost: String,
   masterHttpPort: Int,
-  savePath: String,
+  rootDir: Path,
   maxArtifactSize: Long
 ) extends ArtifactDownloader {
 
@@ -35,7 +35,7 @@ case class HttpArtifactDownloader(
 
   override def downloadArtifact(filePath: String): Future[File] = {
     val absFile = new File(filePath)
-    val locallyResolvedFile = Paths.get(savePath, filePath).toFile
+    val locallyResolvedFile = rootDir.resolve(filePath).toFile
 
     filePath match {
       case _ if absFile.exists() =>
@@ -87,8 +87,7 @@ case class HttpArtifactDownloader(
   private def localFilepath(filePath: String): Path = {
 
     val fileName = FilenameUtils.getName(filePath)
-
-    Paths.get(savePath, fileName)
+    rootDir.resolve(fileName)
   }
 
   override def stop(): Unit = {
@@ -102,9 +101,9 @@ object ArtifactDownloader {
     masterHttpHost: String,
     masterHttpPort: Int,
     maxArtifactSize: Long,
-    savePath: String
+    rootDir: Path
   ): ArtifactDownloader = HttpArtifactDownloader(
-    masterHttpHost, masterHttpPort, savePath, maxArtifactSize
+    masterHttpHost, masterHttpPort, rootDir, maxArtifactSize
   )
 
 }

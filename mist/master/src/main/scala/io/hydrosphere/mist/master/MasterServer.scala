@@ -108,8 +108,7 @@ object MasterServer extends Logger {
         akkaAddress = masterService,
         logAddress = s"${config.logs.host}:${config.logs.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
-        maxArtifactSize = config.workers.maxArtifactSize,
-        jobsSavePath = config.artifactRepositoryPath
+        maxArtifactSize = config.workers.maxArtifactSize
       )
       ExecutionService(spawnSettings, system, streamer, store)
     }

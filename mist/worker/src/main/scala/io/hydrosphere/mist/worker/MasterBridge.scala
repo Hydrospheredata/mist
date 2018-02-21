@@ -1,11 +1,14 @@
 package io.hydrosphere.mist.worker
 
+import java.nio.file.Paths
+
 import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax, ActorRegHub}
 import io.hydrosphere.mist.worker.MasterBridge.ReceiveInitTimeout
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
+import org.apache.commons.io.FileUtils
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.concurrent.duration._
@@ -105,14 +108,16 @@ object MasterBridge {
     id: String,
     regHub: ActorRef
   ): Props = {
+    val workerDir = Paths.get("/tmp", "mist_workers", id)
+    FileUtils.forceMkdir(workerDir.toFile)
     val mkContext = createNamedContext(id)(_)
-    val workerF = ActorF[(WorkerInitInfo, NamedContext)]({ case ((init, ctx), af) => {
-      val (h, p) = init.masterHttpConf.split(':') match {
-        case Array(host, port) => (host, port.toInt)
-      }
-      val downloader = ArtifactDownloader.create(h, p, init.maxArtifactSize, init.jobsSavePath)
+    val workerF = ActorF[(WorkerInitInfo, NamedContext)]({ case ((init, ctx), af) =>
+      val hostPort = init.masterHttpConf.split(":")
+      val downloader = ArtifactDownloader.create(
+        hostPort(0), hostPort(1).toInt, init.maxArtifactSize, workerDir.toAbsolutePath.toString
+      )
       af.actorOf(WorkerActor.props(ctx, downloader, init.maxJobs))
-    }})
+    })
     props(id, regHub, mkContext, workerF)
   }
 
@@ -132,6 +137,5 @@ object MasterBridge {
       Option(centralLoggingConf)
     )
   }
-
 }
 
