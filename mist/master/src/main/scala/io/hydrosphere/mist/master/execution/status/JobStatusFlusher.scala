@@ -72,22 +72,22 @@ class JobStatusFlusher(
   }
 
   private def show(evt: UpdateStatusEvent): String = evt match {
-    case InitializedEvent(_, _, extId) =>
-      s"InitializedEvent(externalId=$extId"
-    case FinishedEvent(_, time, _) =>
-      s"FinishedEvent(time=$time)"
-    case FailedEvent(_, time, err) =>
-      s"FailedEvent(time=$time) with Error: \n $err"
-    case QueuedEvent(_) =>
+    case _: FinishedEvent =>
+      s"FinishedEvent"
+    case _: StartedEvent =>
+      s"StartedEvent"
+    case _: CanceledEvent =>
+      s"CanceledEvent"
+    case _: JobFileDownloadingEvent =>
+      s"JobFileDownloadingEvent"
+    case _: QueuedEvent =>
       s"QueuedEvent"
+    case InitializedEvent(_, _, extId) =>
+      s"InitializedEvent(externalId=$extId)"
+    case FailedEvent(_, _, err) =>
+      s"FailedEvent with Error: \n $err"
     case WorkerAssigned(_, workerId) =>
       s"WorkerAssigned(workerId=$workerId)"
-    case StartedEvent(_, time) =>
-      s"StartedEvent(time=$time)"
-    case CanceledEvent(_, time) =>
-      s"CanceledEvent(time=$time)"
-    case JobFileDownloadingEvent(_, time) =>
-      s"JobFileDownloadingEvent(time=$time)"
   }
 
 }
