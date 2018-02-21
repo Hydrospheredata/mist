@@ -27,6 +27,11 @@ trait JobLogger {
 
 object JobLogger {
 
+  val NOOP = new JobLogger {
+    override protected def log(e: LogEvent): Unit = ()
+    override protected val jobId: String = "empty"
+  }
+
   def fromActorRef(id: String, ref: ActorRef) = new JobLogger {
     override val jobId: String = id
 
