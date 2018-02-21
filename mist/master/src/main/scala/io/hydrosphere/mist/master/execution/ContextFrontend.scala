@@ -7,14 +7,14 @@ import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
-import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
+import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsLikeData
 
+import scala.concurrent.Promise
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 trait FrontendBasics {
@@ -52,7 +52,6 @@ class ContextFrontend(
   with Timers {
 
   import ContextFrontend._
-
   import context.dispatcher
 
   override def receive: Receive = initial

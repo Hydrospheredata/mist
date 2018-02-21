@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, _}
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
@@ -14,7 +14,6 @@ import org.scalatest.time.{Seconds, Span}
 
 import scala.concurrent._
 import scala.concurrent.duration._
-
 
 class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   with TestUtils
@@ -134,8 +133,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   }
 
   it("should release unused connections") {
-//    val connectionActor = TestProbe()
-
     val connectionPromise = Promise[WorkerConnection]
     val connector = oneTimeConnector(connectionPromise.future)
 
