@@ -1,10 +1,8 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.ActorRef
 import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.JobDetails.Source
-import io.hydrosphere.mist.master.models.ContextConfig
 import mist.api.data.JsLikeData
 
 object Messages {

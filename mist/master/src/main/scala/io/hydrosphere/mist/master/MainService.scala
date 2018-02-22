@@ -141,15 +141,6 @@ class MainService(
     contextsStorage.getOrDefault(name)
   }
 
-//  def updateContext(ctx: ContextConfig): Future[ContextConfig] = for {
-//    upd <- contexts.update(ctx)
-//    _ = execution.updateContext(upd)
-//  } yield upd
-//
-//  def createContext(req: ContextCreateRequest): Future[ContextConfig] = {
-//    val ctx = req.toContextWithFallback(contexts.defaultConfig)
-//    update(ctx)
-//  }
 }
 
 object MainService extends Logger {

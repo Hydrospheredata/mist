@@ -117,7 +117,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       defaultInactiveTimeout = 1 second
     )
     val frontend = TestActorRef[ContextFrontend](props)
-    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(downtime = Duration.Inf))
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(downtime = 1 second))
 
     val probe = TestProbe()
     probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", Map.empty, Action.Execute)))

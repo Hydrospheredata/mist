@@ -22,7 +22,7 @@ class StatusReporterSpec extends ActorSpec("status-reporter") with TestData with
     val streamer = mock[EventsStreamer]
     val reporter = StatusReporter.reporter(repo, streamer, logService)
 
-    reporter.report(QueuedEvent("id"))
+    reporter.reportPlain(QueuedEvent("id"))
 
     verify(streamer).push(any[UpdateStatusEvent])
 

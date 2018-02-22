@@ -114,19 +114,16 @@ class ExecutionService(
     import cats.data._
     import cats.implicits._
 
-    def tryCancel(d: JobDetails): Future[Unit] = {
+    def tryCancel(d: JobDetails): Future[JobDetails] = {
       if (d.isCancellable ) {
         val f = contextsMaster ? ContextEvent.CancelJobCommand(d.context, CancelJobRequest(jobId))
-        f.map(_ => ())
-      } else Future.successful(())
+        f.mapTo[ContextEvent.JobCancelledResponse].map(r => r.details)
+      } else Future.successful(d)
     }
 
     val out = for {
       details <- OptionT(jobStatusById(jobId))
-      _ <- OptionT.liftF(tryCancel(details))
-      // we should do second request to store,
-      // because there is correct situation that job can be completed before cancelling
-      updated <- OptionT(jobStatusById(jobId))
+      updated <- OptionT.liftF(tryCancel(details))
     } yield updated
     out.value
   }
