@@ -65,7 +65,7 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
       val future = service.stopJob("id")
 
       contextsMaster.expectMsgType[ContextEvent.CancelJobCommand]
-      contextsMaster.reply(())
+      contextsMaster.reply(ContextEvent.JobCancelledResponse("id", mkDetails(JobDetails.Status.Canceled)))
 
       val details = Await.result(future, Duration.Inf)
       details.get.status shouldBe JobDetails.Status.Canceled

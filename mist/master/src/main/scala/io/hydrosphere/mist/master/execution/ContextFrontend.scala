@@ -105,7 +105,7 @@ class ContextFrontend(
     }
 
     def shouldGoToEmptyWithTimeout(): Boolean = {
-      state.isEmpty && !(ctx.workerMode == RunMode.Shared && ctx.precreated)
+      state.isEmpty && !ctx.precreated && ctx.downtime.isFinite()
     }
 
     if (shouldGoToEmptyWithTimeout()) {
@@ -147,8 +147,8 @@ class ContextFrontend(
       case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
         connectorState.connector.shutdown(false)
-        val (id, connector) = startConnector(updCtx)
-        becomeWithConnector(ctx, currentState, connectorState.copy(id = id, connector = connector))
+        val (newId, newConn) = startConnector(updCtx)
+        becomeWithConnector(updCtx, currentState, ConnectorState.initial(newId, newConn))
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
       case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
@@ -161,6 +161,7 @@ class ContextFrontend(
             becomeNext(connectorState.askSuccess, currentState.toWorking(id))
           case None =>
             connection.markUnused()
+            becomeNextConn(connectorState.askSuccess.connectionReleased)
         }
 
       case Event.Connection(_, connection) => connection.markUnused()
@@ -183,18 +184,19 @@ class ContextFrontend(
 
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>
         log.error(e, "Context {} - connector {} was crushed", name, id)
-        val newState = connectorState.connectorFailed
-        if (newState.connectorFailedTimes >= ConnectorFailedMaxTimes) {
-          context become sleepingTilUpdate(currentState, newState, ctx, e)
+        val next = connectorState.connectorFailed
+        val failedTimes = next.connectorFailedTimes
+        if (failedTimes >= ConnectorFailedMaxTimes) {
+          context become sleepingTilUpdate(currentState, next, ctx, e)
         } else {
           val (newId, newConn) = startConnector(ctx)
-          becomeWithConnector(ctx, currentState, newState.copy(id = newId, connector = newConn))
+          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(connectorFailedTimes = failedTimes))
         }
 
       case Event.ConnectorStopped(id) if id == connectorState.id =>
         log.info("Context {} - connector {} was stopped", name, id)
         val (newId, newConn) = startConnector(ctx)
-        becomeWithConnector(ctx, currentState, connectorState.copy(id = newId, connector = newConn))
+        becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn))
     }
   }
 
@@ -208,12 +210,17 @@ class ContextFrontend(
     case ContextEvent.UpdateContext(updCtx) =>
       connectorState.connector.shutdown(false)
       val (newId, newConn) = startConnector(updCtx)
-      context become emptyWithConnector(updCtx, connectorState.copy(id = newId, connector = newConn), timerKey)
+      context become emptyWithConnector(updCtx, ConnectorState.initial(newId, newConn), timerKey)
 
     case req: RunJobRequest =>
       timers.cancel(timerKey)
       val next = mkJob(req, State.empty, sender())
       becomeWithConnector(ctx, next, connectorState)
+
+    case Event.Connection(connId, connection) if connId == connectorState.id =>
+      connection.markUnused()
+      val next = connectorState.askSuccess.connectionReleased
+      context become emptyWithConnector(ctx, next, timerKey)
 
     case Event.Connection(_, connection) =>
       connection.markUnused()
@@ -283,7 +290,7 @@ class ContextFrontend(
       error
     )
     val promise = Promise[JsLikeData].failure(error)
-    reporter.report(FailedEvent(req.id, System.currentTimeMillis(), msg))
+    reporter.reportPlain(FailedEvent(req.id, System.currentTimeMillis(), msg))
     respond ! ExecutionInfo(req, promise)
   }
 

@@ -22,16 +22,17 @@ class StoreFlusher(
   override def receive: Receive = process(Map.empty)
 
   private def process(flushers: Map[String, ActorRef]): Receive = {
-    case ev: UpdateStatusEvent =>
-      val ref = flushers.get(ev.id) match {
+    case ev: ReportedEvent =>
+      val id = ev.e.id
+      val ref = flushers.get(id) match {
         case Some(r) => r
         case None =>
-          val props = JobStatusFlusher.props(ev.id, get, update, jobLoggerF)
+          val props = JobStatusFlusher.props(id, get, update, jobLoggerF)
           val ref = context.actorOf(props)
-          context watchWith(ref, Died(ev.id))
+          context watchWith(ref, Died(id))
       }
       ref forward ev
-      context become process(flushers + (ev.id -> ref))
+      context become process(flushers + (id -> ref))
 
     case Died(id) =>
       context become process(flushers - id)

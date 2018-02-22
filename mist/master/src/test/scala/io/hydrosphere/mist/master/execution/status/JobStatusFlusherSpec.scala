@@ -30,9 +30,9 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
     )
     val flusher = TestActorRef(props)
 
-    flusher ! QueuedEvent("id")
-    flusher ! StartedEvent("id", System.currentTimeMillis())
-    flusher ! FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42))
+    flusher ! ReportedEvent.plain(QueuedEvent("id"))
+    flusher ! ReportedEvent.plain(StartedEvent("id", System.currentTimeMillis()))
+    flusher ! ReportedEvent.plain(FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42)))
 
     initial.success(mkDetails(JobDetails.Status.Initialized))
 

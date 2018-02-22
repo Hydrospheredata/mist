@@ -37,28 +37,36 @@ class JobStatusFlusher(
 
   override def receive: Receive = collect(Seq.empty)
 
-  private def collect(messages: Seq[UpdateStatusEvent]): Receive = {
-    case e: UpdateStatusEvent => context become collect(messages :+ e)
+  private def collect(messages: Seq[ReportedEvent]): Receive = {
+    case e: ReportedEvent => context become collect(messages :+ e)
     case Ready(details) if messages.nonEmpty => performUpdate(details, messages)
     case Ready(details) => context become waitEvents(details)
   }
 
   private def waitEvents(details: JobDetails): Receive = {
-    case e: UpdateStatusEvent => performUpdate(details, Seq(e))
+    case e: ReportedEvent => performUpdate(details, Seq(e))
     case ReceiveTimeout => context stop self
   }
 
-  private def performUpdate(current: JobDetails, messages: Seq[UpdateStatusEvent]): Unit = {
+  private def performUpdate(current: JobDetails, messages: Seq[ReportedEvent]): Unit = {
     val next = messages.foldLeft(current) {
-      case (d, e) =>
-        logMessage(e)
-        applyStatusEvent(d, e)
+      case (d, re) =>
+        logMessage(re.e)
+        applyStatusEvent(d, re.e)
     }
 
     update(next).onComplete {
       case Success(_) =>
+        messages.foreach({
+          case ReportedEvent.FlushCallback(_, callback) => callback.success(next)
+          case _ =>
+        })
         self ! Ready(next)
       case Failure(e) =>
+        messages.foreach({
+          case ReportedEvent.FlushCallback(_, callback) => callback.failure(e)
+          case _ =>
+        })
         log.error(e, "Updating for {}, messages: {} was failed", id, messages)
         jobLogger.error(s"Updating for $id, messages: $messages was failed", e)
         self ! PoisonPill
