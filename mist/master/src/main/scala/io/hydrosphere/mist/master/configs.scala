@@ -90,6 +90,7 @@ object AsyncInterfaceConfig {
 case class WorkersSettingsConfig(
   runner: String,
   runnerInitTimeout: Duration,
+  readyTimeout: FiniteDuration,
   maxArtifactSize: Long,
   dockerHost: String,
   dockerPort: Int,
@@ -103,6 +104,10 @@ object WorkersSettingsConfig {
     WorkersSettingsConfig(
       runner = config.getString("runner"),
       runnerInitTimeout = Duration(config.getString("runner-init-timeout")),
+      readyTimeout = Duration(config.getString("ready-timeout")) match {
+        case f: FiniteDuration => f
+        case _ => throw new IllegalArgumentException("Worker ready-teimout should be finite")
+      },
       maxArtifactSize = config.getBytes("max-artifact-size"),
       dockerHost = config.getString("docker-host"),
       dockerPort = config.getInt("docker-port"),

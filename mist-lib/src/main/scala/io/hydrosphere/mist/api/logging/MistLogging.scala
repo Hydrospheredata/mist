@@ -69,12 +69,18 @@ private [mist] object MistLogging {
     def mkWarn(from: String, message: String, ts: Long = mkTimestamp): LogEvent =
       nonFatal(Level.Warn, from, message, ts)
 
-    def mkError(from: String, message: String, t: Throwable, ts: Long = mkTimestamp): LogEvent = {
-      val writer = new StringWriter()
-      t.printStackTrace(new PrintWriter(writer))
-      val errTrace = writer.toString
+    def mkError(from: String, message: String, t: Throwable): LogEvent =
+      mkError(from, message, Some(t))
 
-      LogEvent(from, message, ts, Level.Error.value, Some(errTrace))
+    def mkError(from: String, message: String, optT: Option[Throwable] = None, ts: Long = mkTimestamp): LogEvent = {
+      val errTrace = optT.map(ex => {
+        val writer = new StringWriter()
+        ex.printStackTrace(new PrintWriter(writer))
+        writer.toString
+      })
+
+
+      LogEvent(from, message, ts, Level.Error.value, errTrace)
     }
 
     def nonFatal(level: Level, from: String, message: String, ts: Long): LogEvent =

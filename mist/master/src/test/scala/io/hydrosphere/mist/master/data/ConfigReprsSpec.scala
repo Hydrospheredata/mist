@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{ConfigFactory, ConfigObject, ConfigParseOptions, ConfigRenderOptions}
-import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -61,7 +61,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       context.maxJobs shouldBe 100
       context.precreated shouldBe false
       context.runOptions shouldBe "--key"
-      context.workerMode shouldBe "shared"
+      context.workerMode shouldBe RunMode.Shared
       context.streamingDuration shouldBe 30.seconds
     }
 
@@ -80,7 +80,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         maxJobs = 10,
         precreated = false,
         runOptions = "",
-        workerMode = "shared",
+        workerMode = RunMode.Shared,
         streamingDuration = 1.minutes
       )
       val raw = ConfigRepr.ContextConfigRepr.toConfig(e)

@@ -12,7 +12,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import _root_.scala.concurrent.Future
 
@@ -85,10 +85,10 @@ case class HttpArtifactDownloader(
   }
 
   private def localFilepath(filePath: String): Path = {
-
     val fileName = FilenameUtils.getName(filePath)
-
-    Paths.get(savePath, fileName)
+    val dir = Paths.get(savePath)
+    FileUtils.forceMkdir(dir.toFile)
+    dir.resolve(fileName)
   }
 
   override def stop(): Unit = {
