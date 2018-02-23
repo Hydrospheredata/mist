@@ -32,7 +32,7 @@ def to_python_types(any):
         for i, value in enumerate(any):
             python_any.insert(i, to_python_types(value))
     return python_any
-        
+
 
 _client = GatewayClient(port=int(sys.argv[1]))
 _gateway = JavaGateway(_client, auto_convert = True)
@@ -62,11 +62,11 @@ parameters = configuration_wrapper.parameters()
 
 data_wrapper = _entry_point.dataWrapper()
 
-try: 
+try:
     with open(path) as file:
         code = compile(file.read(), path, "exec")
     user_job_module = types.ModuleType("<user_job>")
-    exec code in user_job_module.__dict__
+    exec(code, user_job_module.__dict__)
 
     class_ = getattr(user_job_module, class_name)
     if not issubclass(class_, MistJob):
