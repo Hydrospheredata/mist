@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 
 class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAfterAll with BeforeAndAfter {
 
-  val basePath = "./target/artifacts"
+  val basePath = Paths.get("./target/artifacts")
 
   it("should create SimpleArtifactDownloader") {
     val downloader = ArtifactDownloader.create("localhost", 2004, 262144000, basePath)
@@ -38,7 +38,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
     }
 
     before {
-      val f = new File(basePath)
+      val f = basePath.toFile
       FileUtils.deleteQuietly(f)
       FileUtils.forceMkdir(f)
     }
@@ -54,7 +54,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
       Await.result(fileContent, Duration.Inf) shouldBe "JAR CONTENT"
     }
     it("should download file if sha of local file and remote not equal") {
-      Files.write(Paths.get(basePath, "test.jar"), "DIFFERENT".getBytes())
+      Files.write(basePath.resolve("test.jar"), "DIFFERENT".getBytes())
 
       val fileContent = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
@@ -66,7 +66,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
     }
 
     it("should not download whole file if checksums are correct") {
-      val localFile = Paths.get(basePath, "test.jar")
+      val localFile = basePath.resolve("test.jar")
       Files.write(localFile, "JAR CONTENT".getBytes())
 
       val fileF = MockHttpServer.onServer(routes, binding => {
@@ -79,12 +79,12 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
     }
 
     it("should not download file if file present by filepath") {
-      val localFile = Paths.get(basePath, "test.jar")
+      val localFile = basePath.resolve("test.jar")
       Files.write(localFile, "JAR CONTENT".getBytes())
 
       val fileF = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
-        val downloader = ArtifactDownloader.create("localhost", port, 262144000, "/tmp")
+        val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
         val file = Await.result(downloader.downloadArtifact(s"$basePath/test.jar"), Duration.Inf)
         file
       })
