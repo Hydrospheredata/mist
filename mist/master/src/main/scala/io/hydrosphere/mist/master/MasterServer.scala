@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
@@ -130,7 +130,7 @@ object MasterServer extends Logger {
 
     for {
       logService             <- start("LogsSystem", runLogService())
-      jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
+      jobInfoProvider        <- start("FunctionInfoProvider", jobExtractorRunner.run())
       jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
                                       functionsStorage,
@@ -152,13 +152,12 @@ object MasterServer extends Logger {
       Seq(Step.future("Http", httpBinding.unbind())) ++
       asyncInterfaces.map(i => Step.lift(s"Async interface: ${i.name}", i.close())) ++
       security.map(ps => Step.future("Security", ps.stop())) :+
-      Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
+      Step.lift("FunctionInfoProvider", healthRef ! PoisonPill) :+
+      Step.future("LogsSystem", logService.close()) :+
       Step.future("System", {
         materializer.shutdown()
         system.terminate().map(_ => ())
-      }) :+
-      Step.future("LogsSystem", logService.close())
-
+      })
     )
 
   }
