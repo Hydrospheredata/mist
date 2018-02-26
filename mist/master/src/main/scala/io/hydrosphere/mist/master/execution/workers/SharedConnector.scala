@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData.{ConnectionUnused, ShutdownCommand}
+import io.hydrosphere.mist.core.CommonData.{ConnectionUnused, ForceShutdown, ShutdownCommand}
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -41,9 +41,24 @@ class SharedConnector(
       requests.foreach(_.success(wrapped))
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated)
       context become connected(wrapped)
+
+    case _: ShutdownCommand =>
+      requests.foreach(_.failure(new RuntimeException("Connector was shutdown")))
+      context become awaitConnAndShutdown
+  }
+
+  private def awaitConnAndShutdown: Receive = {
+    case akka.actor.Status.Failure(e) =>
+      log.error(e, s"Could not start worker connection for $id")
+      context stop self
+
+    case conn: WorkerConnection =>
+      conn.shutdown(true)
+      context stop self
   }
 
   private def connected(conn: WorkerConnection): Receive = {
+    case shutdown: ShutdownCommand => conn.ref ! shutdown
     case Event.AskConnection(req) => req.success(conn)
     case Event.ConnTerminated =>
       log.info(s"Worker connection was terminated for $id")
