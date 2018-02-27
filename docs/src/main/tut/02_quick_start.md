@@ -183,7 +183,7 @@ object HelloMist extends MistFn[Double] {
     <dependency>
       <groupId>io.hydrosphere</groupId>
       <artifactId>mist-lib_2.11</artifactId>
-      <version>1.0.0-RC5</version>
+      <version>{{ site.version }}</version>
     </dependency>
 
     <dependency>

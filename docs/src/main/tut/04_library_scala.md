@@ -46,7 +46,7 @@ Notes: it's required to have following spark modules at compile time:
 
 ```scala
 libraryDependencies ++= Seq(
-  "io.hydrosphere" %% "mist-lib" % "1.0.0-RC1",
+  "io.hydrosphere" %% "mist-lib" % "{{ site.version }}",
 
   "org.apache.spark" %% "spark-core" % "2.1.0" % "provided",
   "org.apache.spark" %% "spark-sql" % "2.1.0" % "provided",
@@ -58,12 +58,44 @@ libraryDependencies ++= Seq(
 
 Maven dependency:
 
+`pom.xml`:
 ```xml
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib_2.11</artifactId>
-    <version>1.0.0-RC1</version>
-</dependency>
+  <properties>
+    <spark.version>2.2.0</spark.version>
+    <java.version>1.8</java.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.hydrosphere</groupId>
+      <artifactId>mist-lib_2.11</artifactId>
+      <version>{{ site.version }}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-hive_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-streaming_2.11</artifactId>
+      <version>${spark.version}</version>
+    </dependency>
+  </dependencies>
 ```
 
 #### Overview
