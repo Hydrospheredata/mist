@@ -10,6 +10,11 @@
 [Hydrosphere](http://hydrosphere.io) Mist is a serverless proxy for Spark cluster.
 Mist provides a new functional programming framework and deployment model for Spark applications. 
 
+Please see our [quick start guide](https://hydrosphere.io/mist-docs/quick_start.html) and [documentation](https://hydrosphere.io/mist-docs/)
+
+Roadmap to [1.0.0](https://github.com/Hydrospheredata/mist/milestone/4)
+
+
 Features:
 * **Spark Function as a Service**. Deploy Spark functions rather than nodetebooks or scripts.
 * Spark Cluster and Session management. Fully managed Spark sessions backed by on-demand EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark clusters.
@@ -18,14 +23,9 @@ Features:
 * Multi-cluster mode: Seamless Spark cluster on-demand provisioning, autoscaling and termination(**pending**)
 ![Cluster of Spark Clusters](http://dv9c7babquml0.cloudfront.net/docs-images/mist-cluster-of-spark-clusters.gif)
 
-
 It creates a unified API layer for building enterprise solutions and microservices on top of a Spark functions.
 
 ![Mist use cases](http://dv9c7babquml0.cloudfront.net/docs-images/mist-use-case.png)
-
-## User Documentation
-
-**[User documentation](https://hydrosphere.io/mist-docs/)**
 
 ## High Level Architecture
 
