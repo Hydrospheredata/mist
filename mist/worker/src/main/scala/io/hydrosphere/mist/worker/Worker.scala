@@ -1,11 +1,32 @@
 package io.hydrosphere.mist.worker
 
+import java.nio.file.{Path, Paths}
+
 import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+class WorkerDirectory(root: Path, id: String) extends Logger {
+  val workerDir = root.resolve(id)
+
+  def mkDir: Path = {
+    if (workerDir.toFile.exists()) {
+      logger.warn(s"Directory in path $workerDir already exists. It may cause errors in worker lifecycle!")
+      workerDir
+    } else {
+      FileUtils.forceMkdir(workerDir.toFile)
+      workerDir
+    }
+  }
+
+  def cleanUp: Unit = {
+    FileUtils.deleteQuietly(workerDir.toFile)
+  }
+}
 
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
@@ -53,7 +74,7 @@ object WorkerArguments {
 }
 
 object Worker extends App with Logger {
-
+  val BaseDir = "/tmp"
   try {
 
     val arguments = WorkerArguments.forceParse(args)
@@ -79,7 +100,14 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val props = MasterBridge.props(arguments.name, regHub)
+    val workDir = Paths.get(BaseDir, s"worker-${arguments.name}")
+    val workDirFile = workDir.toFile
+    if (workDirFile.exists()) {
+      logger.warn(s"Directory in path $workDir already exists. It may cause errors in worker lifecycle!")
+    } else {
+      FileUtils.forceMkdir(workDirFile)
+    }
+    val props = MasterBridge.props(arguments.name, workDir, regHub)
     system.actorOf(props, s"worker-$name")
 
     val msg = s"Worker $name is started, context ${arguments.name}"
@@ -87,6 +115,7 @@ object Worker extends App with Logger {
 
     Await.result(system.whenTerminated, Duration.Inf)
     logger.info(s"Shutdown worker application $name ${arguments.name}")
+    FileUtils.deleteQuietly(workDirFile)
     sys.exit()
   } catch {
     case e: Throwable =>
