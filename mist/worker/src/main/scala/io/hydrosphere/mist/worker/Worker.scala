@@ -10,24 +10,6 @@ import org.apache.commons.io.FileUtils
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class WorkerDirectory(root: Path, id: String) extends Logger {
-  val workerDir = root.resolve(id)
-
-  def mkDir: Path = {
-    if (workerDir.toFile.exists()) {
-      logger.warn(s"Directory in path $workerDir already exists. It may cause errors in worker lifecycle!")
-      workerDir
-    } else {
-      FileUtils.forceMkdir(workerDir.toFile)
-      workerDir
-    }
-  }
-
-  def cleanUp: Unit = {
-    FileUtils.deleteQuietly(workerDir.toFile)
-  }
-}
-
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
   masterAddress: String = "",

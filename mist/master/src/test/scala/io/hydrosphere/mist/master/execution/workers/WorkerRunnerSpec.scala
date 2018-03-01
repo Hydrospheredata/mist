@@ -23,8 +23,7 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       akkaAddress = "akkaAddr",
       logAddress = "logAddr",
       httpAddress = "httpAddr",
-      maxArtifactSize = 100L,
-      jobsSavePath = "/tmp"
+      maxArtifactSize = 100L
     )
 
     it("should run worker") {
