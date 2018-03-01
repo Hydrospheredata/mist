@@ -52,19 +52,20 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     it("should stop job") {
       //TODO
-      val execution = TestProbe()
+      val contextsMaster = TestProbe()
       val repo = mock[JobRepository]
       val hub = mock[WorkerHub]
-      when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
 
-      val service = new ExecutionService(execution.ref, hub, repo)
+      when(repo.get(any[String]))
+        .thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
+        .thenSuccess(Some(mkDetails(JobDetails.Status.Canceled)))
+
+      val service = new ExecutionService(contextsMaster.ref, hub, repo)
 
       val future = service.stopJob("id")
 
-      execution.expectMsgType[ContextEvent.CancelJobCommand]
-      execution.reply(())
-
-      when(repo.get(any[String])).thenSuccess(Some(mkDetails(JobDetails.Status.Canceled)))
+      contextsMaster.expectMsgType[ContextEvent.CancelJobCommand]
+      contextsMaster.reply(ContextEvent.JobCancelledResponse("id", mkDetails(JobDetails.Status.Canceled)))
 
       val details = Await.result(future, Duration.Inf)
       details.get.status shouldBe JobDetails.Status.Canceled

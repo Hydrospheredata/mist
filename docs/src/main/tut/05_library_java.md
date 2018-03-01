@@ -49,18 +49,44 @@ public class JavaPiExample extends JMistFn<Double> {
 
 Maven dependency:
 
+`pom.xml`:
 ```xml
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark1_2.10</artifactId>
-    <version>0.13.0</version>
-</dependency>
-// or if you use spark >= 2.0
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib-spark2_2.11</artifactId>
-    <version>0.13.0</version>
-</dependency>
+  <properties>
+    <spark.version>2.2.0</spark.version>
+    <java.version>1.8</java.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.hydrosphere</groupId>
+      <artifactId>mist-lib_2.11</artifactId>
+      <version>{{ site.version }}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-hive_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-streaming_2.11</artifactId>
+      <version>${spark.version}</version>
+    </dependency>
+  </dependencies>
 ```
 
 #### Overview

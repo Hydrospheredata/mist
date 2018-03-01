@@ -6,7 +6,8 @@ import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit}
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.{JobDetails, TestData}
+import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData}
+import io.hydrosphere.mist.master.logging.JobLogger
 import mist.api.data._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{FunSpecLike, Matchers}
@@ -15,11 +16,7 @@ import org.scalatest.time.{Seconds, Span}
 
 import scala.concurrent.{Future, Promise}
 
-class JobStatusFlusherSpec extends TestKit(ActorSystem("job-status-flusher"))
-  with FunSpecLike
-  with Matchers
-  with TestData
-  with Eventually {
+class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData with Eventually {
 
   it("should flush status correctly") {
     val initial = Promise[JobDetails]
@@ -28,13 +25,14 @@ class JobStatusFlusherSpec extends TestKit(ActorSystem("job-status-flusher"))
     val props = JobStatusFlusher.props(
       id = "id",
       get = (_) => initial.future,
-      update = (d: JobDetails) => {updateResult.set(Some(d));Future.successful(())}
+      update = (d: JobDetails) => {updateResult.set(Some(d));Future.successful(())},
+      loggerF = _ => JobLogger.NOOP
     )
     val flusher = TestActorRef(props)
 
-    flusher ! QueuedEvent("id")
-    flusher ! StartedEvent("id", System.currentTimeMillis())
-    flusher ! FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42))
+    flusher ! ReportedEvent.plain(QueuedEvent("id"))
+    flusher ! ReportedEvent.plain(StartedEvent("id", System.currentTimeMillis()))
+    flusher ! ReportedEvent.plain(FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42)))
 
     initial.success(mkDetails(JobDetails.Status.Initialized))
 

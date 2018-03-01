@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{Actor, ActorSystem, Props}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
@@ -18,7 +18,7 @@ import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
-import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
+import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
@@ -98,11 +98,11 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runExecutionService(jobsLogger: JobsLogger): ExecutionService = {
+    def runExecutionService(logService: LogService): ExecutionService = {
       val masterService = s"${config.cluster.host}:${config.cluster.port}"
       val workerRunner = RunnerCmd.create(masterService, config.workers)
       val spawnSettings = SpawnSettings(
-        runner = workerRunner,
+        runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
         akkaAddress = masterService,
@@ -110,7 +110,7 @@ object MasterServer extends Logger {
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
-      ExecutionService(spawnSettings, system, streamer, store)
+      ExecutionService(spawnSettings, system, streamer, store, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(
@@ -129,15 +129,15 @@ object MasterServer extends Logger {
 
     for {
       logService             <- start("LogsSystem", runLogService())
-      jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
+      jobInfoProvider        <- start("FunctionInfoProvider", jobExtractorRunner.run())
       jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
                                       functionsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      jobsService            =  runExecutionService(logService.getLogger)
+      executionService       =  runExecutionService(logService)
       masterService          <- start("Main service", MainService.start(
-                                                        jobsService,
+                                                        executionService,
                                                         functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,
@@ -151,13 +151,12 @@ object MasterServer extends Logger {
       Seq(Step.future("Http", httpBinding.unbind())) ++
       asyncInterfaces.map(i => Step.lift(s"Async interface: ${i.name}", i.close())) ++
       security.map(ps => Step.future("Security", ps.stop())) :+
-      Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
+      Step.lift("FunctionInfoProvider", healthRef ! PoisonPill) :+
+      Step.future("LogsSystem", logService.close()) :+
       Step.future("System", {
         materializer.shutdown()
         system.terminate().map(_ => ())
-      }) :+
-      Step.future("LogsSystem", logService.close())
-
+      })
     )
 
   }

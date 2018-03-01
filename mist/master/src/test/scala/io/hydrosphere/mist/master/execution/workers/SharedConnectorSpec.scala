@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import akka.testkit.{TestActorRef, TestProbe}
+import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.master.{ActorSpec, TestData}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
@@ -93,6 +94,27 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     termination.success(())
 
     shouldTerminate(1 second)(connector)
+  }
+
+  describe("Shared conn wrapper") {
+
+    it("should ignore unused") {
+      val connRef = TestProbe()
+      val termination = Promise[Unit]
+      val connection = WorkerConnection(
+        id = "id",
+        ref = connRef.ref,
+        data = workerLinkData,
+        whenTerminated = termination.future
+      )
+      val wrapped = SharedConnector.ConnectionWrapper.wrap(connection)
+
+      wrapped.markUnused()
+      connRef.expectNoMessage(1 second)
+
+      wrapped.ref ! mkRunReq("id")
+      connRef.expectMsgType[RunJobRequest]
+    }
   }
 
 }

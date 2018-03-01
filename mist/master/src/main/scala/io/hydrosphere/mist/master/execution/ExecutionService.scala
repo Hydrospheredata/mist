@@ -8,6 +8,7 @@ import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub
+import io.hydrosphere.mist.master.logging.LogService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.{EventsStreamer, JobDetails}
@@ -113,19 +114,16 @@ class ExecutionService(
     import cats.data._
     import cats.implicits._
 
-    def tryCancel(d: JobDetails): Future[Unit] = {
+    def tryCancel(d: JobDetails): Future[JobDetails] = {
       if (d.isCancellable ) {
         val f = contextsMaster ? ContextEvent.CancelJobCommand(d.context, CancelJobRequest(jobId))
-        f.map(_ => ())
-      } else Future.successful(())
+        f.mapTo[ContextEvent.JobCancelledResponse].map(r => r.details)
+      } else Future.successful(d)
     }
 
     val out = for {
       details <- OptionT(jobStatusById(jobId))
-      _ <- OptionT.liftF(tryCancel(details))
-      // we should do second request to store,
-      // because there is correct situation that job can be completed before cancelling
-      updated <- OptionT(jobStatusById(jobId))
+      updated <- OptionT.liftF(tryCancel(details))
     } yield updated
     out.value
   }
@@ -141,10 +139,11 @@ object ExecutionService {
     spawn: SpawnSettings,
     system: ActorSystem,
     streamer: EventsStreamer,
-    repo: JobRepository
+    repo: JobRepository,
+    logService: LogService
   ): ExecutionService = {
     val hub = WorkerHub(spawn, system)
-    val reporter = StatusReporter.reporter(repo, streamer)(system)
+    val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
 
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
       val props = ContextFrontend.props(ctx.name, reporter, hub.start)

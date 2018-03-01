@@ -4,11 +4,12 @@ import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated,
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.workers.WorkerConnection
-import io.hydrosphere.mist.master.execution.status.StatusReporter
+import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
 import mist.api.data.JsLikeData
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success}
 
 sealed trait ExecStatus
 object ExecStatus {
@@ -27,7 +28,7 @@ class JobActor(
   import JobActor._
 
   override def preStart(): Unit = {
-    report.report(QueuedEvent(req.id))
+    report.reportPlain(QueuedEvent(req.id))
     req.timeout match {
       case f: FiniteDuration =>
         timers.startSingleTimer(s"job-${req.id}", Event.Timeout, f)
@@ -39,14 +40,13 @@ class JobActor(
 
   private def initial: Receive = {
     case Event.Cancel =>
-      sender() ! JobIsCancelled(req.id)
-      cancelFinally("user request")
+      cancelFinally("user request", Seq(sender()))
 
-    case Event.Timeout => cancelFinally("timeout")
+    case Event.Timeout => cancelFinally("timeout", Seq.empty)
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
-      report.report(WorkerAssigned(req.id, connection.id))
+      report.reportPlain(WorkerAssigned(req.id, connection.id))
       connection.ref ! req
 
       connection.whenTerminated.onComplete(_ => self ! Event.ConnectionTerminated)(context.dispatcher)
@@ -67,10 +67,10 @@ class JobActor(
     case Event.ConnectionTerminated => onConnectionTermination()
 
     case JobFileDownloading(id, time) =>
-      report.report(JobFileDownloadingEvent(id, time))
+      report.reportPlain(JobFileDownloadingEvent(id, time))
 
     case JobStarted(id, time) =>
-      report.report(StartedEvent(id, time))
+      report.reportPlain(StartedEvent(id, time))
       context become completion(callback, connection)
   }
 
@@ -96,8 +96,7 @@ class JobActor(
       onConnectionTermination()
 
     case ev @ JobIsCancelled(_, _) =>
-      cancelRespond.foreach(_ ! ev)
-      cancelFinally(reason)
+      cancelFinally(reason, cancelRespond)
 
     case JobSuccess(_, data) =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
@@ -112,10 +111,19 @@ class JobActor(
 
   private def cancelFinally(
     reason: String,
-    time: Long = System.currentTimeMillis()
+    respond: Seq[ActorRef]
   ): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val time = System.currentTimeMillis()
     promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
-    report.report(CanceledEvent(req.id, time))
+    report.reportWithFlushCallback(CanceledEvent(req.id, time)).onComplete(t => {
+      val response = t match {
+        case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
+        case Failure(e) => akka.actor.Status.Failure(e)
+      }
+      respond.foreach(_ ! response)
+    })
     log.info(s"Job ${req.id} was cancelled: $reason")
     callback ! Event.Completed(req.id)
     self ! PoisonPill
@@ -125,7 +133,7 @@ class JobActor(
 
   private def completeSuccess(data: JsLikeData): Unit = {
     promise.success(data)
-    report.report(FinishedEvent(req.id, System.currentTimeMillis(), data))
+    report.reportPlain(FinishedEvent(req.id, System.currentTimeMillis(), data))
     log.info(s"Job ${req.id} completed successfully")
     callback ! Event.Completed(req.id)
     self ! PoisonPill
@@ -133,7 +141,7 @@ class JobActor(
 
   private def completeFailure(err: String): Unit = {
     promise.failure(new RuntimeException(err))
-    report.report(FailedEvent(req.id, System.currentTimeMillis(), err))
+    report.reportPlain(FailedEvent(req.id, System.currentTimeMillis(), err))
     log.info(s"Job ${req.id} completed with error")
     callback ! Event.Completed(req.id)
     self ! PoisonPill

@@ -32,6 +32,9 @@ class ContextsMaster(
           context become process(next)
       }
 
+    case ContextsMaster.ContextTerminated(name) =>
+      val next = state - name
+      context become process(next)
   }
 
   private def getOrCreate(state: State, ctx: ContextConfig): (State, ActorRef) = {
@@ -40,7 +43,7 @@ class ContextsMaster(
       case None =>
         val ref = frontendF.create(ctx)
         val next = state + (ctx.name -> ref)
-        context watch ref
+        context.watchWith(ref, ContextsMaster.ContextTerminated(ctx.name))
         (next, ref)
     }
   }
@@ -49,6 +52,8 @@ class ContextsMaster(
 
 
 object ContextsMaster {
+
+  case class ContextTerminated(name: String)
 
   def props(contextF: ActorF[ContextConfig]): Props = Props(classOf[ContextsMaster], contextF)
 

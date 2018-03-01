@@ -20,7 +20,9 @@ object Master extends App with Logger {
     val master = Await.result(starting, Duration.Inf)
     logger.info("Mist master started")
 
+
     sys addShutdownHook {
+      logger.info("Received shutdown - start application termination")
       Await.result(master.stop(), Duration.Inf)
       logger.info("Mist master stopped")
     }

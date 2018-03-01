@@ -14,7 +14,7 @@ class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
       def runWorker(name: String, context: ContextConfig): Unit = {}
     }
     val spawnSettings = SpawnSettings(
-      runner = noop,
+      runnerCmd = noop,
       timeout = 10 seconds,
       readyTimeout = 10 seconds,
       akkaAddress = "akkaAddr",

@@ -55,7 +55,7 @@ object FunctionInfoProvider extends App with Logger {
         throw new IllegalStateException("please provide arguments")
     }
     val config = ConfigFactory.load("job-extractor")
-    implicit val system = ActorSystem("mist", config)
+    implicit val system = ActorSystem("mist-info-provider", config)
     implicit val ec: ExecutionContext = system.dispatcher
 
     val functionInfoProviderRef = system.actorOf(
