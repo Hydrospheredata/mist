@@ -28,8 +28,7 @@ object CommonData {
     streamingDuration: Duration,
     logService: String,
     masterHttpConf: String,
-    maxArtifactSize: Long,
-    jobsSavePath: String
+    maxArtifactSize: Long
   )
 
   case class JobParams(

@@ -7,12 +7,12 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, HttpMethods}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
+import io.hydrosphere.mist.utils.Logger
 import org.apache.commons.codec.digest.DigestUtils
-import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import _root_.scala.concurrent.Future
 
@@ -25,70 +25,73 @@ trait ArtifactDownloader {
 case class HttpArtifactDownloader(
   masterHttpHost: String,
   masterHttpPort: Int,
-  savePath: String,
+  rootDir: Path,
   maxArtifactSize: Long
-) extends ArtifactDownloader {
+) extends ArtifactDownloader with Logger {
 
   implicit val system = ActorSystem("job-downloading")
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  override def downloadArtifact(filePath: String): Future[File] = {
-    val absFile = new File(filePath)
-    val locallyResolvedFile = Paths.get(savePath, filePath).toFile
-
-    filePath match {
-      case _ if absFile.exists() =>
-        Future.successful(absFile)
-      case filePath if locallyResolvedFile.exists() =>
-        for {
-          checksum <- getChecksum(filePath)
-          localFileChecksum = DigestUtils.sha1Hex(Files.newInputStream(locallyResolvedFile.toPath))
-          file <- if (checksum == localFileChecksum)
-            Future.successful(locallyResolvedFile)
-          else downloadFile(filePath)
-        } yield file
-      case filePath =>
-        downloadFile(filePath)
+  override def downloadArtifact(artifactKey: String): Future[File] = {
+    val locallyResolvedFile = rootDir.resolve(artifactKey).toFile
+    if (!locallyResolvedFile.exists()) {
+      downloadFile(artifactKey)
+    } else {
+      for {
+        valid <- checkHashes(artifactKey, locallyResolvedFile.toPath)
+        _ = if (!valid) {
+          logger.warn(s"Checksum of remote $artifactKey different from $locallyResolvedFile")
+        }
+      } yield locallyResolvedFile
     }
+  }
+
+  private def checkHashes(artifactKey: String, artifact: Path): Future[Boolean] = {
+    for {
+      checksum <- getChecksum(artifactKey)
+      localFileChecksum = DigestUtils.sha1Hex(Files.newInputStream(artifact))
+    } yield checksum == localFileChecksum
   }
 
   private def getChecksum(filePath: String): Future[String] = {
     val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}/sha"
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
-      r <- Http().singleRequest(request)
-      resp = checkResponse(uri, r)
+      resp <- doRequest(request)
       checksum <- Unmarshal(resp.entity).to[String]
     } yield checksum
   }
 
-  private def downloadFile(filePath: String): Future[File] = {
-    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
+  private def downloadFile(artifactKey: String): Future[File] = {
+    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(artifactKey)}"
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
-      r <- Http().singleRequest(request)
-      resp = checkResponse(uri, r)
-      path = localFilepath(filePath)
+      resp <- doRequest(request)
+      path = rootDir.resolve(artifactKey)
       _ <- resp.entity
         .withSizeLimit(maxArtifactSize)
         .dataBytes
         .runWith(FileIO.toPath(path))
-    } yield path.toFile
+      valid <- checkHashes(artifactKey, path)
+      result = if (valid) {
+        path
+      } else {
+        throw new IllegalArgumentException(s"Checksum of downloaded artifact $artifactKey different from $path")
+      }
+    } yield result.toFile
   }
 
   private def encode(filePath: String): String = URLEncoder.encode(filePath, "UTF-8")
 
+  private def doRequest(request: HttpRequest): Future[HttpResponse] = for {
+    r <- Http().singleRequest(request)
+    resp = checkResponse(request.uri.toString(), r)
+  } yield resp
+
   private def checkResponse(uri: String, resp: HttpResponse): HttpResponse = {
     if (resp.status.isSuccess()) resp
     else throw new IllegalArgumentException(s"Http error occurred in request $uri. Status ${resp.status}")
-  }
-
-  private def localFilepath(filePath: String): Path = {
-    val fileName = FilenameUtils.getName(filePath)
-    val dir = Paths.get(savePath)
-    FileUtils.forceMkdir(dir.toFile)
-    dir.resolve(fileName)
   }
 
   override def stop(): Unit = {
@@ -102,9 +105,9 @@ object ArtifactDownloader {
     masterHttpHost: String,
     masterHttpPort: Int,
     maxArtifactSize: Long,
-    savePath: String
+    rootDir: Path
   ): ArtifactDownloader = HttpArtifactDownloader(
-    masterHttpHost, masterHttpPort, savePath, maxArtifactSize
+    masterHttpHost, masterHttpPort, rootDir, maxArtifactSize
   )
 
 }

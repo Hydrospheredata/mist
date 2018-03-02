@@ -13,8 +13,7 @@ case class SpawnSettings(
   akkaAddress: String,
   logAddress: String,
   httpAddress: String,
-  maxArtifactSize: Long,
-  jobsSavePath: String
+  maxArtifactSize: Long
 ) {
 
   def toWorkerInitInfo(ctx: ContextConfig): WorkerInitInfo =
@@ -25,8 +24,7 @@ case class SpawnSettings(
       streamingDuration = ctx.streamingDuration,
       logService = this.logAddress,
       masterHttpConf = this.httpAddress,
-      maxArtifactSize = this.maxArtifactSize,
-      jobsSavePath = this.jobsSavePath
+      maxArtifactSize = this.maxArtifactSize
     )
 }
 
