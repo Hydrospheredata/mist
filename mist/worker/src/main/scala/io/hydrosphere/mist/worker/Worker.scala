@@ -56,7 +56,7 @@ object WorkerArguments {
 }
 
 object Worker extends App with Logger {
-  val BaseDir = "/tmp"
+
   try {
 
     val arguments = WorkerArguments.forceParse(args)
@@ -82,7 +82,8 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val workDir = Paths.get(BaseDir, s"worker-${arguments.name}")
+    val workDir = Paths.get(s"${sys.env("MIST_HOME")}", s"worker-$name")
+
     val workDirFile = workDir.toFile
     if (workDirFile.exists()) {
       logger.warn(s"Directory in path $workDir already exists. It may cause errors in worker lifecycle!")
