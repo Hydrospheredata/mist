@@ -6,6 +6,7 @@ import akka.util.Timeout
 import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
+import io.hydrosphere.mist.master.Messages.StatusMessages.InitializedEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.logging.LogService
@@ -22,6 +23,7 @@ import scala.concurrent.Future
 class ExecutionService(
   contextsMaster: ActorRef,
   workersHub: WorkerHub,
+  statusReporter: StatusReporter,
   repo: JobRepository
 ) {
 
@@ -106,6 +108,7 @@ class ExecutionService(
       externalId, source)
     for {
       _ <- repo.update(details)
+      _ = statusReporter.reportPlain(InitializedEvent(internalRequest.id, internalRequest.params, req.externalId))
       info <- contextsMaster.ask(startCmd).mapTo[ExecutionInfo]
     } yield info
   }
@@ -152,7 +155,7 @@ object ExecutionService {
       ref
     })
     val contextsMaster = system.actorOf(ContextsMaster.props(mkContext))
-    new ExecutionService(contextsMaster, hub, repo)
+    new ExecutionService(contextsMaster, hub, reporter, repo)
   }
 
 }
