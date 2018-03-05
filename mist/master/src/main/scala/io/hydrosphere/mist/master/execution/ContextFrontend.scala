@@ -252,7 +252,7 @@ class ContextFrontend(
   }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
-    val id = UUID.randomUUID().toString
+    val id = ctx.name + "_" + UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
     val connector = connectorStarter(id, ctx)
     if (ctx.precreated) connector.warmUp()
