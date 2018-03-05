@@ -29,14 +29,17 @@ object CommonData {
     logService: String,
     masterHttpConf: String,
     maxArtifactSize: Long,
-    jobsSavePath: String
+    jobsSavePath: String,
+    runOptions: String,
+    isK8s: Boolean
   )
 
   case class JobParams(
     filePath: String,
     className: String,
     arguments: Map[String, Any],
-    action: Action
+    action: Action,
+    isK8s: Boolean = false
   )
 
   case class RunJobRequest(

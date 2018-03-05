@@ -22,7 +22,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.0.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -197,18 +197,28 @@ lazy val root = project.in(file("."))
 
     mistRun := {
       val log = streams.value.log
-      val sparkHome = sparkLocal.value.getAbsolutePath
+      val taskArgs = spaceDelimited("<arg>").parsed.grouped(2).toSeq
+        .flatMap(l => {if (l.size == 2) Some(l.head -> l.last) else None})
+        .toMap
+      println(taskArgs)
 
-      val taskArgs = spaceDelimited("<arg>").parsed
-      val uiEnvs = {
-        val uiPath =
-          taskArgs.grouped(2)
-            .find(parts => parts.size > 1 && parts.head == "--ui-dir")
-            .map(_.last)
-
-        uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+      val uiEnvs = taskArgs.get("--ui-dir").fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+      val sparkEnvs = {
+        val spark = taskArgs.getOrElse("--spark", sparkLocal.value.getAbsolutePath)
+        Seq("SPARK_HOME" -> spark)
       }
-      val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
+
+//      val sparkHome = sparkLocal.value.getAbsolutePath
+//
+//      val uiEnvs = {
+//        val uiPath =
+//          taskArgs.grouped(2)
+//            .find(parts => parts.size > 1 && parts.head == "--ui-dir")
+//            .map(_.last)
+//
+//        uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+//      }
+      val extraEnv = sparkEnvs ++ uiEnvs
       val home = runStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")

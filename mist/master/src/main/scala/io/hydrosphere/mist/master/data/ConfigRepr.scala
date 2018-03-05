@@ -65,6 +65,7 @@ object ConfigRepr {
       }
 
       def cleanKey(key: String): String = key.replaceAll("\"", "")
+
       ContextConfig(
         name = config.getString("name"),
         sparkConf = config.getConfig("spark-conf").entrySet().asScala
@@ -76,7 +77,8 @@ object ConfigRepr {
         precreated = config.getBoolean("precreated"),
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
-        streamingDuration = Duration(config.getString("streaming-duration"))
+        streamingDuration = Duration(config.getString("streaming-duration")),
+        isK8s = config.getBoolean("is_k8s")
       )
     }
 
@@ -96,7 +98,8 @@ object ConfigRepr {
         "precreated" -> fromAnyRef(a.precreated),
         "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
-        "streaming-duration" -> fromDuration(a.streamingDuration)
+        "streaming-duration" -> fromDuration(a.streamingDuration),
+        "is_k8s" -> fromAnyRef(a.isK8s)
       )
       fromMap(map.asJava).toConfig
     }

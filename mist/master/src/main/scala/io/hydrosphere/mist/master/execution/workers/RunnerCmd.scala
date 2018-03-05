@@ -1,12 +1,130 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import java.nio.file.Paths
+
+import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.Logger
+import cats.implicits._
+import io.hydrosphere.mist.master.execution.workers
 
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
+import scala.io.Source
 import scala.language.postfixOps
 import scala.sys.process._
+
+sealed trait WorkerProcess
+case object NonLocal extends WorkerProcess
+case class Local(termination: Future[Unit]) extends WorkerProcess
+
+trait RunnerCommand2 {
+
+  def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess
+
+  def onStop(name: String): Unit = {}
+}
+
+object RunnerCommand2 {
+
+  type MkProcessArgs = (String, WorkerInitInfo) => Seq[String]
+
+  class WrappedProcess(ps: java.lang.Process) {
+
+    def exitValue: Option[Int] = {
+      try {
+        ps.exitValue().some
+      } catch {
+        case _: IllegalThreadStateException => None
+        case e: Throwable => throw e
+      }
+    }
+
+    def wait(step: FiniteDuration = 1 second): Future[Unit] = {
+      val promise = Promise[Unit]
+      val thread = new Thread(new Runnable {
+        override def run(): Unit = {
+
+          def loop(): Unit = {
+            exitValue match {
+              case Some(0) => promise.success(())
+              case Some(x) =>
+                val errOut = Source.fromInputStream(ps.getErrorStream).take(25).mkString(";")
+                promise.failure(new RuntimeException(s"Process exited with status code $x and errOut: $errOut"))
+              case None =>
+            }
+          }
+
+          while(!promise.isCompleted) {
+            loop()
+            Thread.sleep(step.toMillis)
+          }
+        }
+      })
+      thread.setDaemon(true)
+      thread.start()
+      promise.future
+    }
+  }
+
+  object WrappedProcess {
+    def run(cmd: Seq[String]): WrappedProcess = {
+      import scala.collection.JavaConverters._
+      val builder = new java.lang.ProcessBuilder(cmd.asJava)
+      val ps = builder.start()
+      new WrappedProcess(ps)
+    }
+  }
+
+  class LocalCommand(f: MkProcessArgs) extends RunnerCommand2 {
+    def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = {
+      val cmd = f(name, initInfo)
+      val ps = WrappedProcess.run(cmd)
+      Local(ps.wait())
+    }
+  }
+
+  class SparkSubmit(mistHome: String, sparkHome: String, masterHost: String) extends RunnerCommand2 with Logger {
+    override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = {
+      val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toString
+      val workerJar = if(initInfo.isK8s){
+        "http://" + initInfo.masterHttpConf + "/v2/api/artifacts_internal/mist-worker.jar"
+      } else {
+        Paths.get(mistHome, "mist-worker.jar").toString
+      }
+      val conf = initInfo.sparkConf.flatMap({case (k, v) => Seq("--conf", s"$k=$v")})
+      val runOpts = initInfo.runOptions.split(" ").toSeq
+
+      val cmd = Seq(submitPath) ++ runOpts ++ conf ++ Seq(
+        "--class", "io.hydrosphere.mist.worker.Worker",
+        workerJar,
+        "--master", masterHost,
+        "--name", name
+      )
+      logger.info(s"Try submit worker $name, cmd: ${cmd.mkString(" ")}")
+      val ps = WrappedProcess.run(cmd)
+      Local(ps.wait())
+    }
+  }
+
+  def create(masterAddress: String, workersSettings: WorkersSettingsConfig): RunnerCommand2 = {
+    val runnerType = workersSettings.runner
+    runnerType match {
+      case "local" =>
+        sys.env.get("SPARK_HOME") match {
+          case None => throw new IllegalStateException("You should provide SPARK_HOME env variable for local runner")
+          case Some(spH) => new workers.RunnerCommand2.SparkSubmit(
+            sys.env.get("MIST_HOME").get,
+            spH,
+            masterAddress
+          )
+        }
+      case _ => throw new IllegalArgumentException(s"Unknown worker runner type $runnerType")
+
+    }
+  }
+}
 
 trait RunnerCmd {
 

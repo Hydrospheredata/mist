@@ -13,7 +13,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.execution.workers.RunnerCmd
+import io.hydrosphere.mist.master.execution.workers.{RunnerCmd, RunnerCommand2}
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
@@ -21,7 +21,7 @@ import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfo
 import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
-import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -100,7 +100,7 @@ object MasterServer extends Logger {
 
     def runExecutionService(logService: LogService): ExecutionService = {
       val masterService = s"${config.cluster.host}:${config.cluster.port}"
-      val workerRunner = RunnerCmd.create(masterService, config.workers)
+      val workerRunner = RunnerCommand2.create(masterService, config.workers)
       val spawnSettings = SpawnSettings(
         runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
@@ -183,7 +183,7 @@ object MasterServer extends Logger {
     config: HttpConfig)(implicit sys: ActorSystem, mat: ActorMaterializer): Future[ServerBinding] = {
     val http = {
       val apiv2 = {
-        val api = HttpV2Routes.apiWithCORS(mainService, artifacts)
+        val api = HttpV2Routes.apiWithCORS(mainService, artifacts, _root_.scala.sys.env("MIST_HOME"))
         val ws = new WSApi(streamer)(config.keepAliveTick)
         // order is important!
         // api router can't chain unhandled calls, because it's wrapped in cors directive

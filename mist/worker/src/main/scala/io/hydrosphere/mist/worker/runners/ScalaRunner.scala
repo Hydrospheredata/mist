@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.worker.runners
 
 import java.io.File
+import java.net.URL
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.FunctionInstanceLoader
@@ -11,7 +12,7 @@ import mist.api.FnContext
 import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
-class ScalaRunner(jobFile: File) extends JobRunner {
+class ScalaRunner(jobFile: String) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
@@ -37,6 +38,11 @@ class ScalaRunner(jobFile: File) extends JobRunner {
         result    <- inst.run(FnContext(setupConf, params.arguments))
       } yield result
     }
+  }
+
+  private def prepareFile(file: String): String = {
+    val uri = new URL(file)
+
   }
 
   // see #204, #220

@@ -23,8 +23,8 @@ object WorkerRunner {
     override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
       import spawn._
 
-      runnerCmd.runWorker(id, ctx)
       val initInfo = toWorkerInitInfo(ctx)
+      runnerCmd.onStart(id, initInfo)
       val future = for {
         ref <- regHub.waitRef(id, timeout)
         connection <- connect(id, initInfo, readyTimeout, ref)
