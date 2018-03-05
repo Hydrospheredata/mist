@@ -3,7 +3,6 @@ package mist.api
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.hive.HiveContext
-import org.apache.spark.streaming.{MistStreamingContext, StreamingContext}
 import org.scalatest.{FunSpec, Matchers}
 
 class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
@@ -55,17 +54,6 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
     spJob.invoke(testCtx())
     val res = spJob.invoke(testCtx())
     res shouldBe JobSuccess(30)
-  }
-
-  it("should create mist streaming context") {
-    val streamingJob = onStreamingContext((ssc: StreamingContext) => {
-      ssc match {
-        case _: MistStreamingContext => true
-        case _ => false
-      }
-    })
-    val result = streamingJob.invoke(testCtx())
-    result shouldBe JobSuccess(true)
   }
 
   def testCtx(params: (String, Any)*): FnContext = {

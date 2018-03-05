@@ -8,7 +8,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
-import org.apache.spark.streaming.{MistStreamingContext, StreamingContext}
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.api.java.JavaStreamingContext
 /**
   * Arguments for constructing contexts
@@ -23,7 +23,7 @@ object BaseContextsArgs {
   val streamingContext: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
     ctx => {
       val conf = ctx.setupConf
-      val ssc = StreamingContext.getActiveOrCreate(() => new MistStreamingContext(conf.context, conf.streamingDuration))
+      val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
       Extracted(ssc)
     }
   )
