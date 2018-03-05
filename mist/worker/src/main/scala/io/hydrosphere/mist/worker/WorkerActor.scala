@@ -8,6 +8,7 @@ import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
 import mist.api.data.JsLikeData
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -120,6 +121,7 @@ class WorkerActor(
   private def tryCancel(id: String, respond: ActorRef): Unit = activeJobs.get(id) match {
     case Some(_) =>
       namedContext.sparkContext.cancelJobGroup(id)
+      StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
       respond ! JobIsCancelled(id)
     case None =>
       log.warning(s"Can not cancel unknown job $id")

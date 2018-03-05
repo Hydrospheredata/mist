@@ -120,7 +120,10 @@ object MasterBridge {
   }
 
   def createNamedContext(id: String)(init: WorkerInitInfo): NamedContext = {
-    val conf = new SparkConf().setAppName(id).setAll(init.sparkConf)
+    val conf = new SparkConf()
+      .setAppName(id)
+      .setAll(init.sparkConf)
+      .set("spark.streaming.stopSparkContextByDefault", "false")
     val sparkContext = new SparkContext(conf)
 
     val centralLoggingConf = {
