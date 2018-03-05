@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import com.dimafeng.testcontainers.{Container, GenericContainer}
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.Messages.StatusMessages.{FinishedEvent, SystemEvent}
+import io.hydrosphere.mist.master.Messages.StatusMessages.{FinishedEvent, InitializedEvent, SystemEvent}
 import io.hydrosphere.mist.master.{MasterConfig, MasterServer, ServerInstance}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
@@ -100,7 +100,7 @@ class ExamplesOnLocalProcessSpec
     val request =
       """
         |{
-        |  "functionId": "simple_context",
+        |  "functionId": "spark-ctx-example",
         |  "parameters": {
         |    "numbers": [1, 2, 3]
         |  }
@@ -109,6 +109,7 @@ class ExamplesOnLocalProcessSpec
     val message = new MqttMessage(request.getBytes)
     mqttClient.publish("in", message)
 
+    val initReceived = new AtomicBoolean(false)
     val resultReceived = new AtomicBoolean(false)
 
     mqttClient.subscribe("out", new IMqttMessageListener {
@@ -117,8 +118,8 @@ class ExamplesOnLocalProcessSpec
         try {
           val result = data.parseJson.convertTo[SystemEvent]
           result match {
-            case x: FinishedEvent =>
-              resultReceived.set(true)
+            case in: InitializedEvent => initReceived.set(true)
+            case x: FinishedEvent => resultReceived.set(true)
             case _ =>
           }
         } catch {
@@ -128,6 +129,7 @@ class ExamplesOnLocalProcessSpec
     })
 
     eventually(timeout(Span(2, Minutes))) {
+      assert(initReceived.get)
       assert(resultReceived.get)
     }
 
