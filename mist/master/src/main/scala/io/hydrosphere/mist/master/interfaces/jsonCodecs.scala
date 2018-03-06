@@ -111,7 +111,7 @@ trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with M
     }
   }
 
-  implicit val jobParamsF = jsonFormat4(JobParams.apply)
+  implicit val jobParamsF = jsonFormat5(JobParams.apply)
   implicit val jobDetailsJsonFormat: RootJsonFormat[JobDetails] = jsonFormat12(JobDetails.apply)
 
 }
@@ -158,7 +158,7 @@ trait JsonCodecs extends SprayJsonSupport
 
 
   implicit val workerInitInfoF = rootFormat(lazyFormat(jsonFormat(WorkerInitInfo.apply,
-    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterHttpConf", "maxArtifactSize", "jobsSavePath", "runOptions")))
+    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterHttpConf", "maxArtifactSize", "jobsSavePath", "runOptions", "isK8s")))
 
   implicit val workerLinkF = rootFormat(lazyFormat(jsonFormat(WorkerLink.apply,
     "name", "address", "sparkUi", "initInfo")))
@@ -220,9 +220,9 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val jobDetailsLinkF = jsonFormat8(JobDetailsLink)
   implicit val workerFullInfoF = jsonFormat5(WorkerFullInfo)
 
-  implicit val contextConfigF = jsonFormat8(ContextConfig.apply)
+  implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
 
-  implicit val contextCreateRequestF = jsonFormat8(ContextCreateRequest.apply)
+  implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 

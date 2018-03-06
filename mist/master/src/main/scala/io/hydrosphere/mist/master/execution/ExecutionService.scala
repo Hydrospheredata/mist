@@ -92,7 +92,8 @@ class ExecutionService(
         filePath = function.path,
         className = function.className,
         arguments = parameters,
-        action = action
+        action = action,
+        isK8s = req.context.sparkConf.exists({case (k, v) => k == "spark.master" && v.startsWith("k8s://")})
       )
     )
 

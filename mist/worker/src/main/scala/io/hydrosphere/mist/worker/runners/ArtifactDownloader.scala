@@ -17,6 +17,7 @@ import org.apache.commons.io.{FileUtils, FilenameUtils}
 import _root_.scala.concurrent.Future
 
 trait ArtifactDownloader {
+  def url(filePath: String): String
   def downloadArtifact(filePath: String): Future[File]
 
   def stop(): Unit
@@ -32,6 +33,8 @@ case class HttpArtifactDownloader(
   implicit val system = ActorSystem("job-downloading")
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
+
+  override def url(filePath: String): String = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
 
   override def downloadArtifact(filePath: String): Future[File] = {
     val absFile = new File(filePath)

@@ -6,7 +6,7 @@ import java.util.concurrent.Executors
 import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
+import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
@@ -34,7 +34,12 @@ trait JobStarting {
     val s = sender()
     val jobStart = for {
       file   <- downloadFile(s, req)
-      runner =  runnerSelector.selectRunner(file)
+      runner =  if (req.params.isK8s) {
+        val mixed = MixedFile(file, Some(artifactDownloader.url(req.params.filePath)))
+        new ScalaRunner(mixed)
+      } else {
+        runnerSelector.selectRunner(file)
+      }
       res    =  runJob(s, req, runner)
     } yield res
 

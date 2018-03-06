@@ -12,7 +12,14 @@ import mist.api.FnContext
 import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
-class ScalaRunner(jobFile: String) extends JobRunner {
+case class MixedFile(
+  local: File,
+  url: Option[String]
+) {
+  def forSpark: String = url.getOrElse(local.getAbsolutePath)
+}
+
+class ScalaRunner(jobFile: MixedFile) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
@@ -21,11 +28,11 @@ class ScalaRunner(jobFile: String) extends JobRunner {
     val params = request.params
     import params._
 
-    if (!jobFile.exists()) {
+    if (!jobFile.local.exists()) {
       Left(new IllegalArgumentException(s"Cannot find file $filePath"))
     } else {
-      context.addJar(jobFile.toString)
-      val loader = prepareClassloader(jobFile)
+      context.addJar(jobFile.forSpark)
+      val loader = prepareClassloader(jobFile.local)
       val jobsLoader = new FunctionInstanceLoader(loader)
       val instance = jobsLoader.loadFnInstance(className, action) match {
         case Succ(i) => Right(i)
@@ -38,11 +45,6 @@ class ScalaRunner(jobFile: String) extends JobRunner {
         result    <- inst.run(FnContext(setupConf, params.arguments))
       } yield result
     }
-  }
-
-  private def prepareFile(file: String): String = {
-    val uri = new URL(file)
-
   }
 
   // see #204, #220
