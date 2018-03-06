@@ -13,7 +13,8 @@ import scala.concurrent.duration._
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
   masterAddress: String = "",
-  name: String = ""
+  name: String = "",
+  workDirectory: String = sys.env.getOrElse("MIST_HOME", ".")
 ) {
 
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
@@ -41,6 +42,8 @@ object WorkerArguments {
     opt[String]("name").action((x, a) => a.copy(name = x))
       .text("Uniq name of worker")
 
+    opt[String]("work-dir").action((x, a) => a.copy(workDirectory = "work-dir"))
+      .text("Work directory (jar downloading)")
   }
 
   def parse(args: Seq[String]): Option[WorkerArguments] = {
@@ -82,7 +85,7 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val workDir = Paths.get(s"${sys.env("MIST_HOME")}", s"worker-$name")
+    val workDir = Paths.get(arguments.workDirectory, s"worker-$name")
 
     val workDirFile = workDir.toFile
     if (workDirFile.exists()) {
