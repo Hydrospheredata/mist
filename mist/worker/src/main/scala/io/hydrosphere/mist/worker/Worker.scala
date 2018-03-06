@@ -42,7 +42,7 @@ object WorkerArguments {
     opt[String]("name").action((x, a) => a.copy(name = x))
       .text("Uniq name of worker")
 
-    opt[String]("work-dir").action((x, a) => a.copy(workDirectory = "work-dir"))
+    opt[String]("work-dir").action((x, a) => a.copy(workDirectory = x))
       .text("Work directory (jar downloading)")
   }
 
