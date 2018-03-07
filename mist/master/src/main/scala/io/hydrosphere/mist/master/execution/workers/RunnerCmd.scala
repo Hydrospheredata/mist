@@ -14,6 +14,7 @@ import scala.concurrent.duration._
 import scala.io.Source
 import scala.language.postfixOps
 import scala.sys.process._
+import scala.util.{Failure, Success}
 
 sealed trait WorkerProcess
 case object NonLocal extends WorkerProcess
@@ -41,7 +42,7 @@ object RunnerCommand2 {
       }
     }
 
-    def wait(step: FiniteDuration = 1 second): Future[Unit] = {
+    def await(step: FiniteDuration = 1 second): Future[Unit] = {
       val promise = Promise[Unit]
       val thread = new Thread(new Runnable {
         override def run(): Unit = {
@@ -50,8 +51,9 @@ object RunnerCommand2 {
             exitValue match {
               case Some(0) => promise.success(())
               case Some(x) =>
-                val errOut = Source.fromInputStream(ps.getErrorStream).take(25).mkString(";")
-                promise.failure(new RuntimeException(s"Process exited with status code $x and errOut: $errOut"))
+                val out = Source.fromInputStream(ps.getInputStream).getLines().take(25).mkString("; ")
+                val errOut = Source.fromInputStream(ps.getErrorStream).getLines().take(25).mkString("; ")
+                promise.failure(new RuntimeException(s"Process exited with status code $x and out: $out; errOut: $errOut"))
               case None =>
             }
           }
@@ -77,24 +79,33 @@ object RunnerCommand2 {
     }
   }
 
-  class LocalCommand(f: MkProcessArgs) extends RunnerCommand2 {
+  class LocalCommand(f: MkProcessArgs) extends RunnerCommand2 with Logger {
     def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = {
       val cmd = f(name, initInfo)
       val ps = WrappedProcess.run(cmd)
-      Local(ps.wait())
+      val future = ps.await()
+      import scala.concurrent.ExecutionContext.Implicits.global
+      future.onComplete({
+        case Success(()) => logger.info("Completed normally")
+        case Failure(e) => logger.error("SASAI", e)
+      })
+      Local(future)
     }
   }
 
   class SparkSubmit(mistHome: String, sparkHome: String, masterHost: String) extends RunnerCommand2 with Logger {
     override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = {
-      val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toString
+      val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toRealPath().toString
       val workerJar = if(initInfo.isK8s){
         "http://" + initInfo.masterHttpConf + "/v2/api/artifacts_internal/mist-worker.jar"
       } else {
-        Paths.get(mistHome, "mist-worker.jar").toString
+        Paths.get(mistHome, "mist-worker.jar").toRealPath().toString
       }
       val conf = initInfo.sparkConf.flatMap({case (k, v) => Seq("--conf", s"$k=$v")})
-      val runOpts = initInfo.runOptions.split(" ").toSeq
+      val runOpts = {
+        val trimmed = initInfo.runOptions.trim
+        if (trimmed.isEmpty) Seq.empty else trimmed.split(" ").map(_.trim).toSeq
+      }
 
       val cmd = Seq(submitPath) ++ runOpts ++ conf ++ Seq(
         "--class", "io.hydrosphere.mist.worker.Worker",
@@ -104,7 +115,13 @@ object RunnerCommand2 {
       )
       logger.info(s"Try submit worker $name, cmd: ${cmd.mkString(" ")}")
       val ps = WrappedProcess.run(cmd)
-      Local(ps.wait())
+      val future = ps.await()
+      import scala.concurrent.ExecutionContext.Implicits.global
+      future.onComplete({
+        case Success(()) => logger.info("Completed normally")
+        case Failure(e) => logger.error("SASAI", e)
+      })
+      Local(future)
     }
   }
 

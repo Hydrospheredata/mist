@@ -11,12 +11,10 @@ object SparkClassLoader extends Logger {
        case sparkLoader: MutableURLClassLoader =>
          urls.foreach(sparkLoader.addURL)
          sparkLoader
-       case _ =>
-         val message =
-           "Parent is not instance of org.apache.spark.MutableURLClassLoader." +
-           " Method withURLs didn't apply any changes."
+       case loader =>
+         val message = "Parent is not instance of org.apache.spark.MutableURLClassLoader."
          logger.warn(message)
-         parent
+         new MutableURLClassLoader(urls.toArray, loader)
      }
   }
 
