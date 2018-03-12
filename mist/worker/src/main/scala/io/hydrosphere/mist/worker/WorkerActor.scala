@@ -28,14 +28,15 @@ trait JobStarting {
   val artifactDownloader: ArtifactDownloader
 
   protected final def startJob(
-    req: RunJobRequest
+    req: RunJobRequest,
+    fileAsUrl: Boolean
   )(implicit ec: ExecutionContext): Future[Either[Throwable, JsLikeData]] = {
     val id = req.id
     val s = sender()
     val jobStart = for {
       file   <- downloadFile(s, req)
-      runner =  if (req.params.isK8s) {
-        val mixed = MixedFile(file, Some(artifactDownloader.url(req.params.filePath)))
+      runner =  if (fileAsUrl) {
+        val mixed = SparkArtifact(file, Some(artifactDownloader.url(req.params.filePath)))
         new ScalaRunner(mixed)
       } else {
         runnerSelector.selectRunner(file)

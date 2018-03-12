@@ -11,15 +11,14 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
+import io.hydrosphere.mist.worker.SparkArtifact
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.{FileUtils, FilenameUtils}
 
 import _root_.scala.concurrent.Future
 
 trait ArtifactDownloader {
-  def url(filePath: String): String
-  def downloadArtifact(filePath: String): Future[File]
-
+  def downloadArtifact(filePath: String): Future[SparkArtifact]
   def stop(): Unit
 }
 
@@ -34,9 +33,12 @@ case class HttpArtifactDownloader(
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  override def url(filePath: String): String = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
+  private def fileUri(filePath: String): String =
+    s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
 
-  override def downloadArtifact(filePath: String): Future[File] = {
+  private def checksumUri(filePath: String): String = fileUri(filePath) + "/sha"
+
+  override def downloadArtifact(filePath: String): Future[SparkArtifact] = {
     val absFile = new File(filePath)
     val locallyResolvedFile = Paths.get(savePath, filePath).toFile
 
@@ -57,8 +59,7 @@ case class HttpArtifactDownloader(
   }
 
   private def getChecksum(filePath: String): Future[String] = {
-    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}/sha"
-    val request = HttpRequest(method = HttpMethods.GET, uri = uri)
+    val request = HttpRequest(method = HttpMethods.GET, uri = checksumUri(filePath))
     for {
       r <- Http().singleRequest(request)
       resp = checkResponse(uri, r)
@@ -67,7 +68,7 @@ case class HttpArtifactDownloader(
   }
 
   private def downloadFile(filePath: String): Future[File] = {
-    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
+    val uri = fileUri(filePath)
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
       r <- Http().singleRequest(request)

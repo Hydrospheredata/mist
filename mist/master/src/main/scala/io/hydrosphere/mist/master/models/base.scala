@@ -38,8 +38,7 @@ case class ContextConfig(
   precreated: Boolean,
   runOptions: String,
   workerMode: RunMode,
-  streamingDuration: Duration,
-  isK8s: Boolean
+  streamingDuration: Duration
 ) extends NamedConfig {
 
   def maxJobsOnNode: Int = workerMode match {

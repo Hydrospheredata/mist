@@ -7,19 +7,13 @@ import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.FunctionInstanceLoader
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.utils.{Err, Succ}
-import io.hydrosphere.mist.worker.NamedContext
+import io.hydrosphere.mist.worker.{NamedContext, SparkArtifact}
 import mist.api.FnContext
 import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
-case class MixedFile(
-  local: File,
-  url: Option[String]
-) {
-  def forSpark: String = url.getOrElse(local.getAbsolutePath)
-}
 
-class ScalaRunner(jobFile: MixedFile) extends JobRunner {
+class ScalaRunner(jobFile: SparkArtifact) extends JobRunner {
 
   override def run(
     request: RunJobRequest,

@@ -20,10 +20,12 @@ class NamedContext(
 
   private val jars = mutable.Buffer.empty[String]
 
-  def addJar(jarPath: String): Unit = {
-    val jarAbsolutePath = new File(jarPath).getAbsolutePath
+  def isK8S: Boolean = sparkContext.getConf.get("spark.master").startsWith("k8s://")
+
+  def addJar(file: String): Unit = {
+    val jarAbsolutePath = new File(file).getAbsolutePath
     if (!jars.contains(jarAbsolutePath)) {
-      sparkContext.addJar(jarPath)
+      sparkContext.addJar(file)
       jars += jarAbsolutePath
     }
   }
