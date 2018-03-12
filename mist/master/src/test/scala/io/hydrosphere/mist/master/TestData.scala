@@ -71,8 +71,7 @@ trait TestData {
     streamingDuration = FooContext.streamingDuration,
     logService = "localhost:2005",
     masterHttpConf = "localhost:2004",
-    maxArtifactSize = 1000L,
-    jobsSavePath = "/tmp"
+    maxArtifactSize = 1000L
   )
 
   val workerLinkData = WorkerLink("worker", "address", None, workerInitData)

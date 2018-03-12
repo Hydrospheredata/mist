@@ -122,8 +122,7 @@ case class ContextCreateRequest(
   precreated: Option[Boolean] = None,
   workerMode: Option[RunMode] = None,
   runOptions: Option[String] = None,
-  streamingDuration: Option[Duration] = None,
-  isK8s: Option[Boolean] = None
+  streamingDuration: Option[Duration] = None
 ) {
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =
@@ -135,8 +134,7 @@ case class ContextCreateRequest(
       precreated.getOrElse(other.precreated),
       runOptions.getOrElse(other.runOptions),
       workerMode.getOrElse(other.workerMode),
-      streamingDuration.getOrElse(other.streamingDuration),
-      isK8s.getOrElse(other.isK8s)
+      streamingDuration.getOrElse(other.streamingDuration)
     )
 }
 

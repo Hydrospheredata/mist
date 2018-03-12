@@ -13,7 +13,7 @@ import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
 
-class ScalaRunner(jobFile: SparkArtifact) extends JobRunner {
+class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
@@ -22,23 +22,19 @@ class ScalaRunner(jobFile: SparkArtifact) extends JobRunner {
     val params = request.params
     import params._
 
-    if (!jobFile.local.exists()) {
-      Left(new IllegalArgumentException(s"Cannot find file $filePath"))
-    } else {
-      context.addJar(jobFile.forSpark)
-      val loader = prepareClassloader(jobFile.local)
-      val jobsLoader = new FunctionInstanceLoader(loader)
-      val instance = jobsLoader.loadFnInstance(className, action) match {
-        case Succ(i) => Right(i)
-        case Err(ex) => Left(ex)
-      }
-      for {
-        inst      <- instance
-        setupConf =  context.setupConfiguration(request.id)
-        _         <- inst.validateParams(params.arguments)
-        result    <- inst.run(FnContext(setupConf, params.arguments))
-      } yield result
+    context.addJar(artifact)
+    val loader = prepareClassloader(artifact.local)
+    val jobsLoader = new FunctionInstanceLoader(loader)
+    val instance = jobsLoader.loadFnInstance(className, action) match {
+      case Succ(i) => Right(i)
+      case Err(ex) => Left(ex)
     }
+    for {
+      inst      <- instance
+      setupConf =  context.setupConfiguration(request.id)
+      _         <- inst.validateParams(params.arguments)
+      result    <- inst.run(FnContext(setupConf, params.arguments))
+    } yield result
   }
 
   // see #204, #220

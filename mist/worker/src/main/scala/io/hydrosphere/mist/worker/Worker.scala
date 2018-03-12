@@ -1,8 +1,11 @@
 package io.hydrosphere.mist.worker
 
+import java.nio.file.{Path, Paths}
+
 import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -10,7 +13,8 @@ import scala.concurrent.duration._
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
   masterAddress: String = "",
-  name: String = ""
+  name: String = "",
+  workDirectory: String = sys.env.getOrElse("MIST_HOME", ".")
 ) {
 
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
@@ -38,6 +42,8 @@ object WorkerArguments {
     opt[String]("name").action((x, a) => a.copy(name = x))
       .text("Uniq name of worker")
 
+    opt[String]("work-dir").action((x, a) => a.copy(workDirectory = x))
+      .text("Work directory (jar downloading)")
   }
 
   def parse(args: Seq[String]): Option[WorkerArguments] = {
@@ -79,7 +85,15 @@ object Worker extends App with Logger {
     }
 
     val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
-    val props = MasterBridge.props(arguments.name, regHub)
+    val workDir = Paths.get(arguments.workDirectory, s"worker-$name")
+
+    val workDirFile = workDir.toFile
+    if (workDirFile.exists()) {
+      logger.warn(s"Directory in path $workDir already exists. It may cause errors in worker lifecycle!")
+    } else {
+      FileUtils.forceMkdir(workDirFile)
+    }
+    val props = MasterBridge.props(arguments.name, workDir, regHub)
     system.actorOf(props, s"worker-$name")
 
     val msg = s"Worker $name is started, context ${arguments.name}"
@@ -87,6 +101,7 @@ object Worker extends App with Logger {
 
     Await.result(system.whenTerminated, Duration.Inf)
     logger.info(s"Shutdown worker application $name ${arguments.name}")
+    FileUtils.deleteQuietly(workDirFile)
     sys.exit()
   } catch {
     case e: Throwable =>

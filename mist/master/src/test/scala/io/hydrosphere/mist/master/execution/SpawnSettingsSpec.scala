@@ -20,8 +20,7 @@ class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
       akkaAddress = "akkaAddr",
       logAddress = "logAddr",
       httpAddress = "httpAddr",
-      maxArtifactSize = 100L,
-      jobsSavePath = "/tmp"
+      maxArtifactSize = 100L
     )
 
     val ctx = FooContext.copy(workerMode = RunMode.Shared)
@@ -33,7 +32,6 @@ class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
     initInfo.logService shouldBe spawnSettings.logAddress
     initInfo.masterHttpConf shouldBe spawnSettings.httpAddress
     initInfo.maxArtifactSize shouldBe spawnSettings.maxArtifactSize
-    initInfo.jobsSavePath shouldBe spawnSettings.jobsSavePath
 
     val excl = ctx.copy(workerMode = RunMode.ExclusiveContext)
     val initFoExclusive = spawnSettings.toWorkerInitInfo(excl)

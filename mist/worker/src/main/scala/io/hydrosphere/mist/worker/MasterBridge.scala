@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.worker
 
+import java.nio.file.Path
+
 import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
@@ -103,21 +105,25 @@ object MasterBridge {
 
   def props(
     id: String,
+    workerDir: Path,
     regHub: ActorRef
   ): Props = {
     val mkContext = createNamedContext(id)(_)
-    val workerF = ActorF[(WorkerInitInfo, NamedContext)]({ case ((init, ctx), af) => {
-      val (h, p) = init.masterHttpConf.split(':') match {
-        case Array(host, port) => (host, port.toInt)
-      }
-      val downloader = ArtifactDownloader.create(h, p, init.maxArtifactSize, init.jobsSavePath)
+    val workerF = ActorF[(WorkerInitInfo, NamedContext)]({ case ((init, ctx), af) =>
+      val hostPort = init.masterHttpConf.split(":")
+      val downloader = ArtifactDownloader.create(
+        hostPort(0), hostPort(1).toInt, init.maxArtifactSize, workerDir
+      )
       af.actorOf(WorkerActor.props(ctx, downloader, init.maxJobs))
-    }})
+    })
     props(id, regHub, mkContext, workerF)
   }
 
   def createNamedContext(id: String)(init: WorkerInitInfo): NamedContext = {
-    val conf = new SparkConf().setAppName(id).setAll(init.sparkConf)
+    val conf = new SparkConf()
+      .setAppName(id)
+      .setAll(init.sparkConf)
+      .set("spark.streaming.stopSparkContextByDefault", "false")
     val sparkContext = new SparkContext(conf)
 
     val centralLoggingConf = {
@@ -132,6 +138,5 @@ object MasterBridge {
       Option(centralLoggingConf)
     )
   }
-
 }
 

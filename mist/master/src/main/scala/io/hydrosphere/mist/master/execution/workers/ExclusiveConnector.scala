@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Termin
 import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ConnectionUnused, RunJobRequest}
 import io.hydrosphere.mist.master.models.ContextConfig
 
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.util._
 
 class ExclusiveConnector(

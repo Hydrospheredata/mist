@@ -1,19 +1,16 @@
 package io.hydrosphere.mist.worker
 
-import java.io.File
 import java.util.concurrent.Executors
 
 import akka.actor._
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.streaming.StreamingContext
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 case class ExecutionUnit(
@@ -28,20 +25,14 @@ trait JobStarting {
   val artifactDownloader: ArtifactDownloader
 
   protected final def startJob(
-    req: RunJobRequest,
-    fileAsUrl: Boolean
+    req: RunJobRequest
   )(implicit ec: ExecutionContext): Future[Either[Throwable, JsLikeData]] = {
     val id = req.id
     val s = sender()
     val jobStart = for {
-      file   <- downloadFile(s, req)
-      runner =  if (fileAsUrl) {
-        val mixed = SparkArtifact(file, Some(artifactDownloader.url(req.params.filePath)))
-        new ScalaRunner(mixed)
-      } else {
-        runnerSelector.selectRunner(file)
-      }
-      res    =  runJob(s, req, runner)
+      artifact <- downloadFile(s, req)
+      runner   =  runnerSelector.selectRunner(artifact)
+      res      =  runJob(s, req, runner)
     } yield res
 
     jobStart.onComplete(r => {
@@ -55,7 +46,7 @@ trait JobStarting {
     jobStart
   }
 
-  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[File] = {
+  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[SparkArtifact] = {
     actor ! JobFileDownloading(req.id)
     artifactDownloader.downloadArtifact(req.params.filePath)
   }
@@ -126,6 +117,7 @@ class WorkerActor(
   private def tryCancel(id: String, respond: ActorRef): Unit = activeJobs.get(id) match {
     case Some(_) =>
       namedContext.sparkContext.cancelJobGroup(id)
+      StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
       respond ! JobIsCancelled(id)
     case None =>
       log.warning(s"Can not cancel unknown job $id")

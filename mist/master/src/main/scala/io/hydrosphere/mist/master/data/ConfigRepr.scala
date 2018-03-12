@@ -77,8 +77,7 @@ object ConfigRepr {
         precreated = config.getBoolean("precreated"),
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
-        streamingDuration = Duration(config.getString("streaming-duration")),
-        isK8s = config.getBoolean("is_k8s")
+        streamingDuration = Duration(config.getString("streaming-duration"))
       )
     }
 
@@ -98,8 +97,7 @@ object ConfigRepr {
         "precreated" -> fromAnyRef(a.precreated),
         "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
-        "streaming-duration" -> fromDuration(a.streamingDuration),
-        "is_k8s" -> fromAnyRef(a.isK8s)
+        "streaming-duration" -> fromDuration(a.streamingDuration)
       )
       fromMap(map.asJava).toConfig
     }

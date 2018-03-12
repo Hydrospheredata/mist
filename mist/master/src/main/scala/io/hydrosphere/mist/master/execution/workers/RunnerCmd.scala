@@ -95,13 +95,13 @@ object RunnerCommand2 {
 
   class SparkSubmit(mistHome: String, sparkHome: String, masterHost: String) extends RunnerCommand2 with Logger {
     override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = {
+      def workerJarUrl: String = "http://" + initInfo.masterHttpConf + "/v2/api/artifacts_internal/mist-worker.jar"
+      def workerLocalPath: String = Paths.get(mistHome, "mist-worker.jar").toRealPath().toString
+
       val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toRealPath().toString
-      val workerJar = if(initInfo.isK8s){
-        "http://" + initInfo.masterHttpConf + "/v2/api/artifacts_internal/mist-worker.jar"
-      } else {
-        Paths.get(mistHome, "mist-worker.jar").toRealPath().toString
-      }
+      val workerJar = if(initInfo.isK8S) workerJarUrl else workerLocalPath
       val conf = initInfo.sparkConf.flatMap({case (k, v) => Seq("--conf", s"$k=$v")})
+
       val runOpts = {
         val trimmed = initInfo.runOptions.trim
         if (trimmed.isEmpty) Seq.empty else trimmed.split(" ").map(_.trim).toSeq
@@ -116,11 +116,6 @@ object RunnerCommand2 {
       logger.info(s"Try submit worker $name, cmd: ${cmd.mkString(" ")}")
       val ps = WrappedProcess.run(cmd)
       val future = ps.await()
-      import scala.concurrent.ExecutionContext.Implicits.global
-      future.onComplete({
-        case Success(()) => logger.info("Completed normally")
-        case Failure(e) => logger.error("SASAI", e)
-      })
       Local(future)
     }
   }

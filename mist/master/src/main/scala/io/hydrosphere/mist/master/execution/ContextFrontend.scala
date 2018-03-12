@@ -252,7 +252,7 @@ class ContextFrontend(
   }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
-    val id = UUID.randomUUID().toString
+    val id = ctx.name + "_" + UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
     val connector = connectorStarter(id, ctx)
     if (ctx.precreated) connector.warmUp()
@@ -304,8 +304,8 @@ class ContextFrontend(
 }
 
 object ContextFrontend {
-  val ConnectionFailedMaxTimes = 50
-  val ConnectorFailedMaxTimes = 50
+  val ConnectionFailedMaxTimes = 5
+  val ConnectorFailedMaxTimes = 5
 
   sealed trait Event
   object Event {

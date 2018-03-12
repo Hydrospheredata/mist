@@ -22,11 +22,11 @@ class NamedContext(
 
   def isK8S: Boolean = sparkContext.getConf.get("spark.master").startsWith("k8s://")
 
-  def addJar(file: String): Unit = {
-    val jarAbsolutePath = new File(file).getAbsolutePath
-    if (!jars.contains(jarAbsolutePath)) {
-      sparkContext.addJar(file)
-      jars += jarAbsolutePath
+  def addJar(artifact: SparkArtifact): Unit = synchronized {
+    val path = if (isK8S) artifact.url else artifact.local.getAbsolutePath
+    if (!jars.contains(path)) {
+      sparkContext.addJar(path)
+      jars += path
     }
   }
 

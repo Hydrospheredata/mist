@@ -18,9 +18,6 @@ object CommonData {
   case object CompleteAndShutdown extends ShutdownCommand
   case object ForceShutdown extends ShutdownCommand
 
-  case class SparkConf(entries: Map[String, String]) {
-    def isK8s: Boolean = entries.exists({case (k, v) => })
-  }
   /**
     * Data for creation spark/mist context on worker
    */
@@ -32,10 +29,10 @@ object CommonData {
     logService: String,
     masterHttpConf: String,
     maxArtifactSize: Long,
-    jobsSavePath: String,
-    runOptions: String,
-    isK8s: Boolean
-  )
+    runOptions: String
+  ) {
+    def isK8S: Boolean = sparkConf.exists({case (k, v) => k == "spark.master" && v.startsWith("k8s://")})
+  }
 
   case class JobParams(
     filePath: String,

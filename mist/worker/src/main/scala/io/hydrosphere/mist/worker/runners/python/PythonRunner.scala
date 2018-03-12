@@ -4,13 +4,12 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.worker.NamedContext
 import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.worker.runners.python.wrappers._
+import io.hydrosphere.mist.worker.{NamedContext, SparkArtifact}
 import mist.api.data.JsLikeData
 import py4j.GatewayServer
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
@@ -24,7 +23,7 @@ class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
 
 }
 
-class PythonRunner(jobFile: File) extends JobRunner with Logger {
+class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
 
   override def run(
     req: RunJobRequest,
@@ -34,7 +33,7 @@ class PythonRunner(jobFile: File) extends JobRunner with Logger {
     try {
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       var cmd = "python " + selfJarPath
-      val entryPoint = new PythonEntryPoint(req.copy(params = req.params.copy(filePath = jobFile.toString)), context)
+      val entryPoint = new PythonEntryPoint(req.copy(params = req.params.copy(filePath = artifact.local.toString)), context)
 
       val gatewayServer: GatewayServer = new GatewayServer(entryPoint, 0)
       try {
