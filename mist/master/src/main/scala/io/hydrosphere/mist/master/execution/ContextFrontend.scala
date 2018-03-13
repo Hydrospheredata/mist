@@ -176,11 +176,12 @@ class ContextFrontend(
           becomeNextConn(newConnState)
         }
 
-      case JobActor.Event.Completed(id) if currentState.hasWorking(id) =>
+      case JobActor.Event.Completed(id, maybeConnId) if currentState.hasWorking(id) =>
+        maybeConnId.foreach(cId => connectorState.connector.releaseConnection(cId))
         becomeNext(connectorState.connectionReleased, currentState.done(id))
 
-      case JobActor.Event.Completed(id) =>
-        log.warning(s"Received unexpected completed event from $id")
+      case JobActor.Event.Completed(id, maybeConnId) =>
+        log.warning(s"Received unexpected completed event from $id and connection $maybeConnId")
 
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>
         log.error(e, "Context {} - connector {} was crushed", name, id)
