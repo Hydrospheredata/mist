@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.master.execution.workers.{RunnerCmd, RunnerCommand2}
+import io.hydrosphere.mist.master.execution.workers.{RunnerCommand2}
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.duration._

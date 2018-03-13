@@ -44,7 +44,7 @@ object Master extends App with Logger {
 
     def updClusterHost(cfg: MasterConfig): MasterConfig = {
       import cfg._
-      logger.info(s"Automatically update cluster host $cfg to ${autoHost.value}")
+      logger.info(s"Automatically update cluster host ${cfg.cluster.host} to ${autoHost.value}")
       val upd = cluster.copy(host = autoHost.value)
       cfg.copy(cluster = upd)
         .copy(raw = raw.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(autoHost.value)))
@@ -52,14 +52,14 @@ object Master extends App with Logger {
 
     def updHttpHost(cfg: MasterConfig): MasterConfig = {
       import cfg._
-      logger.info(s"Automatically update http host $cfg to ${autoHost.value}")
+      logger.info(s"Automatically update http host ${cfg.http.host} to ${autoHost.value}")
       val upd = http.copy(host = autoHost.value)
       cfg.copy(http = upd)
     }
 
     def updLogHost(cfg: MasterConfig): MasterConfig = {
       import cfg._
-      logger.info(s"Automatically update log host $cfg to ${autoHost.value}")
+      logger.info(s"Automatically update log host ${cfg.logs.host} to ${autoHost.value}")
       val upd = logs.copy(host = autoHost.value)
       cfg.copy(logs = upd)
     }

@@ -81,6 +81,8 @@ lazy val master = project.in(file("mist/master"))
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
       Library.cats,
 
+      Library.dockerJava,
+
       Library.commonsCodec, Library.scalajHttp,
 
       Library.scalaTest % "test",
@@ -341,7 +343,12 @@ lazy val docs = project.in(file("docs"))
 lazy val commonAssemblySettings = Seq(
   assemblyMergeStrategy in assembly := {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
-    case m if m.startsWith("META-INF") => MergeStrategy.discard
+    case PathList("META-INF", xs @ _*) =>
+      (xs map {_.toLowerCase}) match {
+        case "services" :: xs =>
+          MergeStrategy.filterDistinctLines
+        case _ => MergeStrategy.discard
+      }
     case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
     case PathList("org", "apache", xs@_*) => MergeStrategy.first
     case PathList("org", "jboss", xs@_*) => MergeStrategy.first

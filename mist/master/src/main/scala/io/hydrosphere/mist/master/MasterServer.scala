@@ -13,7 +13,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.execution.workers.{RunnerCmd, RunnerCommand2}
+import io.hydrosphere.mist.master.execution.workers.{RunnerCommand2}
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._

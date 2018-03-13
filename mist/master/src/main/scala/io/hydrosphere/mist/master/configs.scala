@@ -92,11 +92,39 @@ case class WorkersSettingsConfig(
   runnerInitTimeout: Duration,
   readyTimeout: FiniteDuration,
   maxArtifactSize: Long,
+  dockerConfig: DockerRunnerConfig,
+  manualConfig: ManualRunnerConfig
+)
+
+case class DockerRunnerConfig(
   dockerHost: String,
   dockerPort: Int,
-  cmd: String,
+  image: String
+)
+
+object DockerRunnerConfig {
+  def apply(config: Config): DockerRunnerConfig = {
+    DockerRunnerConfig(
+      dockerHost = config.getString("docker-host"),
+      dockerPort = config.getInt("docker-port"),
+      image = config.getString("image")
+    )
+  }
+}
+
+case class ManualRunnerConfig(
+  cmdStart: String,
   cmdStop: String
 )
+
+object ManualRunnerConfig {
+  def apply(config: Config): ManualRunnerConfig = {
+    ManualRunnerConfig(
+      cmdStart = config.getString("cmd"),
+      cmdStop = config.getString("cmdStop")
+    )
+  }
+}
 
 object WorkersSettingsConfig {
 
@@ -109,10 +137,8 @@ object WorkersSettingsConfig {
         case _ => throw new IllegalArgumentException("Worker ready-teimout should be finite")
       },
       maxArtifactSize = config.getBytes("max-artifact-size"),
-      dockerHost = config.getString("docker-host"),
-      dockerPort = config.getInt("docker-port"),
-      cmd = config.getString("cmd"),
-      cmdStop = config.getString("cmdStop")
+      dockerConfig = DockerRunnerConfig(config),
+      manualConfig = ManualRunnerConfig(config)
     )
   }
 

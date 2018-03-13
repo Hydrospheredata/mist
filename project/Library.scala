@@ -22,6 +22,7 @@ object Library {
   val mockito ="org.mockito" % "mockito-all" % "1.10.19"
 
   val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
+  val dockerJava = "com.github.docker-java" % "docker-java" % "3.0.14"
 
   object Akka {
     val akkaVersion = "2.5.9"
