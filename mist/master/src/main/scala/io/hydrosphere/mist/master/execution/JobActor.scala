@@ -69,6 +69,10 @@ class JobActor(
     case JobFileDownloading(id, time) =>
       report.reportPlain(JobFileDownloadingEvent(id, time))
 
+    case WorkerIsBusy =>
+      log.warning("Connection is busy: unexpected case ¯\\_(ツ)_/¯")
+      completeFailure("Connection is busy: unexpected case ¯\\_(ツ)_/¯", connection.id)
+
     case JobStarted(id, time) =>
       report.reportPlain(StartedEvent(id, time))
       context become completion(callback, connection)

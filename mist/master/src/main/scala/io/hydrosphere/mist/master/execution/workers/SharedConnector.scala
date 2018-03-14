@@ -13,10 +13,15 @@ import scala.concurrent.{Future, Promise}
 class SharedConnector(
   id: String,
   ctx: ContextConfig,
-  startConnection: () => Future[WorkerConnection]
+  connectionStarter: String => Future[WorkerConnection],
+  idGen: AtomicInteger = new AtomicInteger(1)
 ) extends Actor with ActorLogging {
 
   import context.dispatcher
+
+  private def startConnection(): Future[WorkerConnection] = {
+    connectionStarter(idGen.getAndIncrement())
+  }
 
   override def receive: Receive = noConnection
 
@@ -26,8 +31,8 @@ class SharedConnector(
       context become process(Seq(req), Seq.empty, Map.empty, 1)
 
     case Event.WarnUp =>
-      (0 to ctx.maxJobsOnNode)
-        .foreach(_ => startConnection() pipeTo self)
+      val connections = Future.sequence((0 to ctx.maxJobsOnNode).map(_ => startConnection()))
+      connections pipeTo self
       context become process(Seq.empty, Seq.empty, Map.empty, ctx.maxJobsOnNode)
   }
 
@@ -50,6 +55,12 @@ class SharedConnector(
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       requests.head.success(wrapped)
       context become process(requests.tail, pool, inUse + (conn.id -> wrapped), startingConnections - 1)
+
+    case warmup: Seq[WorkerConnection] =>
+      log.info(s"Workers warmed up: ${warmup.size}")
+      val wrapped = warmup.map(SharedConnector.ConnectionWrapper.wrap)
+      wrapped.foreach(conn => conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id)))
+      context become process(Seq.empty, pool ++ warmup, inUse, startingConnections - wrapped.size)
 
     case akka.actor.Status.Failure(e) =>
       log.error(e, s"Could not start worker connection")
@@ -82,15 +93,22 @@ class SharedConnector(
       context become process(requests :+ req, pool, inUse, startingConnections)
 
     case Event.ReleaseConnection(connectionId) =>
-      log.info(s"Releasing connection: requested ${requests.size}, poooled ${pool.size}, in use ${inUse.size}, starting: ${startingConnections}")
-      inUse.get(connectionId)
-        .foreach(conn => requests.headOption match {
-          case Some(req) =>
-            req.success(conn)
-            context become process(requests.tail, pool, inUse + (conn.id -> conn), startingConnections)
-          case None =>
-            context become process(Seq.empty, pool :+ conn, inUse - connectionId, startingConnections)
-        })
+      log.info(s"Releasing connection: requested ${requests.size}, poooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
+      inUse.get(connectionId) match {
+        case Some(releasedConnection) =>
+          val updatedPool = pool :+ releasedConnection
+          val updatedInUse = inUse - connectionId
+          requests.headOption match {
+            case Some(req) =>
+              val conn = updatedPool.head
+              req.success(conn)
+              context become process(requests.tail, updatedPool.tail, updatedInUse + (conn.id -> conn), startingConnections)
+            case None =>
+              context become process(Seq.empty, updatedPool, updatedInUse, startingConnections)
+          }
+        case None =>
+          log.warning("Released unused connection")
+      }
 
     case cmd: ShutdownCommand =>
       requests.foreach(_.failure(new RuntimeException("connector was shutdown")))
@@ -103,8 +121,7 @@ class SharedConnector(
       }
 
     case Event.ConnTerminated(connId) =>
-      //keep
-      SharedConnector.idGen.decrementAndGet()
+      idGen.decrementAndGet()
       val updatedPool = pool.foldLeft(Seq.empty[WorkerConnection]) {
         case (acc, conn) if conn.id == connId => acc
         case (acc, conn) => acc :+ conn
@@ -164,6 +181,6 @@ object SharedConnector {
     id: String,
     ctx: ContextConfig,
     startConnection: (String, ContextConfig) => Future[WorkerConnection]
-  ): Props = Props(classOf[SharedConnector], id, ctx, () => startConnection(s"$id-pool-${idGen.getAndIncrement()}", ctx))
+  ): Props = Props(new SharedConnector(id, ctx, (id: String) => startConnection(id, ctx)))
 
 }
