@@ -94,7 +94,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
     }
     def createActor(runnerSelector: RunnerSelector): ActorRef = {
-      val props  = WorkerActor.props(context, artifactDownloader, 10, runnerSelector)
+      val props  = WorkerActor.props(context, artifactDownloader, runnerSelector)
       TestActorRef[WorkerActor](props)
     }
 
@@ -112,7 +112,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     when(artifactDownloader.downloadArtifact(any[String]))
       .thenSuccess(new File("doesn't matter"))
 
-    val props = WorkerActor.props(context, artifactDownloader, 2, runnerSelector)
+    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
@@ -121,9 +121,8 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
-      classOf[JobFileDownloading],
       classOf[JobStarted],
-      classOf[JobStarted],
+      classOf[WorkerIsBusy],
       classOf[WorkerIsBusy]
     )
   }

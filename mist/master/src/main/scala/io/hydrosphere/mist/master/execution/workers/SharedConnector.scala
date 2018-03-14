@@ -20,7 +20,8 @@ class SharedConnector(
   import context.dispatcher
 
   private def startConnection(): Future[WorkerConnection] = {
-    connectionStarter(idGen.getAndIncrement())
+    val connectionId = s"$id-pool-${idGen.getAndIncrement()}"
+    connectionStarter(connectionId)
   }
 
   override def receive: Receive = noConnection
@@ -31,8 +32,9 @@ class SharedConnector(
       context become process(Seq(req), Seq.empty, Map.empty, 1)
 
     case Event.WarnUp =>
-      val connections = Future.sequence((0 to ctx.maxJobsOnNode).map(_ => startConnection()))
-      connections pipeTo self
+      val msg = Future.sequence((0 to ctx.maxJobsOnNode).map(_ => startConnection()))
+        .map(SharedConnector.ConnectionWarmUp.apply)
+      msg pipeTo self
       context become process(Seq.empty, Seq.empty, Map.empty, ctx.maxJobsOnNode)
   }
 
@@ -56,7 +58,7 @@ class SharedConnector(
       requests.head.success(wrapped)
       context become process(requests.tail, pool, inUse + (conn.id -> wrapped), startingConnections - 1)
 
-    case warmup: Seq[WorkerConnection] =>
+    case SharedConnector.ConnectionWarmUp(warmup) =>
       log.info(s"Workers warmed up: ${warmup.size}")
       val wrapped = warmup.map(SharedConnector.ConnectionWrapper.wrap)
       wrapped.foreach(conn => conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id)))
@@ -153,6 +155,8 @@ class SharedConnector(
 
 object SharedConnector {
 
+  case class ConnectionWarmUp(conns: Seq[WorkerConnection])
+
   class ConnectionWrapper(target: ActorRef) extends Actor {
 
     override def preStart(): Unit = {
@@ -174,8 +178,6 @@ object SharedConnector {
       connection.copy(ref = wrappedRef)
     }
   }
-
-  val idGen = new AtomicInteger(1)
 
   def props(
     id: String,

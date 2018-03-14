@@ -101,8 +101,8 @@ class WorkerActor(
   }
 
   private def running(execution: ExecutionUnit): Receive = {
-    case _: RunJobRequest =>
-      sender() ! WorkerIsBusy
+    case RunJobRequest(id, _, _) =>
+      sender() ! WorkerIsBusy(id)
     case resp: JobResponse =>
       log.info(s"Job execution done. Returning result $resp and become awaiting new request")
       execution.requester ! resp
