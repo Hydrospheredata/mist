@@ -127,6 +127,31 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     )
   }
 
+  it("should complete and shutdown awaiting response") {
+    val runnerSelector = SuccessRunnerSelector({
+      Thread.sleep(1000)
+      JsLikeMap("yoyo" -> JsLikeString("hey"))
+    })
+
+    val probe = TestProbe()
+
+    val artifactDownloader = mock[ArtifactDownloader]
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
+
+    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    val worker = TestActorRef[WorkerActor](props)
+
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+
+    probe.expectMsgAllConformingOf(
+      classOf[JobFileDownloading],
+      classOf[JobStarted]
+    )
+    probe.send(worker, CompleteAndShutdown)
+    probe.expectMsgType[JobResponse]
+  }
+
   def RunnerSelector(r: JobRunner): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(file: File): JobRunner = r

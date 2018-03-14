@@ -108,14 +108,18 @@ class WorkerActor(
       execution.requester ! resp
       context become awaitRequest()
 
-    case CancelJobRequest(id) => cancel(id, sender())
+    case CancelJobRequest(id) =>
+      cancel(id, sender())
+      context become awaitRequest()
 
     case CompleteAndShutdown =>
       context become completeAndShutdown(execution)
   }
 
   private def completeAndShutdown(execution: ExecutionUnit): Receive = {
-    case CancelJobRequest(id) => cancel(id, sender())
+    case CancelJobRequest(id) =>
+      cancel(id, sender())
+      self ! PoisonPill
     case resp: JobResponse =>
       log.info(s"Job execution done. Returning result $resp and shutting down")
       execution.requester ! resp
@@ -126,7 +130,6 @@ class WorkerActor(
     namedContext.sparkContext.cancelJobGroup(id)
     StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
     respond ! JobIsCancelled(id)
-    context become awaitRequest()
   }
 
   override def postStop(): Unit = {

@@ -32,7 +32,7 @@ class SharedConnector(
       context become process(Seq(req), Seq.empty, Map.empty, 1)
 
     case Event.WarnUp =>
-      val msg = Future.sequence((0 to ctx.maxJobsOnNode).map(_ => startConnection()))
+      val msg = Future.sequence((0 until ctx.maxJobsOnNode).map(_ => startConnection()))
         .map(SharedConnector.ConnectionWarmUp.apply)
       msg pipeTo self
       context become process(Seq.empty, Seq.empty, Map.empty, ctx.maxJobsOnNode)
@@ -62,7 +62,7 @@ class SharedConnector(
       log.info(s"Workers warmed up: ${warmup.size}")
       val wrapped = warmup.map(SharedConnector.ConnectionWrapper.wrap)
       wrapped.foreach(conn => conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id)))
-      context become process(Seq.empty, pool ++ warmup, inUse, startingConnections - wrapped.size)
+      context become process(Seq.empty, pool ++ wrapped, inUse, startingConnections - wrapped.size)
 
     case akka.actor.Status.Failure(e) =>
       log.error(e, s"Could not start worker connection")
