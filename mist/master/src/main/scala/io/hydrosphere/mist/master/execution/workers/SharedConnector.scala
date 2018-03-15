@@ -46,13 +46,13 @@ class SharedConnector(
   ): Receive = {
 
     case conn: WorkerConnection if requests.isEmpty =>
-      log.info(s"Receive $conn without requests, possibly warming up")
+      log.info(s"Receive ${conn.id} without requests, possibly warming up")
       val wrapped = SharedConnector.ConnectionWrapper.wrap(conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       context become process(Seq.empty, pool :+ wrapped, inUse, startingConnections - 1)
 
     case conn: WorkerConnection =>
-      log.info(s"Receive $conn trying to handle incoming request")
+      log.info(s"Receive ${conn.id} trying to handle incoming request")
       val wrapped = SharedConnector.ConnectionWrapper.wrap(conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       requests.head.success(wrapped)
@@ -77,7 +77,7 @@ class SharedConnector(
     case Event.AskConnection(req) if pool.nonEmpty =>
       log.info(s"Acquire connection from pool: pool size ${pool.size}")
       val updatedRequests = requests :+ req
-      val available = Math.min(pool.size, requests.size)
+      val available = Math.min(pool.size, updatedRequests.size)
       val toUsing = pool.take(available).zip(updatedRequests.take(available)).map {
         case (conn, pr) =>
           pr.success(conn)
@@ -95,7 +95,7 @@ class SharedConnector(
       context become process(requests :+ req, pool, inUse, startingConnections)
 
     case Event.ReleaseConnection(connectionId) =>
-      log.info(s"Releasing connection: requested ${requests.size}, poooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
+      log.info(s"Releasing connection: requested ${requests.size}, pooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
       inUse.get(connectionId) match {
         case Some(releasedConnection) =>
           val updatedPool = pool :+ releasedConnection

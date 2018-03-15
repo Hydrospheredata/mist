@@ -70,7 +70,41 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     probe.send(connector, WorkerConnector.Event.WarnUp)
     callCounter.get() shouldBe 2
   }
+  it("should acquire connection from pool when it released with no requests") {
+    val callCounter = new AtomicInteger(0)
 
+    val remote = TestProbe()
+    val connector = TestActorRef[SharedConnector](SharedConnector.props(
+      id = "id",
+      ctx = FooContext,
+      startConnection = (id, ctx) => {
+        val x = callCounter.incrementAndGet()
+        val conn = WorkerConnection(x.toString, remote.ref, workerLinkData, Promise[Unit].future)
+        Future.successful(conn)
+      }
+    ))
+
+    val probe = TestProbe()
+
+    val resolve = Promise[WorkerConnection]
+    probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
+    val connection1 = Await.result(resolve.future, Duration.Inf)
+
+    val resolve2 = Promise[WorkerConnection]
+    probe.send(connector, WorkerConnector.Event.AskConnection(resolve2))
+    val connection2 = Await.result(resolve2.future, Duration.Inf)
+
+    connection1.id shouldBe "1"
+    connection2.id shouldBe "2"
+
+    probe.send(connector, WorkerConnector.Event.ReleaseConnection(connection1.id))
+
+    val resolve3 = Promise[WorkerConnection]
+    probe.send(connector, WorkerConnector.Event.AskConnection(resolve3))
+
+    val conn3 = Await.result(resolve3.future, Duration.Inf)
+    conn3.id shouldBe "1"
+  }
 //  it("should watch connection") {
 //    val termination = Promise[Unit]
 //    val connector = TestActorRef[SharedConnector](SharedConnector.props(

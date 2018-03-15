@@ -96,7 +96,7 @@ class WorkerActor(
       val unit = ExecutionUnit(sender(), jobStarted)
       context become running(unit)
 
-    case CompleteAndShutdown =>
+    case _: ShutdownCommand =>
       self ! PoisonPill
   }
 
@@ -111,6 +111,9 @@ class WorkerActor(
     case CancelJobRequest(id) =>
       cancel(id, sender())
       context become awaitRequest()
+
+    case ForceShutdown =>
+      self ! PoisonPill
 
     case CompleteAndShutdown =>
       context become completeAndShutdown(execution)

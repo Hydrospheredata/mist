@@ -181,6 +181,7 @@ class ContextFrontend(
         becomeNext(connectorState.connectionReleased, currentState.done(id))
 
       case JobActor.Event.Completed(id, maybeConnId) =>
+        maybeConnId.foreach(cId => connectorState.connector.releaseConnection(cId))
         log.warning(s"Received unexpected completed event from $id and connection $maybeConnId")
 
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>

@@ -152,6 +152,51 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.expectMsgType[JobResponse]
   }
 
+  it("should force shutdown when awaiting") {
+    val runnerSelector = SuccessRunnerSelector({
+      Thread.sleep(1000)
+      JsLikeMap("yoyo" -> JsLikeString("hey"))
+    })
+
+    val probe = TestProbe()
+
+    val artifactDownloader = mock[ArtifactDownloader]
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
+
+    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    val worker = TestActorRef[WorkerActor](props)
+    probe watch worker
+    probe.send(worker, ForceShutdown)
+    probe.expectTerminated(worker)
+  }
+
+  it("should force shutdown when running request") {
+
+    val runnerSelector = SuccessRunnerSelector({
+      Thread.sleep(1000)
+      JsLikeMap("yoyo" -> JsLikeString("hey"))
+    })
+
+    val probe = TestProbe()
+
+    val artifactDownloader = mock[ArtifactDownloader]
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
+
+    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    val worker = TestActorRef[WorkerActor](props)
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+
+    probe.expectMsgAllConformingOf(
+      classOf[JobFileDownloading],
+      classOf[JobStarted]
+    )
+    probe watch worker
+    probe.send(worker, ForceShutdown)
+    probe.expectTerminated(worker)
+  }
+
   def RunnerSelector(r: JobRunner): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(file: File): JobRunner = r
