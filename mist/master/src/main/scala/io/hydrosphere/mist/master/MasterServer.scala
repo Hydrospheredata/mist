@@ -13,7 +13,7 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.execution.workers.{RunnerCommand2}
+import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
@@ -99,13 +99,12 @@ object MasterServer extends Logger {
     }
 
     def runExecutionService(logService: LogService): ExecutionService = {
-      val masterService = s"${config.cluster.host}:${config.cluster.port}"
-      val workerRunner = RunnerCommand2.create(masterService, config.workers)
+      val workerRunner = WorkerStarter.create(config.workers)
       val spawnSettings = SpawnSettings(
         runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
-        akkaAddress = masterService,
+        akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
         logAddress = s"${config.logs.host}:${config.logs.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize

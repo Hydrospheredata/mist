@@ -3,13 +3,6 @@
 set -e
 cd ${MIST_HOME}
 
-if [ "$1" = 'mist' ]; then
-  export IP=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
-  echo "$IP    master" >> /etc/hosts
-
-  export MIST_OPTS="$MIST_OPTS -Dmist.cluster.host=$IP -Dmist.http.host=$IP -Dmist.log-service.host=$IP"
-  shift
-  exec ./bin/mist-master start --debug true $@
-else
-  exec "$@"
-fi
+MASTER_ID=$(cat /proc/1/cgroup | grep "/docker/" | head -n 1 | awk -F "/" '{print $NF}')
+export MIST_OPTS="$MIST_OPTS -Dmist.workers.docker.master-container-id=$MASTER_ID"
+exec ./bin/mist-master start --debug true $@

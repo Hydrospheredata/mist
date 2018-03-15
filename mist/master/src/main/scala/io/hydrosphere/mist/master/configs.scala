@@ -98,31 +98,51 @@ case class WorkersSettingsConfig(
 
 case class DockerRunnerConfig(
   dockerHost: String,
-  dockerPort: Int,
-  image: String
+  image: String,
+  masterContainerId: Option[String],
+  mistHome: String,
+  sparkHome: String
 )
 
 object DockerRunnerConfig {
   def apply(config: Config): DockerRunnerConfig = {
     DockerRunnerConfig(
-      dockerHost = config.getString("docker-host"),
-      dockerPort = config.getInt("docker-port"),
-      image = config.getString("image")
+      dockerHost = config.getString("host"),
+      image = config.getString("image"),
+      masterContainerId = config.getOptString("master-container-id"),
+      mistHome = config.getString("mist-home"),
+      sparkHome = config.getString("spark-home")
     )
   }
 }
 
 case class ManualRunnerConfig(
   cmdStart: String,
-  cmdStop: String
+  cmdStop: Option[String],
+  async: Boolean
 )
 
 object ManualRunnerConfig {
   def apply(config: Config): ManualRunnerConfig = {
-    ManualRunnerConfig(
-      cmdStart = config.getString("cmd"),
-      cmdStop = config.getString("cmdStop")
-    )
+    def readOld(): ManualRunnerConfig = {
+      val stop = config.getString("cmdStop")
+      ManualRunnerConfig(
+        cmdStart = config.getString("cmd"),
+        cmdStop = if (stop.isEmpty) None else stop.some,
+        async = true
+      )
+    }
+
+    def readNew(): ManualRunnerConfig = {
+      val entry = config.getConfig("manual")
+      ManualRunnerConfig(
+        cmdStart = entry.getString("startCmd"),
+        cmdStop = entry.getOptString("stopCmd"),
+        async = entry.getBoolean("async")
+      )
+    }
+
+    if (config.getString("cmd").nonEmpty) readOld() else readNew()
   }
 }
 
@@ -137,7 +157,7 @@ object WorkersSettingsConfig {
         case _ => throw new IllegalArgumentException("Worker ready-teimout should be finite")
       },
       maxArtifactSize = config.getBytes("max-artifact-size"),
-      dockerConfig = DockerRunnerConfig(config),
+      dockerConfig = DockerRunnerConfig(config.getConfig("docker")),
       manualConfig = ManualRunnerConfig(config)
     )
   }
@@ -286,5 +306,9 @@ object ConfigUtils {
       }
 
     def getScalaDuration(path: String): Duration = Duration(c.getString(path))
+
+    def getOptString(path: String): Option[String] = {
+      if(c.getIsNull(path)) None else c.getString(path).some
+    }
   }
 }

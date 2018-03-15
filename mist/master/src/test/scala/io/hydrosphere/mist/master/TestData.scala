@@ -70,6 +70,7 @@ trait TestData {
     downtime = FooContext.downtime,
     streamingDuration = FooContext.streamingDuration,
     logService = "localhost:2005",
+    masterAddress = "localhost:2003",
     masterHttpConf = "localhost:2004",
     maxArtifactSize = 1000L,
     runOptions = ""

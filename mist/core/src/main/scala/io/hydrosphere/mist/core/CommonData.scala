@@ -27,6 +27,7 @@ object CommonData {
     downtime: Duration,
     streamingDuration: Duration,
     logService: String,
+    masterAddress: String,
     masterHttpConf: String,
     maxArtifactSize: Long,
     runOptions: String

@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.execution
 
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.TestData
-import io.hydrosphere.mist.master.execution.workers.{NonLocal, RunnerCommand2, WorkerProcess}
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.execution.workers.starter.{NonLocal, WorkerProcess, WorkerStarter}
+import io.hydrosphere.mist.master.models.RunMode
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
 
   it("should build worker init info") {
-    val noop = new RunnerCommand2 {
+    val noop = new WorkerStarter {
       override def onStart(name: String, initInfo: CommonData.WorkerInitInfo): WorkerProcess = NonLocal
     }
     val spawnSettings = SpawnSettings(
