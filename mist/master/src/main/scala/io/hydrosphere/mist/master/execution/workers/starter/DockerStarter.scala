@@ -3,25 +3,21 @@ package io.hydrosphere.mist.master.execution.workers.starter
 import java.util.concurrent.Executors
 
 import com.github.dockerjava.api.DockerClient
-import com.github.dockerjava.api.command.{CreateContainerCmd, CreateVolumeCmd, InspectContainerResponse}
-import com.github.dockerjava.api.model.Volume
+import com.github.dockerjava.api.command.{CreateContainerCmd, InspectContainerResponse}
+import com.github.dockerjava.api.model.{ContainerNetwork, Link}
 import com.github.dockerjava.core.{DefaultDockerClientConfig, DockerClientBuilder}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.master.DockerRunnerConfig
+import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.utils.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.JavaConverters._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
-
-sealed trait WorkerImageConfiguration
-case object DoNothing extends WorkerImageConfiguration
-case class CloneMasterConfig(masterId: String) extends WorkerImageConfiguration
 
 class DockerStarter(
   builder: SparkSubmitBuilder,
   dockerClient: DockerClient,
-  configuration: WorkerImageConfiguration,
+  networkConf: DockerNetworkConfiguration,
   image: String
 ) extends WorkerStarter with Logger {
 
@@ -33,38 +29,52 @@ class DockerStarter(
     )
   }
 
-  def copyMasterSettings(id: String, cmd: CreateContainerCmd): Future[CreateContainerCmd] = {
+  def autoConfigureNetwork(id: String, cmd: CreateContainerCmd): Future[CreateContainerCmd] = {
     def asJList[A](a: Array[A]): java.util.List[A] = java.util.Arrays.asList(a: _*)
 
-    def cloneLinks(inspect: InspectContainerResponse, cmd: CreateContainerCmd): CreateContainerCmd = {
-      val networks = inspect.getNetworkSettings.getNetworks.asScala
+    def setupBridge(masterName: String, network: ContainerNetwork, cmd: CreateContainerCmd): CreateContainerCmd = {
+      val links = network.getLinks
+      val copied = if (links.nonEmpty) cmd.withLinks(asJList(links)) else cmd
+      val masterLink = new Link(masterName, "master")
+      copied.withLinks(List(masterLink).asJava).withNetworkMode("bridge")
+    }
+
+    def setup(networkName: String, network: ContainerNetwork, cmd: CreateContainerCmd): CreateContainerCmd = {
+      cmd.withAliases(network.getAliases).withNetworkMode(networkName)
+    }
+
+    def configure(master: InspectContainerResponse, cmd: CreateContainerCmd): CreateContainerCmd = {
+      val networks = master.getNetworkSettings.getNetworks.asScala
       if (networks.size > 1) {
         val ids = networks.keys.mkString(",")
         logger.warn(s"Detected several networks for $id : $ids")
       }
-      val network = networks.head._2
-      val links = network.getLinks
-      if (links.nonEmpty) cmd.withLinks(asJList(links)) else cmd
+      networks.head match {
+        case ("bridge", network) => setupBridge(master.getName, network, cmd)
+        case ("host", network) => cmd.withNetworkMode("host")
+        case (unknown, network) => setup(unknown, network, cmd)
+      }
     }
 
     for {
       master <- Future { dockerClient.inspectContainerCmd(id).exec() }
-      patched = cloneLinks(master, cmd)
+      patched = configure(master, cmd)
     } yield patched
 
   }
 
   private def runContainer(name: String, init: WorkerInitInfo): Future[String] = {
-    def patchCommand(cmd: CreateContainerCmd): Future[CreateContainerCmd] = configuration match {
-      case DoNothing => Future.successful(cmd)
-      case CloneMasterConfig(id) => copyMasterSettings(id, cmd)
+    def setupNetworking(cmd: CreateContainerCmd): Future[CreateContainerCmd] = networkConf match {
+      case NamedNetwork(name) => Future.successful(cmd.withNetworkMode(name))
+      case AutoMasterNetwork(id) => autoConfigureNetwork(id, cmd)
     }
 
     val initial = dockerClient.createContainerCmd(image)
       .withEntrypoint(builder.submitWorker(name, init).asJava)
+      .withLabels(Map("mist.worker" -> name).asJava)
 
     for {
-      cmd  <- patchCommand(initial)
+      cmd  <- setupNetworking(initial)
       resp <- Future { cmd.exec() }
       _    <- Future { dockerClient.startContainerCmd(resp.getId).exec() }
     } yield resp.getId
@@ -85,11 +95,6 @@ object DockerStarter {
   def apply(config: DockerRunnerConfig): DockerStarter = {
     import config._
 
-    val imageConf = masterContainerId match {
-      case Some(id) => CloneMasterConfig(id)
-      case None => DoNothing
-    }
-
     val client = {
       val config = DefaultDockerClientConfig.createDefaultConfigBuilder()
         .withDockerHost(dockerHost)
@@ -101,7 +106,7 @@ object DockerStarter {
     new DockerStarter(
       new SparkSubmitBuilder(mistHome, sparkHome),
       client,
-      imageConf,
+      network,
       image
     )
   }

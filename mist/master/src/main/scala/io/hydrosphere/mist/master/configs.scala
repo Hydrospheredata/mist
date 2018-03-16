@@ -96,10 +96,24 @@ case class WorkersSettingsConfig(
   manualConfig: ManualRunnerConfig
 )
 
+sealed trait DockerNetworkConfiguration
+case class NamedNetwork(name: String) extends DockerNetworkConfiguration
+case class AutoMasterNetwork(masterId: String) extends DockerNetworkConfiguration
+
+object DockerNetworkConfiguration {
+
+  def apply(config: Config): DockerNetworkConfiguration = {
+    config.getString("network-type") match {
+      case "auto-master" => AutoMasterNetwork(config.getConfig("auto-master-network").getString("container-id"))
+      case name => NamedNetwork(name)
+    }
+  }
+}
+
 case class DockerRunnerConfig(
   dockerHost: String,
   image: String,
-  masterContainerId: Option[String],
+  network: DockerNetworkConfiguration,
   mistHome: String,
   sparkHome: String
 )
@@ -109,7 +123,7 @@ object DockerRunnerConfig {
     DockerRunnerConfig(
       dockerHost = config.getString("host"),
       image = config.getString("image"),
-      masterContainerId = config.getOptString("master-container-id"),
+      network = DockerNetworkConfiguration(config),
       mistHome = config.getString("mist-home"),
       sparkHome = config.getString("spark-home")
     )
