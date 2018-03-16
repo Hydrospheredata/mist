@@ -160,11 +160,11 @@ class ContextFrontend(
             ref ! JobActor.Event.Perform(connection)
             becomeNext(connectorState.askSuccess, currentState.toWorking(id))
           case None =>
-            connection.markUnused()
+            connection.release()
             becomeNextConn(connectorState.askSuccess.connectionReleased)
         }
 
-      case Event.Connection(_, connection) => connection.markUnused()
+      case Event.Connection(_, connection) => connection.release()
 
       case Event.ConnectionFailure(connId, e) if connId == connectorState.id =>
         log.error(e, "Ask new worker connection for {} failed", name)
@@ -176,13 +176,11 @@ class ContextFrontend(
           becomeNextConn(newConnState)
         }
 
-      case JobActor.Event.Completed(id, maybeConnId) if currentState.hasWorking(id) =>
-        maybeConnId.foreach(cId => connectorState.connector.releaseConnection(cId))
+      case JobActor.Event.Completed(id) if currentState.hasWorking(id) =>
         becomeNext(connectorState.connectionReleased, currentState.done(id))
 
-      case JobActor.Event.Completed(id, maybeConnId) =>
-        maybeConnId.foreach(cId => connectorState.connector.releaseConnection(cId))
-        log.warning(s"Received unexpected completed event from $id and connection $maybeConnId")
+      case JobActor.Event.Completed(id) =>
+        log.warning(s"Received unexpected completed event from $id")
 
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>
         log.error(e, "Context {} - connector {} was crushed", name, id)
@@ -220,12 +218,12 @@ class ContextFrontend(
       becomeWithConnector(ctx, next, connectorState)
 
     case Event.Connection(connId, connection) if connId == connectorState.id =>
-      connection.markUnused()
+      connection.release()
       val next = connectorState.askSuccess.connectionReleased
       context become emptyWithConnector(ctx, next, timerKey)
 
     case Event.Connection(_, connection) =>
-      connection.markUnused()
+      connection.release()
 
     case Event.Downtime =>
       log.info(s"Context $name was inactive")
@@ -250,7 +248,7 @@ class ContextFrontend(
     case CancelJobRequest(id) => sleepingTilUpdate(cancelJob(id, state, sender()), conn, brokenCtx, error)
 
     case Event.Connection(_, connection) =>
-      connection.markUnused()
+      connection.release()
   }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {

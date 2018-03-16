@@ -58,7 +58,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     status2.executorId.isDefined shouldBe true
     status2.jobs should contain only("id" -> ExecStatus.Started)
 
-    job.send(frontend, JobActor.Event.Completed("id", None))
+    job.send(frontend, JobActor.Event.Completed("id"))
 
     probe.send(frontend, ContextFrontend.Event.Status)
     val status3 = probe.expectMsgType[ContextFrontend.FrontendStatus]
@@ -127,7 +127,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
         info.promise.future
     }
     job.expectMsgType[JobActor.Event.Perform]
-    job.send(frontend, JobActor.Event.Completed("idx", None))
+    job.send(frontend, JobActor.Event.Completed("idx"))
 
     shouldTerminate(3 seconds)(frontend)
   }
@@ -157,11 +157,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
 
     probe.send(frontend, CancelJobRequest("idx"))
     job.expectMsgType[JobActor.Event.Cancel.type]
-    job.send(frontend, JobActor.Event.Completed("idx", None))
+    job.send(frontend, JobActor.Event.Completed("idx"))
 
     val connProbe = TestProbe()
     connectionPromise.success(WorkerConnection("id", connProbe.ref, workerLinkData, Promise[Unit].future))
-    connProbe.expectMsgType[ConnectionUnused.type]
+    connProbe.expectMsgType[ReleaseConnection]
   }
 
   it("should restart connector 'til max start times and then sleep") {
@@ -253,7 +253,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def askConnection(): Future[WorkerConnection] = Future.successful(connection)
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
       override def warmUp(): Unit = ()
-      override def releaseConnection(connectionId: String): Unit = ()
     }
   }
 
@@ -263,7 +262,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def askConnection(): Future[WorkerConnection] = Future.failed(FilteredException())
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
       override def warmUp(): Unit = ()
-      override def releaseConnection(connectionId: String): Unit = ()
     }
   }
 
@@ -273,7 +271,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def askConnection(): Future[WorkerConnection] = Promise[WorkerConnection].future
       override def warmUp(): Unit = ()
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
-      override def releaseConnection(connectionId: String): Unit = ()
     }
   }
 
@@ -283,7 +280,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def askConnection(): Future[WorkerConnection] = future
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
       override def warmUp(): Unit = ()
-      override def releaseConnection(connectionId: String): Unit = ()
     }
   }
 

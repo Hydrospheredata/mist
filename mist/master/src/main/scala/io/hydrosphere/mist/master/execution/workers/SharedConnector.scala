@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData.{ConnectionUnused, ShutdownCommand}
+import io.hydrosphere.mist.core.CommonData.{ReleaseConnection, ShutdownCommand}
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -47,20 +47,20 @@ class SharedConnector(
 
     case conn: WorkerConnection if requests.isEmpty =>
       log.info(s"Receive ${conn.id} without requests, possibly warming up")
-      val wrapped = SharedConnector.ConnectionWrapper.wrap(conn)
+      val wrapped = SharedConnector.ConnectionWrapper.wrap(self, conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       context become process(Seq.empty, pool :+ wrapped, inUse, startingConnections - 1)
 
     case conn: WorkerConnection =>
       log.info(s"Receive ${conn.id} trying to handle incoming request")
-      val wrapped = SharedConnector.ConnectionWrapper.wrap(conn)
+      val wrapped = SharedConnector.ConnectionWrapper.wrap(self, conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       requests.head.success(wrapped)
       context become process(requests.tail, pool, inUse + (conn.id -> wrapped), startingConnections - 1)
 
     case SharedConnector.ConnectionWarmUp(warmup) =>
       log.info(s"Workers warmed up: ${warmup.size}")
-      val wrapped = warmup.map(SharedConnector.ConnectionWrapper.wrap)
+      val wrapped = warmup.map(conn => SharedConnector.ConnectionWrapper.wrap(self, conn))
       wrapped.foreach(conn => conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id)))
       context become process(Seq.empty, pool ++ wrapped, inUse, startingConnections - wrapped.size)
 
@@ -94,12 +94,12 @@ class SharedConnector(
       log.info(s"Schedule request: requests size ${requests.size}")
       context become process(requests :+ req, pool, inUse, startingConnections)
 
-    case Event.ReleaseConnection(connectionId) =>
+    case ReleaseConnection(connId) =>
       log.info(s"Releasing connection: requested ${requests.size}, pooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
-      inUse.get(connectionId) match {
+      inUse.get(connId) match {
         case Some(releasedConnection) =>
           val updatedPool = pool :+ releasedConnection
-          val updatedInUse = inUse - connectionId
+          val updatedInUse = inUse - connId
           requests.headOption match {
             case Some(req) =>
               val conn = updatedPool.head
@@ -157,24 +157,25 @@ object SharedConnector {
 
   case class ConnectionWarmUp(conns: Seq[WorkerConnection])
 
-  class ConnectionWrapper(target: ActorRef) extends Actor {
+  class ConnectionWrapper(connector: ActorRef, target: ActorRef) extends Actor {
 
     override def preStart(): Unit = {
       context watch target
     }
 
     override def receive: Receive = {
-      case ConnectionUnused => // ignore connection shutdown - only connector could stop it
+      case ReleaseConnection(id) =>
+        connector ! ReleaseConnection(id)
       case Terminated(_) => context stop self
       case x => target forward x
     }
   }
 
   object ConnectionWrapper {
-    def props(ref: ActorRef): Props = Props(classOf[ConnectionWrapper], ref)
+    def props(connector: ActorRef, ref: ActorRef): Props = Props(classOf[ConnectionWrapper], connector, ref)
 
-    def wrap(connection: WorkerConnection)(implicit af: ActorRefFactory): WorkerConnection = {
-      val wrappedRef = af.actorOf(props(connection.ref))
+    def wrap(connector: ActorRef, connection: WorkerConnection)(implicit af: ActorRefFactory): WorkerConnection = {
+      val wrappedRef = af.actorOf(props(connector, connection.ref))
       connection.copy(ref = wrappedRef)
     }
   }
