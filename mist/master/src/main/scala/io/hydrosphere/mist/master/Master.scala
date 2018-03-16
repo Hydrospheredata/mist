@@ -1,11 +1,6 @@
 package io.hydrosphere.mist.master
 
-import cats._
-import cats.implicits._
-import cats.data.Reader
-import cats.syntax._
-import com.typesafe.config.ConfigValueFactory
-import io.hydrosphere.mist.utils.{Logger, NetUtils}
+import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -20,8 +15,7 @@ object Master extends App with Logger {
       case Some(arg) => arg
       case None => sys.exit(1)
     }
-    val config: MasterConfig = configuration(appArguments.configPath)
-
+    val config: MasterConfig = MasterConfig.load(appArguments.configPath)
     val starting = MasterServer.start(config, appArguments.routerConfigPath)
     val master = Await.result(starting, Duration.Inf)
     logger.info("Mist master started")
@@ -38,45 +32,5 @@ object Master extends App with Logger {
       sys.exit(1)
   }
 
-  def configuration(path: String): MasterConfig = {
-    val config = MasterConfig.load(path)
-    val autoHost = Eval.later(NetUtils.findLocalInetAddress().getHostAddress)
-
-    def updClusterHost(cfg: MasterConfig): MasterConfig = {
-      import cfg._
-      logger.info(s"Automatically update cluster host ${cfg.cluster.host} to ${autoHost.value}")
-      val upd = cluster.copy(host = autoHost.value)
-      cfg.copy(cluster = upd)
-        .copy(raw = raw.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(autoHost.value)))
-    }
-
-    def updHttpHost(cfg: MasterConfig): MasterConfig = {
-      import cfg._
-      logger.info(s"Automatically update http host ${cfg.http.host} to ${autoHost.value}")
-      val upd = http.copy(host = autoHost.value)
-      cfg.copy(http = upd)
-    }
-
-    def updLogHost(cfg: MasterConfig): MasterConfig = {
-      import cfg._
-      logger.info(s"Automatically update log host ${cfg.logs.host} to ${autoHost.value}")
-      val upd = logs.copy(host = autoHost.value)
-      cfg.copy(logs = upd)
-    }
-
-    def needPatchHost(host: String): Boolean = host.isEmpty || host == "0.0.0.0"
-
-    val x1 = (cfg: MasterConfig) => {
-      if (needPatchHost(cfg.cluster.host)) updClusterHost(cfg) else cfg
-    }
-    val x2 = (cfg: MasterConfig) => {
-      if (needPatchHost(cfg.http.host)) updHttpHost(cfg) else cfg
-    }
-    val x3 = (cfg: MasterConfig) => {
-      if (needPatchHost(cfg.logs.host)) updLogHost(cfg) else cfg
-    }
-    val x = x1 >>> x2 >>> x3
-    x(config)
-  }
 
 }

@@ -2,15 +2,17 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
+import cats.Eval
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory, ConfigValueType}
 import io.hydrosphere.mist.master.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
-
-import cats.syntax.option._
+import cats._
+import cats.syntax._
+import cats.implicits._
+import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
 import scala.collection.JavaConversions._
-
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -267,11 +269,16 @@ case class MasterConfig(
   raw: Config
 )
 
-object MasterConfig {
+object MasterConfig extends Logger {
 
   def load(filePath: String): MasterConfig = {
     val cfg = loadConfig(filePath)
-    parse(filePath, cfg)
+    autoConfigure(parse(filePath, cfg))
+  }
+
+  def loadConfig(filePath: String): Config = {
+    val user = ConfigFactory.parseFile(new File(filePath))
+    resolveUserConf(user)
   }
 
   def resolveUserConf(config: Config): Config = {
@@ -280,10 +287,6 @@ object MasterConfig {
     properties.withFallback(config.withFallback(appConfig)).resolve()
   }
 
-  def loadConfig(filePath: String): Config = {
-    val user = ConfigFactory.parseFile(new File(filePath))
-    resolveUserConf(user)
-  }
 
   def parse(filePath: String, config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
@@ -305,6 +308,45 @@ object MasterConfig {
       srcConfigPath = filePath,
       raw = config
     )
+  }
+
+  def autoConfigure(masterConfig: MasterConfig): MasterConfig =
+    autoConfigure(masterConfig, Eval.later(NetUtils.findLocalInetAddress().getHostAddress))
+
+  def autoConfigure(masterConfig: MasterConfig, host: Eval[String]): MasterConfig = {
+    def isAuto(s: String): Boolean = s == "auto"
+
+    val forCluster = (cfg: MasterConfig) => {
+      import cfg._
+      if (isAuto(cluster.host)) {
+        logger.info(s"Automatically update cluster host to ${host.value}")
+        val upd = cluster.copy(host = host.value)
+        cfg.copy(cluster = upd).copy(raw = raw.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host.value)))
+      } else cfg
+    }
+
+    val forHttp = (cfg: MasterConfig) => {
+      import cfg._
+
+      if (isAuto(http.host)) {
+        logger.info(s"Automatically update http host to ${host.value}")
+        val upd = http.copy(host = host.value)
+        cfg.copy(http = upd)
+      } else cfg
+    }
+
+    val forLogs = (cfg: MasterConfig) => {
+      import cfg._
+
+      if(isAuto(logs.host)) {
+        logger.info(s"Automatically update logs host to ${host.value}")
+        val upd = logs.copy(host = host.value)
+        cfg.copy(logs = upd)
+      } else cfg
+    }
+
+    val upd = forCluster >>> forHttp >>> forLogs
+    upd(masterConfig)
   }
 
 }
