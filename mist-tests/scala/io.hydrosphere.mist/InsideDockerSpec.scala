@@ -2,12 +2,8 @@ package io.hydrosphere.mist
 
 import java.nio.file.Paths
 
-import com.dimafeng.testcontainers.{Container, GenericContainer}
 import io.hydrosphere.mist.master.models.FunctionConfig
-import org.junit.runner.Description
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
-import org.testcontainers.containers.BindMode
-import org.testcontainers.containers.wait.Wait
 
 case class EnvArgs(
   imageName: String,
@@ -16,8 +12,7 @@ case class EnvArgs(
 
 class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
 
-  var container: Container = _
-  implicit private val suiteDescription = Description.createSuiteDescription(getClass)
+  var container: TestContainer = _
 
   val envArgs = {
     def read(name: String): String = sys.props.get(name) match {
@@ -31,22 +26,16 @@ class InsideDockerSpec extends FunSpec with Matchers with BeforeAndAfterAll {
   }
 
   override def beforeAll = {
-    container = GenericContainer(
-      imageName = envArgs.imageName,
-      fixedExposedPorts = Map(2004 -> 2004),
-      waitStrategy = Wait.forListeningPort(),
-      command = Seq("mist"),
-      volumes = Seq(("/var/run/docker.sock", "/var/run/docker.sock", BindMode.READ_ONLY))
+    container = TestContainer.run(
+      DockerImage(envArgs.imageName),
+      Map(2004 -> 2004),
+      Map("/var/run/docker.sock" -> "/var/run/docker.sock")
     )
-    container.starting()
-    // TODO: it looks that waiting strategy doesn't actually wait
-    // TODO: update testcontainers - use java api directly - scala wrapper is ugly
-    Thread.sleep(10000)
     super.beforeAll()
   }
 
   override def afterAll = {
-    container.finished()
+    container.close()
     super.afterAll
   }
 
