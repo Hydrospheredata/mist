@@ -137,7 +137,14 @@ lazy val root = project.in(file("."))
     },
     stageActions in basicStage += CpFile("configs/default.conf").to("configs"),
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
-    stageActions in dockerStage += CpFile("configs/docker.conf").as("default.conf").to("configs"),
+    stageActions in dockerStage += {
+      val configData =
+        IO.read(file("configs/docker.conf"))
+          .replaceAll("\\$\\{version\\}", version.value)
+          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
+
+      Write("configs/default.conf", configData)
+    },
 
     stageDirectory in runStage := target.value / s"mist-run-${version.value}",
     stageActions in runStage ++= {
