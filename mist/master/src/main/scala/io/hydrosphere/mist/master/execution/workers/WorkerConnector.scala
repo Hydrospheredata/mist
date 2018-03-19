@@ -24,8 +24,9 @@ object WorkerConnector {
   sealed trait Event
   object Event {
     final case class AskConnection(resolve: Promise[WorkerConnection]) extends Event
-    case object WarnUp extends Event
+    case object WarmUp extends Event
     case class ConnTerminated(connId: String) extends Event
+    case object GetStatus
   }
 
   class ActorBasedWorkerConnector(
@@ -47,7 +48,7 @@ object WorkerConnector {
 
     override def whenTerminated(): Future[Unit] = termination
 
-    override def warmUp(): Unit = underlying ! WorkerConnector.Event.WarnUp
+    override def warmUp(): Unit = underlying ! WorkerConnector.Event.WarmUp
 
 
   }

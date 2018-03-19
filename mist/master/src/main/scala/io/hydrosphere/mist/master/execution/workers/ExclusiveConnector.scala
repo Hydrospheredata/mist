@@ -31,7 +31,7 @@ class ExclusiveConnector(
           resolve.success(wrapped)
         case Failure(e) => resolve.failure(e)
       })
-    case Event.WarnUp =>
+    case Event.WarmUp =>
       log.warning("Exclusive connector {}: {} received warmup event", id, ctx.name)
   }
 }
