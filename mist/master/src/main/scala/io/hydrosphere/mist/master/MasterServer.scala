@@ -1,13 +1,14 @@
 package io.hydrosphere.mist.master
 
+import java.nio.file.Paths
+
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
-import akka.pattern.gracefulStop
 import akka.stream.ActorAttributes.supervisionStrategy
+import akka.stream.ActorMaterializer
 import akka.stream.Supervision.resumingDecider
-import akka.stream.{ActorAttributes, ActorMaterializer, Supervision}
 import akka.stream.scaladsl.{Keep, Sink}
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
@@ -21,10 +22,9 @@ import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfo
 import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
-import io.hydrosphere.mist.utils.{Logger, NetUtils}
+import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.language.reflectiveCalls
 import scala.util._
@@ -99,7 +99,8 @@ object MasterServer extends Logger {
     }
 
     def runExecutionService(logService: LogService): ExecutionService = {
-      val workerRunner = WorkerStarter.create(config.workers)
+      val logsDir = Paths.get(config.logs.dumpDirectory)
+      val workerRunner = WorkerStarter.create(config.workers, logsDir)
       val spawnSettings = SpawnSettings(
         runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,

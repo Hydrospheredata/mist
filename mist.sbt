@@ -202,7 +202,6 @@ lazy val root = project.in(file("."))
       val taskArgs = spaceDelimited("<arg>").parsed.grouped(2).toSeq
         .flatMap(l => {if (l.size == 2) Some(l.head -> l.last) else None})
         .toMap
-      println(taskArgs)
 
       val uiEnvs = taskArgs.get("--ui-dir").fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
       val sparkEnvs = {
@@ -210,16 +209,6 @@ lazy val root = project.in(file("."))
         Seq("SPARK_HOME" -> spark)
       }
 
-//      val sparkHome = sparkLocal.value.getAbsolutePath
-//
-//      val uiEnvs = {
-//        val uiPath =
-//          taskArgs.grouped(2)
-//            .find(parts => parts.size > 1 && parts.head == "--ui-dir")
-//            .map(_.last)
-//
-//        uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
-//      }
       val extraEnv = sparkEnvs ++ uiEnvs
       val home = runStage.value
 
