@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ConnectionUnused, RunJobRequest}
+import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ReleaseConnection, RunJobRequest}
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.Future
@@ -31,7 +31,7 @@ class ExclusiveConnector(
           resolve.success(wrapped)
         case Failure(e) => resolve.failure(e)
       })
-    case Event.WarnUp =>
+    case Event.WarmUp =>
       log.warning("Exclusive connector {}: {} received warmup event", id, ctx.name)
   }
 }
@@ -55,7 +55,7 @@ object ExclusiveConnector {
           context become process(true)
         }
 
-      case ConnectionUnused => conn ! CompleteAndShutdown
+      case ReleaseConnection(_) => conn ! CompleteAndShutdown
 
       case Terminated(_) => context stop self
       case x => conn forward x

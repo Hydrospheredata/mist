@@ -76,65 +76,63 @@ trait JobStarting {
 class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader,
-  maxJobs: Int
+  val artifactDownloader: ArtifactDownloader
 ) extends Actor with JobStarting with ActorLogging {
 
   implicit val ec = {
     val logger = LoggerFactory.getLogger(this.getClass)
-    val service = Executors.newFixedThreadPool(maxJobs)
+    val service = Executors.newFixedThreadPool(1)
     ExecutionContext.fromExecutorService(
       service,
       e => logger.error("Error from thread pool", e)
     )
   }
 
-  val activeJobs = mutable.Map[String, ExecutionUnit]()
+  override def receive: Receive = awaitRequest()
 
-  override def receive: Receive = process()
-
-  private def process(): Receive = {
-    case req: RunJobRequest => tryRun(req, sender())
-    case CancelJobRequest(id) => tryCancel(id, sender())
-    case resp: JobResponse => onJobComplete(resp)
-    case CompleteAndShutdown if activeJobs.isEmpty => self ! PoisonPill
-    case CompleteAndShutdown => context become completeAndShutdown()
-  }
-
-  private def completeAndShutdown(): Receive = {
-    case CancelJobRequest(id) => tryCancel(id, sender())
-    case resp: JobResponse =>
-      onJobComplete(resp)
-      if (activeJobs.isEmpty) self ! PoisonPill
-  }
-
-  private def tryRun(req: RunJobRequest, respond: ActorRef): Unit = {
-    if (activeJobs.size == maxJobs) {
-      respond ! WorkerIsBusy(req.id)
-    } else {
+  private def awaitRequest(): Receive = {
+    case req: RunJobRequest =>
       val jobStarted = startJob(req)
-      activeJobs += req.id -> ExecutionUnit(respond, jobStarted)
-    }
+      val unit = ExecutionUnit(sender(), jobStarted)
+      context become running(unit)
+
+    case _: ShutdownCommand =>
+      self ! PoisonPill
   }
 
+  private def running(execution: ExecutionUnit): Receive = {
+    case RunJobRequest(id, _, _) =>
+      sender() ! WorkerIsBusy(id)
+    case resp: JobResponse =>
+      log.info(s"Job execution done. Returning result $resp and become awaiting new request")
+      execution.requester ! resp
+      context become awaitRequest()
 
-  private def tryCancel(id: String, respond: ActorRef): Unit = activeJobs.get(id) match {
-    case Some(_) =>
-      namedContext.sparkContext.cancelJobGroup(id)
-      StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
-      respond ! JobIsCancelled(id)
-    case None =>
-      log.warning(s"Can not cancel unknown job $id")
+    case CancelJobRequest(id) =>
+      cancel(id, sender())
+      context become awaitRequest()
+
+    case ForceShutdown =>
+      self ! PoisonPill
+
+    case CompleteAndShutdown =>
+      context become completeAndShutdown(execution)
   }
 
-  private def onJobComplete(resp: JobResponse): Unit = activeJobs.get(resp.id) match {
-    case Some(unit) =>
-      log.info(s"Job execution done. Result $resp")
-      unit.requester ! resp
-      activeJobs -= resp.id
+  private def completeAndShutdown(execution: ExecutionUnit): Receive = {
+    case CancelJobRequest(id) =>
+      cancel(id, sender())
+      self ! PoisonPill
+    case resp: JobResponse =>
+      log.info(s"Job execution done. Returning result $resp and shutting down")
+      execution.requester ! resp
+      self ! PoisonPill
+  }
 
-    case None =>
-      log.warning(s"Corrupted worker state, unexpected receiving {}", resp)
+  private def cancel(id: String, respond: ActorRef): Unit = {
+    namedContext.sparkContext.cancelJobGroup(id)
+    StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
+    respond ! JobIsCancelled(id)
   }
 
   override def postStop(): Unit = {
@@ -149,16 +147,14 @@ object WorkerActor {
   def props(
     context: NamedContext,
     artifactDownloader: ArtifactDownloader,
-    maxJobs: Int,
     runnerSelector: RunnerSelector
   ): Props =
-    Props(new WorkerActor(runnerSelector, context, artifactDownloader, maxJobs))
+    Props(new WorkerActor(runnerSelector, context, artifactDownloader))
 
   def props(
     context: NamedContext,
-    artifactDownloader: ArtifactDownloader,
-    maxJobs: Int
+    artifactDownloader: ArtifactDownloader
   ): Props =
-    Props(new WorkerActor(new SimpleRunnerSelector, context, artifactDownloader, maxJobs))
+    Props(new WorkerActor(new SimpleRunnerSelector, context, artifactDownloader))
 }
 

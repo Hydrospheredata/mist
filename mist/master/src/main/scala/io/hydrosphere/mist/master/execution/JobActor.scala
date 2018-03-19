@@ -1,10 +1,10 @@
 package io.hydrosphere.mist.master.execution
 
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Terminated, Timers}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
+import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerConnection
-import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
 import mist.api.data.JsLikeData
 
 import scala.concurrent.Promise
@@ -40,9 +40,9 @@ class JobActor(
 
   private def initial: Receive = {
     case Event.Cancel =>
-      cancelFinally("user request", Seq(sender()))
+      cancelFinally("user request", Seq(sender()), None)
 
-    case Event.Timeout => cancelFinally("timeout", Seq.empty)
+    case Event.Timeout => cancelFinally("timeout", Seq.empty, None)
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
@@ -64,10 +64,14 @@ class JobActor(
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
-    case Event.ConnectionTerminated => onConnectionTermination()
+    case Event.ConnectionTerminated => onConnectionTermination(Some(connection))
 
     case JobFileDownloading(id, time) =>
       report.reportPlain(JobFileDownloadingEvent(id, time))
+
+    case WorkerIsBusy =>
+      log.warning("Connection is busy: unexpected case ¯\\_(ツ)_/¯")
+      completeFailure("Connection is busy: unexpected case ¯\\_(ツ)_/¯", Some(connection))
 
     case JobStarted(id, time) =>
       report.reportPlain(StartedEvent(id, time))
@@ -79,10 +83,10 @@ class JobActor(
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
 
-    case Event.ConnectionTerminated => onConnectionTermination()
+    case Event.ConnectionTerminated => onConnectionTermination(Some(connection))
 
-    case JobSuccess(_, data) => completeSuccess(data)
-    case JobFailure(_, err) => completeFailure(err)
+    case JobSuccess(_, data) => completeSuccess(data, connection)
+    case JobFailure(_, err) => completeFailure(err, Some(connection))
   }
 
   private def cancellingOnExecutor(cancelRespond: Seq[ActorRef], connection: WorkerConnection, reason: String): Receive = {
@@ -93,25 +97,26 @@ class JobActor(
     case Event.ConnectionTerminated =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Executor was terminated"))
       cancelRespond.foreach(_ ! msg)
-      onConnectionTermination()
+      onConnectionTermination(Some(connection))
 
     case ev @ JobIsCancelled(_, _) =>
-      cancelFinally(reason, cancelRespond)
+      cancelFinally(reason, cancelRespond, Some(connection))
 
     case JobSuccess(_, data) =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
       cancelRespond.foreach(_ ! msg)
-      completeSuccess(data)
+      completeSuccess(data, connection)
 
     case JobFailure(_, err) =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
       cancelRespond.foreach(_ ! msg)
-      completeFailure(err)
+      completeFailure(err, Some(connection))
   }
 
   private def cancelFinally(
     reason: String,
-    respond: Seq[ActorRef]
+    respond: Seq[ActorRef],
+    maybeConn: Option[WorkerConnection]
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -125,24 +130,28 @@ class JobActor(
       respond.foreach(_ ! response)
     })
     log.info(s"Job ${req.id} was cancelled: $reason")
+    maybeConn.foreach(_.release())
     callback ! Event.Completed(req.id)
     self ! PoisonPill
   }
 
-  private def onConnectionTermination(): Unit = completeFailure("Executor was terminated")
+  private def onConnectionTermination(maybeConn: Option[WorkerConnection]): Unit =
+    completeFailure("Executor was terminated", maybeConn)
 
-  private def completeSuccess(data: JsLikeData): Unit = {
+  private def completeSuccess(data: JsLikeData, connection: WorkerConnection): Unit = {
     promise.success(data)
     report.reportPlain(FinishedEvent(req.id, System.currentTimeMillis(), data))
     log.info(s"Job ${req.id} completed successfully")
     callback ! Event.Completed(req.id)
+    connection.release()
     self ! PoisonPill
   }
 
-  private def completeFailure(err: String): Unit = {
+  private def completeFailure(err: String, maybeConn: Option[WorkerConnection]): Unit = {
     promise.failure(new RuntimeException(err))
     report.reportPlain(FailedEvent(req.id, System.currentTimeMillis(), err))
     log.info(s"Job ${req.id} completed with error")
+    maybeConn.foreach(_.release())
     callback ! Event.Completed(req.id)
     self ! PoisonPill
   }

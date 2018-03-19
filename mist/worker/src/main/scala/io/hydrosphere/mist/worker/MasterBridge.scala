@@ -114,7 +114,7 @@ object MasterBridge {
       val downloader = ArtifactDownloader.create(
         hostPort(0), hostPort(1).toInt, init.maxArtifactSize, workerDir
       )
-      af.actorOf(WorkerActor.props(ctx, downloader, init.maxJobs))
+      af.actorOf(WorkerActor.props(ctx, downloader))
     })
     props(id, regHub, mkContext, workerF)
   }

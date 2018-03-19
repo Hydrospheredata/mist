@@ -31,7 +31,7 @@ trait TestData {
         |context-defaults {
         | downtime = Inf
         | streaming-duration = 1 seconds
-        | max-parallel-jobs = 20
+        | max-parallel-jobs = 2
         | precreated = false
         | spark-conf = { }
         | worker-mode = "shared"
