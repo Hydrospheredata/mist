@@ -1,12 +1,14 @@
 package io.hydrosphere.mist.master.data
 
-import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig}
+import com.typesafe.config.{ConfigFactory, ConfigObject, ConfigParseOptions, ConfigRenderOptions}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
 
 class ConfigReprsSpec extends FunSpec with Matchers {
+
+  import ConfigRepr._
 
   describe("EndpointConfig") {
 
@@ -18,13 +20,13 @@ class ConfigReprsSpec extends FunSpec with Matchers {
          |  namespace = "namespace"
       """.stripMargin)
 
-      val parsed = ConfigRepr.EndpointsRepr.fromConfig("name", cfg)
-      parsed shouldBe EndpointConfig("name", "jar_path.jar", "MyJob1", "namespace")
+      val parsed = cfg.to[FunctionConfig]("name")
+      parsed shouldBe FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
     }
 
     it("should render to raw") {
-      val e = EndpointConfig("name", "jar_path.jar", "MyJob1", "namespace")
-      val raw = ConfigRepr.EndpointsRepr.toConfig(e)
+      val e = FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
+      val raw = e.toConfig
 
       raw.getString("path") shouldBe "jar_path.jar"
       raw.getString("className") shouldBe "MyJob1"
@@ -39,7 +41,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         """
           |{
           |  spark-conf {
-          |    x = "z"
+          |    "x.y" = "z"
           |    a = 1
           |  }
           |  downtime = Inf
@@ -51,35 +53,44 @@ class ConfigReprsSpec extends FunSpec with Matchers {
           |
           |}
         """.stripMargin
-      )
+      , ConfigParseOptions.defaults())
 
-      val context = ConfigRepr.ContextConfigRepr.fromConfig("test", cfg)
-      context.sparkConf shouldBe Map("x" -> "z", "a" -> "1")
+      val context = cfg.to[ContextConfig]("test")
+      context.sparkConf shouldBe Map("x.y" -> "z", "a" -> "1")
       context.downtime shouldBe Duration.Inf
       context.maxJobs shouldBe 100
       context.precreated shouldBe false
       context.runOptions shouldBe "--key"
-      context.workerMode shouldBe "shared"
+      context.workerMode shouldBe RunMode.Shared
       context.streamingDuration shouldBe 30.seconds
     }
 
     it("should render to raw") {
-      val context = ContextConfig(
+      def toMapString(obj: ConfigObject): Map[String, String] = {
+        import scala.collection.JavaConverters._
+        obj.entrySet().asScala
+          .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
+          .toMap
+      }
+
+      val e: ContextConfig = ContextConfig(
         name = "foo",
-        sparkConf = Map("x" -> "y", "z" -> "4"),
+        sparkConf = Map("x.x" -> "y", "z" -> "4"),
         downtime = 10.minutes,
         maxJobs = 10,
         precreated = false,
         runOptions = "",
-        workerMode = "shared",
+        workerMode = RunMode.Shared,
         streamingDuration = 1.minutes
       )
-      val raw = ConfigRepr.ContextConfigRepr.toConfig(context)
+      val raw = ConfigRepr.ContextConfigRepr.toConfig(e)
       Duration(raw.getString("downtime")) shouldBe 10.minutes
       raw.getInt("max-parallel-jobs") shouldBe 10
       raw.getBoolean("precreated") shouldBe false
-      raw.getString("spark-conf.x") shouldBe "y"
-      raw.getString("spark-conf.z") shouldBe "4"
+      val sparkConf = toMapString(raw.getObject("spark-conf"))
+      sparkConf.get("x.x") shouldBe Some("y")
+      sparkConf.get("z") shouldBe Some("4")
+
       raw.getString("worker-mode") shouldBe "shared"
       Duration(raw.getString("streaming-duration")) shouldBe 1.minutes
     }

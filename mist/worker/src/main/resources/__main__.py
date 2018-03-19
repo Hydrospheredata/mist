@@ -15,7 +15,7 @@ def to_python_types(any):
     python_any = any
     if isinstance(any, JavaMap):
         python_any = dict()
-        for key, value in any.iteritems():
+        for key, value in any.items():
             python_any[key] = to_python_types(value)
     elif isinstance(any, JavaList):
         python_any = list()
@@ -76,11 +76,11 @@ def execution_cmd(args):
 
     data_wrapper = _entry_point.dataWrapper()
 
-    try:
-        with open(path) as f:
-            code = compile(f.read(), path, "exec")
-        user_job_module = types.ModuleType("<user_job>")
-        exec code in user_job_module.__dict__
+try:
+    with open(path) as file:
+        code = compile(file.read(), path, "exec")
+    user_job_module = types.ModuleType("<user_job>")
+    exec(code, user_job_module.__dict__)
 
         module_entry = getattr(user_job_module, class_name)
         executable_entry = get_metadata(module_entry)

@@ -24,7 +24,7 @@ object Library {
   val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
 
   object Akka {
-    val akkaVersion = "2.5.8"
+    val akkaVersion = "2.5.9"
     val httpVersion = "10.0.11"
 
     val stream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
@@ -33,25 +33,16 @@ object Library {
     val httpTestKit = "com.typesafe.akka" %% "akka-http-testkit" % httpVersion
 
     val testKit = "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+    val actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
+    val typed = "com.typesafe.akka" %% "akka-actor-typed" % akkaVersion
     def base = {
       Seq(
-        "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+        actor,
         "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
         "com.typesafe.akka" %% "akka-slf4j" % akkaVersion
       )
     }
   }
-
-  val hadoopCommon = "org.apache.hadoop" % "hadoop-common" % "2.6.4"
-  val hadoopMinicluster = Seq(
-    "org.apache.hadoop" % "hadoop-hdfs" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-common" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-client" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-tests" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-yarn-server-web-proxy" % "2.6.4" % "test" classifier "" classifier "tests",
-    "org.apache.hadoop" % "hadoop-minicluster" % "2.6.4" % "test"
-  ).map(_.exclude("javax.servlet", "servlet-api"))
 
   val commonsCodec = "commons-codec" % "commons-codec" % "1.10"
   val scalajHttp = "org.scalaj" %% "scalaj-http" % "2.3.0"

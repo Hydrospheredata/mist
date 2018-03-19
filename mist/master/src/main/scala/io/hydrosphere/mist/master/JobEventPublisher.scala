@@ -41,8 +41,8 @@ object JobEventPublisher {
         val persistence = new MemoryPersistence
         val uri = s"tcp://$host:$port"
         val client = new MqttAsyncClient(uri, MqttAsyncClient.generateClientId(), persistence)
-
         val opt = new MqttConnectOptions
+        opt.setAutomaticReconnect(true)
         opt.setCleanSession(true)
         client.connect(opt)
 

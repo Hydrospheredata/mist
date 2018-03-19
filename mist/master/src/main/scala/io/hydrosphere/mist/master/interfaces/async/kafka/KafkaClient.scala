@@ -33,7 +33,7 @@ object TopicProducer {
     topic: String): TopicProducer[String, String] = {
 
     val props = new java.util.Properties()
-    props.put("bootstrap.servers", s"$host:port")
+    props.put("bootstrap.servers", s"$host:$port")
 
     val producer = new KafkaProducer(props, new StringSerializer, new StringSerializer)
     new TopicProducer(producer, topic)

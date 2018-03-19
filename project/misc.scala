@@ -53,7 +53,7 @@ object SparkLocal {
   def downloadSpark(version: String, to: File): Unit = {
     val link = downloadUrl(version)
     val target = to / distrTar(version)
-    Dowloader.download(link, target)
+    Downloader.download(link, target)
 
     Tar.extractTarGz(target, to)
   }
@@ -85,7 +85,7 @@ object StdOutLogger extends scala.sys.process.ProcessLogger {
 
 }
 
-object Dowloader {
+object Downloader {
   import scala.concurrent.ExecutionContext.Implicits._
   import scala.concurrent.duration._
   import gigahorse._

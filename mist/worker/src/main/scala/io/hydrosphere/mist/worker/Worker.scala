@@ -1,28 +1,23 @@
 package io.hydrosphere.mist.worker
 
-import akka.actor.ActorSystem
+import java.nio.file.{Path, Paths}
+
+import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
+import org.apache.commons.io.FileUtils
 
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-
+import scala.concurrent.duration._
 
 case class WorkerArguments(
   bindAddress: String = "localhost:0",
   masterAddress: String = "",
   name: String = "",
-  contextName: String = "",
-  mode: String = "shared"
+  workDirectory: String = sys.env.getOrElse("MIST_HOME", ".")
 ) {
 
   def masterNode: String = s"akka.tcp://mist@$masterAddress"
-
-  def workerMode: WorkerMode = mode match {
-    case "shared" => Shared
-    case "exclusive" => Exclusive
-    case arg => throw new IllegalArgumentException(s"Unknown worker mode $arg")
-  }
 
   def bindHost: String = bindAddress.split(":")(0)
   def bindPort: Int = bindAddress.split(":")(1).toInt
@@ -47,15 +42,8 @@ object WorkerArguments {
     opt[String]("name").action((x, a) => a.copy(name = x))
       .text("Uniq name of worker")
 
-    opt[String]("context-name").action((x, a) => a.copy(contextName = x))
-      .text("Mist context name")
-
-    opt[String]("mode").action((x, a) => a.copy(mode = x))
-      .validate({
-        case "exclusive" | "shared" => Right(())
-        case x => Left("Invalid mode, use:[shared, exclusive]")
-      })
-      .text("Worker mode: 'exclusive' or 'shared'")
+    opt[String]("work-dir").action((x, a) => a.copy(workDirectory = x))
+      .text("Work directory (jar downloading)")
   }
 
   def parse(args: Seq[String]): Option[WorkerArguments] = {
@@ -72,42 +60,53 @@ object WorkerArguments {
 
 object Worker extends App with Logger {
 
-  import scala.collection.JavaConverters._
-
   try {
 
     val arguments = WorkerArguments.forceParse(args)
     val name = arguments.name
 
-    val mode = arguments.workerMode
-    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}")
+    logger.info(s"Try starting on spark: ${org.apache.spark.SPARK_VERSION}, master: ${arguments.masterNode}")
 
-    val seedNodes = Seq(arguments.masterNode).asJava
-    val roles = Seq(s"worker-$name").asJava
     val config = ConfigFactory.load("worker")
-      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seedNodes))
-      .withValue("akka.cluster.roles", ConfigValueFactory.fromIterable(roles))
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(arguments.bindPort))
 
-    val system = ActorSystem("mist", config)
+    val system = ActorSystem(s"mist-worker-$name", config)
 
-    val props = ClusterWorker.props(
-      name = arguments.name,
-      contextName = arguments.contextName,
-      workerInit = WorkerActor.propsFromInitInfo(name, arguments.contextName, mode)
-    )
+    def resolveRemote(path: String): ActorRef = {
+      val ref = system.actorSelection(path).resolveOne(10 seconds)
+      try {
+        Await.result(ref, Duration.Inf)
+      } catch {
+        case e: Throwable =>
+          logger.error(s"Couldn't resolve remote path $path", e)
+          sys.exit(-1)
+      }
+    }
+
+    val regHub = resolveRemote(arguments.masterNode + "/user/regHub")
+    val workDir = Paths.get(arguments.workDirectory, s"worker-$name")
+
+    val workDirFile = workDir.toFile
+    if (workDirFile.exists()) {
+      logger.warn(s"Directory in path $workDir already exists. It may cause errors in worker lifecycle!")
+    } else {
+      FileUtils.forceMkdir(workDirFile)
+    }
+    val props = MasterBridge.props(arguments.name, workDir, regHub)
     system.actorOf(props, s"worker-$name")
 
-    val msg = s"Worker $name is started, context ${arguments.contextName}, mode = $mode"
+    val msg = s"Worker $name is started, context ${arguments.name}"
     logger.info(msg)
 
     Await.result(system.whenTerminated, Duration.Inf)
-    logger.info(s"Shutdown worker application $name ${arguments.contextName}")
+    logger.info(s"Shutdown worker application $name ${arguments.name}")
+    FileUtils.deleteQuietly(workDirFile)
     sys.exit()
   } catch {
     case e: Throwable =>
-    logger.error("Fatal error", e)
+      logger.error("Fatal error", e)
+      sys.exit(1)
   }
 
 }

@@ -9,7 +9,6 @@ CONFIG_FILE=$MIST_HOME/configs/default.conf
 ROUTER_CONFIG=$MIST_HOME/configs/router.conf
 PID_FILE=$MIST_HOME/mist.pid
 DEBUG="false"
-JAVA_ARGS=""
 
 CMD=$1
 shift
@@ -39,26 +38,23 @@ do
       PID_FILE="$2"
       shift
       ;;
-    
-    --java-args)
-      JAVA_ARGS="$2"
-      shift
-      ;;
   esac
 shift
 done
 
 
 function startMist() {
-  JAVA_OPTS="$JAVA_OPTS -Xmx512m"
-  JAVA_OPTS="$JAVA_OPTS -Dmist.home=$MIST_HOME"
-  JAVA_OPTS="$JAVA_OPTS $JAVA_ARGS"
+  if [ "x$MIST_OPTS" == "x" ]; then
+      MIST_OPTS="-Xms256m -Xmx1g"
+      MIST_OPTS="$MIST_OPTS -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$MIST_HOME/logs"
+  fi
+  MIST_OPTS="$MIST_OPTS -Dmist.home=$MIST_HOME"
 
   if  [ "$DEBUG" == "true" ]
   then
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.debug.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
-    exec $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS
+    MIST_OPTS="$MIST_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
+    exec $JAVA -cp $ASSEMBLY_JAR $MIST_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS
   else
     if [ -f $PID_FILE ]; then
       PID=$(cat $PID_FILE)
@@ -70,8 +66,8 @@ function startMist() {
       fi    
     fi
     LOGGER_CONF=$MIST_HOME/configs/logging/log4j.default.properties  
-    JAVA_OPTS="$JAVA_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
-    $JAVA -cp $ASSEMBLY_JAR $JAVA_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS &
+    MIST_OPTS="$MIST_OPTS -Dlog4j.configuration=file:$LOGGER_CONF"
+    $JAVA -cp $ASSEMBLY_JAR $MIST_OPTS io.hydrosphere.mist.master.Master $ORIGIN_ARGS &
     echo $! > $PID_FILE
   fi
 }

@@ -4,10 +4,18 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.stream.scaladsl.Flow
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{Await, Future, Promise}
 
-object TestUtils {
+trait TestUtils {
+
+  implicit class AwaitSyntax[A](f: => Future[A]) {
+    def await: A = Await.result(f, Duration.Inf)
+    def await(d: FiniteDuration): A = Await.result(f, d)
+  }
+
+}
+object TestUtils extends TestUtils {
 
   val cfgStr =
     """
@@ -39,9 +47,6 @@ object TestUtils {
   val FooContext = contextSettings.contexts.get("foo").get
 
 
-  implicit class AwaitSyntax[A](f: => Future[A]) {
-    def await: A = Await.result(f, Duration.Inf)
-  }
 
 
   object MockHttpServer {

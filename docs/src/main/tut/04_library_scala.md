@@ -16,7 +16,7 @@ Mist Library provides a DSL for Mist Functions that could be deployed and execut
 `MistFn[A]` is a base interface for function definition.
 
 `PiExample.scala`:
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -46,7 +46,7 @@ Notes: it's required to have following spark modules at compile time:
 
 ```scala
 libraryDependencies ++= Seq(
-  "io.hydrosphere" %% "mist-lib" % "1.0.0-RC1",
+  "io.hydrosphere" %% "mist-lib" % "{{ site.version }}",
 
   "org.apache.spark" %% "spark-core" % "2.1.0" % "provided",
   "org.apache.spark" %% "spark-sql" % "2.1.0" % "provided",
@@ -58,12 +58,44 @@ libraryDependencies ++= Seq(
 
 Maven dependency:
 
+`pom.xml`:
 ```xml
-<dependency>
-    <groupId>io.hydrosphere</groupId>
-    <artifactId>mist-lib_2.11</artifactId>
-    <version>1.0.0-RC1</version>
-</dependency>
+  <properties>
+    <spark.version>2.2.0</spark.version>
+    <java.version>1.8</java.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.hydrosphere</groupId>
+      <artifactId>mist-lib_2.11</artifactId>
+      <version>{{ site.version }}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-hive_2.11</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-streaming_2.11</artifactId>
+      <version>${spark.version}</version>
+    </dependency>
+  </dependencies>
 ```
 
 #### Overview
@@ -120,7 +152,7 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
 ```
 
 If your function doesn't require any arguments, there are similar methods available from `MistFn`
-```tut
+```tut:silent
 
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
@@ -142,7 +174,7 @@ For that purpose `ArgDef[A]` has special methods to validate arguments:
 - `validated(f: A => Boolean)`
 - `validated(f: A => Boolean, explanation: String)`
 
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
@@ -189,7 +221,7 @@ to have that extra information in a function body.
 Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
 These utilities are called `MistExtras`. Example:
 
-```tut
+```tut:silent
 import mist.api._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext

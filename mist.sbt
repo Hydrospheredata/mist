@@ -1,6 +1,7 @@
 import sbt.Keys._
 import StageDist._
 import complete.DefaultParsers._
+import microsites.ConfigYml
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyOption
 
@@ -25,7 +26,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC4"
+  version := "1.0.0-RC13"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -56,6 +57,7 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       Library.slf4j,
       Library.reflect,
+      Library.Akka.testKit % "test",
       Library.mockito % "test", Library.scalaTest % "test"
     )
   )
@@ -70,7 +72,7 @@ lazy val master = project.in(file("mist/master"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
-      Library.slf4j, Library.typesafeConfig, Library.scopt,
+      Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,
       Library.slick, Library.h2, Library.flyway,
       Library.chill,
       Library.kafka, Library.pahoMqtt,
@@ -79,12 +81,11 @@ lazy val master = project.in(file("mist/master"))
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
       Library.cats,
 
-      Library.hadoopCommon, Library.commonsCodec, Library.scalajHttp,
+      Library.commonsCodec, Library.scalajHttp,
 
       Library.scalaTest % "test",
       Library.mockito % "test"
-    ),
-    libraryDependencies ++= Library.hadoopMinicluster
+    )
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
     buildInfoPackage := "io.hydrosphere.mist"
@@ -122,29 +123,61 @@ lazy val root = project.in(file("."))
 
     stageDirectory := target.value / s"mist-${version.value}",
     stageActions := {
-      val routes = {
-        CpFile(s"configs/router-examples.conf")
-          .as("router.conf")
-          .to("configs")
-      }
       Seq(
         CpFile("bin"),
         MkDir("configs"),
         CpFile("configs/default.conf").to("configs"),
         CpFile("configs/logging").to("configs"),
-        routes,
-        CpFile("examples/examples-python").as("examples-python"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
-        CpFile(sbt.Keys.`package`.in(examples, Compile).value)
-          .as(s"mist-examples.jar"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
-    stageActions in basicStage +=
-      CpFile("configs/default.conf").to("configs"),
-    stageActions in dockerStage +=
-      CpFile("configs/docker.conf").as("default.conf").to("configs")
+    stageActions in basicStage += CpFile("configs/default.conf").to("configs"),
+    stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
+    stageActions in dockerStage += CpFile("configs/docker.conf").as("default.conf").to("configs"),
+
+    stageDirectory in runStage := target.value / s"mist-run-${version.value}",
+    stageActions in runStage ++= {
+      val mkJfunctions = Seq(
+        ("spark-ctx-example", "SparkContextExample$"),
+        ("jspark-ctx-example", "JavaSparkContextExample"),
+        ("streaming-ctx-example", "StreamingExample$"),
+        ("jstreaming-ctx-example", "JavaStreamingContextExample"),
+        ("hive-ctx-example", "HiveContextExample$"),
+        ("sql-ctx-example", "SQLContextExample$"),
+        ("text-search-example", "TextSearchExample$"),
+        ("pi-example", "PiExample$"),
+        ("jpi-example", "JavaPiExample")
+      ).map({case (name, clazz) => {
+        Write(
+          s"data/functions/$name.conf",
+          s"""path = mist-examples.jar
+             |className = "$clazz"
+             |namespace = foo""".stripMargin
+        )
+      }}) :+ CpFile(sbt.Keys.`package`.in(examples, Compile).value)
+        .as(s"mist-examples.jar")
+        .to("data/artifacts")
+
+      val mkPyfunctions = Seq(
+        ("simple_context.py", "SimpleContext"),
+        ("session_job.py", "SessionJob")
+      ).flatMap({case (file, clazz) => {
+        val name = file.replace(".py", "")
+        Seq(
+          Write(
+            s"data/functions/$name.conf",
+            s"""path = $file
+               |className = "$clazz"
+               |namespace = foo""".stripMargin
+          ),
+          CpFile(s"examples/examples-python/$file").to("data/artifacts")
+        )
+      }})
+
+      Seq(MkDir("data/artifacts"), MkDir("data/functions")) ++ mkJfunctions ++ mkPyfunctions
+    }
   ).settings(
     sparkLocal := {
       val log = streams.value.log
@@ -176,7 +209,7 @@ lazy val root = project.in(file("."))
         uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
       }
       val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
-      val home = basicStage.value
+      val home = runStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")
 
@@ -210,7 +243,7 @@ lazy val root = project.in(file("."))
 
         run("apk", "update")
         run("apk", "add", "python", "curl", "jq", "coreutils")
-
+        expose(2004)
         workDir(mistHome)
         entryPoint("/docker-entrypoint.sh")
       }
@@ -223,7 +256,7 @@ lazy val root = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
       "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it",
-      "org.testcontainers" % "testcontainers" % "1.2.1" % "it",
+      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
@@ -231,30 +264,26 @@ lazy val root = project.in(file("."))
     resourceDirectory in IntegrationTest := baseDirectory.value / "mist-tests" / "resources",
     parallelExecution in IntegrationTest := false,
     fork in IntegrationTest := true,
-    //fork in(IntegrationTest, testOnly) := true,
     envVars in IntegrationTest ++= Map(
       "SPARK_HOME" -> s"${sparkLocal.value}",
       "MIST_HOME" -> s"${basicStage.value}"
     ),
     javaOptions in IntegrationTest ++= {
-      val mistHome = basicStage.value
+      val mistHome = runStage.value
+      val dockerImage = {
+        docker.value
+        (imageNames in docker).value.head
+      }
+      val examplesJar = sbt.Keys.`package`.in(examples, Compile).value
       Seq(
+        s"-DexamplesJar=$examplesJar",
+        s"-DimageName=$dockerImage",
         s"-DsparkHome=${sparkLocal.value}",
         s"-DmistHome=$mistHome",
         s"-DsparkVersion=${sparkVersion.value}",
         "-Xmx512m"
       )
-    },
-    /*javaOptions in (IntegrationTest, testOnly) ++= {
-      val mistHome = basicStage.value
-      Seq(
-        s"-DsparkHome=${sparkLocal.value}",
-        s"-DmistHome=$mistHome",
-        s"-DsparkVersion=${sparkVersion.value}",
-        "-Xmx512m"
-      )
-    }*/
-
+    }
   )
 
 addCommandAlias("testAll", ";test;it:test")
@@ -293,6 +322,9 @@ lazy val docs = project.in(file("docs"))
       "white-color" -> "#FFFFFF"),
     ghpagesNoJekyll := false,
     git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
+    micrositeConfigYaml := ConfigYml(
+      yamlCustomProperties = Map("version" -> version.value)
+    )
   )
 
 

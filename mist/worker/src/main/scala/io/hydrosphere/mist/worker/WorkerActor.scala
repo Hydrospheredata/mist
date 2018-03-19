@@ -8,6 +8,7 @@ import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
 import mist.api.data.JsLikeData
+import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.{SparkConf, SparkContext}
 import org.slf4j.LoggerFactory
 
@@ -72,15 +73,12 @@ trait JobStarting {
   }
 }
 
-class SharedWorkerActor(
+class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
   val artifactDownloader: ArtifactDownloader,
-  idleTimeout: Duration,
   maxJobs: Int
 ) extends Actor with JobStarting with ActorLogging {
-
-  val activeJobs = mutable.Map[String, ExecutionUnit]()
 
   implicit val ec = {
     val logger = LoggerFactory.getLogger(this.getClass)
@@ -91,156 +89,76 @@ class SharedWorkerActor(
     )
   }
 
-  override def preStart(): Unit = {
-    context.setReceiveTimeout(idleTimeout)
+  val activeJobs = mutable.Map[String, ExecutionUnit]()
+
+  override def receive: Receive = process()
+
+  private def process(): Receive = {
+    case req: RunJobRequest => tryRun(req, sender())
+    case CancelJobRequest(id) => tryCancel(id, sender())
+    case resp: JobResponse => onJobComplete(resp)
+    case CompleteAndShutdown if activeJobs.isEmpty => self ! PoisonPill
+    case CompleteAndShutdown => context become completeAndShutdown()
   }
 
-  override def receive: Receive = {
-    case req@RunJobRequest(id, params) =>
-      if (activeJobs.size == maxJobs) {
-        sender() ! WorkerIsBusy(id)
-      } else {
-        val jobStarted = startJob(req)
-        activeJobs += id -> ExecutionUnit(sender(), jobStarted)
-      }
-
-    // it does not work for streaming jobs
-    case CancelJobRequest(id) =>
-      activeJobs.get(id) match {
-        case Some(u) =>
-          namedContext.sparkContext.cancelJobGroup(id)
-          sender() ! JobIsCancelled(id)
-        case None =>
-          log.warning(s"Can not cancel unknown job $id")
-      }
-
-    case x: JobResponse =>
-      log.info(s"Job execution done. Result $x")
-      activeJobs.get(x.id) match {
-        case Some(unit) =>
-          unit.requester forward x
-          activeJobs -= x.id
-
-        case None =>
-          log.warning(s"Corrupted worker state, unexpected receiving {}", x)
-      }
-
-    case ReceiveTimeout if activeJobs.isEmpty =>
-      log.info(s"There is no activity on worker: $namedContext.. Stopping")
-      context.stop(self)
+  private def completeAndShutdown(): Receive = {
+    case CancelJobRequest(id) => tryCancel(id, sender())
+    case resp: JobResponse =>
+      onJobComplete(resp)
+      if (activeJobs.isEmpty) self ! PoisonPill
   }
 
-  override def postStop(): Unit = {
-    ec.shutdown()
-    artifactDownloader.stop()
-    namedContext.stop()
-  }
-
-}
-
-object SharedWorkerActor {
-
-  def props(
-    runnerSelector: RunnerSelector,
-    context: NamedContext,
-    artifactDownloader: ArtifactDownloader,
-    idleTimeout: Duration,
-    maxJobs: Int
-  ): Props =
-    Props(new SharedWorkerActor(runnerSelector, context, artifactDownloader, idleTimeout, maxJobs))
-
-}
-
-class ExclusiveWorkerActor(
-  val runnerSelector: RunnerSelector,
-  val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader
-) extends Actor with JobStarting with ActorLogging {
-
-  implicit val ec = {
-    val logger = LoggerFactory.getLogger(this.getClass)
-    val service = Executors.newSingleThreadExecutor()
-    ExecutionContext.fromExecutorService(service, t => logger.error("Error from thread pool", t))
-  }
-
-  override def receive: Receive = awaitRequest
-
-  override def preStart(): Unit = {
-    context.setReceiveTimeout(1.minute)
-  }
-
-  val awaitRequest: Receive = {
-    case req: RunJobRequest =>
+  private def tryRun(req: RunJobRequest, respond: ActorRef): Unit = {
+    if (activeJobs.size == maxJobs) {
+      respond ! WorkerIsBusy(req.id)
+    } else {
       val jobStarted = startJob(req)
-      context.become(execute(ExecutionUnit(sender(), jobStarted)))
-
-    case ReceiveTimeout =>
-      log.info("No job requests for a 1 minute - (cluster problems?)")
-      context.stop(self)
+      activeJobs += req.id -> ExecutionUnit(respond, jobStarted)
+    }
   }
 
-  def execute(executionUnit: ExecutionUnit): Receive = {
-    case CancelJobRequest(id) =>
-      namedContext.sparkContext.cancelJobGroup(id)
-      sender() ! JobIsCancelled(id)
-      context.stop(self)
 
-    case x: JobResponse =>
-      log.info(s"Job execution done. Result $x")
-      executionUnit.requester forward x
-      context.stop(self)
+  private def tryCancel(id: String, respond: ActorRef): Unit = activeJobs.get(id) match {
+    case Some(_) =>
+      namedContext.sparkContext.cancelJobGroup(id)
+      StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
+      respond ! JobIsCancelled(id)
+    case None =>
+      log.warning(s"Can not cancel unknown job $id")
+  }
+
+  private def onJobComplete(resp: JobResponse): Unit = activeJobs.get(resp.id) match {
+    case Some(unit) =>
+      log.info(s"Job execution done. Result $resp")
+      unit.requester ! resp
+      activeJobs -= resp.id
+
+    case None =>
+      log.warning(s"Corrupted worker state, unexpected receiving {}", resp)
   }
 
   override def postStop(): Unit = {
     ec.shutdown()
     artifactDownloader.stop()
-    namedContext.stop()
   }
 
-}
-
-object ExclusiveWorkerActor {
-
-  def props(runnerSelector: RunnerSelector, context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
-    Props(new ExclusiveWorkerActor(runnerSelector, context, artifactDownloader))
 }
 
 object WorkerActor {
 
-  def propsFromInitInfo(name: String, contextName: String, mode: WorkerMode): WorkerInitInfo => (NamedContext, Props) = {
+  def props(
+    context: NamedContext,
+    artifactDownloader: ArtifactDownloader,
+    maxJobs: Int,
+    runnerSelector: RunnerSelector
+  ): Props =
+    Props(new WorkerActor(runnerSelector, context, artifactDownloader, maxJobs))
 
-    def mkNamedContext(info: WorkerInitInfo): NamedContext = {
-      import info._
-
-      val conf = new SparkConf().setAppName(name).setAll(info.sparkConf)
-      val sparkContext = new SparkContext(conf)
-
-      val centralLoggingConf = {
-        val hostPort = logService.split(":")
-        CentralLoggingConf(hostPort(0), hostPort(1).toInt)
-      }
-
-      new NamedContext(
-        sparkContext,
-        contextName,
-        org.apache.spark.streaming.Duration(info.streamingDuration.toMillis),
-        Option(centralLoggingConf)
-      )
-    }
-
-    (info: WorkerInitInfo) => {
-      val namedContext = mkNamedContext(info)
-      val (h, p) = info.masterHttpConf.split(':') match {
-        case Array(host, port) => (host, port.toInt)
-      }
-      val artifactDownloader = ArtifactDownloader.create(h, p, info.jobsSavePath)
-      val runnerSelector = new SimpleRunnerSelector
-      val props = mode match {
-        case Shared => SharedWorkerActor.props(runnerSelector, namedContext, artifactDownloader, info.downtime, info.maxJobs)
-        case Exclusive => ExclusiveWorkerActor.props(runnerSelector, namedContext, artifactDownloader)
-      }
-      (namedContext, props)
-    }
-  }
-
+  def props(
+    context: NamedContext,
+    artifactDownloader: ArtifactDownloader,
+    maxJobs: Int
+  ): Props =
+    Props(new WorkerActor(new SimpleRunnerSelector, context, artifactDownloader, maxJobs))
 }
+

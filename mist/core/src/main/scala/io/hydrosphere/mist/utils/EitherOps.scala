@@ -54,5 +54,9 @@ final class EitherObjectOps(val either: Either.type) extends AnyVal {
     case Failure(e) => Left(e)
   }
 
+  def fromTryLoad[A](t: => TryLoad[A]): Either[Throwable, A] = t match {
+    case Succ(a) => Right(a)
+    case Err(e) => Left(e)
+  }
 }
 

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+export MIST_HOME="$(cd "`dirname "$0"`"/..; pwd)"
+JAVA=$(which java)
+ASSEMBLY_JAR=$MIST_HOME/mist-worker.jar
+JAVA_ARGS=""
+ORIGIN_ARGS=$@
+
+function startJobInfoProvider() {
+    if [ "$SPARK_HOME" == '' ]
+    then
+        (>&2 echo "You must specify SPARK_HOME env variable")
+        exit 3
+    fi
+    if [ "$SPARK_CONF" == "" ]
+    then
+        SPARK_CONF=" --executor-memory=256m --driver-memory=512m"
+    fi
+
+    export PYTHONPATH="$SPARK_HOME/python:`readlink -f ${SPARK_HOME}/python/lib/py4j*`:$PYTHONPATH"
+
+    SPARK_SUBMIT="${SPARK_HOME}/bin/spark-submit"
+    MAIN_CLASS="io.hydrosphere.mist.job.FunctionInfoProvider"
+
+    LOGGER_CONF=$MIST_HOME/configs/logging/log4j.infoprovider.properties
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dmist.home=$MIST_HOME"
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS -Dlog4j.configuration=file:$LOGGER_CONF"
+    DRIVER_JAVA_OPTIONS="$DRIVER_JAVA_OPTIONS $JAVA_ARGS"
+    exec $SPARK_SUBMIT --class $MAIN_CLASS $SPARK_CONF --driver-java-options "$DRIVER_JAVA_OPTIONS" $RUN_OPTIONS $ASSEMBLY_JAR $ORIGIN_ARGS
+}
+
+startJobInfoProvider
+

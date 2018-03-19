@@ -13,12 +13,13 @@ import cats.implicits._
 import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{JobDetails, JobService, MainService}
+import io.hydrosphere.mist.master.{ContextsCRUDLike, JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
 
+import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,12 +29,11 @@ import scala.util._
 case class JobRunQueryParams(
   force: Boolean,
   externalId: Option[String],
-  context: Option[String],
-  workerId: Option[String]
+  context: Option[String]
 ) {
 
   def buildRunSettings(): RunSettings = {
-    RunSettings(context, workerId)
+    RunSettings(context)
   }
 }
 
@@ -62,8 +62,7 @@ object HttpV2Base {
     parameters(
       'force ? (false),
       'externalId ?,
-      'context ?,
-      'workerId ?
+      'context ?
     ).as(JobRunQueryParams)
 
   val jobsQuery = {
@@ -123,9 +122,9 @@ object HttpV2Base {
     routeId: String,
     queryParams: JobRunQueryParams,
     parameters: Map[String, Any]
-  ): EndpointStartRequest = {
+  ): FunctionStartRequest = {
     val runSettings = queryParams.buildRunSettings()
-    EndpointStartRequest(routeId, parameters, queryParams.externalId, runSettings)
+    FunctionStartRequest(routeId, parameters, queryParams.externalId, runSettings)
   }
 }
 
@@ -138,7 +137,7 @@ object HttpV2Routes extends Logger {
 
   import HttpV2Base._
 
-  def workerRoutes(jobService: JobService): Route = {
+  def workerRoutes(jobService: ExecutionService): Route = {
     path( root / "workers" ) {
       get { complete(jobService.workers()) }
     } ~
@@ -152,36 +151,28 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def endpointsRoutes(master: MainService): Route = {
-    val exceptionHandler =
-      ExceptionHandler {
-        case iae: IllegalArgumentException =>
-          complete((StatusCodes.BadRequest, s"Bad request: ${iae.getMessage}"))
-        case ex =>
-          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
-      }
-
-    path( root / "endpoints" ) {
+  def functionRoutes(master: MainService): Route = {
+    path( root / "functions" ) {
       get { complete {
-        master.jobInfoProviderService.allJobInfos.map(_.map(HttpEndpointInfoV2.convert))
+        master.functionInfoService.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" ) {
+    path( root / "functions" ) {
       post(parameter('force? false) { force =>
-        entity(as[EndpointConfig]) { req =>
+        entity(as[FunctionConfig]) { req =>
           if (force) {
-            completeF(master.endpoints.update(req), StatusCodes.BadRequest)
+            completeF(master.functions.update(req), StatusCodes.BadRequest)
           } else {
-            val rsp = master.endpoints.get(req.name).flatMap({
+            val rsp = master.functions.get(req.name).flatMap({
               case Some(ep) =>
                 val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
                 Future.failed(e)
               case None =>
                 for {
-                  fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(req)
-                  updated      <- master.endpoints.update(req)
-                  endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-                } yield endpointInfo
+                  fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(req)
+                  updated      <- master.functions.update(req)
+                  functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+                } yield functionInfo
             })
 
             completeF(rsp, StatusCodes.BadRequest)
@@ -189,50 +180,48 @@ object HttpV2Routes extends Logger {
         }
       })
     } ~
-    path( root / "endpoints" ) {
-      put { entity(as[EndpointConfig]) { req =>
+    path( root / "functions" ) {
+      put { entity(as[FunctionConfig]) { req =>
 
-        onSuccess(master.endpoints.get(req.name)) {
+        onSuccess(master.functions.get(req.name)) {
           case None =>
             val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
             complete(resp)
           case Some(_) =>
             val res = for {
-              updated      <- master.endpoints.update(req)
-              fullInfo     <- master.jobInfoProviderService.getJobInfoByConfig(updated)
-              endpointInfo =  HttpEndpointInfoV2.convert(fullInfo)
-            } yield endpointInfo
+              updated      <- master.functions.update(req)
+              fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(updated)
+              functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
+            } yield functionInfo
 
             completeF(res, StatusCodes.BadRequest)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment ) { endpointId =>
+    path( root / "functions" / Segment ) { functionId =>
       get { completeOpt {
-        master.jobInfoProviderService
-          .getJobInfo(endpointId)
-          .map(_.map(HttpEndpointInfoV2.convert))
+        master.functionInfoService
+          .getFunctionInfo(functionId)
+          .map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.endpointHistory(
-            endpointId,
+          master.execution.functionJobHistory(
+            functionId,
             limits.limit, limits.offset, statuses)
         }
       }}
     } ~
-    path( root / "endpoints" / Segment / "jobs" ) { endpointId =>
+    path( root / "functions" / Segment / "jobs" ) { functionId =>
       post( postJobQuery { query =>
         entity(as[Map[String, Any]]) { params =>
-          handleExceptions(exceptionHandler) {
-            val jobReq = buildStartRequest(endpointId, query, params)
-            if (query.force) {
-              completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
-            } else {
-              completeOpt { master.runJob(jobReq, JobDetails.Source.Http) }
-            }
+          val jobReq = buildStartRequest(functionId, query, params)
+          if (query.force) {
+            completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
+          } else {
+            completeOpt { master.runJob(jobReq, JobDetails.Source.Http) }
           }
         }
       })
@@ -302,18 +291,18 @@ object HttpV2Routes extends Logger {
     path( root / "jobs" ) {
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
         withValidatedStatuses(rawStatuses) { statuses =>
-          master.jobService.getHistory(limits.limit, limits.offset, statuses)
+          master.execution.getHistory(limits.limit, limits.offset, statuses)
         }
       }}
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       get { completeOpt {
-        master.jobService.jobStatusById(jobId)
+        master.execution.jobStatusById(jobId)
       }}
     } ~
     path( root / "jobs" / Segment / "logs") { jobId =>
       get {
-        onSuccess(master.jobService.jobStatusById(jobId)) {
+        onSuccess(master.execution.jobStatusById(jobId)) {
           case Some(_) =>
             master.logsPaths.pathFor(jobId).toFile match {
               case file if file.exists => getFromFile(file)
@@ -326,7 +315,7 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "jobs" / Segment / "worker" ) { jobId =>
       get {
-        onSuccess(master.jobService.workerByJobId(jobId)) {
+        onSuccess(master.execution.workerByJobId(jobId)) {
           case Some(worker) => complete { worker }
           case None => complete { HttpResponse(StatusCodes.NotFound, entity=s"Worker by jobId $jobId not found") }
         }
@@ -334,28 +323,27 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "jobs" / Segment ) { jobId =>
       delete { completeOpt {
-        master.jobService.stopJob(jobId)
+        master.execution.stopJob(jobId)
       }}
     }
   }
 
-  def contextsRoutes(contexts: ContextsStorage): Route = {
+  def contextsRoutes(ctxCrud: ContextsCRUDLike): Route = {
     path ( root / "contexts" ) {
-      get { complete(contexts.all) }
+      get { complete(ctxCrud.getAll()) }
     } ~
     path ( root / "contexts" / Segment ) { id =>
-      get { completeOpt(contexts.get(id)) }
+      get { completeOpt(ctxCrud.get(id)) }
     } ~
     path ( root / "contexts" ) {
-      post { entity(as[ContextCreateRequest]) { context =>
-        val config = context.toContextWithFallback(contexts.defaultConfig)
-        complete { contexts.update(config) }
+      post { entity(as[ContextCreateRequest]) { req =>
+        complete(ctxCrud.create(req))
       }}
     } ~
     path( root / "contexts" / Segment) { id =>
       put { entity(as[ContextConfig]) { context =>
-        onSuccess(contexts.get(context.name)) {
-          case Some(_) => complete { contexts.update(context) }
+        onSuccess(ctxCrud.get(id)) {
+          case Some(_) => complete { ctxCrud.update(context) }
           case None =>
             val rsp = HttpResponse(StatusCodes.NotFound, entity = s"Context with name ${context.name} not found")
             complete(rsp)
@@ -367,18 +355,27 @@ object HttpV2Routes extends Logger {
   def statusApi: Route = {
     path( root / "status" ) {
       get {
-        complete(MistStatus.Value)
+        complete(MistStatus.create)
       }
     }
   }
 
   def apiRoutes(masterService: MainService, artifacts: ArtifactRepository): Route = {
-    endpointsRoutes(masterService) ~
-    jobsRoutes(masterService) ~
-    workerRoutes(masterService.jobService) ~
-    contextsRoutes(masterService.contexts) ~
-    artifactRoutes(artifacts) ~
-    statusApi
+    val exceptionHandler =
+      ExceptionHandler {
+        case ex @ (_: IllegalArgumentException  | _: IllegalStateException) =>
+          complete((StatusCodes.BadRequest, s"Bad request: ${ex.getMessage}"))
+        case ex =>
+          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+      }
+    handleExceptions(exceptionHandler) {
+      functionRoutes(masterService) ~
+      jobsRoutes(masterService) ~
+      workerRoutes(masterService.execution) ~
+      contextsRoutes(masterService) ~
+      artifactRoutes(artifacts) ~
+      statusApi
+    }
   }
 
   def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository): Route =

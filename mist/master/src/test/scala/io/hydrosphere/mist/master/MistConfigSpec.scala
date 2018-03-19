@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -39,7 +39,7 @@ class MistConfigSpec extends FunSpec with Matchers {
       maxJobs = 20,
       precreated = false,
       runOptions = "--opt",
-      workerMode = "shared",
+      workerMode = RunMode.Shared,
       streamingDuration = 1.seconds
     ))
 

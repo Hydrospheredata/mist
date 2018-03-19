@@ -7,10 +7,16 @@ import scala.concurrent.duration.Duration
 
 object CommonData {
 
-  /**
-    * Request data for creating spark/mist context on worker
-    */
-  case class WorkerInitInfoReq(contextName: String)
+  case class WorkerReady(
+    id: String,
+    sparkUi: Option[String]
+  )
+  case class WorkerStartFailed(id: String, message: String)
+
+  case object ConnectionUnused
+  sealed trait ShutdownCommand
+  case object CompleteAndShutdown extends ShutdownCommand
+  case object ForceShutdown extends ShutdownCommand
 
   /**
     * Data for creation spark/mist context on worker
@@ -22,16 +28,7 @@ object CommonData {
     streamingDuration: Duration,
     logService: String,
     masterHttpConf: String,
-    jobsSavePath: String
-  )
-
-  /**
-    * Initial message to master when worker ready to work
-    */
-  case class WorkerRegistration(
-    name: String,
-    address: String,
-    sparkUi: Option[String]
+    maxArtifactSize: Long
   )
 
   case class JobParams(
@@ -43,7 +40,8 @@ object CommonData {
 
   case class RunJobRequest(
     id: String,
-    params: JobParams
+    params: JobParams,
+    timeout: Duration = Duration.Inf
   )
 
   sealed trait RunJobResponse {
@@ -101,7 +99,9 @@ object CommonData {
     }
   }
 
-  val JobInfoProviderRegisterActorName = "job-info-provider-register"
+  val FunctionInfoProviderRegisterActorName = "job-info-provider-register"
+  val HealthActorName = "health"
+
   case class RegisterJobInfoProvider(ref: ActorRef)
 
   sealed trait JobInfoMessage
@@ -110,29 +110,23 @@ object CommonData {
     val className: String
     val jobPath: String
     val name: String
-    val originalPath: String
-    val defaultContext: String
   }
-  case class GetJobInfo(
+  case class GetFunctionInfo(
     className: String,
     jobPath: String,
-    name: String,
-    originalPath: String,
-    defaultContext: String
+    name: String
   ) extends InfoRequest
 
-  case class ValidateJobParameters(
+  case class ValidateFunctionParameters(
     className: String,
     jobPath: String,
     name: String,
-    originalPath: String,
-    defaultContext: String,
     params: Map[String, Any]
   ) extends InfoRequest
 
-  case class GetAllJobInfo(
+  case class GetAllFunctions(
     //TODO: find out why akka messages requires List but fails for Seq
-    requests: List[GetJobInfo]
+    requests: List[GetFunctionInfo]
   ) extends JobInfoMessage
 
   case object EvictCache extends JobInfoMessage

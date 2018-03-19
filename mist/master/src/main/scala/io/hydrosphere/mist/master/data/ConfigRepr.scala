@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.models.{ContextConfig, EndpointConfig, NamedConfig}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig, RunMode}
 
 import scala.concurrent.duration._
 
@@ -19,9 +19,18 @@ object ConfigRepr {
 
   import scala.collection.JavaConverters._
 
-  implicit val EndpointsRepr = new ConfigRepr[EndpointConfig] {
+  implicit class ToConfigSyntax[A <: NamedConfig](a: A)(implicit repr: ConfigRepr[A]) {
+    def toConfig: Config = repr.toConfig(a)
+  }
 
-    override def toConfig(a: EndpointConfig): Config = {
+  implicit class FromCongixSyntax(config: Config){
+    def to[A <: NamedConfig](implicit repr: ConfigRepr[A]): A = repr.fromConfig(config)
+    def to[A <: NamedConfig](name: String)(implicit repr: ConfigRepr[A]): A = repr.fromConfig(name, config)
+  }
+
+  implicit val EndpointsRepr = new ConfigRepr[FunctionConfig] {
+
+    override def toConfig(a: FunctionConfig): Config = {
       import ConfigValueFactory._
       val map = Map(
         "path" -> fromAnyRef(a.path),
@@ -31,8 +40,8 @@ object ConfigRepr {
       fromMap(map.asJava).toConfig
     }
 
-    override def fromConfig(config: Config): EndpointConfig = {
-      EndpointConfig(
+    override def fromConfig(config: Config): FunctionConfig = {
+      FunctionConfig(
         config.getString("name"),
         config.getString("path"),
         config.getString("className"),
@@ -41,7 +50,7 @@ object ConfigRepr {
     }
   }
 
-  implicit val ContextConfigRepr = new ConfigRepr[ContextConfig] {
+  implicit val ContextConfigRepr: ConfigRepr[ContextConfig] = new ConfigRepr[ContextConfig] {
 
     val allowedTypes = Set(
       ConfigValueType.STRING,
@@ -50,16 +59,22 @@ object ConfigRepr {
     )
 
     override def fromConfig(config: Config): ContextConfig = {
+      def runMode(s: String): RunMode = s match {
+        case "shared" => RunMode.Shared
+        case "exclusive" => RunMode.ExclusiveContext
+      }
+
+      def cleanKey(key: String): String = key.replaceAll("\"", "")
       ContextConfig(
         name = config.getString("name"),
         sparkConf = config.getConfig("spark-conf").entrySet().asScala
           .filter(entry => allowedTypes.contains(entry.getValue.valueType()))
-          .map(entry => entry.getKey -> entry.getValue.unwrapped().toString)
+          .map(entry => cleanKey(entry.getKey) -> entry.getValue.unwrapped().toString)
           .toMap,
         downtime = Duration(config.getString("downtime")),
         maxJobs = config.getInt("max-parallel-jobs"),
         precreated = config.getBoolean("precreated"),
-        workerMode = config.getString("worker-mode"),
+        workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration"))
       )
@@ -79,7 +94,7 @@ object ConfigRepr {
         "downtime" -> fromDuration(a.downtime),
         "max-parallel-jobs" -> fromAnyRef(a.maxJobs),
         "precreated" -> fromAnyRef(a.precreated),
-        "worker-mode" -> fromAnyRef(a.workerMode),
+        "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration)
       )

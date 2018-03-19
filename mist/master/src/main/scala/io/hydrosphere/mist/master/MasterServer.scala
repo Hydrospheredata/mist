@@ -1,26 +1,31 @@
 package io.hydrosphere.mist.master
 
-import akka.actor.{ActorRef, ActorSystem, PoisonPill}
+import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
 import akka.pattern.gracefulStop
+import akka.stream.ActorAttributes.supervisionStrategy
+import akka.stream.Supervision.resumingDecider
+import akka.stream.{ActorAttributes, ActorMaterializer, Supervision}
+import akka.stream.scaladsl.{Keep, Sink}
+import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, EndpointsStorage}
+import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.execution.workers.RunnerCmd
+import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.jobs.{JobInfoProviderRunner, JobInfoProviderService}
-import io.hydrosphere.mist.master.logging.{JobsLogger, LogService, LogStreams}
+import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
+import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
 import scala.language.reflectiveCalls
 import scala.util._
 
@@ -75,7 +80,12 @@ object MasterServer extends Logger {
     implicit val system = ActorSystem("mist", config.raw)
     implicit val materializer = ActorMaterializer()
 
-    val endpointsStorage = EndpointsStorage.create(config.endpointsPath, routerConfig)
+    // use an actor reference unexpected master shutdown or connection problems
+    val healthRef = system.actorOf(Props(new Actor {
+      override def receive: Receive = { case _ => }
+    }), CommonData.HealthActorName)
+
+    val functionsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
     val store = H2JobsRepository(config.dbPath)
 
@@ -88,32 +98,30 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runJobService(jobsLogger: JobsLogger): JobService = {
-      val workerRunner = WorkerRunner.create(config)
-      val infoProvider = new InfoProvider(config.logs, config.http, contextsStorage, config.jobsSavePath)
-
-      val status = system.actorOf(StatusService.props(store, streamer, jobsLogger), "status-service")
-      val workerManager = system.actorOf(
-        WorkersManager.props(
-          status, workerRunner,
-          jobsLogger,
-          config.workers.runnerInitTimeout,
-          infoProvider
-        ), "workers-manager")
-
-      new JobService(workerManager, status)
+    def runExecutionService(logService: LogService): ExecutionService = {
+      val masterService = s"${config.cluster.host}:${config.cluster.port}"
+      val workerRunner = RunnerCmd.create(masterService, config.workers)
+      val spawnSettings = SpawnSettings(
+        runnerCmd = workerRunner,
+        timeout = config.workers.runnerInitTimeout,
+        readyTimeout = config.workers.readyTimeout,
+        akkaAddress = masterService,
+        logAddress = s"${config.logs.host}:${config.logs.port}",
+        httpAddress = s"${config.http.host}:${config.http.port}",
+        maxArtifactSize = config.workers.maxArtifactSize
+      )
+      ExecutionService(spawnSettings, system, streamer, store, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(
       config.artifactRepositoryPath,
-      endpointsStorage.defaults,
-      config.jobsSavePath
+      functionsStorage.defaults
     )
 
 
     val security = bootstrapSecurity(config)
 
-    val jobExtractorRunner = JobInfoProviderRunner.create(
+    val jobExtractorRunner = FunctionInfoProviderRunner.create(
       config.jobInfoProviderConfig,
       config.cluster.host,
       config.cluster.port
@@ -121,16 +129,16 @@ object MasterServer extends Logger {
 
     for {
       logService             <- start("LogsSystem", runLogService())
-      jobInfoProvider        <- start("Job Info Provider", jobExtractorRunner.run())
-      jobInfoProviderService =  new JobInfoProviderService(
+      jobInfoProvider        <- start("FunctionInfoProvider", jobExtractorRunner.run())
+      jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
-                                      endpointsStorage,
+                                      functionsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      jobsService            =  runJobService(logService.getLogger)
+      executionService       =  runExecutionService(logService)
       masterService          <- start("Main service", MainService.start(
-                                                        jobsService,
-                                                        endpointsStorage,
+                                                        executionService,
+                                                        functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,
                                                         jobInfoProviderService
@@ -143,13 +151,12 @@ object MasterServer extends Logger {
       Seq(Step.future("Http", httpBinding.unbind())) ++
       asyncInterfaces.map(i => Step.lift(s"Async interface: ${i.name}", i.close())) ++
       security.map(ps => Step.future("Security", ps.stop())) :+
-      Step.future("JobInfoProvider", gracefulStop(jobInfoProvider, 30 seconds)) :+
+      Step.lift("FunctionInfoProvider", healthRef ! PoisonPill) :+
+      Step.future("LogsSystem", logService.close()) :+
       Step.future("System", {
         materializer.shutdown()
         system.terminate().map(_ => ())
-      }) :+
-      Step.future("LogsSystem", logService.close())
-
+      })
     )
 
   }
@@ -214,11 +221,15 @@ object MasterServer extends Logger {
     val streamer = EventsStreamer(sys)
 
     def startStream(f: SystemEvent => Unit, name: String, close: () => Unit): Unit = {
-      val complete = Sink.onComplete[Unit]({
+      val doneF = streamer.eventsSource()
+        .toMat(Sink.foreach(f))(Keep.right)
+        .withAttributes(supervisionStrategy(resumingDecider))
+        .run()
+      doneF.onComplete {
         case Success(_) => logger.info(s"Event streaming for $name stopped")
         case Failure(e) => logger.error(s"Event streaming for $name was completed with error", e)
-      })
-      streamer.eventsSource().map(f).to(complete).run()
+      }
+
       logger.info(s"Event streaming for $name started")
     }
 

@@ -5,7 +5,7 @@ import java.nio.file.{Files, Paths}
 
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.TestUtils.AwaitSyntax
-import io.hydrosphere.mist.master.data.EndpointsStorage
+import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import org.apache.commons.io.FileUtils
 import org.mockito.Mockito.{never, times, verify}
 import org.scalatest.concurrent.ScalaFutures
@@ -41,13 +41,7 @@ class ArtifactRepositorySpec extends FunSpecLike
         _ shouldBe testArtifactName
       }
     }
-    it("should not fail when calling with hdfs or mvn path keys") {
-      val artifactRepo = new FsArtifactRepository(dir.toString)
-      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
-      val hdfsPath = "hdfs://localhost:0/test.jar"
-      artifactRepo.get(hdfsPath) should not be defined
-      artifactRepo.get(mvnPath) should not be defined
-    }
+
     it("should get file by name") {
       val artifactRepo = new FsArtifactRepository(dir.toString)
 
@@ -91,7 +85,7 @@ class ArtifactRepositorySpec extends FunSpecLike
   }
   describe("DefaultArtifactRepositorySpec") {
 
-    it("should get existing default endpoint job file path") {
+    it("should get existing default function job file path") {
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
       val localStorageFile = artifactRepo.get(testArtifactName)
@@ -100,7 +94,7 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile.get.getName shouldBe testArtifactName
     }
 
-    it("should not get missing default endpoint job file path") {
+    it("should not get missing default function job file path") {
       val artifactRepo = new DefaultArtifactRepository(Map())
       val testFilePath = Paths.get(dir.toString, testArtifactName)
 
@@ -109,8 +103,8 @@ class ArtifactRepositorySpec extends FunSpecLike
       localStorageFile should not be defined
     }
 
-    it("should list all files in endpoint default storage") {
-      val endpointStorage = mock[EndpointsStorage]
+    it("should list all files in function default storage") {
+      val functions = mock[FunctionConfigStorage]
       val testFilePath = Paths.get(dir.toString, testArtifactName)
       val artifactRepo = new DefaultArtifactRepository(Map(testArtifactName -> testFilePath.toFile))
 
@@ -118,22 +112,6 @@ class ArtifactRepositorySpec extends FunSpecLike
 
       files.size should equal(1)
 
-    }
-    it("should get full path of hdfs or mvn artifact") {
-      val testFilePath = Paths.get(dir.toString, testArtifactName)
-      val testFile = testFilePath.toFile
-      val mvnPath = "mvn://http://localhost:8081/artifactory/releases :: io.hydrosphere % mist_2.10 % 0.0.1"
-      val hdfsPath = "hdfs://localhost:0/test.jar"
-      val artifactRepo = new DefaultArtifactRepository(Map(
-        mvnPath -> testFile,
-        hdfsPath -> testFile,
-        testArtifactName -> testFile
-      ))
-
-      val paths = artifactRepo.listPaths().await
-
-      paths.size should equal(3)
-      paths shouldBe Set(testArtifactName, mvnPath, hdfsPath)
     }
 
     it("should return exception when storing file") {

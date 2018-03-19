@@ -2,6 +2,9 @@ package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.model.ws._
 import akka.http.scaladsl.server.{Directives, Route}
+import akka.stream.ActorAttributes.supervisionStrategy
+import akka.stream.Supervision.resumingDecider
+import akka.stream.{ActorAttributes, Supervision}
 import akka.stream.scaladsl.{Flow, Sink}
 import io.hydrosphere.mist.master.EventsStreamer
 import io.hydrosphere.mist.master.Messages.StatusMessages._
@@ -36,10 +39,12 @@ class WSApi(streamer: EventsStreamer)(implicit val keepAliveTimeout: FiniteDurat
   }
 
   private def handleWebSocketMessagesWithKeepAlive(handler: Flow[Message, Message, akka.NotUsed]): Route =
-    handleWebSocketMessages(handler.keepAlive(
-      keepAliveTimeout,
-      () => TextMessage.Strict(KeepAliveEvent.asInstanceOf[SystemEvent].toJson.toString())
-    ))
+    handleWebSocketMessages(handler
+      .withAttributes(supervisionStrategy(resumingDecider))
+      .keepAlive(
+        keepAliveTimeout,
+        () => TextMessage.Strict(KeepAliveEvent.asInstanceOf[SystemEvent].toJson.toString())
+      ))
 
 
   private def jobWsFlow(id: String, withLogs: Boolean): Flow[Message, Message, akka.NotUsed] = {

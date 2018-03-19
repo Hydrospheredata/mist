@@ -32,7 +32,7 @@ class MistLoggingSpec extends FunSpec with Matchers {
     it("should have stack traces") {
       val ts = LocalDateTime.now(ZoneOffset.UTC)
       val error = new RuntimeException("Test error")
-      val e = LogEvent.mkError("job-id", "Error", error, ts.toInstant(ZoneOffset.UTC).toEpochMilli)
+      val e = LogEvent.mkError("job-id", "Error", Some(error), ts.toInstant(ZoneOffset.UTC).toEpochMilli)
 
       val expectedDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ts)
       val expected =
