@@ -13,7 +13,7 @@ class MasterBridgeSpec extends  FunSpec with Matchers with BeforeAndAfterAll {
     )
     val namedContext = MasterBridge.createNamedContext("test")(
       WorkerInitInfo(
-        sparkConf, 1, 20 seconds, 20 seconds, "localhost:2005", "localhost:2004", 202020)
+        sparkConf, 1, 20 seconds, 20 seconds, "localhost:2005", "localhost:2003", "localhost:2004", 202020, "")
     )
     val propertyValue = namedContext.sparkContext.getConf.getBoolean("spark.streaming.stopSparkContextByDefault", true)
     propertyValue shouldBe false
