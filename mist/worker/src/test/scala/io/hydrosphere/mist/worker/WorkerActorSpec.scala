@@ -137,7 +137,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -162,7 +162,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -182,7 +182,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
