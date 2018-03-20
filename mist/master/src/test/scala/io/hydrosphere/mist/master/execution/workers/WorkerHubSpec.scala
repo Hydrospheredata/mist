@@ -46,5 +46,7 @@ class WorkerHubSpec extends FunSpec with Matchers with TestData with Eventually 
     def shutdown(force: Boolean): Future[Unit] = ???
 
     def whenTerminated(): Future[Unit] = ???
+
+    def releaseConnection(connectionId: String): Unit = ???
   }
 }

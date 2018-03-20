@@ -13,7 +13,7 @@ object CommonData {
   )
   case class WorkerStartFailed(id: String, message: String)
 
-  case object ConnectionUnused
+  case class ReleaseConnection(id: String)
   sealed trait ShutdownCommand
   case object CompleteAndShutdown extends ShutdownCommand
   case object ForceShutdown extends ShutdownCommand
@@ -129,7 +129,6 @@ object CommonData {
   ) extends InfoRequest
 
   case class GetAllFunctions(
-    //TODO: find out why akka messages requires List but fails for Seq
     requests: List[GetFunctionInfo]
   ) extends JobInfoMessage
 
