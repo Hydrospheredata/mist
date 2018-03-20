@@ -2,7 +2,7 @@ package mist.api
 
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.scalatest.{FunSpec, Matchers}
 
@@ -39,7 +39,7 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
       df.createOrReplaceTempView("temp")
       df.cache()
       spark.sql("DROP TABLE IF EXISTS temp_hive")
-      spark.table("temp").write.saveAsTable("temp_hive")
+      spark.table("temp").write.mode(SaveMode.Overwrite).saveAsTable("temp_hive")
 
       spark.sql("SELECT MAX(age) AS avg_age FROM temp_hive")
         .take(1)(0).getLong(0)
