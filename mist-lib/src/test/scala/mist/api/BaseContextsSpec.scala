@@ -2,12 +2,13 @@ package mist.api
 
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.hive.HiveContext
 import org.scalatest.{FunSpec, Matchers}
 
 class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
-  import BaseContexts._
+  import Contexts._
   import mist.api.args.ArgsInstances._
 
   it("for spark context") {
@@ -32,23 +33,15 @@ class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
     this.getClass.getClassLoader.getResource(path).getPath
   }
 
-  it("for only hive context") {
-    val spJob = onHiveContext((hiveCtx: HiveContext) => {
-      val df = hiveCtx.read.json(pathToResource("hive_job_data.json"))
-      df.registerTempTable("temp")
-      hiveCtx.sql("SELECT MAX(age) AS avg_age FROM temp")
-        .take(1)(0).getLong(0)
-    })
-    spJob.invoke(testCtx())
-    val res = spJob.invoke(testCtx())
-    res shouldBe JobSuccess(30)
-  }
+  it("session with hive") {
+    val spJob = onSparkSessionWithHive((spark: SparkSession) => {
+      val df = spark.read.json(pathToResource("hive_job_data.json"))
+      df.createOrReplaceTempView("temp")
+      df.cache()
+      spark.sql("DROP TABLE IF EXISTS temp_hive")
+      spark.table("temp").write.saveAsTable("temp_hive")
 
-  it("allow more than one hive context") {
-    val spJob = onHiveContext((hiveCtx: HiveContext) => {
-      val df = hiveCtx.read.json(pathToResource("hive_job_data.json"))
-      df.registerTempTable("temp")
-      hiveCtx.sql("SELECT MAX(age) AS avg_age FROM temp")
+      spark.sql("SELECT MAX(age) AS avg_age FROM temp_hive")
         .take(1)(0).getLong(0)
     })
     spJob.invoke(testCtx())
