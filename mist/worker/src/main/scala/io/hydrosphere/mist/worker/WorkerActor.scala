@@ -3,6 +3,7 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors
 
 import akka.actor._
+import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
