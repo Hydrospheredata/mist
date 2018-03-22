@@ -80,7 +80,6 @@ private [mist] object MistLogging {
         writer.toString
       })
 
-
       LogEvent(from, message, ts, Level.Error.value, errTrace)
     }
 
@@ -95,6 +94,7 @@ private [mist] object MistLogging {
 
     def write(e: LogEvent): Unit
 
+    def close(): Unit
   }
 
   class Slf4jWriter(sourceId: String) extends LogsWriter {
@@ -107,6 +107,9 @@ private [mist] object MistLogging {
       case Level.Warn =>  sl4jLogger.warn(e.message)
       case Level.Error => sl4jLogger.error(e.message, e)
     }
+
+    override def close(): Unit = ()
+
   }
 
   class RemoteLogsWriter(host: String, port: Int) extends LogsWriter {
@@ -160,11 +163,13 @@ private [mist] object MistLogging {
     private val writers = new ConcurrentHashMap[Key, RemoteLogsWriter]()
 
     def getOrCreate(host: String, port: Int): RemoteLogsWriter = {
+      getWith(host, port)(key => new RemoteLogsWriter(key.host, key.port))
+    }
+
+    def getWith(host: String, port: Int)(createFn: Key => RemoteLogsWriter): RemoteLogsWriter = {
       val key = Key(host, port)
       writers.computeIfAbsent(key, new java.util.function.Function[Key, RemoteLogsWriter] {
-        override def apply(k: Key): RemoteLogsWriter = {
-          new RemoteLogsWriter(k.host, k.port)
-        }
+        override def apply(k: Key): RemoteLogsWriter = createFn(k)
       })
     }
 
