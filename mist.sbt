@@ -245,12 +245,13 @@ lazy val root = project.in(file("."))
 
         copy(localSpark, "/usr/share/spark")
         copy(distr, mistHome)
+        copyRaw("--from=quay.io/vektorcloud/mesos /usr/local/lib/libmesos-1.4.1.so", "/usr/local/lib/libmesos.so")
 
         copy(file("docker-entrypoint.sh"), "/")
         run("chmod", "+x", "/docker-entrypoint.sh")
 
         run("apk", "update")
-        run("apk", "add", "python", "curl", "jq", "coreutils")
+        run("apk", "add", "python", "curl", "coreutils")
         expose(2004)
         workDir(mistHome)
         entryPoint("/docker-entrypoint.sh")
