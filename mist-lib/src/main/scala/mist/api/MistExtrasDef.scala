@@ -17,7 +17,7 @@ object MistExtras {
     Extracted(new MistExtras(
       jobId = jobId,
       workerId = workerId,
-      logger = new MLogger(jobId, ctx.setupConf.loggingConf)
+      logger = new MLogger(jobId)
     ))
   })
 }

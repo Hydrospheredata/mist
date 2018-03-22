@@ -4,12 +4,17 @@ import java.io.File
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
+import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
 import mist.api.data.{JsLikeData, _}
+import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Promise}
 
 class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   with FunSpecLike
@@ -195,6 +200,57 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe watch worker
     probe.send(worker, ForceShutdown)
     probe.expectTerminated(worker)
+  }
+  describe("logging") {
+    val artifactDownloader = mock[ArtifactDownloader]
+
+    when(artifactDownloader.downloadArtifact(any[String]))
+      .thenSuccess(new File("doesn't matter"))
+
+    it("should add and remove appender") {
+      val completion = Promise[JsLikeData]
+      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
+      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
+
+      val worker = TestActorRef[WorkerActor](props)
+      val probe = TestProbe()
+      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+      val appender = LogManager.getRootLogger.getAppender("id")
+      appender should not be null
+      completion.success(JsLikeNumber(42))
+      probe.expectMsgAllConformingOf(
+        classOf[JobFileDownloading],
+        classOf[JobStarted],
+        classOf[JobResponse]
+      )
+      val appender1 = LogManager.getRootLogger.getAppender("id")
+      appender1 shouldBe null
+    }
+
+    it("should remove appender when cancelling job") {
+      val completion = Promise[JsLikeData]
+      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
+      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
+
+      val worker = TestActorRef[WorkerActor](props)
+      val probe = TestProbe()
+      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+
+      val appender = LogManager.getRootLogger.getAppender("id")
+      appender should not be null
+
+      probe.expectMsgAllConformingOf(
+        classOf[JobFileDownloading],
+        classOf[JobStarted]
+      )
+
+      probe.send(worker, CancelJobRequest("id"))
+      probe.expectMsgType[JobIsCancelled]
+
+      val appender1 = LogManager.getRootLogger.getAppender("id")
+      appender1 shouldBe null
+      completion.success(JsLikeNull)
+    }
   }
 
   def RunnerSelector(r: JobRunner): RunnerSelector =

@@ -134,8 +134,8 @@ object MasterBridge {
     new NamedContext(
       sparkContext,
       id,
-      org.apache.spark.streaming.Duration(init.streamingDuration.toMillis),
-      Option(centralLoggingConf)
+      Option(centralLoggingConf),
+      org.apache.spark.streaming.Duration(init.streamingDuration.toMillis)
     )
   }
 }

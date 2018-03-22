@@ -11,6 +11,7 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.api.logging.MistLogging.RemoteLogsWriter.Key
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Await
@@ -144,13 +145,13 @@ private [mist] object MistLogging {
 
     def close(): Unit = {
       mat.shutdown()
+      RemoteLogsWriter.remove(Key(host, port))
       Await.result(sys.terminate(), Duration.Inf)
     }
 
   }
 
   object RemoteLogsWriter {
-
     val systemConfig = ConfigFactory.parseString(
       "akka.daemonic = on"
     )
@@ -166,6 +167,8 @@ private [mist] object MistLogging {
         }
       })
     }
+
+    def remove(key: Key): RemoteLogsWriter = writers.remove(key)
 
     private case class Key(host: String, port: Int)
 

@@ -3,6 +3,7 @@ package io.hydrosphere.mist.worker
 import java.io.File
 
 import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
+import org.apache.commons.io.IOUtils
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
@@ -14,8 +15,8 @@ import scala.collection.mutable
 class NamedContext(
   val sparkContext: SparkContext,
   val namespace: String,
-  streamingDuration: Duration = Duration(40 * 1000),
-  loggingConf: Option[CentralLoggingConf] = None
+  val loggingConf: Option[CentralLoggingConf] = None,
+  streamingDuration: Duration = Duration(40 * 1000)
 ) {
 
   private val jars = mutable.Buffer.empty[String]
