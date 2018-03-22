@@ -239,21 +239,29 @@ lazy val root = project.in(file("."))
 
       new Dockerfile {
         from("anapsix/alpine-java:8")
+
+        expose(2004)
+
+        workDir(mistHome)
+
         env("SPARK_VERSION", sparkVersion.value)
         env("SPARK_HOME", "/usr/share/spark")
         env("MIST_HOME", mistHome)
 
+        entryPoint("/docker-entrypoint.sh")
+
+        run("apk", "update")
+        run("apk", "add", "python", "curl", "jq", "coreutils", "subversion-dev", "fts-dev")
+
         copy(localSpark, "/usr/share/spark")
+
+        copyRaw("--from=quay.io/vektorcloud/mesos /usr/local/lib/libmesos-1.4.1.so", "/usr/local/lib/libmesos.so")
+        runRaw("""echo "export MESOS_NATIVE_JAVA_LIBRARY=/usr/local/lib/libmesos.so" > $SPARK_HOME/conf/spark-env.sh""")
+
         copy(distr, mistHome)
 
         copy(file("docker-entrypoint.sh"), "/")
         run("chmod", "+x", "/docker-entrypoint.sh")
-
-        run("apk", "update")
-        run("apk", "add", "python", "curl", "jq", "coreutils")
-        expose(2004)
-        workDir(mistHome)
-        entryPoint("/docker-entrypoint.sh")
       }
     })
   .configs(IntegrationTest)
