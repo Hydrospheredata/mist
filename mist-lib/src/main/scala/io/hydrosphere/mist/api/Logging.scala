@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.api
 
-import io.hydrosphere.mist.api.logging.MistLogging.{LogEvent, LogsWriter, RemoteLogsWriter, Slf4jWriter}
+import io.hydrosphere.mist.api.logging.MistLogging.{LogEvent, Slf4jWriter}
 
 trait Logging extends ContextSupport {
 
@@ -13,7 +13,7 @@ trait Logging extends ContextSupport {
     this.jobId = conf.info.id
   }
 
-  def getLogger: MLogger = new MLogger(jobId, loggingConf)
+  def getLogger: MLogger = new MLogger(jobId)
 
   override private[mist] def stop(): Unit = {
     super.stop()
@@ -21,31 +21,10 @@ trait Logging extends ContextSupport {
 
 }
 
-class MLogger(
-  sourceId: String,
-  centralConf: Option[CentralLoggingConf]
-) {
+class MLogger(sourceId: String) {
 
   @transient
-  lazy val writer = centralConf match {
-    case Some(conf) => new LogsWriter {
-      import conf._
-
-      val slf4j = new Slf4jWriter(sourceId)
-      val remote = RemoteLogsWriter.getOrCreate(host, port)
-
-      override def write(e: LogEvent): Unit = {
-        slf4j.write(e)
-        remote.write(e)
-      }
-
-    }
-
-    case None =>
-      val slf4j = new Slf4jWriter(sourceId)
-      slf4j.write(LogEvent.mkInfo(sourceId, "Central logging is not configured, using default slf4j"))
-      slf4j
-  }
+  lazy val writer = new Slf4jWriter(sourceId)
 
   def debug(msg: String): Unit = {
     val e = LogEvent.mkDebug(sourceId, msg)

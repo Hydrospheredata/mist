@@ -3,13 +3,14 @@ package io.hydrosphere.mist.worker
 import java.util.concurrent.Executors
 
 import akka.actor._
+import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
+import org.apache.log4j.{Appender, LogManager}
 import org.apache.spark.streaming.StreamingContext
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
 import scala.concurrent._
 import scala.util.{Failure, Success}
 
@@ -23,6 +24,8 @@ trait JobStarting {
   val runnerSelector: RunnerSelector
   val namedContext: NamedContext
   val artifactDownloader: ArtifactDownloader
+  protected val rootLogger = LogManager.getRootLogger
+
 
   protected final def startJob(
     req: RunJobRequest
@@ -72,7 +75,8 @@ trait JobStarting {
 class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader
+  val artifactDownloader: ArtifactDownloader,
+  mkAppender: String => Option[Appender]
 ) extends Actor with JobStarting with ActorLogging {
 
   implicit val ec = {
@@ -88,6 +92,7 @@ class WorkerActor(
 
   private def awaitRequest(): Receive = {
     case req: RunJobRequest =>
+      mkAppender(req.id).foreach(rootLogger.addAppender)
       val jobStarted = startJob(req)
       val unit = ExecutionUnit(sender(), jobStarted)
       context become running(unit)
@@ -101,6 +106,7 @@ class WorkerActor(
       sender() ! WorkerIsBusy(id)
     case resp: JobResponse =>
       log.info(s"Job execution done. Returning result $resp and become awaiting new request")
+      rootLogger.removeAppender(resp.id)
       execution.requester ! resp
       context become awaitRequest()
 
@@ -121,11 +127,13 @@ class WorkerActor(
       self ! PoisonPill
     case resp: JobResponse =>
       log.info(s"Job execution done. Returning result $resp and shutting down")
+      rootLogger.removeAppender(resp.id)
       execution.requester ! resp
       self ! PoisonPill
   }
 
   private def cancel(id: String, respond: ActorRef): Unit = {
+    rootLogger.removeAppender(id)
     namedContext.sparkContext.cancelJobGroup(id)
     StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
     respond ! JobIsCancelled(id)
@@ -143,14 +151,19 @@ object WorkerActor {
   def props(
     context: NamedContext,
     artifactDownloader: ArtifactDownloader,
-    runnerSelector: RunnerSelector
+    runnerSelector: RunnerSelector,
+    mkAppender: String => Option[Appender]
   ): Props =
-    Props(new WorkerActor(runnerSelector, context, artifactDownloader))
+    Props(new WorkerActor(runnerSelector, context, artifactDownloader, mkAppender))
 
-  def props(
-    context: NamedContext,
-    artifactDownloader: ArtifactDownloader
-  ): Props =
-    Props(new WorkerActor(new SimpleRunnerSelector, context, artifactDownloader))
+  def props(context: NamedContext, artifactDownloader: ArtifactDownloader, runnerSelector: RunnerSelector): Props =
+    props(context, artifactDownloader, runnerSelector, mkAppenderF(context.loggingConf))
+
+  def props(context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
+    props(context, artifactDownloader, new SimpleRunnerSelector)
+
+  def mkAppenderF(conf: Option[CentralLoggingConf]): String => Option[Appender] =
+    (id: String) => conf.map(c => RemoteAppender(id, c))
+
 }
 
