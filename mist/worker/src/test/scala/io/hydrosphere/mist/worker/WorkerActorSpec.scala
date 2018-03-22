@@ -205,7 +205,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val artifactDownloader = mock[ArtifactDownloader]
 
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     it("should add and remove appender") {
       val completion = Promise[JsLikeData]
