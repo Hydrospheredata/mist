@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path, StandardOpenOption}
 
 import cats.implicits._
 import io.hydrosphere.mist.utils.Logger
+import org.apache.commons.io.IOUtils
 
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}

@@ -26,7 +26,11 @@ object LocalSparkSubmit {
   def apply(outDirectory: Path): LocalSparkSubmit = (sys.env.get("MIST_HOME"), sys.env.get("SPARK_HOME")) match {
     case (Some(mHome), Some(spHome)) => LocalSparkSubmit(outDirectory, mHome, spHome)
     case (mist, spark) =>
-      val errors = Seq(mist.map(_ => "MIST_HOME"),spark.map(_ => "SPARK_HOME")).mkString(",")
+      def inverse[A](opt: Option[A], value: A): Option[A] = opt match {
+        case Some(_) => None
+        case None => Some(value)
+      }
+      val errors = Seq(inverse(mist, "MIST_HOME"), inverse(spark, "SPARK_HOME")).flatten.mkString(",")
       val msg = s"Missing system environment variables: $errors"
       throw new IllegalStateException(msg)
   }
