@@ -1,17 +1,19 @@
 package io.hydrosphere.mist.worker.runners
 
 import java.io.File
+import java.net.URL
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.FunctionInstanceLoader
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.utils.{Err, Succ}
-import io.hydrosphere.mist.worker.NamedContext
+import io.hydrosphere.mist.worker.{NamedContext, SparkArtifact}
 import mist.api.FnContext
 import mist.api.data.JsLikeData
 import org.apache.spark.util.SparkClassLoader
 
-class ScalaRunner(jobFile: File) extends JobRunner {
+
+class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
@@ -20,23 +22,19 @@ class ScalaRunner(jobFile: File) extends JobRunner {
     val params = request.params
     import params._
 
-    if (!jobFile.exists()) {
-      Left(new IllegalArgumentException(s"Cannot find file $filePath"))
-    } else {
-      context.addJar(jobFile.toString)
-      val loader = prepareClassloader(jobFile)
-      val jobsLoader = new FunctionInstanceLoader(loader)
-      val instance = jobsLoader.loadFnInstance(className, action) match {
-        case Succ(i) => Right(i)
-        case Err(ex) => Left(ex)
-      }
-      for {
-        inst      <- instance
-        setupConf =  context.setupConfiguration(request.id)
-        _         <- inst.validateParams(params.arguments)
-        result    <- inst.run(FnContext(setupConf, params.arguments))
-      } yield result
+    context.addJar(artifact)
+    val loader = prepareClassloader(artifact.local)
+    val jobsLoader = new FunctionInstanceLoader(loader)
+    val instance = jobsLoader.loadFnInstance(className, action) match {
+      case Succ(i) => Right(i)
+      case Err(ex) => Left(ex)
     }
+    for {
+      inst      <- instance
+      setupConf =  context.setupConfiguration(request.id)
+      _         <- inst.validateParams(params.arguments)
+      result    <- inst.run(FnContext(setupConf, params.arguments))
+    } yield result
   }
 
   // see #204, #220

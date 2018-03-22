@@ -1,12 +1,10 @@
 package io.hydrosphere.mist.worker
 
-import java.io.File
 import java.util.concurrent.Executors
 
 import akka.actor._
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector, SimpleRunnerSelector}
+import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
 import org.apache.log4j.{Appender, LogManager}
 import org.apache.spark.streaming.StreamingContext
@@ -34,9 +32,9 @@ trait JobStarting {
     val id = req.id
     val s = sender()
     val jobStart = for {
-      file   <- downloadFile(s, req)
-      runner =  runnerSelector.selectRunner(file)
-      res    =  runJob(s, req, runner)
+      artifact <- downloadFile(s, req)
+      runner   =  runnerSelector.selectRunner(artifact)
+      res      =  runJob(s, req, runner)
     } yield res
 
     jobStart.onComplete(r => {
@@ -50,7 +48,7 @@ trait JobStarting {
     jobStart
   }
 
-  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[File] = {
+  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[SparkArtifact] = {
     actor ! JobFileDownloading(req.id)
     artifactDownloader.downloadArtifact(req.params.filePath)
   }

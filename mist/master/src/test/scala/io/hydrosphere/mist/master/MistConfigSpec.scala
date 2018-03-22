@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master
 
+import cats.{Eval, Now}
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import org.scalatest.{FunSpec, Matchers}
@@ -43,5 +44,21 @@ class MistConfigSpec extends FunSpec with Matchers {
       streamingDuration = 1.seconds
     ))
 
+  }
+
+  it("should auto configure host") {
+    val cfgS =
+      """mist.cluster.host = "auto"
+        |mist.http.host = "auto"
+        |mist.log-service.host = "auto"
+      """.stripMargin
+    val cfg = ConfigFactory.parseString(cfgS)
+    val masterConfig = MasterConfig.parse("", MasterConfig.resolveUserConf(cfg))
+
+    val auto = MasterConfig.autoConfigure(masterConfig, Now("1.1.1.1"))
+
+    auto.cluster.host shouldBe "1.1.1.1"
+    auto.http.host shouldBe "1.1.1.1"
+    auto.logs.host shouldBe "1.1.1.1"
   }
 }

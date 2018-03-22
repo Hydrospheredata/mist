@@ -50,7 +50,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val artifactDownloader = mock[ArtifactDownloader]
 
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     it(s"should execute jobs") {
       val runner = SuccessRunnerSelector(JsLikeNumber(42))
@@ -115,7 +115,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -142,7 +142,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -167,7 +167,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -187,7 +187,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val artifactDownloader = mock[ArtifactDownloader]
     when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(new File("doesn't matter"))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
 
     val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
     val worker = TestActorRef[WorkerActor](props)
@@ -255,17 +255,17 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   def RunnerSelector(r: JobRunner): RunnerSelector =
     new RunnerSelector {
-      override def selectRunner(file: File): JobRunner = r
+      override def selectRunner(artifact: SparkArtifact): JobRunner = r
     }
 
   def SuccessRunnerSelector(r: => JsLikeData): RunnerSelector =
     new RunnerSelector {
-      override def selectRunner(file: File): JobRunner = SuccessRunner(r)
+      override def selectRunner(artifact: SparkArtifact): JobRunner = SuccessRunner(r)
     }
 
   def FailureRunnerSelector(error: String): RunnerSelector =
     new RunnerSelector {
-      override def selectRunner(file: File): JobRunner = FailureRunner(error)
+      override def selectRunner(artifact: SparkArtifact): JobRunner = FailureRunner(error)
     }
 
   def SuccessRunner(r: => JsLikeData): JobRunner =

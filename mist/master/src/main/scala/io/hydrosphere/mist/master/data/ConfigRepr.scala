@@ -65,6 +65,7 @@ object ConfigRepr {
       }
 
       def cleanKey(key: String): String = key.replaceAll("\"", "")
+
       ContextConfig(
         name = config.getString("name"),
         sparkConf = config.getConfig("spark-conf").entrySet().asScala

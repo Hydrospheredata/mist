@@ -44,8 +44,8 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
       val fileContent = MockHttpServer.onServer(routes, binding => {
         val port = binding.localAddress.getPort
         val downloader = ArtifactDownloader.create("localhost", port, 262144000, basePath)
-        val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
-        new String(Files.readAllBytes(file.toPath))
+        val artifact = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
+        new String(Files.readAllBytes(artifact.local.toPath))
       })
 
       Await.result(fileContent, Duration.Inf) shouldBe "JAR CONTENT"
@@ -60,7 +60,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
         file
       })
-      Await.result(fileContent, Duration.Inf).lastModified() shouldBe localFile.toFile.lastModified()
+      Await.result(fileContent, Duration.Inf).local.lastModified() shouldBe localFile.toFile.lastModified()
     }
 
     it("should not download file if checksums are correct") {
@@ -73,7 +73,7 @@ class ArtifactDownloaderSpec extends FunSpecLike with Matchers with BeforeAndAft
         val file = Await.result(downloader.downloadArtifact("test.jar"), Duration.Inf)
         file
       })
-      Await.result(fileF, Duration.Inf).lastModified() == localFile.toFile.lastModified()
+      Await.result(fileF, Duration.Inf).local.lastModified() == localFile.toFile.lastModified()
     }
 
     it("should fail when local and remote file not found") {

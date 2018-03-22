@@ -27,9 +27,13 @@ object CommonData {
     downtime: Duration,
     streamingDuration: Duration,
     logService: String,
+    masterAddress: String,
     masterHttpConf: String,
-    maxArtifactSize: Long
-  )
+    maxArtifactSize: Long,
+    runOptions: String
+  ) {
+    def isK8S: Boolean = sparkConf.exists({case (k, v) => k == "spark.master" && v.startsWith("k8s://")})
+  }
 
   case class JobParams(
     filePath: String,

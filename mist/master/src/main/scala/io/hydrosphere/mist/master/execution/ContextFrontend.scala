@@ -304,8 +304,8 @@ class ContextFrontend(
 }
 
 object ContextFrontend {
-  val ConnectionFailedMaxTimes = 50
-  val ConnectorFailedMaxTimes = 50
+  val ConnectionFailedMaxTimes = 5
+  val ConnectorFailedMaxTimes = 5
 
   sealed trait Event
   object Event {
