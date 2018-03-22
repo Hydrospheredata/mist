@@ -31,6 +31,16 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
     context: NamedContext
   ): Either[Throwable, JsLikeData] = {
 
+    def pythonDriverEntry(): String = {
+      val conf = context.sparkContext.getConf
+      conf.getOption("spark.pyspark.driver.python").getOrElse(pythonGlobalEntry())
+    }
+
+    def pythonGlobalEntry(): String = {
+      val conf = context.sparkContext.getConf
+      conf.getOption("spark.pyspark.python").getOrElse("python")
+    }
+
     def runPython(py4jPort: Int): Int = {
       val pypath = sys.env.get("PYTHONPATH")
       val sparkHome = sys.env("SPARK_HOME")
@@ -42,9 +52,11 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
       }
       val selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
       val env = Seq(
-        "PYTHONPATH" -> (Seq(pySpark.toString, py4jPath) ++ pypath).mkString(":")
+        "PYTHONPATH" -> (Seq(pySpark.toString, py4jPath) ++ pypath).mkString(":"),
+        "PYSPARK_PYTHON" -> pythonGlobalEntry(),
+        "PYSPARK_DRIVER_PYTHON" -> pythonDriverEntry()
       )
-      val cmd = Seq("python", selfJarPath.toString, py4jPort.toString)
+      val cmd = Seq(pythonDriverEntry(), selfJarPath.toString, py4jPort.toString)
       logger.info(s"Running python task: $cmd, env $env")
       val ps = Process(cmd, None, env: _*)
       ps.!
