@@ -2,15 +2,17 @@ package io.hydrosphere.mist.master
 
 import java.io.File
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueType}
+import cats.Eval
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory, ConfigValueType}
 import io.hydrosphere.mist.master.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
-
-import cats.syntax.option._
+import cats._
+import cats.syntax._
+import cats.implicits._
+import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
 import scala.collection.JavaConversions._
-
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -92,11 +94,73 @@ case class WorkersSettingsConfig(
   runnerInitTimeout: Duration,
   readyTimeout: FiniteDuration,
   maxArtifactSize: Long,
-  dockerHost: String,
-  dockerPort: Int,
-  cmd: String,
-  cmdStop: String
+  dockerConfig: DockerRunnerConfig,
+  manualConfig: ManualRunnerConfig
 )
+
+sealed trait DockerNetworkConfiguration
+case class NamedNetwork(name: String) extends DockerNetworkConfiguration
+case class AutoMasterNetwork(masterId: String) extends DockerNetworkConfiguration
+
+object DockerNetworkConfiguration {
+
+  def apply(config: Config): DockerNetworkConfiguration = {
+    config.getString("network-type") match {
+      case "auto-master" => AutoMasterNetwork(config.getConfig("auto-master-network").getString("container-id"))
+      case name => NamedNetwork(name)
+    }
+  }
+}
+
+case class DockerRunnerConfig(
+  dockerHost: String,
+  image: String,
+  network: DockerNetworkConfiguration,
+  mistHome: String,
+  sparkHome: String
+)
+
+object DockerRunnerConfig {
+  def apply(config: Config): DockerRunnerConfig = {
+    DockerRunnerConfig(
+      dockerHost = config.getString("host"),
+      image = config.getString("image"),
+      network = DockerNetworkConfiguration(config),
+      mistHome = config.getString("mist-home"),
+      sparkHome = config.getString("spark-home")
+    )
+  }
+}
+
+case class ManualRunnerConfig(
+  cmdStart: String,
+  cmdStop: Option[String],
+  async: Boolean
+)
+
+object ManualRunnerConfig {
+  def apply(config: Config): ManualRunnerConfig = {
+    def readOld(): ManualRunnerConfig = {
+      val stop = config.getString("cmdStop")
+      ManualRunnerConfig(
+        cmdStart = config.getString("cmd"),
+        cmdStop = if (stop.isEmpty) None else stop.some,
+        async = true
+      )
+    }
+
+    def readNew(): ManualRunnerConfig = {
+      val entry = config.getConfig("manual")
+      ManualRunnerConfig(
+        cmdStart = entry.getString("startCmd"),
+        cmdStop = entry.getOptString("stopCmd"),
+        async = entry.getBoolean("async")
+      )
+    }
+
+    if (config.getString("cmd").nonEmpty) readOld() else readNew()
+  }
+}
 
 object WorkersSettingsConfig {
 
@@ -109,10 +173,8 @@ object WorkersSettingsConfig {
         case _ => throw new IllegalArgumentException("Worker ready-teimout should be finite")
       },
       maxArtifactSize = config.getBytes("max-artifact-size"),
-      dockerHost = config.getString("docker-host"),
-      dockerPort = config.getInt("docker-port"),
-      cmd = config.getString("cmd"),
-      cmdStop = config.getString("cmdStop")
+      dockerConfig = DockerRunnerConfig(config.getConfig("docker")),
+      manualConfig = ManualRunnerConfig(config)
     )
   }
 
@@ -207,11 +269,16 @@ case class MasterConfig(
   raw: Config
 )
 
-object MasterConfig {
+object MasterConfig extends Logger {
 
   def load(filePath: String): MasterConfig = {
     val cfg = loadConfig(filePath)
-    parse(filePath, cfg)
+    autoConfigure(parse(filePath, cfg))
+  }
+
+  def loadConfig(filePath: String): Config = {
+    val user = ConfigFactory.parseFile(new File(filePath))
+    resolveUserConf(user)
   }
 
   def resolveUserConf(config: Config): Config = {
@@ -220,10 +287,6 @@ object MasterConfig {
     properties.withFallback(config.withFallback(appConfig)).resolve()
   }
 
-  def loadConfig(filePath: String): Config = {
-    val user = ConfigFactory.parseFile(new File(filePath))
-    resolveUserConf(user)
-  }
 
   def parse(filePath: String, config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
@@ -247,6 +310,45 @@ object MasterConfig {
     )
   }
 
+  def autoConfigure(masterConfig: MasterConfig): MasterConfig =
+    autoConfigure(masterConfig, Eval.later(NetUtils.findLocalInetAddress().getHostAddress))
+
+  def autoConfigure(masterConfig: MasterConfig, host: Eval[String]): MasterConfig = {
+    def isAuto(s: String): Boolean = s == "auto"
+
+    val forCluster = (cfg: MasterConfig) => {
+      import cfg._
+      if (isAuto(cluster.host)) {
+        logger.info(s"Automatically update cluster host to ${host.value}")
+        val upd = cluster.copy(host = host.value)
+        cfg.copy(cluster = upd).copy(raw = raw.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host.value)))
+      } else cfg
+    }
+
+    val forHttp = (cfg: MasterConfig) => {
+      import cfg._
+
+      if (isAuto(http.host)) {
+        logger.info(s"Automatically update http host to ${host.value}")
+        val upd = http.copy(host = host.value)
+        cfg.copy(http = upd)
+      } else cfg
+    }
+
+    val forLogs = (cfg: MasterConfig) => {
+      import cfg._
+
+      if(isAuto(logs.host)) {
+        logger.info(s"Automatically update logs host to ${host.value}")
+        val upd = logs.copy(host = host.value)
+        cfg.copy(logs = upd)
+      } else cfg
+    }
+
+    val upd = forCluster >>> forHttp >>> forLogs
+    upd(masterConfig)
+  }
+
 }
 
 object ConfigUtils {
@@ -260,5 +362,9 @@ object ConfigUtils {
       }
 
     def getScalaDuration(path: String): Duration = Duration(c.getString(path))
+
+    def getOptString(path: String): Option[String] = {
+      if(c.getIsNull(path)) None else c.getString(path).some
+    }
   }
 }

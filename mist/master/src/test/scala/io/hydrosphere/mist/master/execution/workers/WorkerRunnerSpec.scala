@@ -1,9 +1,10 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
+import io.hydrosphere.mist.master.execution.workers.starter.{NonLocal, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{SpawnSettings, workers}
-import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 import org.mockito.Mockito._
 import org.scalatest.concurrent.Eventually
@@ -16,8 +17,8 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
 
   describe("default runner") {
 
-    def mkSpawnSettings(cmd: RunnerCmd): SpawnSettings = SpawnSettings(
-      runnerCmd = cmd,
+    def mkSpawnSettings(starter: WorkerStarter): SpawnSettings = SpawnSettings(
+      runnerCmd = starter,
       timeout = 10 seconds,
       readyTimeout = 10 seconds,
       akkaAddress = "akkaAddr",
@@ -26,30 +27,36 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       maxArtifactSize = 100L
     )
 
+    def mockStarter: WorkerStarter = {
+      val starter = mock[WorkerStarter]
+      when(starter.onStart(any[String], any[WorkerInitInfo])).thenReturn(NonLocal)
+      starter
+    }
+
     it("should run worker") {
-      val runnerCmd = mock[RunnerCmd]
+      val starter = mockStarter
       val regHub = mock[ActorRegHub]
       when(regHub.waitRef(any[String], any[Duration])).thenSuccess(null)
 
       val termination = Promise[Unit]
       val runner = new workers.WorkerRunner.DefaultRunner(
-        spawn = mkSpawnSettings(runnerCmd),
+        spawn = mkSpawnSettings(starter),
         regHub = regHub,
         connect = (_, _, _, _) => Future.successful(WorkerConnection("id", null, workerLinkData, termination.future))
       )
 
       Await.result(runner("id", FooContext), Duration.Inf)
-      verify(runnerCmd).runWorker(any[String], any[ContextConfig])
+      verify(starter).onStart(any[String], any[WorkerInitInfo])
 
       termination.success(())
 
       eventually(timeout(Span(3, Seconds))) {
-        verify(runnerCmd).onStop(any[String])
+        verify(starter).onStop(any[String])
       }
     }
 
     it("should call onStop if await ref was failed") {
-      val runnerCmd = mock[RunnerCmd]
+      val runnerCmd = mock[WorkerStarter]
       val regHub = mock[ActorRegHub]
       when(regHub.waitRef(any[String], any[Duration])).thenFailure(FilteredException())
 
@@ -69,12 +76,12 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
     }
 
     it("should call onStop if connect was failed") {
-      val runnerCmd = mock[RunnerCmd]
+      val starter = mockStarter
       val regHub = mock[ActorRegHub]
       when(regHub.waitRef(any[String], any[Duration])).thenSuccess(null)
 
       val runner = new workers.WorkerRunner.DefaultRunner(
-        spawn = mkSpawnSettings(runnerCmd),
+        spawn = mkSpawnSettings(starter),
         regHub = regHub,
         connect = (_, _, _, _) => Future.failed(FilteredException())
       )
@@ -84,7 +91,7 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       }
 
       eventually(timeout(Span(3, Seconds))) {
-        verify(runnerCmd).onStop(any[String])
+        verify(starter).onStop(any[String])
       }
     }
   }

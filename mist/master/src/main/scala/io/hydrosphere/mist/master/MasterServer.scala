@@ -1,19 +1,20 @@
 package io.hydrosphere.mist.master
 
+import java.nio.file.Paths
+
 import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
-import akka.pattern.gracefulStop
 import akka.stream.ActorAttributes.supervisionStrategy
+import akka.stream.ActorMaterializer
 import akka.stream.Supervision.resumingDecider
-import akka.stream.{ActorAttributes, ActorMaterializer, Supervision}
 import akka.stream.scaladsl.{Keep, Sink}
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.execution.workers.RunnerCmd
+import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
@@ -24,7 +25,6 @@ import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.language.reflectiveCalls
 import scala.util._
@@ -99,13 +99,13 @@ object MasterServer extends Logger {
     }
 
     def runExecutionService(logService: LogService): ExecutionService = {
-      val masterService = s"${config.cluster.host}:${config.cluster.port}"
-      val workerRunner = RunnerCmd.create(masterService, config.workers)
+      val logsDir = Paths.get(config.logs.dumpDirectory)
+      val workerRunner = WorkerStarter.create(config.workers, logsDir)
       val spawnSettings = SpawnSettings(
         runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
-        akkaAddress = masterService,
+        akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
         logAddress = s"${config.logs.host}:${config.logs.port}",
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
@@ -182,7 +182,7 @@ object MasterServer extends Logger {
     config: HttpConfig)(implicit sys: ActorSystem, mat: ActorMaterializer): Future[ServerBinding] = {
     val http = {
       val apiv2 = {
-        val api = HttpV2Routes.apiWithCORS(mainService, artifacts)
+        val api = HttpV2Routes.apiWithCORS(mainService, artifacts, _root_.scala.sys.env("MIST_HOME"))
         val ws = new WSApi(streamer)(config.keepAliveTick)
         // order is important!
         // api router can't chain unhandled calls, because it's wrapped in cors directive

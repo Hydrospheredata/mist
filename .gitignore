@@ -3,6 +3,7 @@ target/
 .vagrant
 derby.log
 metastore_db/
+spark-warehouse/
 *.db
 file.dbb
 stdout.txt

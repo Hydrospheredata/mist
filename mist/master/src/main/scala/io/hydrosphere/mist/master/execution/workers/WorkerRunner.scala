@@ -3,12 +3,14 @@ package io.hydrosphere.mist.master.execution.workers
 import akka.actor.{ActorRef, ActorRefFactory}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.execution.SpawnSettings
+import io.hydrosphere.mist.master.execution.workers.starter.{Local, NonLocal}
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
+import scala.util._
 
 trait WorkerRunner extends ((String, ContextConfig) => Future[WorkerConnection])
 
@@ -23,9 +25,9 @@ object WorkerRunner {
     override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
       import spawn._
 
-      runnerCmd.runWorker(id, ctx)
       val initInfo = toWorkerInitInfo(ctx)
-      val future = for {
+      val ps = runnerCmd.onStart(id, initInfo)
+      val regFuture = for {
         ref <- regHub.waitRef(id, timeout)
         connection <- connect(id, initInfo, readyTimeout, ref)
       } yield {
@@ -35,8 +37,17 @@ object WorkerRunner {
         connection
       }
 
-      future.onFailure({case _ => runnerCmd.onStop(id)})
-      future
+      regFuture.onFailure({case _ => runnerCmd.onStop(id)})
+
+      val promise = Promise[WorkerConnection]
+      ps match {
+        case Local(term) =>
+          term.onFailure({case e => promise.tryComplete(Failure(new RuntimeException(s"Process terminated with error $e")))})
+        case NonLocal =>
+      }
+      regFuture.onComplete(r => promise.tryComplete(r))
+
+      promise.future
     }
 
   }

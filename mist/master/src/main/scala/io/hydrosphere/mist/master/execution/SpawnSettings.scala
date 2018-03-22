@@ -1,13 +1,13 @@
 package io.hydrosphere.mist.master.execution
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.master.execution.workers.RunnerCmd
+import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.duration._
 
 case class SpawnSettings(
-  runnerCmd: RunnerCmd,
+  runnerCmd: WorkerStarter,
   timeout: Duration,
   readyTimeout: FiniteDuration,
   akkaAddress: String,
@@ -24,7 +24,9 @@ case class SpawnSettings(
       streamingDuration = ctx.streamingDuration,
       logService = this.logAddress,
       masterHttpConf = this.httpAddress,
-      maxArtifactSize = this.maxArtifactSize
+      maxArtifactSize = this.maxArtifactSize,
+      runOptions = ctx.runOptions,
+      masterAddress = akkaAddress
     )
 }
 

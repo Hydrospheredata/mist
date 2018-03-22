@@ -158,7 +158,8 @@ trait JsonCodecs extends SprayJsonSupport
 
 
   implicit val workerInitInfoF = rootFormat(lazyFormat(jsonFormat(WorkerInitInfo.apply,
-    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterHttpConf", "maxArtifactSize")))
+    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterAddress","masterHttpConf", "maxArtifactSize", "runOptions")))
+
 
   implicit val workerLinkF = rootFormat(lazyFormat(jsonFormat(WorkerLink.apply,
     "name", "address", "sparkUi", "initInfo")))

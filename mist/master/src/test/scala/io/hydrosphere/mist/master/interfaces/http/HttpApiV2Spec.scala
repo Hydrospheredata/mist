@@ -76,7 +76,7 @@ class HttpApiV2Spec extends FunSpec
       when(execution.getWorkerInfo(any[String]))
         .thenSuccess(Some(WorkerFullInfo(
           "id", "test", None, Seq(),
-          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000))))
+          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "localhost:0", 262144000, ""))))
 
       val route = HttpV2Routes.workerRoutes(execution)
 
@@ -85,7 +85,7 @@ class HttpApiV2Spec extends FunSpec
         val resp = responseAs[WorkerFullInfo]
         resp.name shouldBe "id"
         resp.jobs shouldBe empty
-        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", 262144000)
+        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0","localhost:0", 262144000, "")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
       }
@@ -456,7 +456,7 @@ class HttpApiV2Spec extends FunSpec
       when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenFailure(new IllegalArgumentException("argument missing"))
 
-      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
+      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository], "")
       Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         responseAs[String] shouldBe "Bad request: argument missing"
         status shouldBe StatusCodes.BadRequest
@@ -469,7 +469,7 @@ class HttpApiV2Spec extends FunSpec
       when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenFailure(new RuntimeException("some exception"))
 
-      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository])
+      val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository], "")
 
       Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
         status shouldBe StatusCodes.InternalServerError

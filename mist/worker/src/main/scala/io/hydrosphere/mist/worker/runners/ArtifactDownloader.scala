@@ -1,23 +1,22 @@
 package io.hydrosphere.mist.worker.runners
 
-import java.io.File
 import java.net.URLEncoder
-import java.nio.file.{Files, Path, Paths}
-import java.util.UUID
+import java.nio.file.{Files, Path}
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, HttpMethods}
+import akka.http.scaladsl.model.{HttpMethods, HttpRequest, HttpResponse}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.FileIO
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.worker.SparkArtifact
 import org.apache.commons.codec.digest.DigestUtils
 
-import _root_.scala.concurrent.Future
+import scala.concurrent.Future
 
 trait ArtifactDownloader {
-  def downloadArtifact(filePath: String): Future[File]
+  def downloadArtifact(filePath: String): Future[SparkArtifact]
 
   def stop(): Unit
 }
@@ -33,7 +32,12 @@ case class HttpArtifactDownloader(
   implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  override def downloadArtifact(artifactKey: String): Future[File] = {
+  private def fileUri(filePath: String): String =
+    s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}"
+
+  private def checksumUri(filePath: String): String = fileUri(filePath) + "/sha"
+
+  override def downloadArtifact(artifactKey: String): Future[SparkArtifact] = {
     val locallyResolvedFile = rootDir.resolve(artifactKey).toFile
     if (!locallyResolvedFile.exists()) {
       downloadFile(artifactKey)
@@ -43,7 +47,7 @@ case class HttpArtifactDownloader(
         _ = if (!valid) {
           logger.warn(s"Checksum of remote $artifactKey different from $locallyResolvedFile")
         }
-      } yield locallyResolvedFile
+      } yield SparkArtifact(locallyResolvedFile, fileUri(artifactKey))
     }
   }
 
@@ -55,7 +59,7 @@ case class HttpArtifactDownloader(
   }
 
   private def getChecksum(filePath: String): Future[String] = {
-    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(filePath)}/sha"
+    val uri = checksumUri(filePath)
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
       resp <- doRequest(request)
@@ -63,8 +67,8 @@ case class HttpArtifactDownloader(
     } yield checksum
   }
 
-  private def downloadFile(artifactKey: String): Future[File] = {
-    val uri = s"http://$masterHttpHost:$masterHttpPort/v2/api/artifacts/${encode(artifactKey)}"
+  private def downloadFile(artifactKey: String): Future[SparkArtifact] = {
+    val uri = fileUri(artifactKey)
     val request = HttpRequest(method = HttpMethods.GET, uri = uri)
     for {
       resp <- doRequest(request)
@@ -79,7 +83,7 @@ case class HttpArtifactDownloader(
       } else {
         throw new IllegalArgumentException(s"Checksum of downloaded artifact $artifactKey different from $path")
       }
-    } yield result.toFile
+    } yield SparkArtifact(result.toFile, uri)
   }
 
   private def encode(filePath: String): String = URLEncoder.encode(filePath, "UTF-8")

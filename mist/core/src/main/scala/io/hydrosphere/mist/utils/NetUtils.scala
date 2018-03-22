@@ -13,7 +13,7 @@ object NetUtils {
   def findLocalInetAddress(): InetAddress = {
     val address = InetAddress.getLocalHost
     if (address.isLoopbackAddress) {
-      val activeNetworkIFs = NetworkInterface.getNetworkInterfaces.asScala.toList
+      val activeNetworkIFs = NetworkInterface.getNetworkInterfaces.asScala.toList.reverse
       for (ni <- activeNetworkIFs) {
         val addresses = ni.getInetAddresses.asScala.toList
           .filterNot(addr => addr.isLinkLocalAddress || addr.isLoopbackAddress)
