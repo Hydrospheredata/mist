@@ -13,7 +13,7 @@ object CommonData {
   )
   case class WorkerStartFailed(id: String, message: String)
 
-  case object ConnectionUnused
+  case class ReleaseConnection(id: String)
   sealed trait ShutdownCommand
   case object CompleteAndShutdown extends ShutdownCommand
   case object ForceShutdown extends ShutdownCommand
@@ -27,9 +27,13 @@ object CommonData {
     downtime: Duration,
     streamingDuration: Duration,
     logService: String,
+    masterAddress: String,
     masterHttpConf: String,
-    maxArtifactSize: Long
-  )
+    maxArtifactSize: Long,
+    runOptions: String
+  ) {
+    def isK8S: Boolean = sparkConf.exists({case (k, v) => k == "spark.master" && v.startsWith("k8s://")})
+  }
 
   case class JobParams(
     filePath: String,
@@ -125,7 +129,6 @@ object CommonData {
   ) extends InfoRequest
 
   case class GetAllFunctions(
-    //TODO: find out why akka messages requires List but fails for Seq
     requests: List[GetFunctionInfo]
   ) extends JobInfoMessage
 

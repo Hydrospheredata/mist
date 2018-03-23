@@ -22,7 +22,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.0.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -81,6 +81,8 @@ lazy val master = project.in(file("mist/master"))
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
       Library.cats,
 
+      Library.dockerJava,
+
       Library.commonsCodec, Library.scalajHttp,
 
       Library.scalaTest % "test",
@@ -135,7 +137,14 @@ lazy val root = project.in(file("."))
     },
     stageActions in basicStage += CpFile("configs/default.conf").to("configs"),
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
-    stageActions in dockerStage += CpFile("configs/docker.conf").as("default.conf").to("configs"),
+    stageActions in dockerStage += {
+      val configData =
+        IO.read(file("configs/docker.conf"))
+          .replaceAll("\\$\\{version\\}", version.value)
+          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
+
+      Write("configs/default.conf", configData)
+    },
 
     stageDirectory in runStage := target.value / s"mist-run-${version.value}",
     stageActions in runStage ++= {
@@ -197,18 +206,17 @@ lazy val root = project.in(file("."))
 
     mistRun := {
       val log = streams.value.log
-      val sparkHome = sparkLocal.value.getAbsolutePath
+      val taskArgs = spaceDelimited("<arg>").parsed.grouped(2).toSeq
+        .flatMap(l => {if (l.size == 2) Some(l.head -> l.last) else None})
+        .toMap
 
-      val taskArgs = spaceDelimited("<arg>").parsed
-      val uiEnvs = {
-        val uiPath =
-          taskArgs.grouped(2)
-            .find(parts => parts.size > 1 && parts.head == "--ui-dir")
-            .map(_.last)
-
-        uiPath.fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+      val uiEnvs = taskArgs.get("--ui-dir").fold(Seq.empty[(String, String)])(p => Seq("MIST_UI_DIR" -> p))
+      val sparkEnvs = {
+        val spark = taskArgs.getOrElse("--spark", sparkLocal.value.getAbsolutePath)
+        Seq("SPARK_HOME" -> spark)
       }
-      val extraEnv = Seq("SPARK_HOME" -> sparkHome) ++ uiEnvs
+
+      val extraEnv = sparkEnvs ++ uiEnvs
       val home = runStage.value
 
       val args = Seq("bin/mist-master", "start", "--debug", "true")
@@ -231,21 +239,29 @@ lazy val root = project.in(file("."))
 
       new Dockerfile {
         from("anapsix/alpine-java:8")
+
+        expose(2004)
+
+        workDir(mistHome)
+
         env("SPARK_VERSION", sparkVersion.value)
         env("SPARK_HOME", "/usr/share/spark")
         env("MIST_HOME", mistHome)
 
+        entryPoint("/docker-entrypoint.sh")
+
+        run("apk", "update")
+        run("apk", "add", "python", "curl", "jq", "coreutils", "subversion-dev", "fts-dev")
+
         copy(localSpark, "/usr/share/spark")
+
+        copyRaw("--from=quay.io/vektorcloud/mesos /usr/local/lib/libmesos-1.4.1.so", "/usr/local/lib/libmesos.so")
+        runRaw("""echo "export MESOS_NATIVE_JAVA_LIBRARY=/usr/local/lib/libmesos.so" > $SPARK_HOME/conf/spark-env.sh""")
+
         copy(distr, mistHome)
 
         copy(file("docker-entrypoint.sh"), "/")
         run("chmod", "+x", "/docker-entrypoint.sh")
-
-        run("apk", "update")
-        run("apk", "add", "python", "curl", "jq", "coreutils")
-        expose(2004)
-        workDir(mistHome)
-        entryPoint("/docker-entrypoint.sh")
       }
     })
   .configs(IntegrationTest)
@@ -256,7 +272,7 @@ lazy val root = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
       "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it",
-      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
+//      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
@@ -331,7 +347,12 @@ lazy val docs = project.in(file("docs"))
 lazy val commonAssemblySettings = Seq(
   assemblyMergeStrategy in assembly := {
     case m if m.toLowerCase.endsWith("manifest.mf") => MergeStrategy.discard
-    case m if m.startsWith("META-INF") => MergeStrategy.discard
+    case PathList("META-INF", xs @ _*) =>
+      (xs map {_.toLowerCase}) match {
+        case "services" :: xs =>
+          MergeStrategy.filterDistinctLines
+        case _ => MergeStrategy.discard
+      }
     case PathList("javax", "servlet", xs@_*) => MergeStrategy.first
     case PathList("org", "apache", xs@_*) => MergeStrategy.first
     case PathList("org", "jboss", xs@_*) => MergeStrategy.first

@@ -16,7 +16,7 @@ Roadmap to [1.0.0](https://github.com/Hydrospheredata/mist/milestone/4)
 
 
 Features:
-* **Spark Function as a Service**. Deploy Spark functions rather than nodetebooks or scripts.
+* **Spark Function as a Service**. Deploy Spark functions rather than notebooks or scripts.
 * Spark Cluster and Session management. Fully managed Spark sessions backed by on-demand EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark clusters.
 * **Typesafe** programming framework that clearly defines inputs and outputs of every Spark job.
 * **REST** HTTP & Messaging (MQTT, Kafka) API for Scala & Python Spark jobs.

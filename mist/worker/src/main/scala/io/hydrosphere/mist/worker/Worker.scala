@@ -102,11 +102,12 @@ object Worker extends App with Logger {
     Await.result(system.whenTerminated, Duration.Inf)
     logger.info(s"Shutdown worker application $name ${arguments.name}")
     FileUtils.deleteQuietly(workDirFile)
-    sys.exit()
   } catch {
     case e: Throwable =>
       logger.error("Fatal error", e)
       sys.exit(1)
+  } finally {
+    sys.exit()
   }
 
 }

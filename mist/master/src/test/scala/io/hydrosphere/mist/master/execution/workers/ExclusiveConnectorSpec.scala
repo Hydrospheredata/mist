@@ -60,7 +60,7 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
       )
       val wrapped = ExclusiveConnector.ConnectionWrapper.wrap(connection)
 
-      wrapped.markUnused()
+      wrapped.release()
       connRef.expectMsgType[CompleteAndShutdown.type]
 
       wrapped.ref ! mkRunReq("id")

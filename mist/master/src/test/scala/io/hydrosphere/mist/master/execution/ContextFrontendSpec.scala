@@ -161,7 +161,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
 
     val connProbe = TestProbe()
     connectionPromise.success(WorkerConnection("id", connProbe.ref, workerLinkData, Promise[Unit].future))
-    connProbe.expectMsgType[ConnectionUnused.type]
+    connProbe.expectMsgType[ReleaseConnection]
   }
 
   it("should restart connector 'til max start times and then sleep") {

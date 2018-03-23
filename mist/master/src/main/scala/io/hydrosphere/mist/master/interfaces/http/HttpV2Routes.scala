@@ -4,7 +4,7 @@ import akka.http.scaladsl.Http
 import java.io.File
 
 import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
-import akka.http.scaladsl.model.{HttpEntity, HttpResponse, StatusCode, StatusCodes}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives
 import akka.http.scaladsl.server.directives.{FileInfo, ParameterDirectives}
 import akka.stream.scaladsl
@@ -17,8 +17,9 @@ import io.hydrosphere.mist.master.{ContextsCRUDLike, JobDetails, MainService}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 
+import io.hydrosphere.mist.BuildInfo
 import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.utils.Logger
 
@@ -287,6 +288,15 @@ object HttpV2Routes extends Logger {
     }}}
   }
 
+  def internalArtifacts(mistHome: String): Route = {
+    path(root / "artifacts_internal" /  "mist-worker.jar" ) {
+      get {
+        val path = Paths.get(mistHome, "mist-worker.jar")
+        getFromFile(path.toString)
+      }
+    }
+  }
+
   def jobsRoutes(master: MainService): Route = {
     path( root / "jobs" ) {
       get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
@@ -360,7 +370,22 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def apiRoutes(masterService: MainService, artifacts: ArtifactRepository): Route = {
+  val rootEndpoint: Route = {
+    val started = MistStatus.Started
+    val version = BuildInfo.version
+    val pageData =
+      s"""<p>
+         |  Mist version: $version, started: $started,
+         |  <br/>
+         |  <a href="/ui/">ui link</a>
+         |</p>
+       """.stripMargin
+    pathSingleSlash {
+      complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, pageData))
+    }
+  }
+
+  def apiRoutes(masterService: MainService, artifacts: ArtifactRepository, mistHome: String): Route = {
     val exceptionHandler =
       ExceptionHandler {
         case ex @ (_: IllegalArgumentException  | _: IllegalStateException) =>
@@ -373,11 +398,13 @@ object HttpV2Routes extends Logger {
       jobsRoutes(masterService) ~
       workerRoutes(masterService.execution) ~
       contextsRoutes(masterService) ~
+      internalArtifacts(mistHome) ~
       artifactRoutes(artifacts) ~
-      statusApi
+      statusApi ~
+      rootEndpoint
     }
   }
 
-  def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository): Route =
-    CorsDirective.cors() { apiRoutes(masterService, artifacts) }
+  def apiWithCORS(masterService: MainService, artifacts: ArtifactRepository, mistHome: String): Route =
+    CorsDirective.cors() { apiRoutes(masterService, artifacts, mistHome) }
 }

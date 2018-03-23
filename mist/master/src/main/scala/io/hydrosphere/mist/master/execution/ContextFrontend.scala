@@ -160,11 +160,11 @@ class ContextFrontend(
             ref ! JobActor.Event.Perform(connection)
             becomeNext(connectorState.askSuccess, currentState.toWorking(id))
           case None =>
-            connection.markUnused()
+            connection.release()
             becomeNextConn(connectorState.askSuccess.connectionReleased)
         }
 
-      case Event.Connection(_, connection) => connection.markUnused()
+      case Event.Connection(_, connection) => connection.release()
 
       case Event.ConnectionFailure(connId, e) if connId == connectorState.id =>
         log.error(e, "Ask new worker connection for {} failed", name)
@@ -218,12 +218,12 @@ class ContextFrontend(
       becomeWithConnector(ctx, next, connectorState)
 
     case Event.Connection(connId, connection) if connId == connectorState.id =>
-      connection.markUnused()
+      connection.release()
       val next = connectorState.askSuccess.connectionReleased
       context become emptyWithConnector(ctx, next, timerKey)
 
     case Event.Connection(_, connection) =>
-      connection.markUnused()
+      connection.release()
 
     case Event.Downtime =>
       log.info(s"Context $name was inactive")
@@ -248,7 +248,7 @@ class ContextFrontend(
     case CancelJobRequest(id) => sleepingTilUpdate(cancelJob(id, state, sender()), conn, brokenCtx, error)
 
     case Event.Connection(_, connection) =>
-      connection.markUnused()
+      connection.release()
   }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
@@ -304,8 +304,8 @@ class ContextFrontend(
 }
 
 object ContextFrontend {
-  val ConnectionFailedMaxTimes = 50
-  val ConnectorFailedMaxTimes = 50
+  val ConnectionFailedMaxTimes = 5
+  val ConnectorFailedMaxTimes = 5
 
   sealed trait Event
   object Event {

@@ -17,7 +17,7 @@ class WorkerConnectorSpec extends ActorSpec("actor-based-connector") {
     target.expectMsgType[WorkerConnector.Event.AskConnection]
 
     connector.warmUp()
-    target.expectMsgType[WorkerConnector.Event.WarnUp.type]
+    target.expectMsgType[WorkerConnector.Event.WarmUp.type]
 
     connector.shutdown(true)
     target.expectMsgType[ShutdownCommand]

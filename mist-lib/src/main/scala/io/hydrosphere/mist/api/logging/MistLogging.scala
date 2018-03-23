@@ -11,6 +11,7 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import com.typesafe.config.ConfigFactory
+import io.hydrosphere.mist.api.logging.MistLogging.RemoteLogsWriter.Key
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Await
@@ -79,7 +80,6 @@ private [mist] object MistLogging {
         writer.toString
       })
 
-
       LogEvent(from, message, ts, Level.Error.value, errTrace)
     }
 
@@ -94,6 +94,7 @@ private [mist] object MistLogging {
 
     def write(e: LogEvent): Unit
 
+    def close(): Unit
   }
 
   class Slf4jWriter(sourceId: String) extends LogsWriter {
@@ -106,6 +107,9 @@ private [mist] object MistLogging {
       case Level.Warn =>  sl4jLogger.warn(e.message)
       case Level.Error => sl4jLogger.error(e.message, e)
     }
+
+    override def close(): Unit = ()
+
   }
 
   class RemoteLogsWriter(host: String, port: Int) extends LogsWriter {
@@ -144,13 +148,13 @@ private [mist] object MistLogging {
 
     def close(): Unit = {
       mat.shutdown()
+      RemoteLogsWriter.remove(Key(host, port))
       Await.result(sys.terminate(), Duration.Inf)
     }
 
   }
 
   object RemoteLogsWriter {
-
     val systemConfig = ConfigFactory.parseString(
       "akka.daemonic = on"
     )
@@ -159,13 +163,17 @@ private [mist] object MistLogging {
     private val writers = new ConcurrentHashMap[Key, RemoteLogsWriter]()
 
     def getOrCreate(host: String, port: Int): RemoteLogsWriter = {
+      getWith(host, port)(key => new RemoteLogsWriter(key.host, key.port))
+    }
+
+    def getWith(host: String, port: Int)(createFn: Key => RemoteLogsWriter): RemoteLogsWriter = {
       val key = Key(host, port)
       writers.computeIfAbsent(key, new java.util.function.Function[Key, RemoteLogsWriter] {
-        override def apply(k: Key): RemoteLogsWriter = {
-          new RemoteLogsWriter(k.host, k.port)
-        }
+        override def apply(k: Key): RemoteLogsWriter = createFn(k)
       })
     }
+
+    def remove(key: Key): RemoteLogsWriter = writers.remove(key)
 
     private case class Key(host: String, port: Int)
 
