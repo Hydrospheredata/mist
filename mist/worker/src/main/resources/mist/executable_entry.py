@@ -48,6 +48,18 @@ class FunctionEntry(ExecutableEntry):
     def invoke(self, context_wrapper, params):
         return self._fn(context_wrapper, **params)
 
+def extract_args(method):
+    try:
+        from inspect import signature
+        sign = signature(method)
+        user_params = sign.parameters.values()[1:]
+        self.name = name
+        self.type_hint = type_hint
+        self.callback = callback
+        return user_params
+    except ImportError:
+        from inspect import getargsspec
+
 
 class ClassEntry(ExecutableEntry):
 
@@ -75,7 +87,12 @@ class ClassEntry(ExecutableEntry):
 
         self._with_publisher = with_publisher
         self._class = class_
-        super(ClassEntry, self).__init__(type_choice, tags=tags)
+        execute_methods = [y for x, y in cls.__dict__.items() if type(y) == FunctionType and x == 'execute']
+        if len(execute_methods) != 1:
+            raise RuntimeException("There is no execute method")
+        execute_method = execute_methods[0]
+
+        super(ClassEntry, self).__init__(type_choice, tags=tags, args=_args)
 
     @property
     def with_publisher(self):

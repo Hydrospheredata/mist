@@ -1,7 +1,7 @@
 package mist.api.internal
 
 import mist.api._
-import mist.api.args.ArgInfo
+import mist.api.args.{ArgInfo, ArgType, MOption, UserInputArgument}
 import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.jdsl.JMistFn
 
@@ -58,6 +58,43 @@ class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
     }
   }
 
+}
+
+class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
+
+  override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] =
+    Left(new RuntimeException("could not execute from here"))
+
+  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = {
+    val errors = args
+      .collect { case x: UserInputArgument => x }
+      .map(arg => validate(arg, params))
+
+    if (errors.exists(_.isLeft)) {
+      val errorMsg = errors.collect({ case Left(e) => e}).mkString("(", ",", ")")
+      val msg = s"Param validation errors: $errorMsg"
+      Left(new IllegalArgumentException(msg))
+    } else {
+      Right(())
+    }
+  }
+
+  private def isOptionalArg(argType: ArgType): Boolean = argType match {
+    case MOption(_) => true
+    case _ => false
+  }
+
+  private def validate(arg: UserInputArgument, params: Map[String, Any]): Either[String, Unit] = {
+    params.get(arg.name) match {
+      case Some(_) if isOptionalArg(arg.t) => Right(())
+      case Some(_) =>
+        Right(())
+      case None =>
+        Left(s"Missing parameter by name: ${arg.name}")
+    }
+  }
+
+  override def describe(): Seq[ArgInfo] = args
 }
 
 object FunctionInstance {

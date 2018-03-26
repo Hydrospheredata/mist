@@ -11,5 +11,4 @@ class ConfigurationWrapper(configuration: JobParams) {
 
   def className: String = configuration.className
 
-
 }

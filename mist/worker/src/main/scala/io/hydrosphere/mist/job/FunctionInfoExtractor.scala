@@ -67,13 +67,6 @@ object JvmFunctionInfoExtractor {
 
 }
 
-class PythonFunctionInfoExtractor extends FunctionInfoExtractor {
-  override def extractInfo(file: File, className: String) = Succ(
-    FunctionInfo(data = ExtractedFunctionData(
-      lang = FunctionInfoData.PythonLang
-    )))
-}
-
 class BaseFunctionInfoExtractor(
   jvmJobInfoExtractor: JvmFunctionInfoExtractor,
   pythonJobInfoExtractor: PythonFunctionInfoExtractor

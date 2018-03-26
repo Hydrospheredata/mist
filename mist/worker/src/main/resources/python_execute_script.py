@@ -69,18 +69,18 @@ def execution_cmd(args):
     context_wrapper.set_context(_gateway)
 
     configuration_wrapper = _entry_point.configurationWrapper()
-    error_wrapper = _entry_point.errorWrapper()
+    error_wrapper = _entry_point.error()
     path = configuration_wrapper.path()
     class_name = configuration_wrapper.className()
     parameters = configuration_wrapper.parameters()
 
-    data_wrapper = _entry_point.dataWrapper()
+    data_wrapper = _entry_point.data()
 
-try:
-    with open(path) as file:
-        code = compile(file.read(), path, "exec")
-    user_job_module = types.ModuleType("<user_job>")
-    exec(code, user_job_module.__dict__)
+    try:
+        with open(path) as file:
+            code = compile(file.read(), path, "exec")
+        user_job_module = types.ModuleType("<user_job>")
+        exec(code, user_job_module.__dict__)
 
         module_entry = getattr(user_job_module, class_name)
         executable_entry = get_metadata(module_entry)
@@ -101,21 +101,9 @@ try:
         error_wrapper.set(traceback.format_exc())
 
 
-def metadata_cmd(args):
-    # TODO:
-    pass
-    # return get_metadata(args.fn_name)
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers()
-    exec_cmd = subparsers.add_parser('execution')
-    exec_cmd.add_argument('--gateway-port', type=int)
-    exec_cmd.set_defaults(func=execution_cmd)
-    metadata_cmd = subparsers.add_parser('metadata')
-    metadata_cmd.add_argument('--fn-name', type=str)
-    metadata_cmd.set_defaults(func=metadata_cmd)
+    parser.add_argument('--gateway-port', type=int)
     args = parser.parse_args()
-    args.func(args)
+    execution_cmd(args)
 
