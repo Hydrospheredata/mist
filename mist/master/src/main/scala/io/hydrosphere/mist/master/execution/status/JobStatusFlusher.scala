@@ -122,7 +122,7 @@ object JobStatusFlusher {
         d.withEndTime(time).withJobResult(result).withStatus(Status.Finished)
       case FailedEvent(_, time, error) =>
         val status = if (d.status == Status.Canceled) d else d.withStatus(Status.Failed)
-        d.withEndTime(time).withFailure(error)
+        status.withEndTime(time).withFailure(error)
       case WorkerAssigned(_, workerId) => d.copy(workerId = Some(workerId))
     }
   }

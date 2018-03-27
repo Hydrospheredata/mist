@@ -86,9 +86,6 @@ try:
         if issubclass(class_, WithHiveSupport):
             context_wrapper.set_hive_context(_gateway)
 
-    if issubclass(class_, WithPublisher):
-        context_wrapper.init_publisher(_gateway)
-
     if issubclass(class_, WithStreamingContext):
         context_wrapper.set_streaming_context(_gateway)
 

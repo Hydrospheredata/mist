@@ -103,14 +103,12 @@ class WorkerActor(
       log.info(s"Job execution done. Returning result $data and become awaiting new request")
       sparkRootLogger.removeAppender(req.id)
       respond ! JobSuccess(req.id, data)
-      context become awaitRequest()
       self ! PoisonPill
 
     case Status.Failure(e) =>
       log.info(s"Job execution done. Returning result $e and become awaiting new request")
       sparkRootLogger.removeAppender(req.id)
       respond ! mkFailure(req, e)
-      context become awaitRequest()
       self ! PoisonPill
   }
 

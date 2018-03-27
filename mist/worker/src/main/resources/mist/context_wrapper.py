@@ -41,15 +41,8 @@ class ContextWrapper:
 
     def set_streaming_context(self, java_gateway):
         from pyspark.streaming import StreamingContext
-        self._streaming_context = StreamingContext(self._context, java_gateway.entry_point.sparkStreamingWrapper().getDurationSeconds())
-        java_gateway.entry_point.sparkStreamingWrapper().setStreamingContext(self._streaming_context._jssc)
-
-    def init_publisher(self, java_gateway):
         spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
-        wrapper = java_gateway.entry_point.globalPublisherWrapper()
-        conf = spark_context_wrapper.setupConfiguration()
-        self._publisher = wrapper.create(conf)
-
+        self._streaming_context = StreamingContext(self._context, java_gateway.entry_point.sparkStreamingWrapper().getDurationSeconds())
 
     @property
     def context(self):
