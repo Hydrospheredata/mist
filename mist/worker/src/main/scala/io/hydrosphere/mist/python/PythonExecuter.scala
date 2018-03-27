@@ -30,10 +30,11 @@ trait EntryPoint {
 
 
 trait PythonCmd[A] extends Logger {
+  val module: String
 
   private def selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
 
-  def invoke(module: String, fnConf: Option[SparkConf] = None): Either[Throwable, A] = {
+  def invoke(fnConf: Option[SparkConf] = None): Either[Throwable, A] = {
     def pythonDriverEntry(): String = {
       //      val conf = context.sparkContext.getConf
       fnConf.flatMap(_.getOption("spark.pyspark.driver.python")).getOrElse(pythonGlobalEntry())
@@ -62,12 +63,13 @@ trait PythonCmd[A] extends Logger {
 
       val cmd = Seq(
         pythonDriverEntry(),
-        selfJarPath.toString,
         "-m",
         module,
+        selfJarPath.toString,
         "--gateway-port",
         py4jPort.toString
       )
+      println(cmd)
       logger.info(s"Running python task: $cmd, env $env")
       val ps = Process(cmd, None, env: _*)
       ps.!
@@ -112,7 +114,7 @@ trait DataExtractor[+T] {
   def extract(a: Any): Try[T]
 }
 
-class Yoyo extends DataExtractor[JsLikeData] {
+class JsLikeDataExtractor extends DataExtractor[JsLikeData] {
   override def extract(a: Any): Try[JsLikeData] = a match {
     case yoyo: java.util.HashMap[_, _] =>
       Try(JsLikeData.fromScala(Collections.asScalaRecursively(
@@ -122,7 +124,7 @@ class Yoyo extends DataExtractor[JsLikeData] {
   }
 }
 
-class ArgInfoSeqE extends DataExtractor[Seq[ArgInfo]] {
+class ArgInfoSeqDataE extends DataExtractor[Seq[ArgInfo]] {
   override def extract(a: Any): Try[Seq[ArgInfo]] = a match {
     case yoyo: java.util.List[_] =>
       Try(Collections.asScalaRecursively(yoyo).map {
@@ -141,10 +143,7 @@ class ExecutePythonEntryPoint(req: RunJobRequest, context: NamedContext) extends
 }
 
 
-class GetInfoPythonEntryPoint(
-  val functionName: String,
-  val filePath: String
-) extends EntryPoint
+class GetInfoPythonEntryPoint(functionName: String, filePath: String) extends EntryPoint
 
 
 class PythonFunctionExecuter(
@@ -152,14 +151,19 @@ class PythonFunctionExecuter(
   context: NamedContext
 ) extends PythonCmd[JsLikeData] {
 
+  override val module: String = "python_execute_script"
+
   override def mkEntryPoint(): EntryPoint = new ExecutePythonEntryPoint(req, context)
 
-  override def dataExtractor: DataExtractor[JsLikeData] = new Yoyo
+  override def dataExtractor: DataExtractor[JsLikeData] = new JsLikeDataExtractor
 
 }
 
 class FunctionInfoPythonExecuter(jobFile: File, fnName: String) extends PythonCmd[Seq[ArgInfo]] {
+
+  override val module: String = "metadata_extractor"
+
   override def mkEntryPoint(): EntryPoint = new GetInfoPythonEntryPoint(jobFile.getAbsolutePath, fnName)
 
-  override def dataExtractor: DataExtractor[Seq[ArgInfo]] = new ArgInfoSeqE
+  override def dataExtractor: DataExtractor[Seq[ArgInfo]] = new ArgInfoSeqDataE
 }

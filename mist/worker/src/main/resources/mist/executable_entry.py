@@ -1,9 +1,10 @@
 from abc import abstractmethod
+from types import FunctionType
 
-from decorators import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
-from decorators import tags as dec_tags
-from mist.mist_job import WithPublisher
-from mist_job import WithHiveSupport, WithSQLSupport, MistJob
+from .tags import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
+from .tags import tags as dec_tags
+
+from .mist_job import WithHiveSupport, WithSQLSupport, MistJob, WithPublisher
 from inspect import isfunction
 
 
@@ -48,17 +49,10 @@ class FunctionEntry(ExecutableEntry):
     def invoke(self, context_wrapper, params):
         return self._fn(context_wrapper, **params)
 
-def extract_args(method):
-    try:
-        from inspect import signature
-        sign = signature(method)
-        user_params = sign.parameters.values()[1:]
-        self.name = name
-        self.type_hint = type_hint
-        self.callback = callback
-        return user_params
-    except ImportError:
-        from inspect import getargsspec
+
+def extract_args_from_method(method):
+    # TODO: implement
+    raise NotImplementedError("implement to get args from execute method")
 
 
 class ClassEntry(ExecutableEntry):
@@ -87,11 +81,13 @@ class ClassEntry(ExecutableEntry):
 
         self._with_publisher = with_publisher
         self._class = class_
-        execute_methods = [y for x, y in cls.__dict__.items() if type(y) == FunctionType and x == 'execute']
-        if len(execute_methods) != 1:
-            raise RuntimeException("There is no execute method")
-        execute_method = execute_methods[0]
 
+        execute_methods = [y for x, y in class_.__dict__.items() if isfunction(y) and x == 'execute']
+        if len(execute_methods) == 1:
+            execute_method = execute_methods[0]
+            _args = extract_args_from_method(execute_method)
+        else:
+            _args = []
         super(ClassEntry, self).__init__(type_choice, tags=tags, args=_args)
 
     @property

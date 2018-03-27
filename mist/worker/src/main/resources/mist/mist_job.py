@@ -2,6 +2,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+
 class ContextSupport:
     __metaclass__ = ABCMeta
 
@@ -14,6 +15,7 @@ class ContextSupport:
     def setup(self, context_wrapper):
         self.context = context_wrapper.context
 
+
 class MistJob(ContextSupport):
     __metaclass__ = ABCMeta
 
@@ -23,6 +25,7 @@ class MistJob(ContextSupport):
 
     def setup(self, context_wrapper):
         super(MistJob, self).setup(context_wrapper)
+
 
 class WithSQLSupport(ContextSupport):
     __metaclass__ = ABCMeta
@@ -39,6 +42,7 @@ class WithSQLSupport(ContextSupport):
         except ImportError:
             self.sql_context = context_wrapper.sql_context
 
+
 class WithHiveSupport(ContextSupport):
     __metaclass__ = ABCMeta
 
@@ -54,6 +58,7 @@ class WithHiveSupport(ContextSupport):
         except ImportError:
             self.hive_context = context_wrapper.hive_context
 
+
 class WithPublisher(ContextSupport):
     __metaclass__ = ABCMeta
 
@@ -62,6 +67,7 @@ class WithPublisher(ContextSupport):
     @abstractmethod
     def setup(self, context_wrapper):
         self.publisher = context_wrapper.publisher
+
 
 class WithStreamingContext(ContextSupport):
     __metaclass__ = ABCMeta

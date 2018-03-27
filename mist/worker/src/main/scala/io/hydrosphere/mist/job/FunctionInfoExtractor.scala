@@ -5,9 +5,10 @@ import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
-import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
-import mist.api.args.{InternalArgument, UserInputArgument}
-import mist.api.internal.{BaseFunctionInstance, JavaFunctionInstance, FunctionInstance}
+import io.hydrosphere.mist.python.{FunctionInfoPythonExecuter, PythonCmd}
+import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
+import mist.api.args.{ArgInfo, InternalArgument, UserInputArgument}
+import mist.api.internal.{BaseFunctionInstance, FunctionInstance, JavaFunctionInstance, PythonFunctionInstance}
 import org.apache.commons.io.FilenameUtils
 
 case class FunctionInfo(
@@ -61,6 +62,40 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
 
 }
 
+class PythonFunctionInfoExtractor(mkExecuter: (File, String) => PythonCmd[Seq[ArgInfo]]) extends FunctionInfoExtractor with Logger {
+
+  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
+    val executer = mkExecuter(file, className)
+    //TODO: define context value
+    val args = executer.invoke() match {
+      case Left(ex) =>
+        logger.error(ex.getLocalizedMessage, ex)
+        Seq.empty
+      case Right(out) => out
+    }
+
+    val instance = new PythonFunctionInstance(args)
+    Succ(FunctionInfo(
+      instance,
+      ExtractedFunctionData(
+        className,
+        FunctionInfoData.PythonLang,
+        args.collect { case u: UserInputArgument => u },
+        isServe = false,
+        args.collect { case InternalArgument(t) => t }.flatten
+      )
+    ))
+  }
+}
+
+object PythonFunctionInfoExtractor {
+
+  def apply(): PythonFunctionInfoExtractor = {
+    val mkExecuter = (file: File, fnName: String) => new FunctionInfoPythonExecuter(file, fnName)
+    new PythonFunctionInfoExtractor(mkExecuter)
+  }
+}
+
 object JvmFunctionInfoExtractor {
 
   def apply(): JvmFunctionInfoExtractor = new JvmFunctionInfoExtractor(clzLoader => new FunctionInstanceLoader(clzLoader))
@@ -85,5 +120,6 @@ class BaseFunctionInfoExtractor(
 
 object FunctionInfoExtractor {
   def apply(): BaseFunctionInfoExtractor =
-    new BaseFunctionInfoExtractor(JvmFunctionInfoExtractor(), new PythonFunctionInfoExtractor)
+    new BaseFunctionInfoExtractor(JvmFunctionInfoExtractor(), PythonFunctionInfoExtractor())
 }
+

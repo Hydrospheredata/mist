@@ -1,13 +1,7 @@
 from abc import abstractmethod
 
-SPARK_CONTEXT = 'sp_context'
-SPARK_SESSION = 'sp_session'
-SQL_CONTEXT = 'sql_context'
-HIVE_CONTEXT = 'hive_context'
-HIVE_SESSION = 'hive_session'
-SPARK_STREAMING = 'streaming'
-
-TYPE_CHOICES = (SPARK_CONTEXT, SPARK_SESSION, SQL_CONTEXT, HIVE_CONTEXT, HIVE_SESSION, SPARK_STREAMING)
+from .tags import TYPE_CHOICES, SPARK_CONTEXT, SPARK_SESSION, SQL_CONTEXT, HIVE_CONTEXT, HIVE_SESSION, SPARK_STREAMING
+from .tags import tags as dec_tags
 
 
 class BadParameterException(Exception):
@@ -44,10 +38,9 @@ class SystemArg(object):
 
 
 class AbstractArg(object):
-    def __init__(self, name, type_hint, callback=None):
+    def __init__(self, name, type_hint):
         self.name = name
         self.type_hint = type_hint
-        self.callback = callback
 
     @abstractmethod
     def _decorate(self, fn_args, fn_kwargs):
@@ -75,8 +68,8 @@ class NamedArg(AbstractArg):
 
 
 class NamedArgWithDefault(AbstractArg):
-    def __init__(self, name, type_hint, callback=None, default=None):
-        super(NamedArgWithDefault, self).__init__(name, type_hint, callback)
+    def __init__(self, name, type_hint, default=None):
+        super(NamedArgWithDefault, self).__init__(name, type_hint)
         self.default = default
 
     def _decorate(self, fn_args, fn_kwargs):
@@ -88,8 +81,8 @@ class NamedArgWithDefault(AbstractArg):
 
 
 class OptionalArg(AbstractArg):
-    def __init__(self, name, type_hint, callback):
-        super(OptionalArg, self).__init__(name, type_hint, callback)
+    def __init__(self, name, type_hint):
+        super(OptionalArg, self).__init__(name, type_hint)
 
     def _decorate(self, fn_args, fn_kwargs):
         new_kwargs = dict(fn_kwargs)
@@ -98,32 +91,26 @@ class OptionalArg(AbstractArg):
         return fn_args, fn_kwargs
 
 
-def arg(name, type_hint, default=None, callback=None, optional=False):
+def arg(name, type_hint, default=None, optional=False):
     if optional:
-        return OptionalArg(name, type_hint, callback)
+        return OptionalArg(name, type_hint)
     if default is not None:
-        return NamedArgWithDefault(name, type_hint, callback, default)
-    return NamedArg(name, type_hint, callback)
+        return NamedArgWithDefault(name, type_hint, default)
+    return NamedArg(name, type_hint)
 
 
 def opt_arg(name, type_hint):
     return arg(name, type_hint, optional=True)
 
 
-class _tags(object):
-    def __init__(self):
-        self.sql = {'sql'}
-        self.hive = {'hive', 'sql'}
-        self.streaming = {'streaming'}
+class __complex_type(object):
+    def __init__(self, container_type, main_type):
+        self.container_type = container_type
+        self.main_type = main_type
 
 
-tags = _tags()
-on_spark_context = SystemArg(SPARK_CONTEXT)
-on_spark_session = SystemArg(SPARK_SESSION, tags.sql)
-on_sql_context = SystemArg(SQL_CONTEXT, tags.sql)
-on_hive_context = SystemArg(HIVE_CONTEXT, tags.hive)
-on_hive_session = SystemArg(HIVE_SESSION, tags.hive)
-on_streaming_context = SystemArg(SPARK_STREAMING, tags.streaming)
+def list_type(main_type):
+    return __complex_type(list, main_type)
 
 
 def with_args(*args_decorator):
@@ -139,3 +126,11 @@ def with_args(*args_decorator):
         return _wraps
 
     return _call
+
+
+on_spark_context = SystemArg(SPARK_CONTEXT)
+on_spark_session = SystemArg(SPARK_SESSION, dec_tags.sql)
+on_sql_context = SystemArg(SQL_CONTEXT, dec_tags.sql)
+on_hive_context = SystemArg(HIVE_CONTEXT, dec_tags.hive)
+on_hive_session = SystemArg(HIVE_SESSION, dec_tags.hive)
+on_streaming_context = SystemArg(SPARK_STREAMING, dec_tags.streaming)
