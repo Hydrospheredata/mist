@@ -9,9 +9,6 @@ import mist.api.data.JsLikeData
 import org.apache.log4j.{Appender, LogManager}
 import org.apache.spark.streaming.StreamingContext
 
-import scala.concurrent._
-import scala.util.{Failure, Success}
-
 class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
@@ -45,9 +42,9 @@ class WorkerActor(
   ): Receive = {
     case artifact: SparkArtifact =>
       val runner = runnerSelector.selectRunner(artifact)
-      val jobFuture = runner.runDetached(req, namedContext)
-      respond ! JobStarted(req.id)
       namedContext.sparkContext.setJobGroup(req.id, req.id)
+      val jobFuture = run(runner, req)
+      respond ! JobStarted(req.id)
       jobFuture.future pipeTo self
       context become next(req, respond, jobFuture)
 
@@ -124,10 +121,18 @@ class WorkerActor(
     artifactDownloader.stop()
   }
 
-  def mkFailure(req: RunJobRequest, ex: Throwable): JobResponse =
+  private def run(runner: JobRunner, req: RunJobRequest): JobFuture = CancellableFuture.onDetachedThread {
+    runner.run(req, namedContext) match {
+      case Left(e: InterruptedException) => throw new RuntimeException("Execution was cancelled")
+      case Left(e) => throw e
+      case Right(data) => data
+    }
+  }
+
+  private def mkFailure(req: RunJobRequest, ex: Throwable): JobResponse =
     JobFailure(req.id, buildErrorMessage(req.params, ex))
 
-  def mkFailure(req: RunJobRequest, ex: String): JobResponse =
+  private def mkFailure(req: RunJobRequest, ex: String): JobResponse =
     JobFailure(req.id, ex)
 
   protected def buildErrorMessage(params: JobParams, e: Throwable): String = {

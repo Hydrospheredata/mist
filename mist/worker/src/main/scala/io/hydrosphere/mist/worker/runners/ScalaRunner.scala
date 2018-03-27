@@ -15,7 +15,7 @@ import org.apache.spark.util.SparkClassLoader
 
 class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
 
-  override def runSync(
+  override def run(
     request: RunJobRequest,
     context: NamedContext):Either[Throwable, JsLikeData] = {
 

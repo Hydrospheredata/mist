@@ -53,7 +53,7 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
       ("event", "details"),
       (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
-      (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled, endTime = Some(1))),
+      (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled)),
       (FinishedEvent("id", 1, JsLikeMap("1" -> JsLikeNumber(2))),
         baseDetails.copy(
           status = Status.Finished,
@@ -74,10 +74,10 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
       }
     }
 
-    it("should ignore failure if job is canceled") {
+    it("shouldn't chang cancelled status by failure event") {
       val canceled = baseDetails.copy(status = Status.Canceled)
       val event = FailedEvent("id", 1, "error")
-      JobStatusFlusher.applyStatusEvent(canceled, event) shouldBe canceled
+      JobStatusFlusher.applyStatusEvent(canceled, event).status shouldBe Status.Canceled
     }
   }
 }
