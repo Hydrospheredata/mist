@@ -99,11 +99,3 @@ def execution_cmd(args):
 
     except Exception:
         error_wrapper.set(traceback.format_exc())
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--gateway-port', type=int)
-    args = parser.parse_args()
-    execution_cmd(args)
-

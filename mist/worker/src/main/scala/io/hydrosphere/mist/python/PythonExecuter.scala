@@ -63,11 +63,9 @@ trait PythonCmd[A] extends Logger {
 
       val cmd = Seq(
         pythonDriverEntry(),
-        "-m",
-        module,
         selfJarPath.toString,
-        "--gateway-port",
-        py4jPort.toString
+        "--module", module,
+        "--gateway-port", py4jPort.toString
       )
       println(cmd)
       logger.info(s"Running python task: $cmd, env $env")
@@ -116,22 +114,20 @@ trait DataExtractor[+T] {
 
 class JsLikeDataExtractor extends DataExtractor[JsLikeData] {
   override def extract(a: Any): Try[JsLikeData] = a match {
-    case yoyo: java.util.HashMap[_, _] =>
-      Try(JsLikeData.fromScala(Collections.asScalaRecursively(
-        yoyo.asInstanceOf[java.util.HashMap[String, Any]]
-      )))
-    case _ => Failure(new IllegalArgumentException("FUCK"))
+    case returnValue: java.util.Map[_, _] =>
+      Try(JsLikeData.fromJava(returnValue))
+    case _ => Failure(new IllegalArgumentException("We should only return here ju.HashMap[String, Any] type"))
   }
 }
 
 class ArgInfoSeqDataE extends DataExtractor[Seq[ArgInfo]] {
   override def extract(a: Any): Try[Seq[ArgInfo]] = a match {
-    case yoyo: java.util.List[_] =>
-      Try(Collections.asScalaRecursively(yoyo).map {
+    case returnedValue: Seq[_] =>
+      Try(returnedValue.map {
         case y: ArgInfo => y
-        case _ => throw new IllegalArgumentException("wrong")
+        case _ => throw new IllegalArgumentException("We should only return here ArgInfo type")
       })
-    case _ => throw new IllegalArgumentException("wrong")
+    case _ => Failure(new IllegalArgumentException("We should only return here Seq[_] type"))
   }
 }
 
@@ -143,12 +139,15 @@ class ExecutePythonEntryPoint(req: RunJobRequest, context: NamedContext) extends
 }
 
 
-class GetInfoPythonEntryPoint(functionName: String, filePath: String) extends EntryPoint
+class GetInfoPythonEntryPoint(
+    val functionName: String,
+    val filePath    : String
+) extends EntryPoint
 
 
 class PythonFunctionExecuter(
-  req: RunJobRequest,
-  context: NamedContext
+    req    : RunJobRequest,
+    context: NamedContext
 ) extends PythonCmd[JsLikeData] {
 
   override val module: String = "python_execute_script"
@@ -163,7 +162,7 @@ class FunctionInfoPythonExecuter(jobFile: File, fnName: String) extends PythonCm
 
   override val module: String = "metadata_extractor"
 
-  override def mkEntryPoint(): EntryPoint = new GetInfoPythonEntryPoint(jobFile.getAbsolutePath, fnName)
+  override def mkEntryPoint(): EntryPoint = new GetInfoPythonEntryPoint(fnName, jobFile.getAbsolutePath)
 
   override def dataExtractor: DataExtractor[Seq[ArgInfo]] = new ArgInfoSeqDataE
 }

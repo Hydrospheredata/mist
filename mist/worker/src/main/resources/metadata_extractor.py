@@ -12,41 +12,40 @@ from mist.executable_entry import get_metadata
 
 def to_scala_arg_type(type_hint, gateway):
     if type_hint is None:
-        return gateway.jvm.mist.api.args.MAny.apply()
+        return gateway.jvm.PythonUtils.anyType()
 
     if isinstance(type_hint, __complex_type):
         if issubclass(type_hint.container_type, list):
-            arg_type = gateway.jvm.mist.api.args.MList.apply(to_scala_arg_type(type_hint.main_type, gateway))
+            underlying = to_scala_arg_type(type_hint.main_type, gateway)
+            arg_type = gateway.jvm.PythonUtils.listType(underlying)
         else:
-            arg_type = gateway.jvm.mist.api.args.MAny.apply()
+            arg_type = gateway.jvm.PythonUtils.anyType()
     else:
         if issubclass(type_hint, str):
-            arg_type = gateway.jvm.mist.api.args.MString.apply()
+            arg_type = gateway.jvm.PythonUtils.strType()
         elif issubclass(type_hint, int):
-            arg_type = gateway.jvm.mist.api.args.MInt.apply()
+            arg_type = gateway.jvm.PythonUtils.intType()
         elif issubclass(type_hint, float):
-            arg_type = gateway.jvm.mist.api.args.MDouble.apply()
+            arg_type = gateway.jvm.PythonUtils.doubleType()
         elif issubclass(type_hint, bool):
-            arg_type = gateway.jvm.mist.api.args.MBoolean.apply()
+            arg_type = gateway.jvm.PythonUtils.boolType()
 
         elif issubclass(type_hint, list):
-            arg_type = gateway.jvm.mist.api.args.MList.apply(
-                gateway.jvm.mist.api.args.MAny.apply()
-            )
+            arg_type = gateway.jvm.PythonUtils.listType(gateway.jvm.PythonUtils.anyType())
         else:
-            arg_type = gateway.jvm.mist.api.args.MAny.apply()
+            arg_type = gateway.jvm.PythonUtils.anyType()
 
     return arg_type
 
 
 def to_scala_internal_arg_info(tags, gateway):
-    return gateway.jvm.mist.api.args.InternalArgument.apply(tags)
+    return gateway.jvm.PythonUtils.systemArg(tags)
 
 
 def to_scala_arg_info(arg_decorator_like, gateway):
     type_hint = arg_decorator_like.type_hint
     arg_type = to_scala_arg_type(type_hint, gateway)
-    arg = gateway.jvm.mist.api.args.UserInputArgument.apply(arg_decorator_like.name, arg_type)
+    arg = gateway.jvm.PythonUtils.userArg(arg_decorator_like.name, arg_type)
     return arg
 
 
@@ -75,10 +74,3 @@ def metadata_cmd(input_args):
         data_wrapper.set(_gateway.jvm.PythonUtils.toSeq(arg_infos))
     except Exception:
         error_wrapper.set(traceback.format_exc())
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--gateway-port', type=int)
-    args = parser.parse_args()
-    metadata_cmd(args)
