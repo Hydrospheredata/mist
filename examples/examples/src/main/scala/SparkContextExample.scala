@@ -15,7 +15,9 @@ object SparkContextExample extends MistFn[Array[Int]] {
        import extras._
 
        logger.info(s"Heello from $jobId")
-       sc.parallelize(nums).map(_ * mult).collect()
+       sc.parallelize((1 to 100000).flatMap(_ => nums)).map(_ * mult).collect()
+       Thread.sleep(1000 * 10)
+       sc.parallelize((1 to 100000).flatMap(_ => nums)).map(_ * mult).collect()
      })
   }
 

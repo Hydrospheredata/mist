@@ -1,149 +1,142 @@
 package io.hydrosphere.mist.worker
 
-import java.util.concurrent.Executors
-
 import akka.actor._
+import akka.pattern.pipe
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
 import org.apache.log4j.{Appender, LogManager}
 import org.apache.spark.streaming.StreamingContext
-import org.slf4j.LoggerFactory
 
 import scala.concurrent._
 import scala.util.{Failure, Success}
-
-case class ExecutionUnit(
-  requester: ActorRef,
-  jobFuture: Future[Either[Throwable, JsLikeData]]
-)
-
-trait JobStarting {
-  that: Actor =>
-  val runnerSelector: RunnerSelector
-  val namedContext: NamedContext
-  val artifactDownloader: ArtifactDownloader
-  protected val rootLogger = LogManager.getRootLogger
-
-
-  protected final def startJob(
-    req: RunJobRequest
-  )(implicit ec: ExecutionContext): Future[Either[Throwable, JsLikeData]] = {
-    val id = req.id
-    val s = sender()
-    val jobStart = for {
-      artifact <- downloadFile(s, req)
-      runner   =  runnerSelector.selectRunner(artifact)
-      res      =  runJob(s, req, runner)
-    } yield res
-
-    jobStart.onComplete(r => {
-      val message = r match {
-        case Success(Right(value)) => JobSuccess(id, value)
-        case Success(Left(err)) => failure(req, err)
-        case Failure(e) => failure(req, e)
-      }
-      self ! message
-    })
-    jobStart
-  }
-
-  private def downloadFile(actor: ActorRef, req: RunJobRequest): Future[SparkArtifact] = {
-    actor ! JobFileDownloading(req.id)
-    artifactDownloader.downloadArtifact(req.params.filePath)
-  }
-
-  private def failure(req: RunJobRequest, ex: Throwable): JobResponse =
-    JobFailure(req.id, buildErrorMessage(req.params, ex))
-
-
-  private def runJob(actor: ActorRef, req: RunJobRequest, runner: JobRunner): Either[Throwable, JsLikeData] = {
-    val id = req.id
-    actor ! JobStarted(id)
-    namedContext.sparkContext.setJobGroup(id, id)
-    runner.run(req, namedContext)
-  }
-
-  protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
-    val msg = Option(e.getMessage).getOrElse("")
-    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
-    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
-  }
-}
 
 class WorkerActor(
   val runnerSelector: RunnerSelector,
   val namedContext: NamedContext,
   val artifactDownloader: ArtifactDownloader,
   mkAppender: String => Option[Appender]
-) extends Actor with JobStarting with ActorLogging {
+) extends Actor with ActorLogging {
 
-  implicit val ec = {
-    val logger = LoggerFactory.getLogger(this.getClass)
-    val service = Executors.newFixedThreadPool(1)
-    ExecutionContext.fromExecutorService(
-      service,
-      e => logger.error("Error from thread pool", e)
-    )
-  }
+  import context._
+
+  val sparkRootLogger = LogManager.getRootLogger
+
+  type JobFuture = CancellableFuture[JsLikeData]
 
   override def receive: Receive = awaitRequest()
 
   private def awaitRequest(): Receive = {
     case req: RunJobRequest =>
-      mkAppender(req.id).foreach(rootLogger.addAppender)
-      val jobStarted = startJob(req)
-      val unit = ExecutionUnit(sender(), jobStarted)
-      context become running(unit)
+      mkAppender(req.id).foreach(sparkRootLogger.addAppender)
+      sender() ! JobFileDownloading(req.id)
+      artifactDownloader.downloadArtifact(req.params.filePath) pipeTo self
+      context become downloading(sender(), req, running)
 
     case _: ShutdownCommand =>
       self ! PoisonPill
   }
 
-  private def running(execution: ExecutionUnit): Receive = {
+  private def downloading(
+    respond: ActorRef,
+    req: RunJobRequest,
+    next: (RunJobRequest, ActorRef, JobFuture) => Receive
+  ): Receive = {
+    case artifact: SparkArtifact =>
+      val runner = runnerSelector.selectRunner(artifact)
+      val jobFuture = runner.runDetached(req, namedContext)
+      respond ! JobStarted(req.id)
+      namedContext.sparkContext.setJobGroup(req.id, req.id)
+      jobFuture.future pipeTo self
+      context become next(req, respond, jobFuture)
+
+    case CancelJobRequest(id) =>
+      sparkRootLogger.removeAppender(id)
+      respond ! JobIsCancelled(id)
+      respond ! mkFailure(req, new RuntimeException("Job was cancelled before starting"))
+      context become awaitRequest()
+
+    case ForceShutdown =>
+      respond ! mkFailure(req, "Worker has been stopped")
+      self ! PoisonPill
+
+    case CompleteAndShutdown =>
+      context become downloading(respond, req, completeAndShutdown)
+
+    case Status.Failure(e) =>
+      respond ! mkFailure(req, e)
+      context become awaitRequest()
+  }
+
+  private def running(req: RunJobRequest, respond: ActorRef, jobFuture: JobFuture): Receive = {
     case RunJobRequest(id, _, _) =>
       sender() ! WorkerIsBusy(id)
-    case resp: JobResponse =>
-      log.info(s"Job execution done. Returning result $resp and become awaiting new request")
-      rootLogger.removeAppender(resp.id)
-      execution.requester ! resp
+
+    case data: JsLikeData =>
+      log.info(s"Job execution done. Returning result $data and become awaiting new request")
+      sparkRootLogger.removeAppender(req.id)
+      respond ! JobSuccess(req.id, data)
+      context become awaitRequest()
+
+    case Status.Failure(e) =>
+      log.info(s"Job execution done. Returning result $e and become awaiting new request")
+      sparkRootLogger.removeAppender(req.id)
+      respond ! mkFailure(req, e)
       context become awaitRequest()
 
     case CancelJobRequest(id) =>
-      cancel(id, sender())
-      context become awaitRequest()
+      cancel(id, sender(), jobFuture)
 
     case ForceShutdown =>
       self ! PoisonPill
 
     case CompleteAndShutdown =>
-      context become completeAndShutdown(execution)
+      context become completeAndShutdown(req, respond, jobFuture)
   }
 
-  private def completeAndShutdown(execution: ExecutionUnit): Receive = {
+  private def completeAndShutdown(req: RunJobRequest, respond: ActorRef, jobFuture: JobFuture): Receive = {
     case CancelJobRequest(id) =>
-      cancel(id, sender())
+      cancel(id, sender(), jobFuture)
+
+    case data: JsLikeData =>
+      log.info(s"Job execution done. Returning result $data and become awaiting new request")
+      sparkRootLogger.removeAppender(req.id)
+      respond ! JobSuccess(req.id, data)
+      context become awaitRequest()
       self ! PoisonPill
-    case resp: JobResponse =>
-      log.info(s"Job execution done. Returning result $resp and shutting down")
-      rootLogger.removeAppender(resp.id)
-      execution.requester ! resp
+
+    case Status.Failure(e) =>
+      log.info(s"Job execution done. Returning result $e and become awaiting new request")
+      sparkRootLogger.removeAppender(req.id)
+      respond ! mkFailure(req, e)
+      context become awaitRequest()
       self ! PoisonPill
   }
 
-  private def cancel(id: String, respond: ActorRef): Unit = {
-    rootLogger.removeAppender(id)
+  private def cancel(id: String, respond: ActorRef, jobFuture: JobFuture): Unit = {
+    sparkRootLogger.removeAppender(id)
     namedContext.sparkContext.cancelJobGroup(id)
     StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
+    jobFuture.cancel()
     respond ! JobIsCancelled(id)
   }
 
   override def postStop(): Unit = {
-    ec.shutdown()
     artifactDownloader.stop()
   }
 
+  def mkFailure(req: RunJobRequest, ex: Throwable): JobResponse =
+    JobFailure(req.id, buildErrorMessage(req.params, ex))
+
+  def mkFailure(req: RunJobRequest, ex: String): JobResponse =
+    JobFailure(req.id, ex)
+
+  protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
+    val msg = Option(e.getMessage).getOrElse("")
+    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
+    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
+  }
 }
 
 object WorkerActor {

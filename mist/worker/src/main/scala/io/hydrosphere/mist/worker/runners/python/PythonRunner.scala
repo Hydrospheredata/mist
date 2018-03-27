@@ -26,7 +26,7 @@ class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
 
 class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
 
-  override def run(
+  override def runSync(
     req: RunJobRequest,
     context: NamedContext
   ): Either[Throwable, JsLikeData] = {
