@@ -1,11 +1,12 @@
+import inspect
+import sys
 from abc import abstractmethod
-from types import FunctionType
-
-from .tags import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
-from .tags import tags as dec_tags
+from collections import namedtuple
+from inspect import isfunction
 
 from .mist_job import WithHiveSupport, WithSQLSupport, MistJob, WithPublisher
-from inspect import isfunction
+from .tags import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
+from .tags import tags as dec_tags
 
 
 class ExecutableEntry(object):
@@ -50,45 +51,43 @@ class FunctionEntry(ExecutableEntry):
         return self._fn(context_wrapper, **params)
 
 
+ArgInfo = namedtuple('ArgInfo', ['name', 'type_hint'])
+
+
+def extract_args_from_method_py2(method):
+    args_spec = inspect.getargspec(method)
+    user_args = args_spec.args[1:]
+    return list(map(lambda name: ArgInfo(name, None), user_args))
+
+
+def extract_args_from_method_py3(method):
+    sign = inspect.signature(method)
+    result = []
+    user_params = list(sign.parameters.items())[1:]
+    for k, v in user_params:
+        result.append(ArgInfo(k, None))
+    return result
+
+
 def extract_args_from_method(method):
-    # TODO: implement
-    raise NotImplementedError("implement to get args from execute method")
+    if sys.version_info[0] == 2:
+        args = extract_args_from_method_py2(method)
+    else:
+        args = extract_args_from_method_py3(method)
+    return args
 
 
 class ClassEntry(ExecutableEntry):
 
-    def __init__(self, class_):
-        type_choice = SPARK_CONTEXT
-        tags = set()
-        try:
-            from pyspark.sql import SparkSession
-            if issubclass(class_, WithSQLSupport):
-                type_choice = SPARK_SESSION
-                tags = dec_tags.sql
-            if issubclass(class_, WithHiveSupport):
-                type_choice = HIVE_SESSION
-                tags = dec_tags.hive
-        except ImportError:
-            if issubclass(class_, WithSQLSupport):
-                type_choice = SQL_CONTEXT
-                tags = dec_tags.sql
-            if issubclass(class_, WithHiveSupport):
-                type_choice = HIVE_CONTEXT
-                tags = dec_tags.hive
-        with_publisher = False
-        if issubclass(class_, WithPublisher):
-            with_publisher = True
+    def __init__(self, class_, type_choice, with_publisher=False, tags=None, args=None):
+        if tags is None:
+            tags = {}
+        if args is None:
+            args = []
+        super(ClassEntry, self).__init__(type_choice, tags=tags, args=args)
 
         self._with_publisher = with_publisher
         self._class = class_
-
-        execute_methods = [y for x, y in class_.__dict__.items() if isfunction(y) and x == 'execute']
-        if len(execute_methods) == 1:
-            execute_method = execute_methods[0]
-            _args = extract_args_from_method(execute_method)
-        else:
-            _args = []
-        super(ClassEntry, self).__init__(type_choice, tags=tags, args=_args)
 
     @property
     def with_publisher(self):
@@ -98,6 +97,37 @@ class ClassEntry(ExecutableEntry):
         instance = self._class()
         instance.setup(context_wrapper)
         return instance.execute(**params)
+
+
+def create_class_entry(class_):
+    type_choice = SPARK_CONTEXT
+    tags = set()
+    try:
+        from pyspark.sql import SparkSession
+        if issubclass(class_, WithSQLSupport):
+            type_choice = SPARK_SESSION
+            tags = dec_tags.sql
+        if issubclass(class_, WithHiveSupport):
+            type_choice = HIVE_SESSION
+            tags = dec_tags.hive
+    except ImportError:
+        if issubclass(class_, WithSQLSupport):
+            type_choice = SQL_CONTEXT
+            tags = dec_tags.sql
+        if issubclass(class_, WithHiveSupport):
+            type_choice = HIVE_CONTEXT
+            tags = dec_tags.hive
+    with_publisher = False
+    if issubclass(class_, WithPublisher):
+        with_publisher = True
+
+    execute_methods = [y for x, y in class_.__dict__.items() if isfunction(y) and x == 'execute']
+    if len(execute_methods) == 1:
+        execute_method = execute_methods[0]
+        _args = extract_args_from_method(execute_method)
+    else:
+        _args = []
+    return ClassEntry(class_, type_choice, with_publisher, tags, _args)
 
 
 def is_mist_function(fn):
@@ -112,6 +142,6 @@ def get_metadata(fn_or_class):
             raise Exception(fn_or_class + ' is not a mist function')
 
     if issubclass(fn_or_class, MistJob):
-        return ClassEntry(fn_or_class)
+        return create_class_entry(fn_or_class)
     else:
         raise Exception(str(fn_or_class) + ' is not a subclass of MistJob')
