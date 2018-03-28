@@ -135,7 +135,13 @@ lazy val root = project.in(file("."))
         CpFile(Ui.ui.value).as("ui")
       )
     },
-    stageActions in basicStage += CpFile("configs/default.conf").to("configs"),
+    stageActions in basicStage += {
+      val configData =
+        IO.read(file("configs/default.conf"))
+          .replaceAll("\\$\\{version\\}", version.value)
+          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
+      Write("configs/default.conf", configData)
+    },
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
     stageActions in dockerStage += {
       val configData =
@@ -273,7 +279,6 @@ lazy val root = project.in(file("."))
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0" % "it",
       "org.scalaj" %% "scalaj-http" % "2.3.0" % "it",
       "org.scalatest" %% "scalatest" % "3.0.1" % "it",
-//      "org.testcontainers" % "testcontainers" % "1.6.0" % "it",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "it"
     ),
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),

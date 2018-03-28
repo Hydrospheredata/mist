@@ -32,14 +32,14 @@ Releases:
 
 ### Run docker image
 
-We have prebuilt Mist for `2.0.0`, `2.1.0`, `2.2.0` Spark versions.
+We have prebuilt Mist for `2.1.1`, `2.2.0`, `2.3.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
-For example the latest Mist release for Spark `2.2.0` version looks like this: `mist:{{ site.version }}-2.2.0`
+For example the latest Mist release for Spark `2.3.0` version looks like this: `mist:{{ site.version }}-2.3.0`
 
 ```sh
 docker run -p 2004:2004 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   hydrosphere/mist:{{ site.version }}-2.2.0 mist
+   hydrosphere/mist:{{ site.version }}-2.3.0
 ```
 
 ### Run from binaries
@@ -283,6 +283,15 @@ Configuring a particular function to be executed on a different Spark Cluster is
   mist-cli apply -f conf
   ```
 
-Yarn or Mesos cluster settings are managed the same way.
-Please, follow to offical guides([Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html), [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html))
+Yarn, Mesos and Kubernetes cluster settings are managed the same way.
+Please, follow to offical guides:
+- [Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html)
+- [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html)
+- [Kubernetes](https://spark.apache.org/docs/latest/running-on-kubernetes.html)
+  Also there is docker image of spark 2.3.0 [hydrosphere/spark:2.3.0](https://hub.docker.com/r/hydrosphere/spark/) that can be used
+  in `spark.kubernetes.container.image` configuration
+
+**Note** It may be required to correctly configure `host` values to make mist visible from outside - see [configuration page](/mist-docs/configuration.html)
+
 Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set it up before launching Mist Worker.
+
