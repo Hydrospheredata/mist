@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props, Timers}
+import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, PoisonPill, Props, SupervisorStrategy, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
@@ -27,6 +27,8 @@ class JobActor(
 
   import JobActor._
 
+  override def supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
+
   override def preStart(): Unit = {
     report.reportPlain(QueuedEvent(req.id))
     req.timeout match {
@@ -39,10 +41,9 @@ class JobActor(
   override def receive: Receive = initial
 
   private def initial: Receive = {
-    case Event.Cancel =>
-      cancelFinally("user request", Seq(sender()), None)
+    case Event.Cancel => cancelNotStarted("user request", Some(sender()))
+    case Event.Timeout => cancelNotStarted("timeout", None)
 
-    case Event.Timeout => cancelFinally("timeout", Seq.empty, None)
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
@@ -99,8 +100,8 @@ class JobActor(
       cancelRespond.foreach(_ ! msg)
       onConnectionTermination(Some(connection))
 
-    case ev @ JobIsCancelled(_, _) =>
-      cancelFinally(reason, cancelRespond, Some(connection))
+    case ev @ JobIsCancelled(_, time) =>
+      report.reportPlain(CanceledEvent(req.id, time))
 
     case JobSuccess(_, data) =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
@@ -108,16 +109,10 @@ class JobActor(
       completeSuccess(data, connection)
 
     case JobFailure(_, err) =>
-      val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
-      cancelRespond.foreach(_ ! msg)
-      completeFailure(err, Some(connection))
+      cancelStarted(reason, cancelRespond, Some(connection), err)
   }
 
-  private def cancelFinally(
-    reason: String,
-    respond: Seq[ActorRef],
-    maybeConn: Option[WorkerConnection]
-  ): Unit = {
+  private def cancelNotStarted(reason: String, respond: Option[ActorRef]): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val time = System.currentTimeMillis()
@@ -130,9 +125,31 @@ class JobActor(
       respond.foreach(_ ! response)
     })
     log.info(s"Job ${req.id} was cancelled: $reason")
+    callback ! Event.Completed(req.id)
+    context.stop(self)
+  }
+
+  private def cancelStarted(
+    reason: String,
+    respond: Seq[ActorRef],
+    maybeConn: Option[WorkerConnection],
+    error: String
+  ): Unit = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    val time = System.currentTimeMillis()
+    promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
+    report.reportWithFlushCallback(FailedEvent(req.id, time, error)).onComplete(t => {
+      val response = t match {
+        case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
+        case Failure(e) => akka.actor.Status.Failure(e)
+      }
+      respond.foreach(_ ! response)
+    })
+    log.info(s"Job ${req.id} was cancelled: $reason")
     maybeConn.foreach(_.release())
     callback ! Event.Completed(req.id)
-    self ! PoisonPill
+    context.stop(self)
   }
 
   private def onConnectionTermination(maybeConn: Option[WorkerConnection]): Unit =
@@ -144,7 +161,7 @@ class JobActor(
     log.info(s"Job ${req.id} completed successfully")
     callback ! Event.Completed(req.id)
     connection.release()
-    self ! PoisonPill
+    context.stop(self)
   }
 
   private def completeFailure(err: String, maybeConn: Option[WorkerConnection]): Unit = {
@@ -153,7 +170,7 @@ class JobActor(
     log.info(s"Job ${req.id} completed with error")
     maybeConn.foreach(_.release())
     callback ! Event.Completed(req.id)
-    self ! PoisonPill
+    context.stop(self)
   }
 
 }

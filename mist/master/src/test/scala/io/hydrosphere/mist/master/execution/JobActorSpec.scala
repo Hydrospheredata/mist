@@ -155,6 +155,7 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
 
     connectionRef.expectMsgType[CancelJobRequest]
     connectionRef.send(actor, JobIsCancelled("id"))
+    connectionRef.send(actor, JobFailure("id", "error"))
 
     probe.expectMsgType[ContextEvent.JobCancelledResponse]
 
@@ -168,7 +169,8 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
       classOf[QueuedEvent],
       classOf[WorkerAssigned],
       classOf[StartedEvent],
-      classOf[CanceledEvent]
+      classOf[CanceledEvent],
+      classOf[FailedEvent]
     )
   }
 

@@ -54,15 +54,6 @@ class WithHiveSupport(ContextSupport):
         except ImportError:
             self.hive_context = context_wrapper.hive_context
 
-class WithPublisher(ContextSupport):
-    __metaclass__ = ABCMeta
-
-    publisher = None
-
-    @abstractmethod
-    def setup(self, context_wrapper):
-        self.publisher = context_wrapper.publisher
-
 class WithStreamingContext(ContextSupport):
     __metaclass__ = ABCMeta
 

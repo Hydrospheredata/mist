@@ -30,6 +30,13 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   var context: NamedContext = _
   var spContext: SparkContext = _
 
+  val artifactDownloader = {
+    val default = mock[ArtifactDownloader]
+    when(default.downloadArtifact(any[String]))
+      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
+    default
+  }
+
   override def afterAll {
     TestKit.shutdownActorSystem(system)
     context.stop()
@@ -43,67 +50,59 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     }
   }
 
-  describe("common behavior") {
 
-    type WorkerProps = RunnerSelector => Props
+  it(s"should execute jobs") {
+    val runner = SuccessRunnerSelector(JsLikeNumber(42))
+    val worker = createActor(runner)
+    val probe = TestProbe()
 
-    val artifactDownloader = mock[ArtifactDownloader]
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    it(s"should execute jobs") {
-      val runner = SuccessRunnerSelector(JsLikeNumber(42))
-      val worker = createActor(runner)
-      val probe = TestProbe()
-
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-      probe.expectMsgType[JobFileDownloading]
-      probe.expectMsgType[JobStarted]
-      probe.expectMsgPF(){
-        case JobSuccess("id", r) =>
-          r shouldBe JsLikeNumber(42)
-      }
+    probe.expectMsgType[JobFileDownloading]
+    probe.expectMsgType[JobStarted]
+    probe.expectMsgPF(){
+      case JobSuccess("id", r) =>
+        r shouldBe JsLikeNumber(42)
     }
-
-    it(s"should respond failure") {
-      val runner = FailureRunnerSelector("Expected error")
-      val worker = createActor(runner)
-
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-      probe.expectMsgType[JobFileDownloading]
-      probe.expectMsgType[JobStarted]
-      probe.expectMsgPF() {
-        case JobFailure("id", e) =>
-          e should not be empty
-      }
-    }
-
-    it(s"should cancel job") {
-      val runnerSelector = RunnerSelector(new JobRunner {
-        override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
-          val sc = c.sparkContext
-          val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-          Right(JsLikeMap("r" -> JsLikeString("Ok")))
-        }
-      })
-
-      val worker = createActor(runnerSelector)
-
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-      probe.send(worker, CancelJobRequest("id"))
-
-      probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
-    }
-    def createActor(runnerSelector: RunnerSelector): ActorRef = {
-      val props  = WorkerActor.props(context, artifactDownloader, runnerSelector)
-      TestActorRef[WorkerActor](props)
-    }
-
   }
+
+  it(s"should respond failure") {
+    val runner = FailureRunnerSelector("Expected error")
+    val worker = createActor(runner)
+
+    val probe = TestProbe()
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.expectMsgType[JobFileDownloading]
+    probe.expectMsgType[JobStarted]
+    probe.expectMsgPF() {
+      case JobFailure("id", e) =>
+        e should not be empty
+    }
+  }
+
+  it(s"should cancel job") {
+    val runnerSelector = RunnerSelector(new JobRunner {
+      override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
+        val sc = c.sparkContext
+        val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
+        Right(JsLikeMap("r" -> JsLikeString("Ok")))
+      }
+    })
+
+    val worker = createActor(runnerSelector)
+
+    val probe = TestProbe()
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, CancelJobRequest("id"))
+
+    probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
+  }
+
+  def createActor(runnerSelector: RunnerSelector): TestActorRef[WorkerActor] = {
+    val props  = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    TestActorRef[WorkerActor](props)
+  }
+
 
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
@@ -112,13 +111,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     })
 
     val probe = TestProbe()
-
-    val artifactDownloader = mock[ArtifactDownloader]
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
-    val worker = TestActorRef[WorkerActor](props)
+    val worker = createActor(runnerSelector)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
     probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
@@ -140,12 +133,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val probe = TestProbe()
 
-    val artifactDownloader = mock[ArtifactDownloader]
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
-    val worker = TestActorRef[WorkerActor](props)
+    val worker = createActor(runnerSelector)
 
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
@@ -164,13 +152,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     })
 
     val probe = TestProbe()
-
-    val artifactDownloader = mock[ArtifactDownloader]
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
-    val worker = TestActorRef[WorkerActor](props)
+    val worker = createActor(runnerSelector)
     probe watch worker
     probe.send(worker, ForceShutdown)
     probe.expectTerminated(worker)
@@ -185,12 +167,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val probe = TestProbe()
 
-    val artifactDownloader = mock[ArtifactDownloader]
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    val props = WorkerActor.props(context, artifactDownloader, runnerSelector)
-    val worker = TestActorRef[WorkerActor](props)
+    val worker = createActor(runnerSelector)
     probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
@@ -201,6 +178,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.send(worker, ForceShutdown)
     probe.expectTerminated(worker)
   }
+
   describe("logging") {
     val artifactDownloader = mock[ArtifactDownloader]
 

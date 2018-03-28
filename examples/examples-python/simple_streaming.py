@@ -1,19 +1,20 @@
 from mist.mist_job import *
 
-class SimpleStreaming(MistJob, WithStreamingContext, WithPublisher):
+class SimpleStreaming(MistJob, WithStreamingContext):
 
-    def execute(self, parameters):
+    def execute(self):
         import time
 
         def takeAndPublish(time, rdd):
             taken = rdd.take(11)
-            self.publisher.publish("-------------------------------------------")
-            self.publisher.publish("Time: %s" % time)
-            self.publisher.publish("-------------------------------------------")
-            self.publisher.publish(str(taken))
+            print(taken)
 
         ssc = self.streaming_context
-        type(ssc)
+
+        log4jLogger = ssc._jvm.org.apache.log4j
+        LOGGER = log4jLogger.LogManager.getLogger(__name__)
+        LOGGER.info("Hello!")
+
         rddQueue = []
         for i in range(500):
             rddQueue += [ssc.sparkContext.parallelize([j for j in range(1, 1001)], 10)]
