@@ -160,10 +160,7 @@ object MistStatus {
   import scala.collection.JavaConverters._
 
   val Started = LocalDateTime.now()
-  val SparkVersion = {
-    val is1x = BuildInfo.sparkVersion.startsWith("1.")
-    if (is1x) "1.x.x" else "2.x.x"
-  }
+  val SparkVersion = BuildInfo.sparkVersion
 
   def create: MistStatus = {
     val beans = ManagementFactory.getGarbageCollectorMXBeans.asScala
