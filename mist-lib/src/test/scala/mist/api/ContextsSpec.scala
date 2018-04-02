@@ -1,6 +1,5 @@
 package mist.api
 
-import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.scalatest.{FunSpec, Matchers}

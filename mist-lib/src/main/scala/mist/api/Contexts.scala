@@ -14,13 +14,12 @@ object ContextsArgs {
 
   val sparkContext: ArgDef[SparkContext] = SystemArg(
     Seq.empty,
-    c => Extracted(c.setupConf.context)
+    c => Extracted(c.sc)
   )
 
   val streamingContext: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
     ctx => {
-      val conf = ctx.setupConf
-      val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(conf.context, conf.streamingDuration))
+      val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(ctx.sc, ctx.streamingDuration))
       Extracted(ssc)
     }
   )
@@ -39,7 +38,7 @@ object ContextsArgs {
       ctx match {
         case c: FullFnContext =>
           if (cache == null)
-            cache = new HiveContext(c.setupConf.context)
+            cache = new HiveContext(c.sc)
           Extracted(cache)
         case _ =>
           Missing(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullFnContext.getClass.getSimpleName}")

@@ -22,7 +22,7 @@ object LessVerboseExample extends MistFn[Array[Int]] {
     (args: Args, extras: MistExtras, sc: SparkContext) => {
       import extras._
 
-      logger.info(s"Heello from $jobId")
+//      logger.info(s"Heello from $jobId")
       sc.parallelize(args.numbers).map(_ * args.mult).collect()
     })
 

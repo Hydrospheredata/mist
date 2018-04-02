@@ -19,7 +19,7 @@ object StreamingExample extends MistFn[Unit]{
         .foreachRDD((rdd, time) => {
            val values = rdd.collect().toList
            val msg = s"time: $time, length: ${values.length}, collection: $values"
-           logger.info(msg)
+//           logger.info(msg)
         })
 
       ssc.start()

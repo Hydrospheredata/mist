@@ -1,9 +1,9 @@
 package io.hydrosphere.mist.worker
 
-import io.hydrosphere.mist.api.CentralLoggingConf
-import io.hydrosphere.mist.api.logging.MistLogging
-import io.hydrosphere.mist.api.logging.MistLogging.{LogEvent, LogsWriter}
+import mist.api.logging.MistLogging
+import mist.api.logging.MistLogging.{LogEvent, LogsWriter}
 import io.hydrosphere.mist.core.MockitoSugar
+import mist.api.CentralLoggingConf
 import org.apache.log4j.spi.{LoggingEvent, NOPLogger, NOPLoggerRepository}
 import org.apache.log4j.{Category, Level}
 import org.mockito.Matchers.{eq => mockitoEq}

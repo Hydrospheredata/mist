@@ -4,10 +4,10 @@ import java.io.File
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
+import mist.api.CentralLoggingConf
 import mist.api.data.{JsLikeData, _}
 import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
@@ -27,7 +27,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     .setAppName("test")
     .set("spark.driver.allowMultipleContexts", "true")
 
-  var context: NamedContext = _
+  var context: MistScContext = _
   var spContext: SparkContext = _
 
   val artifactDownloader = {
@@ -45,7 +45,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   override def beforeAll {
     spContext = new SparkContext(conf)
-    context = new NamedContext(spContext, "test") {
+    context = new MistScContext(spContext, "test") {
       override def stop(): Unit = {} //do not close ctx during tests
     }
   }
@@ -82,8 +82,8 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   it(s"should cancel job") {
     val runnerSelector = RunnerSelector(new JobRunner {
-      override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
-        val sc = c.sparkContext
+      override def run(req: RunJobRequest, c: MistScContext): Either[Throwable, JsLikeData] = {
+        val sc = c.sc
         val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
         Right(JsLikeMap("r" -> JsLikeString("Ok")))
       }
@@ -254,7 +254,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   def testRunner(f: => Either[Throwable, JsLikeData]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = f
+      def run(p: RunJobRequest, c: MistScContext): Either[Throwable, JsLikeData] = f
     }
   }
 }

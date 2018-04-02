@@ -27,7 +27,7 @@ class JavaStreamingContextExample extends JMistFn<Void> {
                .foreachRDD((rdd, time) -> {
                     List<scala.Tuple2<Integer, Integer>> values = rdd.collect();
                     String msg = "time:" + time + ", length:" + values.size() + ", collection:" + values;
-                    extras.logger().info(msg);
+//                    extras.logger().info(msg);
                });
 
             jsc.start();

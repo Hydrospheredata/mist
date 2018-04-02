@@ -13,7 +13,7 @@ object SparkSessionExample extends MistFn[Array[Int]]{
        .onSparkSession((nums: Seq[Int], mult: Int, extras: MistExtras, spark: SparkSession) => {
           import extras._
 
-          logger.info(s"Heello from $jobId")
+//          logger.info(s"Heello from $jobId")
           spark.sparkContext.parallelize(nums).map(_ * mult).collect()
        })
  }

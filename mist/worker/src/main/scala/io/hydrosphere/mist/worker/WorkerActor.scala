@@ -2,17 +2,17 @@ package io.hydrosphere.mist.worker
 
 import akka.actor._
 import akka.pattern.pipe
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.worker.logging.{LogsWriter, RemoteAppender}
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsLikeData
 import org.apache.log4j.{Appender, LogManager}
 import org.apache.spark.streaming.StreamingContext
 
 class WorkerActor(
-  val runnerSelector: RunnerSelector,
-  val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader,
+  runnerSelector: RunnerSelector,
+  namedContext: MistScContext,
+  artifactDownloader: ArtifactDownloader,
   mkAppender: String => Option[Appender]
 ) extends Actor with ActorLogging {
 
@@ -42,7 +42,7 @@ class WorkerActor(
   ): Receive = {
     case artifact: SparkArtifact =>
       val runner = runnerSelector.selectRunner(artifact)
-      namedContext.sparkContext.setJobGroup(req.id, req.id)
+      namedContext.sc.setJobGroup(req.id, req.id)
       val jobFuture = run(runner, req)
       respond ! JobStarted(req.id)
       jobFuture.future pipeTo self
@@ -111,7 +111,7 @@ class WorkerActor(
 
   private def cancel(id: String, respond: ActorRef, jobFuture: JobFuture): Unit = {
     sparkRootLogger.removeAppender(id)
-    namedContext.sparkContext.cancelJobGroup(id)
+    namedContext.sc.cancelJobGroup(id)
     StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
     jobFuture.cancel()
     respond ! JobIsCancelled(id)
@@ -145,21 +145,21 @@ class WorkerActor(
 object WorkerActor {
 
   def props(
-    context: NamedContext,
+    context: MistScContext,
     artifactDownloader: ArtifactDownloader,
     runnerSelector: RunnerSelector,
     mkAppender: String => Option[Appender]
   ): Props =
     Props(new WorkerActor(runnerSelector, context, artifactDownloader, mkAppender))
 
-  def props(context: NamedContext, artifactDownloader: ArtifactDownloader, runnerSelector: RunnerSelector): Props =
-    props(context, artifactDownloader, runnerSelector, mkAppenderF(context.loggingConf))
+  def props(context: MistScContext, artifactDownloader: ArtifactDownloader, writer: Option[LogsWriter], runnerSelector: RunnerSelector): Props =
+    props(context, artifactDownloader, runnerSelector, mkAppenderF(writer))
 
-  def props(context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
-    props(context, artifactDownloader, new SimpleRunnerSelector)
+  def props(context: MistScContext, artifactDownloader: ArtifactDownloader, writer: Option[LogsWriter]): Props =
+    props(context, artifactDownloader, writer, new SimpleRunnerSelector)
 
-  def mkAppenderF(conf: Option[CentralLoggingConf]): String => Option[Appender] =
-    (id: String) => conf.map(c => RemoteAppender(id, c))
+  def mkAppenderF(writer: Option[LogsWriter]): String => Option[Appender] =
+    (id: String) => writer.map(w => new RemoteAppender(id, w))
 
 }
 

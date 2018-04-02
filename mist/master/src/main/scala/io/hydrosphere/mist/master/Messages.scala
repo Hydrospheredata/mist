@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.JobDetails.Source
 import mist.api.data.JsLikeData
 
