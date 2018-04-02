@@ -3,10 +3,9 @@ package mist.api
 import io.hydrosphere.mist.api.{RuntimeJobInfo, SetupConfiguration}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SaveMode, SparkSession}
-import org.apache.spark.sql.hive.HiveContext
 import org.scalatest.{FunSpec, Matchers}
 
-class BaseContextsSpec extends FunSpec with Matchers with TestSparkContext {
+class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
   import Contexts._
   import mist.api.args.ArgsInstances._

@@ -107,7 +107,7 @@ object Boilerplate {
          |import org.apache.spark.streaming.api.java.JavaStreamingContext
          |import FuncSyntax._
          |import mist.api.MistExtras
-         |import mist.api.BaseContextsArgs._
+         |import mist.api.ContextsArgs._
          |import mist.api.args.ArgDef
          |
          -class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){

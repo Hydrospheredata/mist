@@ -25,7 +25,6 @@ import mist.api.encoding.Encoder
   */
 abstract class MistFn[A](implicit enc: Encoder[A])
   extends ArgsInstances
-  with Contexts
   with MistExtrasDef
   with WithArgsScala {
 
