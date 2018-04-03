@@ -108,6 +108,10 @@ trait Contexts {
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
       tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sparkContext), f)
 
+    def onSparkContext2[F, Cmb, Out](f: F)(
+      implicit
+      cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
+      tjd: ToHandle2.Aux[Cmb, F, Out]): Handle2[Out, F] = tjd(args.combine(sparkContext), f)
     /**
       * Define job execution function that takes current arguments and org.apache.spark.streaming.StreamingContext
       */

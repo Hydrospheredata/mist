@@ -1,9 +1,8 @@
-package mist.api.logging
+package io.hydrosphere.mist.core.logging
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDateTime, ZoneOffset}
 
-import mist.api.logging.MistLogging._
 import org.scalatest.{FunSpec, Matchers}
 
 class MistLoggingSpec extends FunSpec with Matchers {

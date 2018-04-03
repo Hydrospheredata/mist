@@ -6,7 +6,7 @@ import org.scalatest.{FunSpec, Matchers}
 
 class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
-  import Contexts._
+//  import Contexts._
   import mist.api.args.ArgsInstances._
 
   it("for spark context") {
@@ -48,9 +48,7 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
   }
 
   def testCtx(params: (String, Any)*): FnContext = {
-    val duration = org.apache.spark.streaming.Duration(10 * 1000)
-    val setupConf = SetupConfiguration(spark, duration, RuntimeJobInfo("test", "worker"), None)
-    FnContext(setupConf, params.toMap)
+    FnContext(spark, params.toMap)
   }
 
 }
