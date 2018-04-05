@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.args.{ArgCombiner, ArgDef, ArgExtraction, ArgInfo, Extracted, InternalArgument, Missing, SystemArg, ToHandle}
+import mist.api.args._
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
@@ -106,19 +106,19 @@ trait Contexts {
     def onSparkContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sparkContext), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkContext).apply(f)
 
     def onSparkContext2[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
-      tjd: ToHandle2.Aux[Cmb, F, Out]): Handle2[Out, F] = tjd(args.combine(sparkContext), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkContext).apply(f)
     /**
       * Define job execution function that takes current arguments and org.apache.spark.streaming.StreamingContext
       */
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(streamingContext), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(streamingContext).apply(f)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.SQLContext
@@ -126,7 +126,7 @@ trait Contexts {
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sqlContext), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sqlContext).apply(f)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.hive.HiveContext
@@ -134,55 +134,55 @@ trait Contexts {
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(hiveContext), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(hiveContext).apply(f)
 
     def onSparkSession[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sparkSession), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkSession).apply(f)
 
     def onSparkSessionWithHive[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      tjd: ToHandle.Aux[Cmb, F, Out]): Handle[Out] = tjd(args.combine(sparkSessionWithHive), f)
+      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkSessionWithHive).apply(f)
   }
 
   /**
     * Define job execution function that takes only org.apache.spark.SparkContext as an argument.
     */
-  def onSparkContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[SparkContext, F, Out]): Handle[Out] =
-    tjd(sparkContext, f)
+  def onSparkContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkContext, F, Out]): Handle[Out] =
+    sparkContext.apply(f)
 
   /**
     * Define job execution function that takes only org.apache.spark.streaming.StreamingContext as an argument.
     */
-  def onStreamingContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[StreamingContext, F, Out]): Handle[Out] =
-    tjd(streamingContext, f)
+  def onStreamingContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[StreamingContext, F, Out]): Handle[Out] =
+    streamingContext.apply(f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SQLContext as an argument.
     */
-  def onSqlContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[SQLContext, F, Out]): Handle[Out] =
-    tjd(sqlContext, f)
+  def onSqlContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SQLContext, F, Out]): Handle[Out] =
+    sqlContext.apply(f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
     */
-  def onHiveContext[F, Out](f: F)(implicit tjd: ToHandle.Aux[HiveContext, F, Out]): Handle[Out] =
-    tjd(hiveContext, f)
+  def onHiveContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[HiveContext, F, Out]): Handle[Out] =
+    hiveContext.apply(f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession as an argument.
     */
-  def onSparkSession[F, Out](f: F)(implicit tjd: ToHandle.Aux[SparkSession, F, Out]): Handle[Out] =
-    tjd(sparkSession, f)
+  def onSparkSession[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkSession, F, Out]): Handle[Out] =
+    sparkSession.apply(f)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession
     * with enabled hive as an argument.
     */
-  def onSparkSessionWithHive[F, Out](f: F)(implicit tjd: ToHandle.Aux[SparkSession, F, Out]): Handle[Out] =
-    tjd(sparkSessionWithHive, f)
+  def onSparkSessionWithHive[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkSession, F, Out]): Handle[Out] =
+    sparkSessionWithHive.apply(f)
 }
 
 object Contexts extends Contexts

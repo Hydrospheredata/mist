@@ -1,33 +1,30 @@
 package mist.api.args
 
 import mist.api._
-import shadedshapeless._
-import shadedshapeless.ops.adjoin.Adjoin
 
-trait ArgCombiner[A, B] extends Serializable {
+trait ArgCombiner[A, B] {
   type Out
   def apply(a: ArgDef[A], b: ArgDef[B]): ArgDef[Out]
 }
 
 object ArgCombiner {
-
   type Aux[A, B, Out0] = ArgCombiner[A, B] { type Out = Out0 }
 
-  implicit def combiner[A, B](implicit adj: Adjoin[A :: B :: HNil]): Aux[A, B, adj.Out] = new ArgCombiner[A, B] {
-    type Out = adj.Out
+  implicit def combiner[A, B, R](implicit join: JoinToTuple.Aux[A, B, R]): Aux[A, B, R] = new ArgCombiner[A, B] {
+    type Out = R
 
     override def apply(a: ArgDef[A], b: ArgDef[B]): ArgDef[Out] = {
-      new ArgDef[adj.Out] {
+      new ArgDef[R] {
         def describe(): Seq[ArgInfo] = a.describe() ++ b.describe()
 
-        def extract(ctx: FnContext): ArgExtraction[adj.Out] = {
+        def extract(ctx: FnContext): ArgExtraction[R] = {
           (b.extract(ctx), a.extract(ctx)) match {
             case (Extracted(be), Extracted(ae)) =>
-              val out = adj(ae :: be :: HNil)
+              val out = join(ae, be)
               Extracted(out)
             case (Missing(errB), Missing(errA)) => Missing(errA + ", " + errB)
-            case (x@Missing(_), _) => x.asInstanceOf[Missing[adj.Out]]
-            case (_, x@Missing(_)) => x.asInstanceOf[Missing[adj.Out]]
+            case (x@Missing(_), _) => x.asInstanceOf[Missing[R]]
+            case (_, x@Missing(_)) => x.asInstanceOf[Missing[R]]
           }
         }
 
@@ -44,4 +41,5 @@ object ArgCombiner {
     }
   }
 
+  def apply[A, B, R](a: ArgDef[A], b: ArgDef[B])(implicit cmb: ArgCombiner.Aux[A, B, R]): ArgDef[R] = cmb(a, b)
 }

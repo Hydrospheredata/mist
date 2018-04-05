@@ -1,6 +1,6 @@
 package mist.api.args
 
-import mist.api.{FnContext, FullFnContext, Handle, JobFailure, JobSuccess}
+import mist.api.{FnContext, FullFnContext, Handle, JobFailure, JobResult, JobSuccess}
 
 
 sealed trait ArgInfo
@@ -63,20 +63,15 @@ trait ArgDef[A] { self =>
     }
   }
 
-  def apply[F, R](f: F)(implicit tjd: ToHandle.Aux[A, F, R]): Handle[R] = tjd(self, f)
-  def apply2[F, R](f: F)(implicit fnT: FnForTuple.Aux[A, F, R]): Handle[R] = {
-    Handle.instance(
-      f = (ctx: FnContext) => {
-        self.extract(ctx) match {
-          case Extracted(args) =>
-            val r = fnT(f, args)
-            JobSuccess(r)
-          case Missing(msg) => JobFailure(new RuntimeException(msg))
-        }
-      },
-      descr = self.describe(),
-      validateF = _ => Left(new RuntimeException("ex"))
-    )
+  def apply[F, Res >: R, R](f: F)(implicit fnT: FnForTuple.Aux[A, F, R]): Handle[Res] = {
+    Handle.instance[Res](ctx => self.extract(ctx) match {
+      case Extracted(a) =>
+        val r = fnT(f, a)
+        JobSuccess(r)
+      case Missing(msg) =>
+        val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
+        JobResult.failure(e)
+    }, self.describe(), self.validate)
   }
 }
 

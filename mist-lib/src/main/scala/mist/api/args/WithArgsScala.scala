@@ -1,64 +1,74 @@
 package mist.api.args
 
-import shadedshapeless.ops.hlist.LeftReducer
-import shadedshapeless.{Generic, HList, Poly2}
-
+import shadedshapeless._
 
 /**
   * Scala dsl to start job definition like `withArgs(a,b...n).onSparkContext(..`
   */
 trait WithArgsScala {
 
-  import WithArgsScala._
-
-  def withArgs[A, Out](a: A)(implicit tda: ToArgDef.Aux[A, Out]): ArgDef[Out] = tda(a)
+  def withArgs[A, Out](a: A)(implicit tda: WithArgsScala.ArgDefJoiner.Aux[A, Out]): ArgDef[Out] = tda(a)
 
 }
 
 object WithArgsScala extends WithArgsScala {
 
-  sealed trait ToArgDef[A] {
+  trait ArgDefJoiner[A] {
     type Out
     def apply(a: A): ArgDef[Out]
   }
 
-  object ToArgDef {
+  object ArgDefJoiner {
 
-    type Aux[A, Out0] = ToArgDef[A] { type Out = Out0 }
+    type Aux[A, Out0] = ArgDefJoiner[A] { type Out = Out0 }
 
-    def apply[A](implicit tad: ToArgDef[A]): ToArgDef[A] = tad
+    trait Reducer[A] {
+      type Out
+      def apply(a: A): ArgDef[Out]
+    }
 
-    implicit def single[A, X](implicit ev: A <:< ArgDef[X]): Aux[A, X] =
-      new ToArgDef[A] {
-        type Out = X
-        def apply(a: A): ArgDef[X] = a
-      }
-
-    object reducer extends Poly2 {
-      implicit def reduce[A, B, Out, X, Y]
-      (implicit
-        ev1: A <:< ArgDef[X],
-        ev2: B <:< ArgDef[Y],
-        cmb: ArgCombiner.Aux[X, Y, Out]
-      ): Case.Aux[A, B, ArgDef[Out]] = {
-        at[A, B] {(a: A, b: B) =>
-          cmb(a, b)
+    trait LowPriorityReducer {
+      type Aux[A, Out0] = Reducer[A] { type Out = Out0 }
+      implicit def lastReducer[H, HA, T <: HNil](implicit ev: H <:< ArgDef[HA]): Aux[H :: HNil, HA] = {
+        new Reducer[H :: HNil] {
+          type Out = HA
+          def apply(a: H :: HNil): ArgDef[HA] = a.head
         }
       }
     }
 
-    implicit def forTuple[A, H <: HList, ROut, Z](
-      implicit
-      gen: Generic.Aux[A, H],
-      r: LeftReducer.Aux[H, reducer.type, ROut],
-      ev: ROut <:< ArgDef[Z]
-    ): Aux[A, Z] = {
-      new ToArgDef[A] {
-        type Out = Z
-        def apply(a: A): ArgDef[Z] = r(gen.to(a))
+    object Reducer extends LowPriorityReducer {
+      implicit def hlistReducer[H, T <: HList, HA, Out, R](implicit
+        ev: H <:< ArgDef[HA],
+        reducer: Reducer.Aux[T, Out],
+        cmb: ArgCombiner.Aux[HA, Out, R]
+      ): Aux[H :: T, R] = {
+        new Reducer[H :: T] {
+          type Out = R
+          def apply(hl: H :: T): ArgDef[R] = {
+            val h = hl.head
+            val t = hl.tail
+            val rO = reducer(t)
+            cmb(h, rO)
+          }
+        }
       }
     }
 
+    implicit def reduced[A, H <: HList, R](implicit
+      hlister: HLister.Aux[A, H],
+      reducer: Reducer.Aux[H, R]
+    ): Aux[A, R] = {
+      new ArgDefJoiner[A] {
+        type Out = R
+        def apply(a: A): ArgDef[R] = {
+          reducer(hlister(a))
+        }
+      }
+    }
+
+    def apply[A, Out](a: A)(implicit joiner: ArgDefJoiner.Aux[A, Out]): ArgDef[Out] = joiner(a)
   }
+
 }
 

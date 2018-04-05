@@ -25,7 +25,7 @@ class ArgDefSpec extends FunSpec with Matchers {
       val combined = const("first") & const("second") & const("third") & const(4)
 
       val data = combined.extract(testCtx())
-      data shouldBe Extracted("first" :: "second" :: "third" :: 4 :: HNil)
+      data shouldBe Extracted("first", "second", "third", 4)
     }
 
     it("should fail all") {
@@ -59,7 +59,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
 
     it("should fail on error") {
-      val broken: Handle[Int] = const("a")({(a: String) => throw new RuntimeException("broken") })
+      val broken: Handle[String] = const("a")({(a: String) => throw new RuntimeException("broken") })
       broken.invoke(testCtx()) shouldBe a[JobFailure[_]]
     }
 
