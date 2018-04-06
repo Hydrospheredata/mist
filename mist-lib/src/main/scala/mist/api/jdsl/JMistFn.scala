@@ -3,17 +3,14 @@ package mist.api.jdsl
 import mist.api._
 import mist.api.data.JsLikeData
 
-class JHandle[T](val underlying: Handle[RetVal[T]])
+import scala.util._
 
-abstract class JMistFn[T] extends JArgsDef with JJobDefinition {
+class JHandle(val underlying: LowHandle[RetVal])
 
-  def handle: JHandle[T]
+abstract class JMistFn extends JArgsDef with JJobDefinition {
 
-  final def execute(ctx: FnContext): JobResult[JsLikeData] = {
-    handle.underlying.invoke(ctx) match {
-      case JobSuccess(v) => JobSuccess(v.encoded())
-      case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
-    }
-  }
+  def handle: JHandle
+
+  final def execute(ctx: FnContext): Try[JsLikeData] = handle.underlying.invoke(ctx).map(_.encoded())
 }
 

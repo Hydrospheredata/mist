@@ -6,10 +6,10 @@ import mist.api.jdsl.RetValues;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JavaPiExample extends JMistFn<Double> {
+public class JavaPiExample extends JMistFn {
 
     @Override
-    public JHandle<Double> handle() {
+    public JHandle handle() {
         JArg<Integer> samples = intArg("samples").validated(s -> s > 0, "Samples must be positive");
         return withArgs(samples).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);

@@ -1,7 +1,8 @@
 package mist.api.args
 
-import mist.api.{FnContext, FullFnContext, Handle, JobFailure, JobResult, JobSuccess}
+import mist.api.{FnContext, FullFnContext, LowHandle}
 
+import scala.util._
 
 sealed trait ArgInfo
 case class InternalArgument(tags: Seq[String] = Seq.empty) extends ArgInfo
@@ -45,33 +46,27 @@ trait ArgDef[A] { self =>
 
   private[api] def validate(params: Map[String, Any]): Either[Throwable, Any]
 
-  def combine[B](other: ArgDef[B])
-      (implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
+  def combine[B](other: ArgDef[B])(implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
 
-  def &[B](other: ArgDef[B])
-    (implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
+  def &[B](other: ArgDef[B])(implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
 
   def map[B](f: A => B): ArgDef[B] = {
     new ArgDef[B] {
-
       override def describe(): Seq[ArgInfo] = self.describe()
-
       override def extract(ctx: FnContext): ArgExtraction[B] = self.extract(ctx).map(f)
-
       override def validate(params: Map[String, Any]): Either[Throwable, Any] = self.validate(params)
-
     }
   }
 
-  def apply[F, Res >: R, R](f: F)(implicit fnT: FnForTuple.Aux[A, F, R]): Handle[Res] = {
-    Handle.instance[Res](ctx => self.extract(ctx) match {
-      case Extracted(a) =>
-        val r = fnT(f, a)
-        JobSuccess(r)
-      case Missing(msg) =>
-        val e = new IllegalArgumentException(s"Arguments does not conform to job [$msg]")
-        JobResult.failure(e)
-    }, self.describe(), self.validate)
+  def apply[F, R](f: F)(implicit fnT: FnForTuple.Aux[A, F, R]): LowHandle[R] = {
+    new LowHandle[R] {
+      override def invoke(ctx: FnContext): Try[R] = self.extract(ctx) match {
+        case Extracted(a) => Try(fnT(f, a))
+        case Missing(msg) => Failure(new IllegalArgumentException(s"Arguments does not conform to job [$msg]"))
+      }
+      override def describe(): Seq[ArgInfo] = self.describe()
+      override def validate(params: Map[String, Any]): Either[Throwable, Any] = self.validate(params)
+    }
   }
 }
 

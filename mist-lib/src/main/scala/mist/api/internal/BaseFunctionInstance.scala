@@ -6,6 +6,7 @@ import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
+import scala.util._
 
 trait BaseFunctionInstance {
 
@@ -16,7 +17,7 @@ trait BaseFunctionInstance {
   def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
 }
 
-class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
+class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle
 
@@ -29,8 +30,8 @@ class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
   override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
-        case f: JobFailure[_] => Left(f.e)
-        case JobSuccess(data) => Right(data)
+        case Success(data) => Right(data)
+        case Failure(e) => Left(e)
       }
     } catch {
       case e: Throwable => Left(e)
@@ -38,7 +39,7 @@ class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
   }
 }
 
-class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
+class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle.underlying
 
@@ -50,8 +51,8 @@ class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
   override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
       instance.execute(ctx) match {
-        case f: JobFailure[_] => Left(f.e)
-        case JobSuccess(data) => Right(data)
+        case Success(data) => Right(data)
+        case Failure(e) => Left(e)
       }
     } catch {
       case e: Throwable => Left(e)
@@ -71,14 +72,14 @@ object FunctionInstance {
     override def describe(): Seq[ArgInfo] = Seq()
   }
 
-  val ScalaJobClass = classOf[MistFn[_]]
-  val JavaJobClass = classOf[JMistFn[_]]
+  val ScalaJobClass = classOf[MistFn]
+  val JavaJobClass = classOf[JMistFn]
 
   def isScalaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
   def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
 
   def loadScala(clazz: Class[_]): ScalaFunctionInstance = {
-    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn[_]]
+    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn]
     new ScalaFunctionInstance(i)
   }
 
@@ -86,7 +87,7 @@ object FunctionInstance {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new JavaFunctionInstance(i.asInstanceOf[JMistFn[_]])
+    new JavaFunctionInstance(i.asInstanceOf[JMistFn])
   }
 
   @tailrec

@@ -1,11 +1,11 @@
-import mist.api._
+import mist.api.all._
 import mist.api.encoding.DataFrameEncoding._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.hive.HiveContext
 
-object HiveContextExample extends MistFn[DataFrame]{
+object HiveContextExample extends MistFn {
 
-  def handle = {
+  override def handle: Handle = {
     withArgs(arg[String]("file")).onHiveContext((file: String, hiveCtx: HiveContext) => {
       val df = hiveCtx.read.json(file)
       df.registerTempTable("people")

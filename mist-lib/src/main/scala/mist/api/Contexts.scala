@@ -1,6 +1,7 @@
 package mist.api
 
 import mist.api.args._
+import mist.api.encoding.Encoder
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
@@ -106,19 +107,19 @@ trait Contexts {
     def onSparkContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkContext).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(sparkContext).apply(f), enc)
 
-    def onSparkContext2[F, Cmb, Out](f: F)(
-      implicit
-      cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkContext).apply(f)
     /**
       * Define job execution function that takes current arguments and org.apache.spark.streaming.StreamingContext
       */
     def onStreamingContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(streamingContext).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(streamingContext).apply(f), enc)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.SQLContext
@@ -126,7 +127,9 @@ trait Contexts {
     def onSqlContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sqlContext).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(sqlContext).apply(f), enc)
 
     /**
       * Define job execution function that takes current arguments and org.apache.spark.sql.hive.HiveContext
@@ -134,55 +137,79 @@ trait Contexts {
     def onHiveContext[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(hiveContext).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(hiveContext).apply(f), enc)
 
     def onSparkSession[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkSession).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(sparkSession).apply(f), enc)
 
     def onSparkSessionWithHive[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
-      fnT: FnForTuple.Aux[Cmb, F, Out]): Handle[Out] = args.combine(sparkSessionWithHive).apply(f)
+      fnT: FnForTuple.Aux[Cmb, F, Out],
+      enc: Encoder[Out]
+    ): Handle = Handle.fromLow(args.combine(sparkSessionWithHive).apply(f), enc)
   }
 
   /**
     * Define job execution function that takes only org.apache.spark.SparkContext as an argument.
     */
-  def onSparkContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkContext, F, Out]): Handle[Out] =
-    sparkContext.apply(f)
+  def onSparkContext[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[SparkContext, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(sparkContext.apply(f), enc)
 
   /**
     * Define job execution function that takes only org.apache.spark.streaming.StreamingContext as an argument.
     */
-  def onStreamingContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[StreamingContext, F, Out]): Handle[Out] =
-    streamingContext.apply(f)
+  def onStreamingContext[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[StreamingContext, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(streamingContext.apply(f), enc)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SQLContext as an argument.
     */
-  def onSqlContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SQLContext, F, Out]): Handle[Out] =
-    sqlContext.apply(f)
+  def onSqlContext[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[SQLContext, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(sqlContext.apply(f), enc)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.hive.HiveContext as an argument.
     */
-  def onHiveContext[F, Out](f: F)(implicit fnT: FnForTuple.Aux[HiveContext, F, Out]): Handle[Out] =
-    hiveContext.apply(f)
+  def onHiveContext[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[HiveContext, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(hiveContext.apply(f), enc)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession as an argument.
     */
-  def onSparkSession[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkSession, F, Out]): Handle[Out] =
-    sparkSession.apply(f)
+  def onSparkSession[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[SparkSession, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(sparkSession.apply(f), enc)
 
   /**
     * Define job execution function that takes only org.apache.spark.sql.SparkSession
     * with enabled hive as an argument.
     */
-  def onSparkSessionWithHive[F, Out](f: F)(implicit fnT: FnForTuple.Aux[SparkSession, F, Out]): Handle[Out] =
-    sparkSessionWithHive.apply(f)
+  def onSparkSessionWithHive[F, Out](f: F)(
+    implicit
+    fnT: FnForTuple.Aux[SparkSession, F, Out],
+    enc: Encoder[Out]
+  ): Handle = Handle.fromLow(sparkSessionWithHive.apply(f), enc)
 }
 
 object Contexts extends Contexts

@@ -1,7 +1,5 @@
-import mist.api._
-import mist.api.MistExtras
+import mist.api.all._
 import mist.api.args.ArgExtractor
-import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
 case class Args(
@@ -12,19 +10,13 @@ case class Args(
   def mult: Int = multiplier.getOrElse(2)
 }
 
-object LessVerboseExample extends MistFn[Array[Int]] {
-
-  import MistExtras._
+object LessVerboseExample extends MistFn {
 
   implicit val extractor = ArgExtractor.rootFor[Args]
 
-  override def handle = (arg[Args] & mistExtras).onSparkContext(
-    (args: Args, extras: MistExtras, sc: SparkContext) => {
-      import extras._
-
-//      logger.info(s"Heello from $jobId")
-      sc.parallelize(args.numbers).map(_ * args.mult).collect()
-    })
+  override def handle: Handle = arg[Args].onSparkContext((args: Args, sc: SparkContext) => {
+    sc.parallelize(args.numbers).map(_ * args.mult).collect()
+  })
 
 }
 

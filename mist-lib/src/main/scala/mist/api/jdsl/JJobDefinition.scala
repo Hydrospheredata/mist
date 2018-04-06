@@ -11,7 +11,7 @@ trait JJobDefinition extends WithArgs {
   /**
     * Define job execution that use JavaSparkContext for invocation
     */
-  def onSparkContext[R](f: Func1[JavaSparkContext, RetVal[R]]): JHandle[R] = {
+  def onSparkContext(f: Func1[JavaSparkContext, RetVal]): JHandle = {
     val job = ContextsArgs.javaSparkContext.apply(f.toScalaFunc)
     new JHandle(job)
   }
@@ -19,7 +19,7 @@ trait JJobDefinition extends WithArgs {
   /**
     * Define job execution that use JavaStreamingContext for invocation
     */
-  def onStreamingContext[R](f: Func1[JavaStreamingContext, RetVal[R]]): JHandle[R] = {
+  def onStreamingContext(f: Func1[JavaStreamingContext, RetVal]): JHandle = {
     val job = ContextsArgs.javaStreamingContext.apply(f.toScalaFunc)
     new JHandle(job)
   }

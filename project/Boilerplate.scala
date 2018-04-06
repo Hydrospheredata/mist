@@ -160,7 +160,7 @@ object Boilerplate {
          -  /**
          -    * Define job execution that use JavaSparkContext for invocation
          -    */
-         -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JHandle[R] = {
+         -  def onSparkContext(f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal]): JHandle = {
          -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
@@ -168,7 +168,7 @@ object Boilerplate {
          -  /**
          -    * Define job execution that use JavaStreamingContext for invocation
          -    */
-         -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal[R]]): JHandle[R] = {
+         -  def onStreamingContext(f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal]): JHandle = {
          -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }

@@ -1,14 +1,12 @@
-import mist.api._
-import mist.api.MistExtras
-import mist.api.encoding.DefaultEncoders._
+import mist.api.all._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 
 import scala.collection.mutable
 
-object StreamingExample extends MistFn[Unit]{
+object StreamingExample extends MistFn {
 
-  override def handle: Handle[Unit] = {
+  override def handle: Handle = {
     withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
       import extras._
 

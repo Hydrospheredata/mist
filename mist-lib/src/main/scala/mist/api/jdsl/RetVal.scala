@@ -1,24 +1,28 @@
 package mist.api.jdsl
 
-import mist.api.data.{JsLikeData, JsLikeUnit}
+import mist.api.data.{JsLikeData, JsLikeNull}
 import mist.api.encoding.Encoder
 
 /**
   *  Job result for java api
   */
-case class RetVal[T](value: T, encoder: Encoder[T]) {
-  def encoded(): JsLikeData = encoder(value)
+trait RetVal {
+  def encoded(): JsLikeData
+}
+
+object RetVal {
+  def apply[T](value: T, encoder: Encoder[T]): RetVal = new RetVal {
+    override def encoded(): JsLikeData = encoder(value)
+  }
+  def static(f: => JsLikeData): RetVal = new RetVal {
+    override def encoded(): JsLikeData = f
+  }
 }
 
 trait RetVals {
 
-  def fromAny[T](t: T): RetVal[T] = RetVal(t, new Encoder[T] {
-    override def apply(a: T): JsLikeData = JsLikeData.fromJava(a)
-  })
-
-  def empty(): RetVal[Void] = RetVal(null, new Encoder[Void] {
-    override def apply(a: Void): JsLikeData = JsLikeUnit
-  })
+  def fromAny(t: Any): RetVal = RetVal(t, Encoder[Any](JsLikeData.fromJava))
+  val empty: RetVal = RetVal.static(JsLikeNull)
 
 }
 
