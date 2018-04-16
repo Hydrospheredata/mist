@@ -134,12 +134,11 @@ libraryDependencies ++= Seq(
 
 `src/main/scala/HelloMist.scala`:
 ```tut:silent
-import mist.api._
-import mist.api.encoding.DefaultEncoders._
+import mist.api.all._
 import org.apache.spark.SparkContext
 
 // function object
-object HelloMist extends MistFn[Double] {
+object HelloMist extends MistFn with Logging {
 
   override def handle = {
     withArgs(
@@ -223,10 +222,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 // function class
-public class HelloMist extends JMistFn<Double> {
+public class HelloMist extends JMistFn {
 
   @Override
-  public JHandle<Double> handle() {
+  public JHandle handle() {
     // declare an input argument with name `samples` and type `Int` and default value `10000`
     // we could call it by sending:
     //  - {} - empty request, n will be taken from default value

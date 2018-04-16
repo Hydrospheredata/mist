@@ -380,6 +380,5 @@ lazy val commonScalacOptions = Seq(
   "-language:postfixOps",
   "-unchecked",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen",
-  "-Ylog-classpath"
+  "-Ywarn-numeric-widen"
 )

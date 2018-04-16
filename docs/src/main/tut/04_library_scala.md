@@ -17,13 +17,12 @@ Mist Library provides a DSL for Mist Functions that could be deployed and execut
 
 `PiExample.scala`:
 ```tut:silent
-import mist.api._
-import mist.api.encoding.DefaultEncoders._
+import mist.api.all._
 import org.apache.spark.SparkContext
 
-object PiExample extends MistFn[Double] {
+object PiExample extends MistFn {
 
-  override def handle: Handle[Double] = {
+  override def handle: Handle = {
     withArgs(arg[Int]("samples")).onSparkContext((n: Int, sc: SparkContext) => {
       val count = sc.parallelize(1 to n).filter(_ => {
         val x = math.random
@@ -100,7 +99,7 @@ Maven dependency:
 
 #### Overview
 
-Speaking generally - `MistFn[A]` represents an interface that provides
+Speaking generally - `MistFn` represents an interface that provides
 function over one of available spark contexts (SparkContext, SQLContext, ..., SparkSession).
 Here `A` is a function result type, that mist can *automatically* convert to json(see Encoders).
 
@@ -154,13 +153,12 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
 If your function doesn't require any arguments, there are similar methods available from `MistFn`
 ```tut:silent
 
-import mist.api._
-import mist.api.encoding.DefaultEncoders._
+import mist.api.all._
 import org.apache.spark.SparkContext
 
-object NoArgsHandler extends MistFn[Int] {
+object NoArgsHandler extends MistFn {
 
-  override def handle: Handle[Int] = {
+  override def handle: Handle = {
     onSparkContext((sc: SparkContext) => 42 )
   }
 }
@@ -175,13 +173,13 @@ For that purpose `ArgDef[A]` has special methods to validate arguments:
 - `validated(f: A => Boolean, explanation: String)`
 
 ```tut:silent
-import mist.api._
+import mist.api.all._
 import mist.api.encoding.DefaultEncoders._
 import org.apache.spark.SparkContext
 
-object PiExample extends MistFn[Double] {
+object PiExample extends MistFn {
 
-  override def handle: Handle[Double] = {
+  override def handle: Handle = {
     withArgs(
       arg[Int]("samples").validated(n => n > 0, "Samples value should be positive")
     ).onSparkContext((n: Int, sc: SparkContext) => {
@@ -218,17 +216,15 @@ It supports:
 
 Every function invocation on Mist has unique id and associated worker. It could be useful in some cases
 to have that extra information in a function body.
-Also mist provides special logger that collect logs on mist-master node, so you can use it to debug your Spark jobs.
 These utilities are called `MistExtras`. Example:
 
 ```tut:silent
-import mist.api._
-import mist.api.encoding.DefaultEncoders._
+import mist.api.all._
 import org.apache.spark.SparkContext
 
-object HelloWorld extends MistFn[Unit] {
+object HelloWorld extends MistFn with Logging {
 
-  override def handle: Handle[Unit] = {
+  override def handle: Handle = {
     withArgs(arg[Int]("samples"))
       .withMistExtras
       .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
