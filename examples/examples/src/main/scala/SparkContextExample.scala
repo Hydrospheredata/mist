@@ -1,6 +1,5 @@
 import mist.api.all._
 import org.apache.spark.SparkContext
-import org.apache.spark.internal.Logging
 
 object SparkContextExample extends MistFn with Logging {
 
@@ -11,8 +10,8 @@ object SparkContextExample extends MistFn with Logging {
     ).withMistExtras
      .onSparkContext((nums: Seq[Int], mult: Int, extras: MistExtras, sc: SparkContext) => {
        import extras._
-       logInfo(s"Heello from $jobId")
-       sc.parallelize(nums).map(_ * mult).collect()
+       logger.info(s"Heello from $jobId")
+       sc.parallelize(nums).map(x => {logger.info("yoo"); x * mult}).collect()
      })
   }
 

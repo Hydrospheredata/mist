@@ -17,4 +17,5 @@ object all extends ArgsInstances
   val MistExtras = mist.api.MistExtras
 
   type Handle = mist.api.Handle
+  type Logging = mist.api.Logging
 }
