@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.testkit.{TestActorRef, TestKit}
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.LogStoragePaths
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}

@@ -1,8 +1,10 @@
 package mist.api.args
 
-import mist.api.{FnContext, LowHandle, JobFailure, JobSuccess}
+import mist.api.{FnContext, LowHandle}
 import org.scalatest.{FunSpec, Matchers}
 import shadedshapeless._
+
+import scala.util._
 
 class ArgDefSpec extends FunSpec with Matchers {
 
@@ -40,7 +42,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     it("should describe job") {
       val job42: LowHandle[Int] = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
       val res = job42.invoke(testCtx())
-      res shouldBe JobSuccess(42)
+      res shouldBe Success(42)
     }
 
     it("should apply arguments in correct order") {
@@ -48,25 +50,25 @@ class ArgDefSpec extends FunSpec with Matchers {
         (a: String, b: String, c: String, d: String, e: String) =>
           s"Hello $a$b$c$d$e"
       }
-      hello.invoke(testCtx()) shouldBe JobSuccess("Hello World")
+      hello.invoke(testCtx()) shouldBe Success("Hello World")
     }
 
     it("shouldn't work with missing args") {
       val invalid: LowHandle[String] = const("valid") & missing[Int]("msg") & const("last") apply {
         (a: String, b: Int, c: String) => "wtf?"
       }
-      invalid.invoke(testCtx()) shouldBe a[JobFailure[_]]
+      invalid.invoke(testCtx()) shouldBe a[Failure[_]]
     }
 
     it("should fail on error") {
       val broken: LowHandle[String] = const("a")({(a: String) => throw new RuntimeException("broken") })
-      broken.invoke(testCtx()) shouldBe a[JobFailure[_]]
+      broken.invoke(testCtx()) shouldBe a[Failure[_]]
     }
 
     it("should work with one arg") {
       val jobDef: LowHandle[String] = const("single") { (a: String) => a }
       val res = jobDef.invoke(testCtx())
-      res shouldBe JobSuccess("single")
+      res shouldBe Success("single")
     }
   }
 

@@ -1,30 +1,33 @@
 package mist.api
 
+import mist.api.data.{JsLikeNumber, JsLikeString}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.scalatest.{FunSpec, Matchers}
 
+import scala.util._
+
 class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
 
-//  import Contexts._
   import mist.api.args.ArgsInstances._
+  import mist.api.encoding.DefaultEncoders._
 
   it("for spark context") {
    val spJob = arg[Seq[Int]]("nums").onSparkContext(
      (nums: Seq[Int], sp: SparkContext) => {
        sp.parallelize(nums).map(_ * 2).collect()
-       Map(1 -> "2")
+       "2"
     })
     val res = spJob.invoke(testCtx("nums" -> (1 to 10)))
-    res shouldBe JobSuccess(Map(1 -> "2"))
+    res shouldBe Success(JsLikeString("2"))
   }
 
   it("for only sc") {
-    val spJob: LowHandle[Int] = onSparkContext((sc: SparkContext) => {
+    val spJob: Handle = onSparkContext((sc: SparkContext) => {
       5
     })
     val res = spJob.invoke(testCtx())
-    res shouldBe JobSuccess(5)
+    res shouldBe Success(JsLikeNumber(5))
   }
 
   def pathToResource(path: String): String = {
@@ -44,7 +47,7 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
     })
     spJob.invoke(testCtx())
     val res = spJob.invoke(testCtx())
-    res shouldBe JobSuccess(30)
+    res shouldBe Success(JsLikeNumber(30))
   }
 
   def testCtx(params: (String, Any)*): FnContext = {

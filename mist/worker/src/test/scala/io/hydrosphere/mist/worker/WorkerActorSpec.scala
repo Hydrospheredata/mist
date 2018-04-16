@@ -7,7 +7,6 @@ import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
-import mist.api.CentralLoggingConf
 import mist.api.data.{JsLikeData, _}
 import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
@@ -99,10 +98,9 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   def createActor(runnerSelector: RunnerSelector): TestActorRef[WorkerActor] = {
-    val props  = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    val props  = WorkerActor.props(context, artifactDownloader, RequestSetup.NOOP, runnerSelector)
     TestActorRef[WorkerActor](props)
   }
-
 
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
@@ -177,58 +175,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe watch worker
     probe.send(worker, ForceShutdown)
     probe.expectTerminated(worker)
-  }
-
-  describe("logging") {
-    val artifactDownloader = mock[ArtifactDownloader]
-
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    it("should add and remove appender") {
-      val completion = Promise[JsLikeData]
-      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
-      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
-
-      val worker = TestActorRef[WorkerActor](props)
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-      val appender = LogManager.getRootLogger.getAppender("id")
-      appender should not be null
-      completion.success(JsLikeNumber(42))
-      probe.expectMsgAllConformingOf(
-        classOf[JobFileDownloading],
-        classOf[JobStarted],
-        classOf[JobResponse]
-      )
-      val appender1 = LogManager.getRootLogger.getAppender("id")
-      appender1 shouldBe null
-    }
-
-    it("should remove appender when cancelling job") {
-      val completion = Promise[JsLikeData]
-      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
-      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
-
-      val worker = TestActorRef[WorkerActor](props)
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-      val appender = LogManager.getRootLogger.getAppender("id")
-      appender should not be null
-
-      probe.expectMsgAllConformingOf(
-        classOf[JobFileDownloading],
-        classOf[JobStarted]
-      )
-
-      probe.send(worker, CancelJobRequest("id"))
-      probe.expectMsgType[JobIsCancelled]
-
-      val appender1 = LogManager.getRootLogger.getAppender("id")
-      appender1 shouldBe null
-      completion.success(JsLikeNull)
-    }
   }
 
   def RunnerSelector(r: JobRunner): RunnerSelector =

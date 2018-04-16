@@ -117,7 +117,7 @@ object MasterBridge {
         val hostPort = init.logService.split(":")
         RemoteLogsWriter.getOrCreate(hostPort(0), hostPort(1).toInt)
       }
-      af.actorOf(WorkerActor.props(ctx, downloader, Some(writer)))
+      af.actorOf(WorkerActor.props(ctx, downloader, RequestSetup.loggingSetup(writer)))
     })
     props(id, regHub, mkContext, workerF)
   }
