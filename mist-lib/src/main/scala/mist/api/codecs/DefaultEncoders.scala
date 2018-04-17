@@ -1,4 +1,4 @@
-package mist.api.encoding
+package mist.api.codecs
 
 trait DefaultEncoders extends PrimitiveEncoders with CollectionsEncoder
 

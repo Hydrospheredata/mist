@@ -1,7 +1,7 @@
 package mist.api
 
 import mist.api.args._
-import mist.api.encoding.Encoder
+import mist.api.codecs.Encoder
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}

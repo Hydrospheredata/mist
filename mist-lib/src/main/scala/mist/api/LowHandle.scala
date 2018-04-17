@@ -2,7 +2,7 @@ package mist.api
 
 import mist.api.args._
 import mist.api.data.JsLikeData
-import mist.api.encoding.Encoder
+import mist.api.codecs.Encoder
 
 import scala.util.Try
 

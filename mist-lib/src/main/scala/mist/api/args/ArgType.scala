@@ -1,22 +1,44 @@
 package mist.api.args
 
 sealed trait ArgType
-case object MBoolean extends ArgType
-case object MInt extends ArgType
-case object MString extends ArgType
-case object MDouble extends ArgType
+case object MBoolean extends ArgType {
+  override def toString: String = "Boolean"
+}
+case object MInt extends ArgType {
+  override def toString: String = "Int"
+}
+case object MString extends ArgType {
+  override def toString: String = "String"
+}
+case object MDouble extends ArgType {
+  override def toString: String = "Double"
+}
 
-final case class MList(v: ArgType) extends ArgType
-final case class MOption(v: ArgType) extends ArgType
+final case class MList(v: ArgType) extends ArgType {
+  override def toString: String = s"List[$v]"
+}
+final case class MOption(v: ArgType) extends ArgType {
+  override def toString: String = s"Option[$v]"
+}
 
 sealed trait RootArgType extends ArgType
-final case class MMap(k: ArgType, v: ArgType) extends RootArgType
-final case class MObj(fields: Seq[(String, ArgType)]) extends RootArgType
+final case class MMap(k: ArgType, v: ArgType) extends RootArgType {
+  override def toString: String = s"Map[$k, $v]"
+}
+
+final case class MObj(fields: Seq[(String, ArgType)]) extends RootArgType {
+  override def toString: String = {
+    val fs = fields.map({case (k, v) => s"$k=$v"}).mkString(",")
+    s"Object {$fs}"
+  }
+}
 object MObj {
   val empty = MObj(Seq.empty)
 }
 
-case object MAny extends ArgType
+case object MAny extends ArgType {
+  override def toString: String = s"Any"
+}
 
 object ArgType {
   import scala.reflect.runtime.universe._
@@ -42,4 +64,5 @@ object ArgType {
       case x => throw new IllegalArgumentException(s"Type $x is not supported")
     }
   }
+
 }

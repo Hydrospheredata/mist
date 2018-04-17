@@ -15,15 +15,15 @@ case object JsLikeNull extends JsLikeData {
   override def toString: String = "null"
 }
 
-case class JsLikeString(s: String) extends JsLikeData {
+final case class JsLikeString(s: String) extends JsLikeData {
   override def toString: String = s
 }
 
-case class JsLikeBoolean(b: Boolean) extends JsLikeData {
+final case class JsLikeBoolean(b: Boolean) extends JsLikeData {
   override def toString: String = b.toString
 }
 
-case class JsLikeNumber(v: BigDecimal) extends JsLikeData {
+final case class JsLikeNumber(v: BigDecimal) extends JsLikeData {
   override def toString: String = v.toString()
 }
 
@@ -38,11 +38,12 @@ object JsLikeNumber {
   def apply(n: BigInt): JsLikeNumber = new JsLikeNumber(BigDecimal(n))
 }
 
-class JsLikeMap(val map: Map[String, JsLikeData]) extends JsLikeData {
+final class JsLikeMap(val map: Map[String, JsLikeData]) extends JsLikeData {
 
   override def toString: String = map.mkString("{", ",", "}")
   def fields: Seq[(String, JsLikeData)] = map.toSeq
   def get(key: String): Option[JsLikeData] = map.get(key)
+  def fieldValue(key: String): JsLikeData = get(key).getOrElse(JsLikeNull)
 
   override def equals(obj: scala.Any): Boolean = {
     obj match {
@@ -55,6 +56,8 @@ class JsLikeMap(val map: Map[String, JsLikeData]) extends JsLikeData {
 }
 
 object JsLikeMap {
+
+  val empty: JsLikeMap = JsLikeMap()
 
   def apply(fields: (String, JsLikeData)*): JsLikeMap = {
     new JsLikeMap(Map(fields: _*))

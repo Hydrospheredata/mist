@@ -1,7 +1,7 @@
 package mist.api.jdsl
 
 import mist.api.data.{JsLikeData, JsLikeNull}
-import mist.api.encoding.Encoder
+import mist.api.codecs.Encoder
 
 /**
   *  Job result for java api

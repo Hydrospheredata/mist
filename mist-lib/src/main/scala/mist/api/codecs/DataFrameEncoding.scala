@@ -1,4 +1,4 @@
-package mist.api.encoding
+package mist.api.codecs
 
 import mist.api.data.{JsLikeData, JsLikeList}
 import org.apache.spark.sql.DataFrame

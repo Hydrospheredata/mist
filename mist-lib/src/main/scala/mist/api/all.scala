@@ -1,7 +1,7 @@
 package mist.api
 
 import mist.api.args.{ArgsInstances, WithArgsScala}
-import mist.api.encoding.DefaultEncoders
+import mist.api.codecs.DefaultEncoders
 
 object all extends ArgsInstances
   with MistExtrasDef
