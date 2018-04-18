@@ -1,6 +1,8 @@
 package mist.api.args
 
 import mist.api._
+import mist.api.data.JsLikeMap
+import mist.api.encoding.{Extracted, Extraction, FailedExt}
 
 trait ArgCombiner[A, B] {
   type Out
@@ -17,24 +19,24 @@ object ArgCombiner {
       new ArgDef[R] {
         def describe(): Seq[ArgInfo] = a.describe() ++ b.describe()
 
-        def extract(ctx: FnContext): ArgExtraction[R] = {
+        def extract(ctx: FnContext): Extraction[R] = {
           (b.extract(ctx), a.extract(ctx)) match {
             case (Extracted(be), Extracted(ae)) =>
               val out = join(ae, be)
               Extracted(out)
-            case (Missing(errB), Missing(errA)) => Missing(errA + ", " + errB)
-            case (x@Missing(_), _) => x.asInstanceOf[Missing[R]]
-            case (_, x@Missing(_)) => x.asInstanceOf[Missing[R]]
+            case (f1: FailedExt, f2: FailedExt) => FailedExt.toComplex(f1, f2)
+            case (f: FailedExt, _) => f
+            case (_, f: FailedExt) => f
           }
         }
 
-        override def validate(params: Map[String, Any]): Either[Throwable, Any] = {
+        //TODO
+        override def validate(params: JsLikeMap): Option[Throwable] = {
           (a.validate(params), b.validate(params)) match {
-            case (Right(_), Right(_)) => Right(())
-            case (Left(errA), Left(errB)) =>
-              Left(new IllegalArgumentException(errA.getLocalizedMessage + "\n" + errB.getLocalizedMessage))
-            case (Left(errA), Right(_)) => Left(errA)
-            case (Right(_), Left(errB)) => Left(errB)
+            case (None, None) => None
+            case (Some(err1), Some(err2)) => Some(new IllegalArgumentException(s"Vaildation .. $err1 $err2"))
+            case (None, err @ Some(_)) => err
+            case (err @ Some(_), None) => err
           }
         }
       }

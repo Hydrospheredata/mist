@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import JsonCodecs._
-import mist.api.data.JsLikeData
+import mist.api.data.{JsLikeData, JsLikeMap}
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 import spray.json.{JsObject, JsString, enrichAny, enrichString}
@@ -52,9 +52,9 @@ trait JobsTable {
     }
   )
 
-  implicit def string2JobParameters = MappedColumnType.base[Map[String, Any], String](
+  implicit def string2JobParameters = MappedColumnType.base[JsLikeMap, String](
     jobParameters => jobParameters.toJson.compactPrint,
-    string => string.parseJson.convertTo[Map[String, Any]]
+    string => string.parseJson.convertTo[JsLikeMap]
   )
 
   implicit def string2Action = MappedColumnType.base[Action, String](
@@ -72,7 +72,7 @@ trait JobsTable {
     def path = column[String]("path")
     def className = column[String]("class_name")
     def namespace = column[String]("namespace")
-    def parameters = column[Map[String, Any]]("parameters")
+    def parameters = column[JsLikeMap]("parameters")
     def externalId = column[Option[String]]("external_id")
     def function = column[String]("function")
     def action = column[Action]("action")

@@ -1,11 +1,11 @@
-package mist.api.codecs
+package mist.api.encoding
 
 import mist.api.data.{JsLikeData, JsLikeList}
 import org.apache.spark.sql.DataFrame
 
 trait DataFrameEncoding {
 
-  implicit val dataFrameEncoder = new Encoder[DataFrame] {
+  implicit val dataFrameEncoder = new JsEncoder[DataFrame] {
     override def apply(df: DataFrame): JsLikeData = {
       val rowEncoder = new SchemedRowEncoder(df.schema)
       val data = df.queryExecution.toRdd.mapPartitions(iter => {

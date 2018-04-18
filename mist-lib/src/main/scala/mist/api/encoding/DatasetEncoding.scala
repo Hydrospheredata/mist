@@ -1,11 +1,11 @@
-package mist.api.codecs
+package mist.api.encoding
 
 import mist.api.data._
 import org.apache.spark.sql.Dataset
 
 trait DatasetEncoding {
 
-  implicit val datasetEncoder = new Encoder[Dataset[_]] {
+  implicit val datasetEncoder = new JsEncoder[Dataset[_]] {
 
     def apply(ds: Dataset[_]): JsLikeData = {
       val rowEncoder = new SchemedRowEncoder(ds.schema)

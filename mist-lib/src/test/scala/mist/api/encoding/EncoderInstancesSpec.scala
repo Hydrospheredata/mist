@@ -1,4 +1,4 @@
-package mist.api.codecs
+package mist.api.encoding
 
 import mist.api.data._
 import org.scalatest.{FunSpec, Matchers}
@@ -20,13 +20,13 @@ class EncoderInstancesSpec extends FunSpec with Matchers {
     import GenericEncoderInstances._
 
     it("should encode case class") {
-      val enc = implicitly[Encoder[TestPlain]]
+      val enc = implicitly[JsEncoder[TestPlain]]
       enc(TestPlain(99, "foo")) shouldBe
         JsLikeMap("a" -> JsLikeNumber(99), "b" -> JsLikeString("foo"))
     }
 
     it("should encode complex case class") {
-      val enc = implicitly[Encoder[TestComplex]]
+      val enc = implicitly[JsEncoder[TestComplex]]
 
       val exp = JsLikeMap(
         "a" -> JsLikeNumber(99),

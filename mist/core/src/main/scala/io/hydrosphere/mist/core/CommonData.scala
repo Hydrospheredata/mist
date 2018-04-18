@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.core
 
 import akka.actor.ActorRef
-import mist.api.data.JsLikeData
+import mist.api.data.{JsLikeData, JsLikeMap}
 
 import scala.concurrent.duration.Duration
 
@@ -38,7 +38,7 @@ object CommonData {
   case class JobParams(
     filePath: String,
     className: String,
-    arguments: Map[String, Any],
+    arguments: JsLikeMap,
     action: Action
   )
 
@@ -125,7 +125,7 @@ object CommonData {
     className: String,
     jobPath: String,
     name: String,
-    params: Map[String, Any]
+    params: JsLikeMap
   ) extends InfoRequest
 
   case class GetAllFunctions(

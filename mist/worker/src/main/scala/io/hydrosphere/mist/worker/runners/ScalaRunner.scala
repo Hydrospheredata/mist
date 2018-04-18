@@ -31,7 +31,6 @@ class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
     }
     for {
       inst      <- instance
-      _         <- inst.validateParams(params.arguments)
       ctx       =  FnContext(context.sc, params.arguments, context.streamingDuration, RuntimeJobInfo(request.id, context.namespace))
       result    <- inst.run(ctx)
     } yield result

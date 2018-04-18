@@ -1,7 +1,7 @@
 package mist.api
 
 import mist.api.args._
-import mist.api.codecs.Encoder
+import mist.api.encoding.{Extracted, Extraction, FailedExt, JsEncoder}
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
@@ -35,14 +35,14 @@ object ContextsArgs {
 
     var cache: HiveContext = _
 
-    override def extract(ctx: FnContext): ArgExtraction[HiveContext] = synchronized {
+    override def extract(ctx: FnContext): Extraction[HiveContext] = synchronized {
       ctx match {
         case c: FullFnContext =>
           if (cache == null)
             cache = new HiveContext(c.sc)
           Extracted(cache)
         case _ =>
-          Missing(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullFnContext.getClass.getSimpleName}")
+          FailedExt.InternalError(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullFnContext.getClass.getSimpleName}")
       }
     }
 
@@ -108,7 +108,7 @@ trait Contexts {
       implicit
       cmb: ArgCombiner.Aux[A, SparkContext, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(sparkContext).apply(f), enc)
 
     /**
@@ -118,7 +118,7 @@ trait Contexts {
       implicit
       cmb: ArgCombiner.Aux[A, StreamingContext, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(streamingContext).apply(f), enc)
 
     /**
@@ -128,7 +128,7 @@ trait Contexts {
       implicit
       cmb: ArgCombiner.Aux[A, SQLContext, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(sqlContext).apply(f), enc)
 
     /**
@@ -138,21 +138,21 @@ trait Contexts {
       implicit
       cmb: ArgCombiner.Aux[A, HiveContext, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(hiveContext).apply(f), enc)
 
     def onSparkSession[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(sparkSession).apply(f), enc)
 
     def onSparkSessionWithHive[F, Cmb, Out](f: F)(
       implicit
       cmb: ArgCombiner.Aux[A, SparkSession, Cmb],
       fnT: FnForTuple.Aux[Cmb, F, Out],
-      enc: Encoder[Out]
+      enc: JsEncoder[Out]
     ): Handle = Handle.fromLow(args.combine(sparkSessionWithHive).apply(f), enc)
   }
 
@@ -162,7 +162,7 @@ trait Contexts {
   def onSparkContext[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[SparkContext, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(sparkContext.apply(f), enc)
 
   /**
@@ -171,7 +171,7 @@ trait Contexts {
   def onStreamingContext[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[StreamingContext, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(streamingContext.apply(f), enc)
 
   /**
@@ -180,7 +180,7 @@ trait Contexts {
   def onSqlContext[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[SQLContext, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(sqlContext.apply(f), enc)
 
   /**
@@ -189,7 +189,7 @@ trait Contexts {
   def onHiveContext[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[HiveContext, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(hiveContext.apply(f), enc)
 
   /**
@@ -198,7 +198,7 @@ trait Contexts {
   def onSparkSession[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[SparkSession, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(sparkSession.apply(f), enc)
 
   /**
@@ -208,7 +208,7 @@ trait Contexts {
   def onSparkSessionWithHive[F, Out](f: F)(
     implicit
     fnT: FnForTuple.Aux[SparkSession, F, Out],
-    enc: Encoder[Out]
+    enc: JsEncoder[Out]
   ): Handle = Handle.fromLow(sparkSessionWithHive.apply(f), enc)
 }
 

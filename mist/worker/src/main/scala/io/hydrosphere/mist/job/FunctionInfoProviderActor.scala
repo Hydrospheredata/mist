@@ -7,6 +7,8 @@ import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
+import mist.api.data.JsLikeMap
+import mist.api.internal.BaseFunctionInstance
 
 import scala.concurrent.duration._
 
@@ -117,8 +119,14 @@ class FunctionInfoProviderActor(
       context become cached(next)
 
     case req: ValidateFunctionParameters =>
+      def validate(inst: BaseFunctionInstance, p: JsLikeMap): TryLoad[Unit] = {
+        inst.validateParams(p) match {
+          case Some(err) => Err(err)
+          case None => Succ(())
+        }
+      }
       val (next, v) = usingCache(cache, req)
-      val rsp = v.flatMap(i => TryLoad.fromEither(i.instance.validateParams(req.params))) match {
+      val rsp = v.flatMap(i => validate(i.instance, req.params)) match {
         case Succ(_) => Status.Success(())
         case Err(e) =>
           log.info(s"Responding with err on {}: {} {}", req, e.getClass, e.getMessage)

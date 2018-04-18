@@ -1,5 +1,6 @@
 package mist.api
-import mist.api.args.{ArgCombiner, ArgDef, Extracted, SystemArg}
+import mist.api.args.{ArgCombiner, ArgDef, SystemArg}
+import mist.api.encoding.Extracted
 
 /**
   * Access to mist-specific job parameters

@@ -1,4 +1,6 @@
 import mist.api.all._
+import mist.api.encoding.DefaultExtractorInstances._
+import mist.api.encoding.DefaultEncoderInstances._
 import org.apache.spark.sql.SQLContext
 
 object SQLContextExample extends MistFn {
@@ -11,6 +13,7 @@ object SQLContextExample extends MistFn {
       sqlCtx.sql("SELECT AVG(age) AS avg_age FROM people")
         .collect()
         .map(r => r.getDouble(0).toInt)
+        .toSeq
     })
   }
 }

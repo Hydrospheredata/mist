@@ -2,7 +2,7 @@ package mist.api.internal
 
 import mist.api._
 import mist.api.args.ArgInfo
-import mist.api.data.{JsLikeData, JsLikeNull}
+import mist.api.data.{JsLikeData, JsLikeMap, JsLikeNull}
 import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
@@ -12,7 +12,7 @@ trait BaseFunctionInstance {
 
   def describe(): Seq[ArgInfo]
 
-  def validateParams(params: Map[String, Any]): Either[Throwable, Any]
+  def validateParams(params: JsLikeMap): Option[Throwable]
 
   def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
 }
@@ -23,9 +23,7 @@ class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
-    jobDef.validate(params)
-
+  override def validateParams(params: JsLikeMap): Option[Throwable] = jobDef.validate(params)
 
   override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
@@ -45,8 +43,7 @@ class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
-    jobDef.validate(params)
+  override def validateParams(params: JsLikeMap): Option[Throwable] = jobDef.validate(params)
 
   override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
     try {
@@ -67,7 +64,7 @@ object FunctionInstance {
 
     override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
 
-    override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = Right(Map.empty)
+    override def validateParams(params: JsLikeMap): Option[Throwable] = None
 
     override def describe(): Seq[ArgInfo] = Seq()
   }

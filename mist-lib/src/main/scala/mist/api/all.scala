@@ -1,13 +1,11 @@
 package mist.api
 
 import mist.api.args.{ArgsInstances, WithArgsScala}
-import mist.api.codecs.DefaultEncoders
 
 object all extends ArgsInstances
   with MistExtrasDef
   with WithArgsScala
-  with Contexts
-  with DefaultEncoders {
+  with Contexts {
 
   type ArgDef[A] = args.ArgDef[A]
   val ArgDef = args.ArgDef

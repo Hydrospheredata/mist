@@ -1,5 +1,7 @@
 import mist.api.all._
-import mist.api.codecs.DataFrameEncoding._
+import mist.api.encoding.DataFrameEncoding._
+import mist.api.encoding.DefaultExtractorInstances._
+import mist.api.encoding.DefaultEncoderInstances._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.hive.HiveContext
 

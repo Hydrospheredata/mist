@@ -1,4 +1,4 @@
-package mist.api.codecs
+package mist.api.encoding
 
 import java.util.Locale
 

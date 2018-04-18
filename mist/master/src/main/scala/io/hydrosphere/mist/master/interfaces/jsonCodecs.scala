@@ -79,6 +79,14 @@ trait MDataFormat {
       }
     }
   }
+
+  implicit val jsLikeMapFormat = new RootJsonFormat[JsLikeMap] {
+    override def write(obj: JsLikeMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
+    override def read(json: JsValue): JsLikeMap = json match {
+      case JsObject(fields) => JsLikeMap(fields.mapValues(v => mDataFormat.read(v)))
+      case other => throw new DeserializationException(s"Json object required: got $other")
+    }
+  }
 }
 
 

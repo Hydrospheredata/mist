@@ -1,4 +1,6 @@
 import mist.api.all._
+import mist.api.encoding.DefaultExtractorInstances._
+import mist.api.encoding.DefaultEncoderInstances._
 import org.apache.spark.SparkContext
 
 object PiExample extends MistFn {

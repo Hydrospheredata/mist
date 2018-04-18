@@ -1,5 +1,7 @@
 package mist.api.data
 
+import scala.util._
+
 /**
   * Json like data
   * We use our own data-structure to keep worker/master communications
@@ -98,6 +100,19 @@ object JsLikeData {
     case _: Option[_] => JsLikeNull
   }
 
+  def untyped(d: JsLikeMap): Map[String, Any] = {
+    def convert(d: JsLikeData): Any = d match {
+      case m:JsLikeMap => m.fields.map({case (k, v) => k -> convert(v)}).toMap
+      case l:JsLikeList => l.list.map(convert)
+      case n:JsLikeNumber => Try(n.v.toIntExact).orElse(Try(n.v.toIntExact)).getOrElse(n.v.toDouble)
+      case JsLikeString(s) => s
+      case JsLikeBoolean(b) => b
+      case JsLikeNull => null
+      case JsLikeUnit => Map.empty
+    }
+    d.fields.map({case (k, v) => k -> convert(v)}).toMap
+  }
+
   def fromJava(a: Any): JsLikeData = a match {
     case i: java.lang.Integer    => JsLikeNumber(i)
     case d: java.lang.Double     => JsLikeNumber(d)
@@ -117,4 +132,27 @@ object JsLikeData {
     case _: java.util.Optional[_] => JsLikeNull
   }
 
+  /** For running mist jobs directly from spark-submit **/
+  def parse(s: String): Try[JsLikeData] = {
+    import org.json4s._
+
+    def translateAst(in: JValue): JsLikeData = in match {
+      case JNothing => JsLikeNull //???
+      case JNull => JsLikeNull
+      case JString(s) => JsLikeString(s)
+      case JDouble(d) => JsLikeNumber(d)
+      case JDecimal(d) => JsLikeNumber(d)
+      case JInt(i) => JsLikeNumber(i)
+      case JBool(v) => JsLikeBoolean(v)
+      case JObject(fields) => JsLikeMap(fields.map({case (k, v) => k -> translateAst(v)}): _*)
+      case JArray(elems) => JsLikeList(elems.map(translateAst))
+    }
+
+    Try(org.json4s.jackson.JsonMethods.parse(s, useBigDecimalForDouble = true)).map(json4sJs => translateAst(json4sJs))
+  }
+
+  def parseRoot(s: String): Try[JsLikeMap] = parse(s).flatMap {
+    case m:JsLikeMap => Success(m)
+    case _ => Failure(new IllegalArgumentException(s"Couldn't parse js object from input: $s"))
+  }
 }

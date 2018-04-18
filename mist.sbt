@@ -84,6 +84,7 @@ lazy val master = project.in(file("mist/master"))
       Library.dockerJava,
 
       Library.commonsCodec, Library.scalajHttp,
+      Library.jsr305 % "provided",
 
       Library.scalaTest % "test",
       Library.mockito % "test"
@@ -162,6 +163,7 @@ lazy val root = project.in(file("."))
         ("hive-ctx-example", "HiveContextExample$"),
         ("sql-ctx-example", "SQLContextExample$"),
         ("text-search-example", "TextSearchExample$"),
+        ("less-verbose-example", "LessVerboseExample$"),
         ("pi-example", "PiExample$"),
         ("jpi-example", "JavaPiExample")
       ).map({case (name, clazz) => {
