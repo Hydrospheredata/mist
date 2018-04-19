@@ -1,4 +1,4 @@
-package mist.api.args
+package mist.api.internal
 
 import shadedshapeless._
 

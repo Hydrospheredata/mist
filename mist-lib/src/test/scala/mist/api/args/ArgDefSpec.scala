@@ -17,7 +17,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
 
     it("should extract missing") {
-      missing("msg").extract(testCtx()) shouldBe Missing("msg")
+      missing("msg").extract(testCtx()) shouldBe Failed
     }
   }
 

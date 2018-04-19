@@ -52,7 +52,7 @@ object Boilerplate {
     def content(tv: TemplateVals): String = {
       import tv._
       block"""
-         |package mist.api.args
+         |package mist.api.internal
          |import shadedshapeless._
          |
          |trait HListerInstances extends LowerPriorityHLister {
@@ -74,7 +74,7 @@ object Boilerplate {
       val Fn = s"$FnIn => Res"
       val fnApply = if (arity == 1) "f(in)" else "f.tupled(in)"
       block"""
-         |package mist.api.args
+         |package mist.api.internal
          |
          |trait FnForTuple[In, F] {
          |  type Out
@@ -149,11 +149,12 @@ object Boilerplate {
          |package mist.api.jdsl
          |
          |import org.apache.spark.api.java.JavaSparkContext
+         |import org.apache.spark.sql.SparkSession
          |import org.apache.spark.streaming.api.java.JavaStreamingContext
-         |import FuncSyntax._
          |import mist.api.MistExtras
-         |import mist.api.ContextsArgs._
-         |import mist.api.args.ArgDef
+         |import FuncSyntax._
+         |import mist.api.SparkArgs._
+         |import mist.api.ArgDef
          |
          -class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
          -
@@ -172,6 +173,16 @@ object Boilerplate {
          -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
+         -
+         -  def onSparkSession(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
+         -    val job = (${`a1&aN-1`} & sparkSession).apply(f.toScalaFunc)
+         -    new JHandle(job)
+         -  }
+         -
+         -  def onSparkSessionWithHive(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
+         -    val job = (${`a1&aN-1`} & sparkSessionWithHive).apply(f.toScalaFunc)
+         -    new JHandle(job)
+         -  }
          ${extrasMethod}
          -}
       """
@@ -186,7 +197,7 @@ object Boilerplate {
       block"""
          |package mist.api.jdsl
          |
-         |import mist.api.args.ArgDef
+         |import mist.api.ArgDef
          |
          |trait WithArgs {
          |
@@ -222,7 +233,7 @@ object Boilerplate {
   }
 
   trait ScalaTemplate extends Template {
-    override def packageName = "mist/api/args"
+    override def packageName = "mist/api/internal"
   }
 
   trait JavaTemplate extends Template {

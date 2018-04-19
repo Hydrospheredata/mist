@@ -1,4 +1,4 @@
-package mist.api.encoding
+package mist.api.encoding.spark
 
 import java.util.Locale
 
@@ -17,7 +17,7 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
 
   type SG = SpecializedGetters
 
-  def encode(row: InternalRow): JsLikeData = {
+  def encode(row: InternalRow): JsData = {
     val fieldsConverters = schema.fields.map(f => converter(f.dataType))
     val fields = schema.fields
     val converted =
@@ -25,41 +25,41 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
         i <- fields.indices
         field = fields(i)
       } yield {
-        val data = if (!row.isNullAt(i)) fieldsConverters(i)(row, i) else JsLikeNull
+        val data = if (!row.isNullAt(i)) fieldsConverters(i)(row, i) else JsNull
         field.name -> data
       }
     JsLikeMap(converted.toMap)
   }
 
-  private def converter(d: DataType): (SG, Int) => JsLikeData = d match {
-    case NullType =>    (g: SG, i: Int) => JsLikeNull
-    case BooleanType => (g: SG, i: Int) => JsLikeBoolean(g.getBoolean(i))
-    case ByteType =>    (g: SG, i: Int) => JsLikeNumber(g.getByte(i).toInt)
-    case ShortType =>   (g: SG, i: Int) => JsLikeNumber(g.getShort(i).toInt)
-    case IntegerType => (g: SG, i: Int) => JsLikeNumber(g.getInt(i))
-    case LongType =>    (g: SG, i: Int) => JsLikeNumber(g.getLong(i))
-    case FloatType =>   (g: SG, i: Int) => JsLikeNumber(g.getFloat(i).toDouble)
-    case DoubleType =>  (g: SG, i: Int) => JsLikeNumber(g.getDouble(i))
-    case StringType =>  (g: SG, i: Int) => JsLikeString(g.getUTF8String(i).toString)
+  private def converter(d: DataType): (SG, Int) => JsData = d match {
+    case NullType =>    (g: SG, i: Int) => JsNull
+    case BooleanType => (g: SG, i: Int) => JsBoolean(g.getBoolean(i))
+    case ByteType =>    (g: SG, i: Int) => JsNumber(g.getByte(i).toInt)
+    case ShortType =>   (g: SG, i: Int) => JsNumber(g.getShort(i).toInt)
+    case IntegerType => (g: SG, i: Int) => JsNumber(g.getInt(i))
+    case LongType =>    (g: SG, i: Int) => JsNumber(g.getLong(i))
+    case FloatType =>   (g: SG, i: Int) => JsNumber(g.getFloat(i).toDouble)
+    case DoubleType =>  (g: SG, i: Int) => JsNumber(g.getDouble(i))
+    case StringType =>  (g: SG, i: Int) => JsString(g.getUTF8String(i).toString)
 
     case TimestampType => (g: SG, i: Int) => {
       val s = timestampFormat.format(DateTimeUtils.toJavaTimestamp(g.getLong(i)))
-      JsLikeString(s)
+      JsString(s)
     }
 
     case DateType => (g: SG, i: Int) => {
       val s = dateFormat.format(DateTimeUtils.toJavaDate(g.getInt(i)))
-      JsLikeString(s)
+      JsString(s)
     }
 
     case BinaryType => (g: SG, i: Int) => {
       val s = Base64.encodeBase64String(g.getBinary(i))
-      JsLikeString(s)
+      JsString(s)
     }
 
     case dt: DecimalType => (g: SG, i: Int) => {
       val bigDecimal = g.getDecimal(i, dt.precision, dt.scale).toJavaBigDecimal
-      new JsLikeNumber(bigDecimal)
+      new JsNumber(bigDecimal)
     }
 
     case st: StructType => (g: SG, i: Int) => {
@@ -72,9 +72,9 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
       val conv = converter(at.elementType)
       val arr = g.getArray(i)
       val values = (0 until arr.numElements()).map(idx => {
-        if (!arr.isNullAt(idx)) conv(arr, idx) else JsLikeNull
+        if (!arr.isNullAt(idx)) conv(arr, idx) else JsNull
       })
-      JsLikeList(values)
+      JsList(values)
     }
 
     case mt: MapType => (g: SG, i: Int) => {
@@ -85,7 +85,7 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
 
       val fields = (0 until map.numElements()).map(idx => {
         val key = keyArray.get(idx, mt.keyType).toString
-        val value = if (!valueArray.isNullAt(idx)) valConv(valueArray, idx) else JsLikeNull
+        val value = if (!valueArray.isNullAt(idx)) valConv(valueArray, idx) else JsNull
         key -> value
       })
       JsLikeMap(fields.toMap)

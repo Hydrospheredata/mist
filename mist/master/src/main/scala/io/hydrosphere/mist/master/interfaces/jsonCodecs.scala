@@ -54,27 +54,27 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 
 trait MDataFormat {
 
-  implicit val mDataFormat = new RootJsonFormat[JsLikeData] {
-    override def read(json: JsValue): JsLikeData = {
+  implicit val mDataFormat = new RootJsonFormat[JsData] {
+    override def read(json: JsValue): JsData = {
       json match {
         case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
-        case JsString(s) => JsLikeString(s)
-        case JsNumber(d) => new JsLikeNumber(d)
-        case JsFalse => JsLikeBoolean(false) //TODO MBoolean can has default false and true
-        case JsTrue  => JsLikeBoolean(true)
-        case JsNull  => JsLikeNull
-        case JsArray(values) => JsLikeList(values.map(read))
+        case JsString(s) => JsString(s)
+        case JsNumber(d) => new JsNumber(d)
+        case JsFalse => JsBoolean(false) //TODO MBoolean can has default false and true
+        case JsTrue  => JsBoolean(true)
+        case JsNull  => JsNull
+        case JsArray(values) => JsList(values.map(read))
       }
     }
 
-    override def write(obj: JsLikeData): JsValue = {
+    override def write(obj: JsData): JsValue = {
       obj match {
-        case JsLikeNumber(d)    => JsNumber(d)
-        case JsLikeBoolean(b)   => JsBoolean(b)
-        case JsLikeString(s)    => JsString(s)
-        case JsLikeNull         => JsNull
-        case JsLikeUnit         => JsObject(Map.empty[String, JsValue])
-        case JsLikeList(values) => JsArray(values.map(v => write(v)).toVector)
+        case JsNumber(d)    => JsNumber(d)
+        case JsBoolean(b)   => JsBoolean(b)
+        case JsString(s)    => JsString(s)
+        case JsNull         => JsNull
+        case JsUnit         => JsObject(Map.empty[String, JsValue])
+        case JsList(values) => JsArray(values.map(v => write(v)).toVector)
         case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
     }

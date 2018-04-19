@@ -1,4 +1,4 @@
-package mist.api.args
+package mist.api
 
 sealed trait ArgType
 case object MBoolean extends ArgType {

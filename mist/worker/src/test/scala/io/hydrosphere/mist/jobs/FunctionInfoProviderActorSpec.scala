@@ -13,7 +13,7 @@ import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.args.{ArgInfo, UserInputArgument}
 import mist.api.FullFnContext
 import mist.api.args.MInt
-import mist.api.data.{JsLikeData, JsLikeNull}
+import mist.api.data.{JsData, JsNull}
 import mist.api.internal.BaseFunctionInstance
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
@@ -271,7 +271,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   }
 
   def TestJobInstance(validationResult: Either[Throwable, Map[String, Any]]): BaseFunctionInstance = new BaseFunctionInstance {
-    override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+    override def run(jobCtx: FullFnContext): Either[Throwable, JsData] = Right(JsNull)
 
     override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = validationResult
 

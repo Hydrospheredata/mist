@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 
 import scala.util.Try
 
@@ -26,7 +26,7 @@ abstract class MistFn {
 
   def handle: Handle
 
-  final def execute(ctx: FnContext): Try[JsLikeData] = handle.invoke(ctx)
+  final def execute(ctx: FnContext): Try[JsData] = handle.invoke(ctx)
 
 }
 

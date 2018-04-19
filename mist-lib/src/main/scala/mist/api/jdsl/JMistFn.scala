@@ -1,7 +1,7 @@
 package mist.api.jdsl
 
 import mist.api._
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 
 import scala.util._
 
@@ -11,6 +11,6 @@ abstract class JMistFn extends JArgsDef with JJobDefinition {
 
   def handle: JHandle
 
-  final def execute(ctx: FnContext): Try[JsLikeData] = handle.underlying.invoke(ctx).map(_.encoded())
+  final def execute(ctx: FnContext): Try[JsData] = handle.underlying.invoke(ctx).map(_.encoded())
 }
 

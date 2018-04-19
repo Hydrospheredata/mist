@@ -1,8 +1,7 @@
-package mist.api.args
+package mist.api.internal
 
 import mist.api._
 import mist.api.data.JsLikeMap
-import mist.api.encoding.{Extracted, Extraction, FailedExt}
 
 trait ArgCombiner[A, B] {
   type Out
@@ -24,19 +23,19 @@ object ArgCombiner {
             case (Extracted(be), Extracted(ae)) =>
               val out = join(ae, be)
               Extracted(out)
-            case (f1: FailedExt, f2: FailedExt) => FailedExt.toComplex(f1, f2)
-            case (f: FailedExt, _) => f
-            case (_, f: FailedExt) => f
+            case (f1: Failed, f2: Failed) => Failed.toComplex(f1, f2)
+            case (f: Failed, _) => f
+            case (_, f: Failed) => f
           }
         }
 
         //TODO
-        override def validate(params: JsLikeMap): Option[Throwable] = {
+        override def validate(params: JsLikeMap): Extraction[Unit] = {
           (a.validate(params), b.validate(params)) match {
-            case (None, None) => None
-            case (Some(err1), Some(err2)) => Some(new IllegalArgumentException(s"Vaildation .. $err1 $err2"))
-            case (None, err @ Some(_)) => err
-            case (err @ Some(_), None) => err
+            case (Extracted(_), Extracted(_)) => Extracted(())
+            case (f1: Failed, f2: Failed) => Failed.toComplex(f1, f2)
+            case (Extracted(_), f: Failed) => f
+            case (f: Failed, Extracted(_)) => f
           }
         }
       }

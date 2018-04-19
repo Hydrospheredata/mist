@@ -1,67 +1,14 @@
 package mist.api
 
-import mist.api.args._
-import mist.api.encoding.{Extracted, Extraction, FailedExt, JsEncoder}
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.api.java.JavaStreamingContext
-/**
-  * Arguments for constructing contexts
-  */
-object ContextsArgs {
-
-  val sparkContext: ArgDef[SparkContext] = SystemArg(
-    Seq.empty,
-    c => Extracted(c.sc)
-  )
-
-  val streamingContext: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
-    ctx => {
-      val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(ctx.sc, ctx.streamingDuration))
-      Extracted(ssc)
-    }
-  )
-
-  val sqlContext: ArgDef[SQLContext] = SystemArg(Seq(ArgInfo.SqlContextTag),
-    ctx => sparkContext.map(SQLContext.getOrCreate).extract(ctx)
-  )
-
-  // HiveContext should be cached per jvm
-  // see #325
-  val hiveContext: ArgDef[HiveContext] = new SystemArg[HiveContext] {
-
-    var cache: HiveContext = _
-
-    override def extract(ctx: FnContext): Extraction[HiveContext] = synchronized {
-      ctx match {
-        case c: FullFnContext =>
-          if (cache == null)
-            cache = new HiveContext(c.sc)
-          Extracted(cache)
-        case _ =>
-          FailedExt.InternalError(s"Unknown type of job context ${ctx.getClass.getSimpleName} expected ${FullFnContext.getClass.getSimpleName}")
-      }
-    }
-
-    override def describe(): Seq[ArgInfo] = Seq(InternalArgument(
-      Seq(ArgInfo.HiveContextTag, ArgInfo.SqlContextTag)))
-  }
-
-  val javaSparkContext: ArgDef[JavaSparkContext] = sparkContext.map(sc => new JavaSparkContext(sc))
-  val javaStreamingContext: ArgDef[JavaStreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
-    ctx => streamingContext.map(scc => new JavaStreamingContext(scc)).extract(ctx))
-
-  val sparkSession: ArgDef[SparkSession] = SystemArg(Seq(ArgInfo.SqlContextTag),
-    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, false)).extract(ctx)
-  )
-
-  val sparkSessionWithHive: ArgDef[SparkSession] = SystemArg(
-    Seq(ArgInfo.SqlContextTag, ArgInfo.HiveContextTag),
-    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, true)).extract(ctx))
-}
+import SparkArgs._
+import mist.api.internal.{ArgCombiner, FnForTuple}
+import mist.api.encoding.JsEncoder
 
 /**
   * Provide context combinators to complete job definition, that can take some
@@ -95,9 +42,8 @@ object ContextsArgs {
   *   }}}
   * </p>
   */
-trait Contexts {
+trait MistFnSyntax {
 
-  import ContextsArgs._
 
   implicit class ContextsOps[A](args: ArgDef[A]) {
 
@@ -212,4 +158,4 @@ trait Contexts {
   ): Handle = Handle.fromLow(sparkSessionWithHive.apply(f), enc)
 }
 
-object Contexts extends Contexts
+object MistFnSyntax

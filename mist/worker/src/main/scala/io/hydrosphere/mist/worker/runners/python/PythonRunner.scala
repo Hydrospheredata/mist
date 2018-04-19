@@ -8,7 +8,7 @@ import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.worker.runners.python.wrappers._
 import io.hydrosphere.mist.worker.{MistScContext, SparkArtifact}
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 import py4j.GatewayServer
 
 import scala.sys.process._
@@ -29,7 +29,7 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
   override def run(
     req: RunJobRequest,
     context: MistScContext
-  ): Either[Throwable, JsLikeData] = {
+  ): Either[Throwable, JsData] = {
 
     def pythonDriverEntry(): String = {
       val conf = context.sc.getConf
@@ -85,7 +85,7 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
         gatewayServer.shutdown()
       }
 
-      Try(JsLikeData.fromScala(entryPoint.dataWrapper.get)) match {
+      Try(JsData.fromScala(entryPoint.dataWrapper.get)) match {
         case Success(data) => Right(data)
         case Failure(e) => Left(e)
       }

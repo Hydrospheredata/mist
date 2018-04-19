@@ -5,7 +5,7 @@ import java.util.UUID
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
-import mist.api.data.{JsLikeData, JsLikeMap}
+import mist.api.data.{JsData, JsLikeMap}
 
 
 case class RunSettings(

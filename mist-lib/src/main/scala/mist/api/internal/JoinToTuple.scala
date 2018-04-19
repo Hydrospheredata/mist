@@ -1,4 +1,4 @@
-package mist.api.args
+package mist.api.internal
 
 import shadedshapeless._
 import shadedshapeless.ops.hlist.{Prepend, Tupler}

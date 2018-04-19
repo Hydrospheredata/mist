@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.core
 
 import akka.actor.ActorRef
-import mist.api.data.{JsLikeData, JsLikeMap}
+import mist.api.data.{JsData, JsLikeMap}
 
 import scala.concurrent.duration.Duration
 
@@ -80,7 +80,7 @@ object CommonData {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: JsLikeData) extends JobResponse
+  case class JobSuccess(id: String, result: JsData) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
   sealed trait GetRunInitInfo

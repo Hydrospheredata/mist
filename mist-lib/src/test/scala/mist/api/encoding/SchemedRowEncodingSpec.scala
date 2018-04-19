@@ -2,6 +2,7 @@ package mist.api.encoding
 
 import mist.api.TestSparkContext
 import mist.api.data._
+import mist.api.encoding.spark.SchemedRowEncoder
 import org.apache.spark.sql.SQLContext
 import org.scalatest.{FunSpec, Matchers}
 
@@ -25,10 +26,10 @@ class SchemedRowEncoderSpec extends FunSpec with Matchers with TestSparkContext 
     val data = encoder.encode(df.queryExecution.toRdd.collect()(0))
 
     data shouldBe JsLikeMap(
-      "intF" -> JsLikeNumber(1),
-      "stringF" -> JsLikeString("string"),
-      "doubleF" -> JsLikeNumber(1.1),
-      "longF" -> JsLikeNumber(1L)
+      "intF" -> JsNumber(1),
+      "stringF" -> JsString("string"),
+      "doubleF" -> JsNumber(1.1),
+      "longF" -> JsNumber(1L)
     )
   }
 

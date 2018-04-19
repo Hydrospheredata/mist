@@ -1,12 +1,10 @@
 package mist.api.jdsl
 
-import java.util
 import java.util.Optional
 
 import mist.api._
-import mist.api.args._
-import mist.api.data.JsLikeNull
-import mist.api.encoding.{Extracted, Extraction, JsExtractor}
+import mist.api.data.JsNull
+import mist.api.encoding.JsExtractor
 
 /**
   * Wrap UserArg to support validated method for java
@@ -32,8 +30,8 @@ trait JArgsDef {
 
   import java.{lang => jl, util => ju}
 
-  import mist.api.args.ArgsInstances._
-  import mist.api.encoding.DefaultExtractorInstances._
+  import mist.api.encoding.defaults._
+  import mist.api.ArgsInstances._
 
   import scala.collection.JavaConverters._
 
@@ -60,7 +58,7 @@ trait JArgsDef {
       override def describe() = Seq(UserInputArgument(name, MOption(ext.`type`)))
       override def extract(ctx: FnContext): Extraction[Optional[T]] = {
         ctx.params.fieldValue(name) match {
-          case JsLikeNull => Extracted(ju.Optional.empty())
+          case JsNull => Extracted(ju.Optional.empty())
           case x => ext(x).map(a => ju.Optional.of(a))
         }
       }
@@ -73,6 +71,7 @@ trait JArgsDef {
   def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg[jl.String](name)
   def optBooleanArg(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg[jl.Boolean](name)
 
+  //TODO
 //  private def listArg[T](name: String)(implicit ext: JsExtractor[T]): JUserArg[ju.List[T]] = {
 //    val arg = new UserArg[ju.List[T]] {
 //      override def describe() = Seq(UserInputArgument(name, MList(ext.`type`)))

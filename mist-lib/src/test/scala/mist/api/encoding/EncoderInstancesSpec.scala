@@ -22,17 +22,17 @@ class EncoderInstancesSpec extends FunSpec with Matchers {
     it("should encode case class") {
       val enc = implicitly[JsEncoder[TestPlain]]
       enc(TestPlain(99, "foo")) shouldBe
-        JsLikeMap("a" -> JsLikeNumber(99), "b" -> JsLikeString("foo"))
+        JsLikeMap("a" -> JsNumber(99), "b" -> JsString("foo"))
     }
 
     it("should encode complex case class") {
       val enc = implicitly[JsEncoder[TestComplex]]
 
       val exp = JsLikeMap(
-        "a" -> JsLikeNumber(99),
-        "b" -> JsLikeList(Seq(
-          JsLikeMap("a" -> JsLikeNumber(1), "b" -> JsLikeString("a")),
-          JsLikeMap("a" -> JsLikeNumber(2), "b" -> JsLikeString("2"))
+        "a" -> JsNumber(99),
+        "b" -> JsList(Seq(
+          JsLikeMap("a" -> JsNumber(1), "b" -> JsString("a")),
+          JsLikeMap("a" -> JsNumber(2), "b" -> JsString("2"))
         ))
       )
       val value = TestComplex(99, Seq(TestPlain(1, "a"), TestPlain(2, "2")))

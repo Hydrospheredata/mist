@@ -32,7 +32,7 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
 
     flusher ! ReportedEvent.plain(QueuedEvent("id"))
     flusher ! ReportedEvent.plain(StartedEvent("id", System.currentTimeMillis()))
-    flusher ! ReportedEvent.plain(FinishedEvent("id", System.currentTimeMillis(), JsLikeNumber(42)))
+    flusher ! ReportedEvent.plain(FinishedEvent("id", System.currentTimeMillis(), JsNumber(42)))
 
     initial.success(mkDetails(JobDetails.Status.Initialized))
 
@@ -54,13 +54,13 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
       (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled)),
-      (FinishedEvent("id", 1, JsLikeMap("1" -> JsLikeNumber(2))),
+      (FinishedEvent("id", 1, JsLikeMap("1" -> JsNumber(2))),
         baseDetails.copy(
           status = Status.Finished,
           endTime = Some(1),
           jobResult =
             Some(
-              Right(JsLikeMap("1" -> JsLikeNumber(2)))
+              Right(JsLikeMap("1" -> JsNumber(2)))
             )
         )),
       (FailedEvent("id", 1, "error"),

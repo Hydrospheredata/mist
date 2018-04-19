@@ -7,7 +7,7 @@ import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
-import mist.api.data.{JsLikeData, _}
+import mist.api.data.{JsData, _}
 import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
@@ -51,7 +51,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
 
   it(s"should execute jobs") {
-    val runner = SuccessRunnerSelector(JsLikeNumber(42))
+    val runner = SuccessRunnerSelector(JsNumber(42))
     val worker = createActor(runner)
     val probe = TestProbe()
 
@@ -61,7 +61,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.expectMsgType[JobStarted]
     probe.expectMsgPF(){
       case JobSuccess("id", r) =>
-        r shouldBe JsLikeNumber(42)
+        r shouldBe JsNumber(42)
     }
   }
 
@@ -81,10 +81,10 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   it(s"should cancel job") {
     val runnerSelector = RunnerSelector(new JobRunner {
-      override def run(req: RunJobRequest, c: MistScContext): Either[Throwable, JsLikeData] = {
+      override def run(req: RunJobRequest, c: MistScContext): Either[Throwable, JsData] = {
         val sc = c.sc
         val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-        Right(JsLikeMap("r" -> JsLikeString("Ok")))
+        Right(JsLikeMap("r" -> JsString("Ok")))
       }
     })
 
@@ -105,7 +105,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsLikeMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -126,7 +126,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should complete and shutdown awaiting response") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsLikeMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -146,7 +146,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should force shutdown when awaiting") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsLikeMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -160,7 +160,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsLikeMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -182,7 +182,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def selectRunner(artifact: SparkArtifact): JobRunner = r
     }
 
-  def SuccessRunnerSelector(r: => JsLikeData): RunnerSelector =
+  def SuccessRunnerSelector(r: => JsData): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(artifact: SparkArtifact): JobRunner = SuccessRunner(r)
     }
@@ -192,15 +192,15 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def selectRunner(artifact: SparkArtifact): JobRunner = FailureRunner(error)
     }
 
-  def SuccessRunner(r: => JsLikeData): JobRunner =
+  def SuccessRunner(r: => JsData): JobRunner =
     testRunner(Right(r))
 
   def FailureRunner(error: String): JobRunner =
     testRunner(Left(new RuntimeException(error)))
 
-  def testRunner(f: => Either[Throwable, JsLikeData]): JobRunner = {
+  def testRunner(f: => Either[Throwable, JsData]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: MistScContext): Either[Throwable, JsLikeData] = f
+      def run(p: RunJobRequest, c: MistScContext): Either[Throwable, JsData] = f
     }
   }
 }

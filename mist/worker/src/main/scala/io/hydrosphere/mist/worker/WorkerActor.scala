@@ -4,7 +4,7 @@ import akka.actor._
 import akka.pattern.pipe
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 import org.apache.spark.streaming.StreamingContext
 import RequestSetup._
 
@@ -17,7 +17,7 @@ class WorkerActor(
 
   import context._
 
-  type JobFuture = CancellableFuture[JsLikeData]
+  type JobFuture = CancellableFuture[JsData]
   type CleanUp = RunJobRequest => Unit
 
   override def receive: Receive = awaitRequest()
@@ -74,7 +74,7 @@ class WorkerActor(
     case RunJobRequest(id, _, _) =>
       sender() ! WorkerIsBusy(id)
 
-    case data: JsLikeData =>
+    case data: JsData =>
       log.info(s"Job execution done. Returning result $data and become awaiting new request")
       cleanUp(req)
       respond ! JobSuccess(req.id, data)
@@ -106,7 +106,7 @@ class WorkerActor(
       cancel(req, sender(), jobFuture)
       cleanUp(req)
 
-    case data: JsLikeData =>
+    case data: JsData =>
       log.info(s"Job execution done. Returning result $data and become awaiting new request")
       cleanUp(req)
       respond ! JobSuccess(req.id, data)

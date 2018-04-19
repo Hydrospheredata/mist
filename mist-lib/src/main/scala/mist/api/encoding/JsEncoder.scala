@@ -4,54 +4,44 @@ import mist.api.data._
 import shadedshapeless._
 import shadedshapeless.labelled.FieldType
 
-import scala.annotation.implicitNotFound
-
 //TODO full message
-@implicitNotFound(msg = "Could not find JsEncoder instance for ${A}")
 trait JsEncoder[A] { self =>
 
-  def apply(a : A): JsLikeData
+  def apply(a : A): JsData
 
   final def contramap[B](f: B => A): JsEncoder[B] = new JsEncoder[B] {
-    def apply(b: B): JsLikeData = self(f(b))
+    def apply(b: B): JsData = self(f(b))
   }
 }
 
 object JsEncoder {
-  def apply[A](f: A => JsLikeData): JsEncoder[A] = new JsEncoder[A] {
-    override def apply(a: A): JsLikeData = f(a)
+  def apply[A](f: A => JsData): JsEncoder[A] = new JsEncoder[A] {
+    override def apply(a: A): JsData = f(a)
   }
 }
 
-trait PrimitiveEncoderInstances {
+trait DefaultEncoders {
 
-  implicit val unitEnc: JsEncoder[Unit] = JsEncoder(_ => JsLikeUnit)
+  implicit val unitEnc: JsEncoder[Unit] = JsEncoder(_ => JsUnit)
 
-  implicit val booleanEnc: JsEncoder[Boolean] = JsEncoder(JsLikeBoolean)
+  implicit val booleanEnc: JsEncoder[Boolean] = JsEncoder(JsBoolean)
+  implicit val shortEnc: JsEncoder[Short] = JsEncoder(n => JsNumber(n.toInt))
+  implicit val intEnc: JsEncoder[Int] = JsEncoder(i => JsNumber(i))
+  implicit val longEnc: JsEncoder[Long] = JsEncoder(i => JsNumber(i))
+  implicit val floatEnc: JsEncoder[Float] = JsEncoder(f => JsNumber(f.toDouble))
+  implicit val doubleEnc: JsEncoder[Double] = JsEncoder(d => JsNumber(d))
+  implicit val stringEnc: JsEncoder[String] = JsEncoder(JsString)
 
-  implicit val shortEnc: JsEncoder[Short] = JsEncoder(n => JsLikeNumber(n.toInt))
-  implicit val intEnc: JsEncoder[Int] = JsEncoder(i => JsLikeNumber(i))
-  implicit val longEnc: JsEncoder[Long] = JsEncoder(i => JsLikeNumber(i))
-  implicit val floatEnc: JsEncoder[Float] = JsEncoder(f => JsLikeNumber(f.toDouble))
-  implicit val doubleEnc: JsEncoder[Double] = JsEncoder(d => JsLikeNumber(d))
-
-  implicit val stringEnc: JsEncoder[String] = JsEncoder(JsLikeString)
-
-}
-
-trait CollectionEncoderInstances extends PrimitiveEncoderInstances {
-
-  implicit def seqEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Seq[A]] = JsEncoder(seq => JsLikeList(seq.map(v => enc(v))))
+  implicit def seqEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Seq[A]] = JsEncoder(seq => JsList(seq.map(v => enc(v))))
   implicit def arrEnc[A](implicit enc: JsEncoder[Seq[A]]): JsEncoder[Array[A]] = enc.contramap(_.toSeq)
   implicit def optEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Option[A]] = JsEncoder {
     case Some(a) => enc(a)
-    case None => JsLikeNull
+    case None => JsNull
   }
   implicit def mapEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Map[String, A]] = JsEncoder(m => JsLikeMap(m.mapValues(enc.apply)))
 }
 
-trait DefaultEncoderInstances extends CollectionEncoderInstances
-object DefaultEncoderInstances extends DefaultEncoderInstances
+object DefaultEncoders extends DefaultEncoders
 
 trait ObjEncoder[A] {
   def apply(a: A): JsLikeMap

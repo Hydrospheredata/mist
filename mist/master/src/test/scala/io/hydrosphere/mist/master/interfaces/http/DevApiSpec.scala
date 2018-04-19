@@ -26,8 +26,8 @@ class DevApiSpec extends FunSpec with Matchers with ScalatestRouteTest with Mock
 
     val req = DevJobStartRequestModel("simple-context", "path", "className", None, None, None, "foo")
 
-    val promise = Promise[JsLikeData]
-    promise.success(JsLikeUnit)
+    val promise = Promise[JsData]
+    promise.success(JsUnit)
 
     when(master.devRun(any[DevJobStartRequest], any[Source], any[Action]))
       .thenSuccess(ExecutionInfo(

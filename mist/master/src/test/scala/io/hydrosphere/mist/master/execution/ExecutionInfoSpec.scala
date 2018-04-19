@@ -18,13 +18,13 @@ class ExecutionInfoSpec extends FunSpec with Matchers with TestUtils {
   }
 
   it("should return jobresult") {
-    val promise = Promise[JsLikeData]
-    promise.success(JsLikeMap("1" -> JsLikeString("2")))
+    val promise = Promise[JsData]
+    promise.success(JsLikeMap("1" -> JsString("2")))
 
     val execInfo = ExecutionInfo(req, promise)
 
     execInfo.toJobResult.await shouldBe JobResult.success(
-      JsLikeMap("1" -> JsLikeString("2"))
+      JsLikeMap("1" -> JsString("2"))
     )
 
   }
