@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 import org.apache.spark.{SparkContext, SparkSessionUtils}
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
@@ -9,7 +9,7 @@ import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.api.java.JavaStreamingContext
 
 trait SystemArg[A] extends ArgDef[A] {
-  final def validate(params: JsLikeMap): Extraction[Unit] = Extracted(())
+  final def validate(params: JsMap): Extraction[Unit] = Extracted(())
 }
 
 object SystemArg {

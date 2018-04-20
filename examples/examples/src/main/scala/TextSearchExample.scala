@@ -1,6 +1,6 @@
-import mist.api.all._
-import mist.api.encoding.DefaultExtractorInstances._
-import mist.api.encoding.DefaultEncoderInstances._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 object TextSearchExample extends MistFn {

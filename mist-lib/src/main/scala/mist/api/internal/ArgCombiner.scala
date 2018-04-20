@@ -1,7 +1,7 @@
 package mist.api.internal
 
 import mist.api._
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 
 trait ArgCombiner[A, B] {
   type Out
@@ -30,7 +30,7 @@ object ArgCombiner {
         }
 
         //TODO
-        override def validate(params: JsLikeMap): Extraction[Unit] = {
+        override def validate(params: JsMap): Extraction[Unit] = {
           (a.validate(params), b.validate(params)) match {
             case (Extracted(_), Extracted(_)) => Extracted(())
             case (f1: Failed, f2: Failed) => Failed.toComplex(f1, f2)

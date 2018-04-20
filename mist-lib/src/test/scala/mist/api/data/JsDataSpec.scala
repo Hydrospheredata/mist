@@ -15,7 +15,7 @@ class JsDataSpec extends FunSpec with Matchers {
     (1.2, JsNumber(1.2)),
     (List(1, 2), JsList(Seq(JsNumber(1), JsNumber(2)))),
     (Array(1, 2), JsList(Seq(JsNumber(1), JsNumber(2)))),
-    (Map("key" -> "value"), JsLikeMap(Map("key" -> JsString("value"))))
+    (Map("key" -> "value"), JsMap(Map("key" -> JsString("value"))))
   )
 
   val javaMap: ju.Map[String, jl.Integer] = {
@@ -29,7 +29,7 @@ class JsDataSpec extends FunSpec with Matchers {
     (new jl.Integer(42), JsNumber(42)),
     (new jl.Double(42.0), JsNumber(42.0)),
     (ju.Arrays.asList(new jl.Integer(42)), JsList(Seq(JsNumber(42)))),
-    (javaMap, JsLikeMap(Map("test"-> JsNumber(42))))
+    (javaMap, JsMap(Map("test"-> JsNumber(42))))
   )
 
 
@@ -51,7 +51,7 @@ class JsDataSpec extends FunSpec with Matchers {
     //    java.io.NotSerializableException: scala.collection.immutable.MapLike$$anon$2
     it("JsLikeMap should be serializable") {
       val map = Map("1" -> 1, "2" -> 2).mapValues(i => JsNumber(i))
-      val jslikeMap = JsLikeMap(map)
+      val jslikeMap = JsMap(map)
 
       val bos = new ByteArrayOutputStream
       val out = new ObjectOutputStream(bos)

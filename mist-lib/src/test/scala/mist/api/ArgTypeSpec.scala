@@ -1,4 +1,4 @@
-package mist.api.args
+package mist.api
 
 import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._

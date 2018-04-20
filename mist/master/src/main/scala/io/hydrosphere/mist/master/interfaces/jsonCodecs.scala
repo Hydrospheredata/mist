@@ -57,7 +57,7 @@ trait MDataFormat {
   implicit val mDataFormat = new RootJsonFormat[JsData] {
     override def read(json: JsValue): JsData = {
       json match {
-        case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
+        case JsObject(fields) => JsMap(fields.mapValues(v => read(v)))
         case JsString(s) => JsString(s)
         case JsNumber(d) => new JsNumber(d)
         case JsFalse => JsBoolean(false) //TODO MBoolean can has default false and true
@@ -75,15 +75,15 @@ trait MDataFormat {
         case JsNull         => JsNull
         case JsUnit         => JsObject(Map.empty[String, JsValue])
         case JsList(values) => JsArray(values.map(v => write(v)).toVector)
-        case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))
+        case JsMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
     }
   }
 
-  implicit val jsLikeMapFormat = new RootJsonFormat[JsLikeMap] {
-    override def write(obj: JsLikeMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
-    override def read(json: JsValue): JsLikeMap = json match {
-      case JsObject(fields) => JsLikeMap(fields.mapValues(v => mDataFormat.read(v)))
+  implicit val jsLikeMapFormat = new RootJsonFormat[JsMap] {
+    override def write(obj: JsMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
+    override def read(json: JsValue): JsMap = json match {
+      case JsObject(fields) => JsMap(fields.mapValues(v => mDataFormat.read(v)))
       case other => throw new DeserializationException(s"Json object required: got $other")
     }
   }

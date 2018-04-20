@@ -1,8 +1,8 @@
-import mist.api.all._
-import mist.api.encoding.DataFrameEncoding._
-import mist.api.encoding.DefaultExtractorInstances._
-import mist.api.encoding.DefaultEncoderInstances._
-import org.apache.spark.sql.DataFrame
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
+import mist.api.encoding.spark._
+
 import org.apache.spark.sql.hive.HiveContext
 
 object HiveContextExample extends MistFn {

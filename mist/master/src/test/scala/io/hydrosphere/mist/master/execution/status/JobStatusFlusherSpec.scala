@@ -54,13 +54,13 @@ class JobStatusFlusherSpec extends ActorSpec("job-status-flusher") with TestData
       (QueuedEvent("id"), baseDetails.copy(status = Status.Queued)),
       (StartedEvent("id", 1), baseDetails.copy(status = Status.Started, startTime = Some(1))),
       (CanceledEvent("id", 1), baseDetails.copy(status = Status.Canceled)),
-      (FinishedEvent("id", 1, JsLikeMap("1" -> JsNumber(2))),
+      (FinishedEvent("id", 1, JsMap("1" -> JsNumber(2))),
         baseDetails.copy(
           status = Status.Finished,
           endTime = Some(1),
           jobResult =
             Some(
-              Right(JsLikeMap("1" -> JsNumber(2)))
+              Right(JsMap("1" -> JsNumber(2)))
             )
         )),
       (FailedEvent("id", 1, "error"),

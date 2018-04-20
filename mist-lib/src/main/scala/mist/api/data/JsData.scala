@@ -21,8 +21,18 @@ final case class JsString(value: String) extends JsData {
   override def toString: String = value
 }
 
-final case class JsBoolean(b: Boolean) extends JsData {
-  override def toString: String = b.toString
+case object JsTrue extends JsData {
+  override def toString: String = "true"
+}
+case object JsFalse extends JsData {
+  override def toString: String = "true"
+}
+
+object JsBoolean {
+  def apply(b: Boolean): JsData = b match {
+    case true => JsTrue
+    case false => JsFalse
+  }
 }
 
 final case class JsNumber(v: BigDecimal) extends JsData {
@@ -40,7 +50,7 @@ object JsNumber {
   def apply(n: BigInt): JsNumber = new JsNumber(BigDecimal(n))
 }
 
-final class JsLikeMap(val map: Map[String, JsData]) extends JsData {
+final class JsMap(val map: Map[String, JsData]) extends JsData {
 
   override def toString: String = map.mkString("{", ",", "}")
   def fields: Seq[(String, JsData)] = map.toSeq
@@ -49,7 +59,7 @@ final class JsLikeMap(val map: Map[String, JsData]) extends JsData {
 
   override def equals(obj: scala.Any): Boolean = {
     obj match {
-      case JsLikeMap(other) => other.equals(map)
+      case JsMap(other) => other.equals(map)
       case any => false
     }
   }
@@ -57,26 +67,26 @@ final class JsLikeMap(val map: Map[String, JsData]) extends JsData {
   override def hashCode(): Int = map.hashCode()
 }
 
-object JsLikeMap {
+object JsMap {
 
-  val empty: JsLikeMap = JsLikeMap()
+  val empty: JsMap = JsMap()
 
-  def apply(fields: (String, JsData)*): JsLikeMap = {
-    new JsLikeMap(Map(fields: _*))
+  def apply(fields: (String, JsData)*): JsMap = {
+    new JsMap(Map(fields: _*))
   }
 
-  def apply(fields: Map[String, JsData]): JsLikeMap = {
+  def apply(fields: Map[String, JsData]): JsMap = {
     // sometimes we can get map that can't be serialized
     // https://issues.scala-lang.org/browse/SI-7005
     val values = fields.toSeq
-    new JsLikeMap(Map(values: _*))
+    new JsMap(Map(values: _*))
   }
 
-  def unapply(arg: JsLikeMap): Option[Map[String, JsData]] = Option(arg.map)
+  def unapply(arg: JsMap): Option[Map[String, JsData]] = Option(arg.map)
 
 }
 
-case class JsList(list: Seq[JsData]) extends JsData {
+final case class JsList(list: Seq[JsData]) extends JsData {
   override def toString: String = list.mkString(",")
 }
 
@@ -95,18 +105,19 @@ object JsData {
         case (k: String, v) => k -> fromScala(v)
         case e => throw new IllegalArgumentException(s"Can not convert ${e._1} to MData(map keys should be instance of String)")
       })
-      JsLikeMap(norm)
+      JsMap(norm)
     case opt: Option[_] if opt.isDefined => fromScala(opt.get)
     case _: Option[_] => JsNull
   }
 
-  def untyped(d: JsLikeMap): Map[String, Any] = {
+  def untyped(d: JsMap): Map[String, Any] = {
     def convert(d: JsData): Any = d match {
-      case m:JsLikeMap => m.fields.map({case (k, v) => k -> convert(v)}).toMap
+      case m:JsMap => m.fields.map({case (k, v) => k -> convert(v)}).toMap
       case l:JsList => l.list.map(convert)
       case n:JsNumber => Try(n.v.toIntExact).orElse(Try(n.v.toIntExact)).getOrElse(n.v.toDouble)
       case JsString(s) => s
-      case JsBoolean(b) => b
+      case JsTrue => true
+      case JsFalse => false
       case JsNull => null
       case JsUnit => Map.empty
     }
@@ -119,7 +130,7 @@ object JsData {
     case s: java.lang.String     => JsString(s)
     case it: java.lang.Iterable[_] => JsList(it.asScala.map(fromJava).toSeq)
     case m: java.util.Map[_, _]  =>
-      JsLikeMap(
+      JsMap(
         m.entrySet().asScala
           .map(e=> e.getKey -> e.getValue)
           .collect {
@@ -144,15 +155,15 @@ object JsData {
       case JDecimal(d) => JsNumber(d)
       case JInt(i) => JsNumber(i)
       case JBool(v) => JsBoolean(v)
-      case JObject(fields) => JsLikeMap(fields.map({case (k, v) => k -> translateAst(v)}): _*)
+      case JObject(fields) => JsMap(fields.map({case (k, v) => k -> translateAst(v)}): _*)
       case JArray(elems) => JsList(elems.map(translateAst))
     }
 
     Try(org.json4s.jackson.JsonMethods.parse(s, useBigDecimalForDouble = true)).map(json4sJs => translateAst(json4sJs))
   }
 
-  def parseRoot(s: String): Try[JsLikeMap] = parse(s).flatMap {
-    case m:JsLikeMap => Success(m)
+  def parseRoot(s: String): Try[JsMap] = parse(s).flatMap {
+    case m:JsMap => Success(m)
     case _ => Failure(new IllegalArgumentException(s"Couldn't parse js object from input: $s"))
   }
 }

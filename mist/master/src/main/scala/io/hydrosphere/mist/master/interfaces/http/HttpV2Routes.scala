@@ -22,7 +22,7 @@ import java.nio.file.{Files, Paths}
 import io.hydrosphere.mist.BuildInfo
 import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.utils.Logger
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -123,7 +123,7 @@ object HttpV2Base {
   def buildStartRequest(
     routeId: String,
     queryParams: JobRunQueryParams,
-    parameters: JsLikeMap
+    parameters: JsMap
   ): FunctionStartRequest = {
     val runSettings = queryParams.buildRunSettings()
     FunctionStartRequest(routeId, parameters, queryParams.externalId, runSettings)
@@ -218,7 +218,7 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "functions" / Segment / "jobs" ) { functionId =>
       post( postJobQuery { query =>
-        entity(as[JsLikeMap]) { params =>
+        entity(as[JsMap]) { params =>
           val jobReq = buildStartRequest(functionId, query, params)
           if (query.force) {
             completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }

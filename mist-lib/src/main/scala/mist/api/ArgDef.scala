@@ -1,7 +1,7 @@
 package mist.api
 
 import mist.api.internal.{ArgCombiner, FnForTuple}
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 
 import scala.util._
 
@@ -9,7 +9,7 @@ trait ArgDef[A] { self =>
 
   def extract(ctx: FnContext): Extraction[A]
   def describe(): Seq[ArgInfo]
-  private[api] def validate(params: JsLikeMap): Extraction[Unit]
+  private[api] def validate(params: JsMap): Extraction[Unit]
 
 
   final def combine[B](other: ArgDef[B])(implicit cmb: ArgCombiner[A, B]): ArgDef[cmb.Out] = cmb(self, other)
@@ -19,7 +19,7 @@ trait ArgDef[A] { self =>
     new ArgDef[B] {
       override def describe(): Seq[ArgInfo] = self.describe()
       override def extract(ctx: FnContext): Extraction[B] = self.extract(ctx).map(f)
-      override def validate(params: JsLikeMap): Extraction[Unit] = self.validate(params)
+      override def validate(params: JsMap): Extraction[Unit] = self.validate(params)
     }
   }
 
@@ -27,7 +27,7 @@ trait ArgDef[A] { self =>
     new ArgDef[B] {
       override def describe(): Seq[ArgInfo] = self.describe()
       override def extract(ctx: FnContext): Extraction[B] = self.extract(ctx).flatMap(f)
-      override def validate(params: JsLikeMap): Extraction[Unit] = self.validate(params)
+      override def validate(params: JsMap): Extraction[Unit] = self.validate(params)
     }
   }
 
@@ -38,7 +38,7 @@ trait ArgDef[A] { self =>
         case f: Failed => Failure(new IllegalArgumentException(s"Arguments does not conform to job [$f]"))
       }
       override def describe(): Seq[ArgInfo] = self.describe()
-      override def validate(params: JsLikeMap): Extraction[Unit] = self.validate(params)
+      override def validate(params: JsMap): Extraction[Unit] = self.validate(params)
     }
   }
 }

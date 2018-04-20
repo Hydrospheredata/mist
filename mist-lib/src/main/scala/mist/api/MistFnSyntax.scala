@@ -158,4 +158,4 @@ trait MistFnSyntax {
   ): Handle = Handle.fromLow(sparkSessionWithHive.apply(f), enc)
 }
 
-object MistFnSyntax
+object MistFnSyntax extends MistFnSyntax

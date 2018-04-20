@@ -28,7 +28,7 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
         val data = if (!row.isNullAt(i)) fieldsConverters(i)(row, i) else JsNull
         field.name -> data
       }
-    JsLikeMap(converted.toMap)
+    JsMap(converted.toMap)
   }
 
   private def converter(d: DataType): (SG, Int) => JsData = d match {
@@ -88,7 +88,7 @@ class SchemedRowEncoder(schema: StructType) extends Serializable {
         val value = if (!valueArray.isNullAt(idx)) valConv(valueArray, idx) else JsNull
         key -> value
       })
-      JsLikeMap(fields.toMap)
+      JsMap(fields.toMap)
     }
 
     case _ => (g: SG, i: Int) =>

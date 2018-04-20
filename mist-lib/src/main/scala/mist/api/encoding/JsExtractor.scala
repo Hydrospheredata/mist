@@ -61,7 +61,8 @@ trait DefaultExtractors {
   import java.{lang => jl, util => ju}
 
   implicit val boolExt: JsExtractor[Boolean] = JsExtractor.plain(MBoolean){
-    case b: JsBoolean => Extracted(b.b)
+    case JsFalse => Extracted(false)
+    case JsTrue => Extracted(true)
     case oth => Failed.invalidType("Boolean", oth.toString)
   }
   implicit val jBoolExt: JsExtractor[jl.Boolean] = boolExt.map(b => b)
@@ -77,7 +78,7 @@ trait DefaultExtractors {
     case n: JsNumber => Extraction.tryExtract(n.v.toLongExact)(_ => Failed.invalidType("Long", n.v.toString()))
     case oth => Failed.invalidType("Long", oth.toString)
   }
-  implicit val jLongExt: JsExtractor[Long] = longExt.map(l => l)
+  implicit val jLongExt: JsExtractor[jl.Long] = longExt.map(l => l)
 
   implicit val floatExt: JsExtractor[Float] = JsExtractor.plain(MDouble) {
     case n: JsNumber => Extracted(n.v.toFloat)
@@ -115,7 +116,7 @@ trait DefaultExtractors {
   implicit def arrExt[A](implicit ext: JsExtractor[Seq[A]], ct: ClassTag[A]): JsExtractor[Array[A]] = ext.map(_.toArray)
 
   implicit def mapExt[A](implicit ext: JsExtractor[A]): JsExtractor[Map[String, A]] = JsExtractor.plain(MMap(MString, ext.`type`)) {
-    case jsMap: JsLikeMap =>
+    case jsMap: JsMap =>
       val elems = jsMap.fields.map({case (k, v) => ext(v).map(e => (k, e))})
       if (elems.exists(_.isFailed))
         Failed.invalidType(s"Map[String, ${ext.`type`}]", jsMap.toString)

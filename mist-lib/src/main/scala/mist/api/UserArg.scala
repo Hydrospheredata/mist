@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 import mist.api.encoding.JsExtractor
 
 trait UserArg[A] extends ArgDef[A] { self =>
@@ -20,7 +20,7 @@ trait UserArg[A] extends ArgDef[A] { self =>
     }
   }
 
-  final override def validate(params: JsLikeMap): Extraction[Unit] =
+  final override def validate(params: JsMap): Extraction[Unit] =
     extract(FnContext(params)).map(_ => ())
 }
 

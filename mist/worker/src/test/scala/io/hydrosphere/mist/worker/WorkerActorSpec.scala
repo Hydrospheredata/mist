@@ -84,7 +84,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def run(req: RunJobRequest, c: MistScContext): Either[Throwable, JsData] = {
         val sc = c.sc
         val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-        Right(JsLikeMap("r" -> JsString("Ok")))
+        Right(JsMap("r" -> JsString("Ok")))
       }
     })
 
@@ -105,7 +105,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -126,7 +126,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should complete and shutdown awaiting response") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -146,7 +146,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should force shutdown when awaiting") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -160,7 +160,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()

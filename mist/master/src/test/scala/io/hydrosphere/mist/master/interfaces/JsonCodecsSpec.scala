@@ -17,7 +17,7 @@ class JsonCodecsSpec extends FunSpec with Matchers  with TestData {
       (QueuedEvent("id"), "queued"),
       (StartedEvent("id", 1), "started"),
       (CanceledEvent("id", 1), "canceled"),
-      (FinishedEvent("id", 1, JsLikeMap("1" -> JsNumber(2))), "finished"),
+      (FinishedEvent("id", 1, JsMap("1" -> JsNumber(2))), "finished"),
       (FailedEvent("id", 1, "error"), "failed"),
       (WorkerAssigned("id", "workerId"), "worker-assigned"),
       (JobFileDownloadingEvent("id", System.currentTimeMillis()), "job-file-downloading"),

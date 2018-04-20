@@ -45,7 +45,7 @@ class WsApiSpec extends FunSpec
       StartedEvent("1", 1),
       StartedEvent("2", 1),
       ReceivedLogs("1", Seq(LogEvent("1", "test", 1, 1, None)), 0),
-      FinishedEvent("1", 1, JsLikeMap("result" -> JsNumber(42)))
+      FinishedEvent("1", 1, JsMap("result" -> JsNumber(42)))
     ))
 
     val streamer = mock(classOf[EventsStreamer])
@@ -69,7 +69,7 @@ class WsApiSpec extends FunSpec
       StartedEvent("1", 1),
       StartedEvent("2", 1),
       ReceivedLogs("1", Seq(LogEvent("1", "test", 1, 1, None)), 0),
-      FinishedEvent("1", 1, JsLikeMap("result" -> JsNumber(42)))
+      FinishedEvent("1", 1, JsMap("result" -> JsNumber(42)))
     ))
 
     val streamer = mock(classOf[EventsStreamer])

@@ -1,5 +1,7 @@
-import mist.api.all._
-import mist.api.encoding.{JsEncoder, JsExtractor, ObjExt}
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding._
+
 import org.apache.spark.SparkContext
 
 case class Req(
@@ -17,9 +19,13 @@ case class Resp(
 
 object LessVerboseExample extends MistFn {
 
-  implicit val reqExt: ObjExt[Req] = mist.api.encoding.generic.extractor.derive[Req]
-  implicit val reqEnc: JsEncoder[Req] = mist.api.encoding.generic.encoder.derive[Req]
-  implicit val respEnc: JsEncoder[Resp] = mist.api.encoding.generic.encoder.derive[Resp]
+  import defaults._
+
+  val enc = implicitly[ObjectEncoder[Resp]]
+
+  implicit val reqExt: RootExtractor[Req] = encoding.generic.extractor[Req]
+  implicit val reqEnc: JsEncoder[Req] = encoding.generic.encoder[Req]
+  implicit val respEnc: JsEncoder[Resp] = encoding.generic.encoder[Resp]
 
   override def handle: Handle = arg[Req].onSparkContext((req: Req, sc: SparkContext) => {
     val x = sc.parallelize(req.numbers).map(_ * req.mult).collect()

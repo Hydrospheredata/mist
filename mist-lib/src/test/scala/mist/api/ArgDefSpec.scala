@@ -1,14 +1,13 @@
-package mist.api.args
+package mist.api
 
-import mist.api.{FnContext, LowHandle}
+import mist.api.data.{JsData, JsMap}
 import org.scalatest.{FunSpec, Matchers}
-import shadedshapeless._
 
 import scala.util._
 
 class ArgDefSpec extends FunSpec with Matchers {
 
-  import ArgDef._
+  import ArgsInstances._
 
   describe("const/missing") {
 
@@ -33,7 +32,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     it("should fail all") {
       val combined = const("1") combine missing[Int]("msg1") combine missing[Int]("msg2")
       val data = combined.extract(testCtx())
-      data shouldBe Missing("msg1, msg2")
+      data shouldBe Failed
     }
   }
 
@@ -72,7 +71,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
   }
 
-  def testCtx(params: (String, Any)*): FnContext = {
-    FnContext(params.toMap)
+  def testCtx(params: (String, JsData)*): FnContext = {
+    FnContext(JsMap(params:_*))
   }
 }

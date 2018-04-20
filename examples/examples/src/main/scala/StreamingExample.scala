@@ -1,17 +1,15 @@
-import mist.api.all._
-import mist.api.encoding.DefaultExtractorInstances._
-import mist.api.encoding.DefaultEncoderInstances._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 
 import scala.collection.mutable
 
-object StreamingExample extends MistFn {
+object StreamingExample extends MistFn with Logging {
 
   override def handle: Handle = {
     withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
-      import extras._
-
       val rddQueue = new mutable.Queue[RDD[Int]]()
       ssc.queueStream(rddQueue)
         .map(x => (x % 10, 1))
@@ -19,7 +17,7 @@ object StreamingExample extends MistFn {
         .foreachRDD((rdd, time) => {
            val values = rdd.collect().toList
            val msg = s"time: $time, length: ${values.length}, collection: $values"
-//           logger.info(msg)
+           logger.info(msg)
         })
 
       ssc.start()

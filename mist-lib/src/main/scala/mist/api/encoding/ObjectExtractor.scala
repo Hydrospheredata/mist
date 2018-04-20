@@ -1,7 +1,7 @@
 package mist.api.encoding
 
 import mist.api._
-import mist.api.data.{JsData, JsLikeMap}
+import mist.api.data.{JsData, JsMap}
 import shadedshapeless.labelled.FieldType
 import shadedshapeless._
 
@@ -14,9 +14,9 @@ trait ObjectExtractor[A] {
 
 object ObjectExtractor {
 
-  def apply[A](argType: MObj)(f: JsLikeMap => Extraction[A]): ObjectExtractor[A] = new ObjectExtractor[A] {
+  def apply[A](argType: MObj)(f: JsMap => Extraction[A]): ObjectExtractor[A] = new ObjectExtractor[A] {
     def apply(js: JsData): Extraction[A] = js match {
-      case m: JsLikeMap => f(m)
+      case m: JsMap => f(m)
       case other =>
         Failed.InvalidType(argType.toString, other.toString)
     }

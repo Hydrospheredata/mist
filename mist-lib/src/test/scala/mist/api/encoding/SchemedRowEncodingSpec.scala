@@ -25,7 +25,7 @@ class SchemedRowEncoderSpec extends FunSpec with Matchers with TestSparkContext 
     val encoder = new SchemedRowEncoder(df.schema)
     val data = encoder.encode(df.queryExecution.toRdd.collect()(0))
 
-    data shouldBe JsLikeMap(
+    data shouldBe JsMap(
       "intF" -> JsNumber(1),
       "stringF" -> JsString("string"),
       "doubleF" -> JsNumber(1.1),

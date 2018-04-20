@@ -7,7 +7,7 @@ import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
-import mist.api.data.JsLikeMap
+import mist.api.data.JsMap
 import mist.api.internal.BaseFunctionInstance
 
 import scala.concurrent.duration._
@@ -119,7 +119,7 @@ class FunctionInfoProviderActor(
       context become cached(next)
 
     case req: ValidateFunctionParameters =>
-      def validate(inst: BaseFunctionInstance, p: JsLikeMap): TryLoad[Unit] = {
+      def validate(inst: BaseFunctionInstance, p: JsMap): TryLoad[Unit] = {
         inst.validateParams(p) match {
           case Some(err) => Err(err)
           case None => Succ(())
