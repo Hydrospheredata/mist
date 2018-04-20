@@ -6,8 +6,8 @@ import java.net.URLClassLoader
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
-import mist.api.args.{InternalArgument, UserInputArgument}
-import mist.api.internal.{BaseFunctionInstance, JavaFunctionInstance, FunctionInstance}
+import mist.api.{InternalArgument, UserInputArgument}
+import mist.api.internal.{BaseFunctionInstance, FunctionInstance, JavaFunctionInstance}
 import org.apache.commons.io.FilenameUtils
 
 case class FunctionInfo(

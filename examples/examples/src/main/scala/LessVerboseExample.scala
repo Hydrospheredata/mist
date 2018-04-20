@@ -21,8 +21,6 @@ object LessVerboseExample extends MistFn {
 
   import defaults._
 
-  val enc = implicitly[ObjectEncoder[Resp]]
-
   implicit val reqExt: RootExtractor[Req] = encoding.generic.extractor[Req]
   implicit val reqEnc: JsEncoder[Req] = encoding.generic.encoder[Req]
   implicit val respEnc: JsEncoder[Resp] = encoding.generic.encoder[Resp]

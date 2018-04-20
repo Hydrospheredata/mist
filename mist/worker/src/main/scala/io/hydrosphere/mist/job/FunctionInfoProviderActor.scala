@@ -7,10 +7,12 @@ import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
+import mist.api.{Extracted, Failed}
 import mist.api.data.JsMap
 import mist.api.internal.BaseFunctionInstance
 
 import scala.concurrent.duration._
+import scala.util.Failure
 
 
 trait Cache[K, V] {
@@ -120,9 +122,19 @@ class FunctionInfoProviderActor(
 
     case req: ValidateFunctionParameters =>
       def validate(inst: BaseFunctionInstance, p: JsMap): TryLoad[Unit] = {
+        def buildError(f: Failed): String = {
+          f match {
+            case Failed.InternalError(msg) => s"Internal error: $msg"
+            case Failed.InvalidValue(msg) => s"Invalid value: $msg"
+            case Failed.InvalidType(expected, got) => s"Invalid type: expected $expected, got $got"
+            case Failed.ComplexFailure(failures) => failures.map(buildError).mkString("Errors[", ",", "]")
+            case Failed.IncompleteObject(clazz, failure: Failed) => s"Incomplete object for class $clazz, reason: ${buildError(failure)}"
+          }
+        }
+
         inst.validateParams(p) match {
-          case Some(err) => Err(err)
-          case None => Succ(())
+          case Extracted(_) => Succ(())
+          case f: Failed => Err(new IllegalArgumentException(buildError(f)))
         }
       }
       val (next, v) = usingCache(cache, req)

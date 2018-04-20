@@ -10,7 +10,7 @@ import io.hydrosphere.mist.master.execution.{WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.{JobDetails, JobResult}
-import mist.api.data._
+import mist.api.{data => mdata}
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -54,36 +54,36 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 
 trait MDataFormat {
 
-  implicit val mDataFormat = new RootJsonFormat[JsData] {
-    override def read(json: JsValue): JsData = {
+  implicit val mDataFormat = new RootJsonFormat[mdata.JsData] {
+    override def read(json: JsValue): mdata.JsData = {
       json match {
-        case JsObject(fields) => JsMap(fields.mapValues(v => read(v)))
-        case JsString(s) => JsString(s)
-        case JsNumber(d) => new JsNumber(d)
-        case JsFalse => JsBoolean(false) //TODO MBoolean can has default false and true
-        case JsTrue  => JsBoolean(true)
-        case JsNull  => JsNull
-        case JsArray(values) => JsList(values.map(read))
+        case JsObject(fields) => mdata.JsMap(fields.mapValues(v => read(v)))
+        case JsString(s) => mdata.JsString(s)
+        case JsNumber(d) => mdata.JsNumber(d)
+        case JsFalse => mdata.JsFalse //TODO MBoolean can has default false and true
+        case JsTrue  => mdata.JsTrue
+        case JsNull  => mdata.JsNull
+        case JsArray(values) => mdata.JsList(values.map(read))
       }
     }
 
-    override def write(obj: JsData): JsValue = {
+    override def write(obj: mdata.JsData): JsValue = {
       obj match {
-        case JsNumber(d)    => JsNumber(d)
-        case JsBoolean(b)   => JsBoolean(b)
-        case JsString(s)    => JsString(s)
-        case JsNull         => JsNull
-        case JsUnit         => JsObject(Map.empty[String, JsValue])
-        case JsList(values) => JsArray(values.map(v => write(v)).toVector)
-        case JsMap(map)     => JsObject(map.mapValues(v => write(v)))
+        case mdata.JsNumber(d) => JsNumber(d)
+        case mdata.JsTrue      => JsTrue
+        case mdata.JsString(s) => JsString(s)
+        case mdata.JsNull      => JsNull
+        case mdata.JsUnit      => JsObject(Map.empty[String, JsValue])
+        case mdata.JsList(values) => JsArray(values.map(v => write(v)).toVector)
+        case mdata.JsMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
     }
   }
 
-  implicit val jsLikeMapFormat = new RootJsonFormat[JsMap] {
-    override def write(obj: JsMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
-    override def read(json: JsValue): JsMap = json match {
-      case JsObject(fields) => JsMap(fields.mapValues(v => mDataFormat.read(v)))
+  implicit val jsLikeMapFormat = new RootJsonFormat[mdata.JsMap] {
+    override def write(obj: mdata.JsMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
+    override def read(json: JsValue): mdata.JsMap = json match {
+      case JsObject(fields) => mdata.JsMap(fields.mapValues(v => mDataFormat.read(v)))
       case other => throw new DeserializationException(s"Json object required: got $other")
     }
   }
