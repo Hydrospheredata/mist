@@ -204,11 +204,10 @@ class UserArgsSpec extends FunSpec with Matchers {
       res shouldBe Extracted(())
     }
 
-    //TODO
-//    it("should skip system arg definition") {
-//      val res = allArgs.validate(Map.empty)
-//      res.isRight shouldBe true
-//    }
+    it("should skip system arg definition") {
+      val res = allArgs.validate(JsMap.empty)
+      res.isExtracted shouldBe true
+    }
 
     it("should validate .validated rules") {
       val argTest = arg[Int]("test").validated(n => n > 41)
@@ -218,11 +217,11 @@ class UserArgsSpec extends FunSpec with Matchers {
     it("should pass validation on .validates rules") {
       val argTest = arg[Int]("test").validated(n => n > 41)
       val res = argTest.validate(JsMap("test" -> 42.js))
-      res.isFailed shouldBe true
+      res.isExtracted shouldBe true
     }
     it("should validate after arg combine") {
       val argTest = arg[Int]("test") & arg[Int]("test2")
-      argTest.validate(JsMap("test" -> 42.js, "test2" -> 40.js)).isFailed shouldBe true
+      argTest.validate(JsMap("test" -> 42.js, "test2" -> 40.js)).isExtracted shouldBe true
       argTest.validate(JsMap("test" -> 42.js, "missing" -> 0.js)).isFailed shouldBe true
       argTest.validate(JsMap("missing" -> 0.js, "test2" -> 40.js)).isFailed shouldBe true
       argTest.validate(JsMap.empty).isFailed shouldBe true

@@ -1,5 +1,6 @@
 package mist.api
 
+import mist.api.data.JsData
 import mist.api.encoding.{JsExtractor, RootExtractor}
 
 trait ArgsInstances {
@@ -16,6 +17,8 @@ trait ArgsInstances {
       override def extract(ctx: FnContext) = le(ctx.params)
     }
   }
+
+  def allArgs: ArgDef[Map[String, Any]] = SystemArg(Seq.empty, ctx => Extracted(JsData.untyped(ctx.params)))
 
 }
 

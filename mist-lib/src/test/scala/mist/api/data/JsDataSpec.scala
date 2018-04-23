@@ -2,6 +2,7 @@ package mist.api.data
 
 import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.util
+import JsSyntax._
 
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
@@ -60,5 +61,22 @@ class JsDataSpec extends FunSpec with Matchers {
     }
   }
 
+  it("should return untyped map") {
+    val js = JsMap(
+      "a" -> 1.js,
+      "b" -> false.js,
+      "c" -> JsList(Seq(
+        JsMap("x" -> "y".js)
+      ))
+    )
+    val exp = Map(
+      "a" -> 1,
+      "b" -> false,
+      "c" -> Seq(
+        Map("x" -> "y")
+      )
+    )
+    JsData.untyped(js) shouldBe exp
+  }
 
 }

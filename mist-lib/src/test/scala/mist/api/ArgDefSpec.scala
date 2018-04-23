@@ -16,7 +16,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
 
     it("should extract missing") {
-      missing("msg").extract(testCtx()) shouldBe Failed
+      missing("msg").extract(testCtx()) shouldBe a[Failed]
     }
   }
 
@@ -32,7 +32,7 @@ class ArgDefSpec extends FunSpec with Matchers {
     it("should fail all") {
       val combined = const("1") combine missing[Int]("msg1") combine missing[Int]("msg2")
       val data = combined.extract(testCtx())
-      data shouldBe Failed
+      data shouldBe a[Failed]
     }
   }
 
