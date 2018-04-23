@@ -1,9 +1,10 @@
 package mist.api.encoding
 
 import mist.api._
-import mist.api.data.{JsData, JsMap}
+import mist.api.data.{JsData, JsMap, JsNull}
 import shadedshapeless.labelled.FieldType
 import shadedshapeless._
+import shadedshapeless.record._
 
 import scala.reflect.ClassTag
 
@@ -30,8 +31,8 @@ object ObjectExtractor {
     LHExt: Lazy[JsExtractor[H]],
     tExt: ObjectExtractor[T]
   ): ObjectExtractor[FieldType[K, H] :: T] = {
-    val hExt = LHExt.value
     val key = witness.value.name
+    val hExt = LHExt.value.transformFailure(f => Failed.InvalidField(key, f))
     val headType = witness.value.name -> hExt.`type`
     val `type` = MObj(headType +: tExt.`type`.fields)
 
@@ -52,8 +53,10 @@ object ObjectExtractor {
     clzTag: ClassTag[A],
     ext: ObjectExtractor[H]
   ): ObjectExtractor[A] =
-    ObjectExtractor(ext.`type`)(map => ext(map) match {
-      case Extracted(h) => Extracted(labGen.from(h))
-      case f: Failed => Failed.IncompleteObject(clzTag.runtimeClass.getName, f)
+    ObjectExtractor(ext.`type`)(map => {
+      ext(map) match {
+        case Extracted(h) => Extracted(labGen.from(h))
+        case f: Failed => Failed.IncompleteObject(clzTag.runtimeClass.getName, f)
+      }
     })
 }

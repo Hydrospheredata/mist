@@ -10,5 +10,11 @@ object generic {
     override def `type`: MObj = ext.value.`type`
   }
 
+  def extractorWithDefaults[A](implicit
+    ext: Lazy[ObjectExtractor[A]],
+    patcher: Lazy[DefaultsPatcher[A]]
+  ): RootExtractor[A] =
+    RootExtractor[A](ext.value.`type`)(js => ext.value.apply(patcher.value.apply(js)))
+
   def encoder[A](implicit enc: Lazy[ObjectEncoder[A]]): JsEncoder[A] = JsEncoder(enc.value.apply)
 }

@@ -28,6 +28,7 @@ object Failed {
 
   final case class InternalError(msg: String) extends Failed
   final case class InvalidValue(msg: String) extends Failed
+  final case class InvalidField(field: String, failure: Failed) extends Failed
   final case class InvalidType(expected: String, got: String) extends Failed
   final case class ComplexFailure(failures: Seq[Failed]) extends Failed
   final case class IncompleteObject(clazz: String, failure: Failed) extends Failed

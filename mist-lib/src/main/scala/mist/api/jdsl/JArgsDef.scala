@@ -71,38 +71,27 @@ trait JArgsDef {
   def optStringArg(name: String): JUserArg[ju.Optional[String]] = optArg[jl.String](name)
   def optBooleanArg(name: String): JUserArg[ju.Optional[jl.Boolean]] = optArg[jl.Boolean](name)
 
-  //TODO
-//  private def listArg[T](name: String)(implicit ext: JsExtractor[T]): JUserArg[ju.List[T]] = {
-//    val arg = new UserArg[ju.List[T]] {
-//      override def describe() = Seq(UserInputArgument(name, MList(ext.`type`)))
-//
-//      override def extract(ctx: FnContext): Extraction[util.List[T]] = ctx.params.get(name) match {
-//        case Some(x) => x match {
-//          case seq: Seq[_] =>
-//            val elems = seq.map(a => ext(a))
-//
-//            if (elems.exists(_.isFailed)) {
-//              Missing(s"Invalid type of list $name values could not resolve to type ${tP.`type`}")
-//            } else Extracted(elems.collect({case Extracted(v) => v}).asJava)
-//          case _ => Missing(s"Invalid type of list $name values could not resolve to type ${tP.`type`}")
-//        }
-//        case None => Missing(s"Argument $name could not be found in ctx params")
-//      }
-//    }
-//    new JUserArg[ju.List[T]](arg)
-//  }
-//
-//  def intListArg(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
-//  def doubleListArg(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
-//  def stringListArg(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
-//  def booleanListArg(name: String): JUserArg[ju.List[jl.Boolean]] = listArg(name)
+  private def listArg[T](name: String)(implicit ext: JsExtractor[Seq[T]]): JUserArg[ju.List[T]] = {
+    import scala.collection.JavaConverters._
+    val extL = ext.map(_.toList.asJava)
+    val arg = new UserArg[ju.List[T]] {
+      override def describe() = Seq(UserInputArgument(name, ext.`type`))
+      override def extract(ctx: FnContext): Extraction[ju.List[T]] = extL(ctx.params.fieldValue(name))
+    }
+    new JUserArg[ju.List[T]](arg)
+  }
 
-//  val allArgs: JArg[ju.Map[String, Any]] = {
-//    val arg = ArgsInstances.allArgs.map(_.asJava)
-//    new JArg[ju.Map[String, Any]] {
-//      override def asScala: ArgDef[ju.Map[String, Any]] = arg
-//    }
-//  }
+  def intListArg(name: String): JUserArg[ju.List[jl.Integer]] = listArg(name)
+  def doubleListArg(name: String): JUserArg[ju.List[jl.Double]] = listArg(name)
+  def stringListArg(name: String): JUserArg[ju.List[jl.String]] = listArg(name)
+  def booleanListArg(name: String): JUserArg[ju.List[jl.Boolean]] = listArg(name)
+
+  val allArgs: JArg[ju.Map[String, Any]] = {
+    val arg = ArgsInstances.allArgs.map(_.asJava)
+    new JArg[ju.Map[String, Any]] {
+      override def asScala: ArgDef[ju.Map[String, Any]] = arg
+    }
+  }
 }
 
 object JArgsDef extends JArgsDef

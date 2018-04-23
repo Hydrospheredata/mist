@@ -45,6 +45,14 @@ trait JsExtractor[A] { self =>
     def `type`: ArgType = self.`type`
   }
 
+  final def transformFailure(f: Failed => Failed): JsExtractor[A] = new JsExtractor[A] {
+    override def apply(js: JsData): Extraction[A] = self(js) match {
+      case ext: Extracted[_] => ext
+      case fail: Failed => f(fail)
+    }
+    override def `type`: ArgType = self.`type`
+  }
+
 }
 
 object JsExtractor {

@@ -1,8 +1,6 @@
 package mist.api.encoding
 
 import mist.api.data._
-import shadedshapeless._
-import shadedshapeless.labelled.FieldType
 
 //TODO full message
 trait JsEncoder[A] { self =>
@@ -42,42 +40,3 @@ trait DefaultEncoders {
 }
 
 object DefaultEncoders extends DefaultEncoders
-
-//trait ObjEncoder[A] {
-//  def apply(a: A): JsMap
-//}
-//
-//object ObjEncoder {
-//
-//  def apply[A](f: A => JsMap): ObjEncoder[A] = new ObjEncoder[A] {
-//    override def apply(a: A): JsMap = f(a)
-//  }
-//
-//  implicit val hNilEnc: ObjEncoder[HNil] = ObjEncoder[HNil](_ => JsMap.empty)
-//
-//  implicit def hlistExt[K <: Symbol, H, T <: HList](implicit
-//    witness: Witness.Aux[K],
-//    LHenc: Lazy[JsEncoder[H]],
-//    tEnc: ObjEncoder[T]
-//  ): ObjEncoder[FieldType[K, H] :: T] = {
-//    val hEnc = LHenc.value
-//    val key = witness.value.name
-//    ObjEncoder[FieldType[K, H] :: T](hlist => {
-//      val h = hEnc(hlist.head)
-//      val t = tEnc(hlist.tail)
-//      val values = (key -> h) +: t.fields
-//      JsMap(values: _*)
-//    })
-//  }
-//
-//}
-//
-//trait GenericEncoderInstances {
-//
-//  implicit def labelled[A, H <: HList](implicit
-//    labGen: LabelledGeneric.Aux[A, H],
-//    enc: ObjEncoder[H]
-//  ): JsEncoder[A] = JsEncoder(a => enc(labGen.to(a)))
-//
-//}
-//object GenericEncoderInstances extends GenericEncoderInstances
