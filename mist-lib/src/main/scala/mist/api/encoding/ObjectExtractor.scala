@@ -6,8 +6,10 @@ import shadedshapeless.labelled.FieldType
 import shadedshapeless._
 import shadedshapeless.record._
 
+import scala.annotation.implicitNotFound
 import scala.reflect.ClassTag
 
+@implicitNotFound("Couldn't find ObjectExtractor instances for ${A}. Ensure that there are JsExtractor instances for every field type of ${A}")
 trait ObjectExtractor[A] {
   def `type`: MObj
   def apply(js: JsData): Extraction[A]

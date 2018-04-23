@@ -4,7 +4,6 @@ import mist.api.Extracted
 import mist.api.data._
 import mist.api.data.JsSyntax._
 import org.scalatest.{FunSpec, Matchers}
-import shadedshapeless.LabelledGeneric
 
 case class TestPlain(
   a: Int,
@@ -28,10 +27,25 @@ case class TestDefaults(
   d: Boolean
 )
 
+case class Inner(
+  x: String,
+  b: Int = 42
+)
+case class Root(
+  a: Int,
+  inner: Inner
+)
+
+case class WithOptions(
+  a: Int,
+  opt1: Option[String] = None,
+  opt2: Option[Long] = Some(1L)
+)
+
 class GenericInstancesSpec extends FunSpec with Matchers {
 
   import defaults._
-
+  
   describe("generic encoding") {
 
     it("should encode case class") {
@@ -84,6 +98,48 @@ class GenericInstancesSpec extends FunSpec with Matchers {
       )
       val exp = TestDefaults(a = 99, d = false)
       ext(in) shouldBe Extracted(exp)
+    }
+
+    it("should fallback onto defaults - inner case class") {
+      implicit val enc = generic.encoder[Inner]
+      implicit val innerExt = generic.extractorWithDefaults[Inner]
+      val ext = generic.extractorWithDefaults[Root]
+
+      val in = JsMap(
+        "a" -> 54.js,
+        "inner" -> JsMap(
+          "x" -> "y".js
+        )
+      )
+      ext(in) shouldBe Extracted(Root(a = 54, Inner(x = "y")))
+    }
+
+    it("defaults shouldn't ignore values") {
+      implicit val enc = generic.encoder[Inner]
+      implicit val innerExt = generic.extractorWithDefaults[Inner]
+      val ext = generic.extractorWithDefaults[Root]
+
+      val in = JsMap(
+        "a" -> 54.js,
+        "inner" -> JsMap(
+          "x" -> "y".js,
+          "b" -> -1.js
+        )
+      )
+      ext(in) shouldBe Extracted(Root(a = 54, Inner(x = "y", b = -1)))
+    }
+
+    it("defaults should behave correctly with option fields") {
+      val ext = generic.extractorWithDefaults[WithOptions]
+      val in = JsMap("a" -> 42.js)
+      ext(in) shouldBe Extracted(WithOptions(42))
+
+      val in2 = JsMap(
+        "a" -> 42.js,
+        "opt1" -> "zz".js,
+        "opt2" -> 2.js
+      )
+      ext(in2) shouldBe Extracted(WithOptions(42, Some("zz"), Some(2L)))
     }
   }
 }

@@ -4,9 +4,12 @@ import mist.api.data.{JsMap, JsNull}
 import shadedshapeless.labelled.FieldType
 import shadedshapeless._
 
+import scala.annotation.implicitNotFound
+
 /**
   * Obtain defaults values from case classes and patch incoming js by encoding them into jsMap
   */
+@implicitNotFound("Couldn't find DefaultsPatcher for ${A}. Ensure that there are JsEncoder instances for default values in current scope")
 trait DefaultsPatcher[A] {
   def apply(js: JsMap): JsMap
 }
@@ -16,6 +19,7 @@ object DefaultsPatcher {
   trait InternalPatcher[A] {
     def apply(a: A, js: JsMap): JsMap
   }
+
   object InternalPatcher {
     def create[A](f: (A, JsMap) => JsMap): InternalPatcher[A] = new InternalPatcher[A] {
       override def apply(a: A, js: JsMap): JsMap = f(a, js)

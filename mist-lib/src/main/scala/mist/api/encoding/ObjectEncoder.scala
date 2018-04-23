@@ -4,6 +4,13 @@ import mist.api.data.{JsData, JsMap}
 import shadedshapeless.labelled.FieldType
 import shadedshapeless._
 
+import scala.annotation.implicitNotFound
+
+@implicitNotFound(msg =
+  "Couldn't find mist.api.encoding.ObjectEncoder[${A}]" +
+  " Ensure that JsEncoder instances exists for it's fields" +
+  " or add `import mist.api.encoding.defaults._`"
+)
 trait ObjectEncoder[A] { self =>
   def apply(a : A): JsMap
 }
