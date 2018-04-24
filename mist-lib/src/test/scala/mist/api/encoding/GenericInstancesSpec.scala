@@ -45,7 +45,7 @@ case class WithOptions(
 class GenericInstancesSpec extends FunSpec with Matchers {
 
   import defaults._
-  
+
   describe("generic encoding") {
 
     it("should encode case class") {

@@ -56,5 +56,6 @@ object MistScContext {
     //TODO id is incorrect
     new MistScContext(sc, id, streamingDuration)
   }
+
 }
 

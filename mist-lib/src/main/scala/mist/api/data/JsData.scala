@@ -166,4 +166,23 @@ object JsData {
     case m:JsMap => Success(m)
     case _ => Failure(new IllegalArgumentException(s"Couldn't parse js object from input: $s"))
   }
+
+  def formattedString(js: JsData): String = {
+    import org.json4s._
+
+    def translateAst(in: JsData): JValue = in match {
+      case JsNull => JNull
+      case JsString(s) => JString(s)
+      case JsNumber(d) =>
+        d.toBigIntExact() match {
+          case Some(x) => JInt(x)
+          case None => JDecimal(d)
+        }
+      case JsTrue => JBool(true)
+      case JsFalse => JBool(false)
+      case JsMap(fields) => JObject(fields.map({case (k, v) => k -> translateAst(v)}).toList)
+      case JsList(elems) => JArray(elems.map(translateAst).toList)
+    }
+    org.json4s.jackson.JsonMethods.pretty(translateAst(js))
+  }
 }

@@ -22,7 +22,7 @@ import scala.util.Try
   * }
   * }}}
   */
-abstract class MistFn {
+abstract class MistFn extends FnEntryPoint {
 
   def handle: Handle
 

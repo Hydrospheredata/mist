@@ -7,7 +7,7 @@ import scala.util._
 
 class JHandle(val underlying: LowHandle[RetVal])
 
-abstract class JMistFn extends JArgsDef with JJobDefinition {
+abstract class JMistFn extends JArgsDef with JJobDefinition with FnEntryPoint {
 
   def handle: JHandle
 
