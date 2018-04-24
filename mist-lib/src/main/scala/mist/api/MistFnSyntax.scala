@@ -10,6 +10,8 @@ import SparkArgs._
 import mist.api.internal.{ArgCombiner, FnForTuple}
 import mist.api.encoding.JsEncoder
 
+import scala.annotation.implicitNotFound
+
 /**
   * Provide context combinators to complete job definition, that can take some
   * another arguments + spark computational context.

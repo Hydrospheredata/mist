@@ -22,7 +22,7 @@ sealed trait Extraction[+A] { self =>
 }
 
 final case class Extracted[+A](value: A) extends Extraction[A]
-trait Failed extends Extraction[Nothing]
+sealed trait Failed extends Extraction[Nothing]
 
 object Failed {
 

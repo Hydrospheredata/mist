@@ -75,12 +75,14 @@ object Boilerplate {
       val fnApply = if (arity == 1) "f(in)" else "f.tupled(in)"
       block"""
          |package mist.api.internal
+         |import scala.annotation.implicitNotFound
          |
          |trait FnForTuple[In, F] {
          |  type Out
          |  def apply(f: F, in: In): Out
          |}
          |trait FnForTupleInstances {
+         |  @implicitNotFound("couldn't find FnForTuple for {$$F} instance. Ensure that your function is receiving the same parameters as declared in Arg")
          |  type Aux[In, F, Out0] = FnForTuple[In, F] { type Out = Out0 }
          -  implicit def fn${arity}[${`A..N`}, Res]: Aux[$FnIn, $Fn, Res] = new FnForTuple[$FnIn, $Fn] {
          -    type Out = Res

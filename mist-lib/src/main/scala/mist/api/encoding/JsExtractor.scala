@@ -3,6 +3,7 @@ package mist.api.encoding
 import mist.api._
 import mist.api.data._
 
+import scala.annotation.implicitNotFound
 import scala.reflect.ClassTag
 
 trait JsExtractor[A] { self =>

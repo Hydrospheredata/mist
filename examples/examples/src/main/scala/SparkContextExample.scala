@@ -3,6 +3,8 @@ import mist.api.dsl._
 import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
+case class A()
+
 object SparkContextExample extends MistFn with Logging {
 
   override def handle: Handle = {

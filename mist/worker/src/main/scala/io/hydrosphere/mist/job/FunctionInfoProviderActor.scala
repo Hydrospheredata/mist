@@ -125,6 +125,7 @@ class FunctionInfoProviderActor(
         def buildError(f: Failed): String = {
           f match {
             case Failed.InternalError(msg) => s"Internal error: $msg"
+            case Failed.InvalidField(name, f) => s"Invalid field $name:" + buildError(f)
             case Failed.InvalidValue(msg) => s"Invalid value: $msg"
             case Failed.InvalidType(expected, got) => s"Invalid type: expected $expected, got $got"
             case Failed.ComplexFailure(failures) => failures.map(buildError).mkString("Errors[", ",", "]")

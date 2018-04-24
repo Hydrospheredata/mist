@@ -2,7 +2,9 @@ package mist.api.encoding
 
 import mist.api.data._
 
-//TODO full message
+import scala.annotation.implicitNotFound
+
+@implicitNotFound("Couldn't find JsEncoder instance for ${A}. Check that function return value type has encoder instance or import default `mist.api.encoder.defaults._`")
 trait JsEncoder[A] { self =>
 
   def apply(a : A): JsData

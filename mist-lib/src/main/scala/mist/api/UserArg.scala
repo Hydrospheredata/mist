@@ -26,12 +26,14 @@ trait UserArg[A] extends ArgDef[A] { self =>
 
 class NamedUserArg[A](name: String)(implicit ext: JsExtractor[A]) extends UserArg[A] {
   override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, ext.`type`))
-  override def extract(ctx: FnContext): Extraction[A] = ext(ctx.params.fieldValue(name))
+  override def extract(ctx: FnContext): Extraction[A] =
+    ext.transformFailure(f => Failed.InvalidField(name, f))(ctx.params.fieldValue(name))
 }
 
 class NamedUserArgWithDefault[A](name: String, default: A)(implicit ext: JsExtractor[A]) extends UserArg[A] {
   private val optExt = ext.orElse(default)
   override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(ext.`type`)))
-  override def extract(ctx: FnContext): Extraction[A] = optExt.apply(ctx.params.fieldValue(name))
+  override def extract(ctx: FnContext): Extraction[A] =
+    optExt.transformFailure(f => Failed.InvalidField(name, f))(ctx.params.fieldValue(name))
 }
 
