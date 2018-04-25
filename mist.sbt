@@ -39,7 +39,6 @@ lazy val mistLib = project.in(file("mist-lib"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
-      Library.Akka.stream,
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
@@ -55,6 +54,7 @@ lazy val core = project.in(file("mist/core"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
+      Library.Akka.actor,
       Library.slf4j,
       Library.reflect,
       Library.Akka.testKit % "test",
