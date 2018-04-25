@@ -55,7 +55,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val worker = createActor(runner)
     val probe = TestProbe()
 
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgType[JobFileDownloading]
     probe.expectMsgType[JobStarted]
@@ -70,7 +70,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val worker = createActor(runner)
 
     val probe = TestProbe()
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
     probe.expectMsgType[JobFileDownloading]
     probe.expectMsgType[JobStarted]
     probe.expectMsgPF() {
@@ -91,7 +91,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val worker = createActor(runnerSelector)
 
     val probe = TestProbe()
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
     probe.send(worker, CancelJobRequest("id"))
 
     probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
@@ -111,9 +111,9 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val probe = TestProbe()
     val worker = createActor(runnerSelector)
 
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-    probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-    probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
@@ -133,7 +133,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val worker = createActor(runnerSelector)
 
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
@@ -166,7 +166,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val probe = TestProbe()
 
     val worker = createActor(runnerSelector)
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],

@@ -22,6 +22,9 @@ sealed trait Extraction[+A] { self =>
 }
 
 final case class Extracted[+A](value: A) extends Extraction[A]
+object Extracted {
+  val unit: Extracted[Unit] = Extracted(())
+}
 sealed trait Failed extends Extraction[Nothing]
 
 object Failed {

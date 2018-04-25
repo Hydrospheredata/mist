@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import mist.api.data._
+import mist.api.data.JsSyntax._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
@@ -31,7 +32,7 @@ class DevApiSpec extends FunSpec with Matchers with ScalatestRouteTest with Mock
 
     when(master.devRun(any[DevJobStartRequest], any[Source], any[Action]))
       .thenSuccess(ExecutionInfo(
-        RunJobRequest("id", JobParams("path", "className", Map.empty, Action.Execute)),
+        RunJobRequest("id", JobParams("path", "className", JsMap.empty, Action.Execute)),
         promise
       ))
 

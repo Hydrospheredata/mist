@@ -11,10 +11,11 @@ import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
 import io.hydrosphere.mist.master.jobs.FunctionInfoService
 import io.hydrosphere.mist.master.models.RunMode.{ExclusiveContext, Shared}
 import io.hydrosphere.mist.master.models._
-import mist.api.args.ArgInfo
+import mist.api.data.{JsList, JsMap}
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpecLike, Matchers}
+import mist.api.data.JsSyntax._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -46,16 +47,16 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         defaultContext = "namespace"
       )))
 
-    when(jobInfoProviderService.validateFunctionParams(any[String], any[Map[String, Any]]))
+    when(jobInfoProviderService.validateFunctionParams(any[String], any[JsMap]))
       .thenSuccess(Some(()))
 
     when(execution.startJob(any[JobStartRequest])).thenSuccess(ExecutionInfo(
-      req = RunJobRequest("id", JobParams("path.py", "MyJob", Map("x" -> 1), Action.Execute))
+      req = RunJobRequest("id", JobParams("path.py", "MyJob", JsMap("x" -> 1.js), Action.Execute))
     ))
 
     val service = new MainService(execution, functions, contexts, logs, jobInfoProviderService)
 
-    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", JsMap("x" -> 1.js), Some("externalId"))
     val runInfo = service.runJob(req, JobDetails.Source.Http).await
     runInfo shouldBe defined
   }
@@ -70,7 +71,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(execution, functions, contexts, logs, jobInfoProvider)
 
-    when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
+    when(jobInfoProvider.validateFunctionParams(any[String], any[JsMap]))
       .thenFailure(new IllegalArgumentException("INVALID"))
     when(jobInfoProvider.getFunctionInfo(any[String]))
       .thenSuccess(Some(FunctionInfoData(
@@ -81,7 +82,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
         FunctionInfoData.PythonLang
       )))
 
-    val req = FunctionStartRequest("scalajob", Map("notNumbers" -> Seq(1, 2, 3)), Some("externalId"))
+    val req = FunctionStartRequest("scalajob", JsMap("notNumbers" -> JsList(Seq(1.js, 2.js, 3.js))), Some("externalId"))
 
     val f = service.runJob(req, JobDetails.Source.Http)
 
@@ -101,7 +102,7 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     val service = new MainService(execution, functions, contexts, logs, jobInfoProvider)
 
-    when(jobInfoProvider.validateFunctionParams(any[String], any[Map[String, Any]]))
+    when(jobInfoProvider.validateFunctionParams(any[String], any[JsMap]))
       .thenSuccess(Some(()))
 
     when(jobInfoProvider.getFunctionInfo(any[String]))
@@ -109,9 +110,9 @@ class MainServiceSpec extends TestKit(ActorSystem("testMasterService"))
 
     when(contexts.getOrDefault(any[String])).thenSuccess(FooContext)
     when(execution.startJob(any[JobStartRequest]))
-      .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", Map.empty, Action.Execute))))
+      .thenSuccess(ExecutionInfo(RunJobRequest("test", JobParams("test", "test", JsMap.empty, Action.Execute))))
 
-    val req = FunctionStartRequest("name", Map("x" -> 1), Some("externalId"))
+    val req = FunctionStartRequest("name", JsMap("x" -> 1.js), Some("externalId"))
     Await.result(service.runJob(req, JobDetails.Source.Http), 30 seconds)
 
     val argCapture = ArgumentCaptor.forClass(classOf[JobStartRequest])

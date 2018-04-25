@@ -8,6 +8,9 @@ import org.mockito.Mockito._
 import org.scalatest.FunSpec
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import mist.api.data.JsSyntax._
+import mist.api.data._
+
 
 class AsyncInterfaceSpec extends FunSpec {
 
@@ -59,7 +62,7 @@ class AsyncInterfaceSpec extends FunSpec {
       fakeName = "my-job",
       path = "path",
       className = "MyJob",
-      parameters = Map("x" -> "y"),
+      parameters = JsMap("x" -> "y".js),
       context = "foo",
       externalId = Some("xxx"),
       workerId = Some("test_id")

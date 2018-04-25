@@ -5,12 +5,13 @@ import io.hydrosphere.mist.master.models.JobStartResponse
 import io.hydrosphere.mist.master.{JobDetails, JobResult, TestUtils}
 import mist.api.data._
 import org.scalatest._
+import mist.api.data._
 
 import scala.concurrent.Promise
 
 class ExecutionInfoSpec extends FunSpec with Matchers with TestUtils {
 
-  val req = RunJobRequest("id", JobParams("path", "class", Map.empty, Action.Execute))
+  val req = RunJobRequest("id", JobParams("path", "class", JsMap.empty, Action.Execute))
 
   it("should return job start response") {
     val execInfo = ExecutionInfo(req)

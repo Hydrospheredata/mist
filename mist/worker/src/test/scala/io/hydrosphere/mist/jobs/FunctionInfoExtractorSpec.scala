@@ -7,7 +7,7 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInstanceLoader}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
-import mist.api.args.{InternalArgument, MInt, UserInputArgument}
+import mist.api.{InternalArgument, MInt, UserInputArgument}
 import mist.api.internal.{FunctionInstance, JavaFunctionInstance, ScalaFunctionInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
 import org.mockito.Mockito._
