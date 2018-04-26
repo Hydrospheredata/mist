@@ -29,7 +29,6 @@ object ArgCombiner {
           }
         }
 
-        //TODO
         override def validate(params: JsMap): Extraction[Unit] = {
           (a.validate(params), b.validate(params)) match {
             case (Extracted(_), Extracted(_)) => Extracted(())

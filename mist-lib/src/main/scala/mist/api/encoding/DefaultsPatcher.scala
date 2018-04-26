@@ -29,10 +29,10 @@ object DefaultsPatcher {
 
     implicit def hlistPatcher[K <: Symbol, H, T <: HList](implicit
       witness: Witness.Aux[K],
-      LEnc: Lazy[JsEncoder[H]],
+      lEnc: Lazy[JsEncoder[H]],
       tPath: InternalPatcher[T]
     ): InternalPatcher[FieldType[K, H] :: T] = {
-      val enc = LEnc.value
+      val enc = lEnc.value
       val key = witness.value.name
       InternalPatcher.create[FieldType[K, H] :: T]((hList, js) => {
         val patched = js.fieldValue(key) match {

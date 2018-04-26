@@ -134,7 +134,9 @@ libraryDependencies ++= Seq(
 
 `src/main/scala/HelloMist.scala`:
 ```tut:silent
-import mist.api.all._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 // function object

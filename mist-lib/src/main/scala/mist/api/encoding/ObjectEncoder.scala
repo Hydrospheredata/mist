@@ -27,10 +27,10 @@ object ObjectEncoder {
 
   implicit def hlistExt[K <: Symbol, H, T <: HList](implicit
     witness: Witness.Aux[K],
-    LHenc: Lazy[JsEncoder[H]],
+    lHenc: Lazy[JsEncoder[H]],
     tEnc: ObjectEncoder[T]
   ): ObjectEncoder[FieldType[K, H] :: T] = {
-    val hEnc = LHenc.value
+    val hEnc = lHenc.value
     val key = witness.value.name
     ObjectEncoder.create[FieldType[K, H] :: T](hlist => {
       val h = hEnc(hlist.head)

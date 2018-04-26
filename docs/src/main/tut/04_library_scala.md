@@ -17,7 +17,9 @@ Mist Library provides a DSL for Mist Functions that could be deployed and execut
 
 `PiExample.scala`:
 ```tut:silent
-import mist.api.all._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 object PiExample extends MistFn {
@@ -152,8 +154,9 @@ val fromThree = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag")
 
 If your function doesn't require any arguments, there are similar methods available from `MistFn`
 ```tut:silent
-
-import mist.api.all._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 object NoArgsHandler extends MistFn {
@@ -173,8 +176,9 @@ For that purpose `ArgDef[A]` has special methods to validate arguments:
 - `validated(f: A => Boolean, explanation: String)`
 
 ```tut:silent
-import mist.api.all._
-import mist.api.encoding.DefaultEncoders._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 object PiExample extends MistFn {
@@ -219,7 +223,9 @@ to have that extra information in a function body.
 These utilities are called `MistExtras`. Example:
 
 ```tut:silent
-import mist.api.all._
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
 object HelloWorld extends MistFn with Logging {

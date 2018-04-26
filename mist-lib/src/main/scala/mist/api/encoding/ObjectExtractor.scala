@@ -30,11 +30,11 @@ object ObjectExtractor {
 
   implicit def hlistExt[K <: Symbol, H, T <: HList](implicit
     witness: Witness.Aux[K],
-    LHExt: Lazy[JsExtractor[H]],
+    lHExt: Lazy[JsExtractor[H]],
     tExt: ObjectExtractor[T]
   ): ObjectExtractor[FieldType[K, H] :: T] = {
     val key = witness.value.name
-    val hExt = LHExt.value.transformFailure(f => Failed.InvalidField(key, f))
+    val hExt = lHExt.value.transformFailure(f => Failed.InvalidField(key, f))
     val headType = witness.value.name -> hExt.`type`
     val `type` = MObj(headType +: tExt.`type`.fields)
 
