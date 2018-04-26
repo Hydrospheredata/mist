@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.execution.workers.StopAction
 
 import scala.concurrent.Future
 import scala.language.postfixOps
@@ -16,7 +17,7 @@ trait WorkerStarter {
 
   def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess
 
-  def onStop(name: String): Unit = {}
+  def stopAction: StopAction
 }
 
 object WorkerStarter {

@@ -146,7 +146,7 @@ class SharedConnector(
         log.error(e, "Could not start worker connection")
         context stop self
       case conn: WorkerConnection if lastConnection =>
-        conn.shutdown(true)
+        conn.shutdown()
         context stop self
 
       case akka.actor.Status.Failure(e) =>
@@ -154,7 +154,7 @@ class SharedConnector(
         context become awaitingConnectionsAndShutdown(startingConnections - 1)
 
       case conn: WorkerConnection =>
-        conn.shutdown(true)
+        conn.shutdown()
         context become awaitingConnectionsAndShutdown(startingConnections - 1)
     }
   }

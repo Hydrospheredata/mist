@@ -16,6 +16,7 @@ object CommonData {
   sealed trait ShutdownCommand
   case object CompleteAndShutdown extends ShutdownCommand
   case object ForceShutdown extends ShutdownCommand
+  case object Goodbye
 
   /**
     * Data for creation spark/mist context on worker

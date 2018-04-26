@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.ManualRunnerConfig
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
 
 case class ManualStarter(
@@ -25,8 +26,12 @@ case class ManualStarter(
     if (async) NonLocal else Local(ps.await())
   }
 
-  override def onStop(name: String): Unit = {
-    stop.foreach(cmd => WrappedProcess.run(cmd, outDirectory.resolve(s"manual-worker-onstop-$name.log")))
+  override def stopAction: StopAction = stop match {
+    case Some(cmd) => StopAction.CustomFn(id => {
+      val env = Map("MIST_WORKER_NAME" -> id)
+      WrappedProcess.run(cmd, env, outDirectory.resolve(s"manual-worker-onstop-$id.log"))
+    })
+    case None => StopAction.Remote
   }
 }
 

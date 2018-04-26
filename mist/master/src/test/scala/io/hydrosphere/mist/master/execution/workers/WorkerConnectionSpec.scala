@@ -19,11 +19,7 @@ class WorkerConnectionSpec extends ActorSpec("worker_conn") with TestData {
       whenTerminated = termination.future
     )
 
-    connection.shutdown(true)
-    connRef.expectMsgType[ForceShutdown.type]
-
-    connection.shutdown(false)
-    connRef.expectMsgType[CompleteAndShutdown.type]
-
+    connection.shutdown()
+    connRef.expectMsgType[WorkerBridge.Shutdown.type]
   }
 }

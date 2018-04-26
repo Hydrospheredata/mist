@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.{ContainerNetwork, Link}
 import com.github.dockerjava.core.{DefaultDockerClientConfig, DockerClientBuilder}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.JavaConverters._
@@ -88,6 +89,7 @@ class DockerStarter(
     NonLocal
   }
 
+  override def stopAction: StopAction = StopAction.Remote
 }
 
 object DockerStarter {

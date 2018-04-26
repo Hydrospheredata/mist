@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.TestData
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.master.execution.workers.starter.{NonLocal, WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.models.RunMode
 import org.scalatest.{FunSpec, Matchers}
@@ -13,6 +14,7 @@ class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
   it("should build worker init info") {
     val noop = new WorkerStarter {
       override def onStart(name: String, initInfo: CommonData.WorkerInitInfo): WorkerProcess = NonLocal
+      override def stopAction: StopAction = StopAction.Remote
     }
     val spawnSettings = SpawnSettings(
       runnerCmd = noop,

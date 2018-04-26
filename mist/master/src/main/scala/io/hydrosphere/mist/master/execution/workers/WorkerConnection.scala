@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.Future
@@ -13,9 +12,8 @@ case class WorkerConnection(
   whenTerminated: Future[Unit]
 ) {
 
-  def shutdown(force: Boolean): Future[Unit] = {
-    val msg = if (force) ForceShutdown else CompleteAndShutdown
-    ref ! msg
+  def shutdown(): Future[Unit] = {
+    ref ! WorkerBridge.Shutdown
     whenTerminated
   }
 

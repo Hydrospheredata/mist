@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.execution.workers.starter
 import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
 
 class LocalSparkSubmit(builder: SparkSubmitBuilder, outDirectory: Path) extends WorkerStarter with Logger {
@@ -16,6 +17,7 @@ class LocalSparkSubmit(builder: SparkSubmitBuilder, outDirectory: Path) extends 
     Local(future)
   }
 
+  override def stopAction: StopAction = StopAction.Remote
 }
 
 object LocalSparkSubmit {

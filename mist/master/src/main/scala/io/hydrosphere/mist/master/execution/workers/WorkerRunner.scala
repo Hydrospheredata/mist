@@ -19,7 +19,7 @@ object WorkerRunner {
   class DefaultRunner(
     spawn: SpawnSettings,
     regHub: ActorRegHub,
-    connect: (String, WorkerInitInfo, FiniteDuration, ActorRef) => Future[WorkerConnection]
+    connect: (String, WorkerInitInfo, FiniteDuration, ActorRef, StopAction) => Future[WorkerConnection]
   ) extends WorkerRunner {
 
     override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
@@ -29,15 +29,14 @@ object WorkerRunner {
       val ps = runnerCmd.onStart(id, initInfo)
       val regFuture = for {
         ref <- regHub.waitRef(id, timeout)
-        connection <- connect(id, initInfo, readyTimeout, ref)
-      } yield {
-        connection.whenTerminated.onComplete(_ => {
-          runnerCmd.onStop(id)
-        })
-        connection
-      }
+        connection <- connect(id, initInfo, readyTimeout, ref, runnerCmd.stopAction)
+      } yield connection
 
-      regFuture.onFailure({case _ => runnerCmd.onStop(id)})
+      runnerCmd.stopAction match {
+        case StopAction.CustomFn(f) =>
+          regFuture.onFailure({case _ => f(id)})
+        case StopAction.Remote =>
+      }
 
       val promise = Promise[WorkerConnection]
       ps match {
@@ -53,8 +52,8 @@ object WorkerRunner {
   }
 
   def default(spawn: SpawnSettings, regHub: ActorRegHub, af: ActorRefFactory): WorkerRunner = {
-    val connect = (id: String, info: WorkerInitInfo, ready: FiniteDuration, remote: ActorRef) => {
-      WorkerBridge.connect(id, info, ready, remote)(af)
+    val connect = (id: String, info: WorkerInitInfo, ready: FiniteDuration, remote: ActorRef, stopAction: StopAction) => {
+      WorkerBridge.connect(id, info, ready, remote, stopAction)(af)
     }
     new DefaultRunner(spawn, regHub, connect)
   }
