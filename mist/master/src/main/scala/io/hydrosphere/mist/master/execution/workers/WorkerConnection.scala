@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ReleaseConnection, ForceShutdown}
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.Future
@@ -19,8 +19,5 @@ case class WorkerConnection(
     whenTerminated
   }
 
-  def release(): Unit = {
-    ref ! ReleaseConnection(id)
-  }
 }
 

@@ -13,7 +13,6 @@ object CommonData {
   )
   case class WorkerStartFailed(id: String, message: String)
 
-  case class ReleaseConnection(id: String)
   sealed trait ShutdownCommand
   case object CompleteAndShutdown extends ShutdownCommand
   case object ForceShutdown extends ShutdownCommand

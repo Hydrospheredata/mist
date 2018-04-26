@@ -8,7 +8,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
+import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnector}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsLikeData
@@ -315,7 +315,7 @@ object ContextFrontend {
     final case class JobDied(id: String) extends Event
     final case class JobCompleted(id: String) extends Event
 
-    final case class Connection(connectorId: String, conn: WorkerConnection) extends Event
+    final case class Connection(connectorId: String, conn: PerJobConnection) extends Event
     final case class ConnectionFailure(connectorId: String, e: Throwable) extends Event
 
     case object Downtime extends Event

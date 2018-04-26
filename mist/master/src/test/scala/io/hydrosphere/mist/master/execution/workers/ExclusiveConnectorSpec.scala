@@ -1,5 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, RunJobRequest}
 import io.hydrosphere.mist.master.{ActorSpec, TestData}
@@ -17,7 +18,7 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
     ))
 
     val probe = TestProbe()
-    val resolve = Promise[WorkerConnection]
+    val resolve = Promise[PerJobConnection]
     probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
 
     intercept[Throwable] {
@@ -36,12 +37,12 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
     ))
 
     val probe = TestProbe()
-    val resolve = Promise[WorkerConnection]
+    val resolve = Promise[PerJobConnection]
     probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
 
     val connection = Await.result(resolve.future, Duration.Inf)
 
-    probe.send(connection.ref, mkRunReq("id"))
+    connection.run(mkRunReq("id"), probe.ref)
 
     originalRef.expectMsgType[RunJobRequest]
     originalRef.expectMsgType[CompleteAndShutdown.type]
@@ -58,12 +59,12 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
         data = workerLinkData,
         whenTerminated = termination.future
       )
-      val wrapped = ExclusiveConnector.ConnectionWrapper.wrap(connection)
+      val wrapped = ExclusiveConnector.wrappedConn(connection)
 
       wrapped.release()
       connRef.expectMsgType[CompleteAndShutdown.type]
 
-      wrapped.ref ! mkRunReq("id")
+      wrapped.run(mkRunReq("id"), ActorRef.noSender)
       connRef.expectMsgType[RunJobRequest]
     }
   }

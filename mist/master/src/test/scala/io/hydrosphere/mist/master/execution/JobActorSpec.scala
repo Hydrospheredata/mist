@@ -1,18 +1,28 @@
 package io.hydrosphere.mist.master.execution
 
+import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
-import io.hydrosphere.mist.master.execution.workers.WorkerConnection
+import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData, TestUtils}
 import mist.api.data.{JsLikeData, JsLikeNumber}
 import org.scalatest.Matchers
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Seconds, Span}
+import org.mockito.Mockito._
 
-import scala.concurrent.{Await, Promise}
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 
-class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils with Matchers {
+class JobActorSpec extends ActorSpec("worker-conn")
+  with TestData
+  with TestUtils
+  with Matchers
+  with Eventually
+  with MockitoSugar {
 
   it("should execute") {
     val callback = TestProbe()
@@ -31,10 +41,13 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
     probe.send(actor, JobActor.Event.GetStatus)
     probe.expectMsgType[ExecStatus.Queued.type]
 
+    val conn = mockConn()
+    probe.send(actor, JobActor.Event.Perform(conn))
+    eventually(timeout(Span(3, Seconds))) {
+      verify(conn).run(any[RunJobRequest], any[ActorRef])
+    }
+
     val connectionRef = TestProbe()
-    val connection = WorkerConnection("id", connectionRef.ref, workerLinkData, Promise[Unit].future)
-    probe.send(actor, JobActor.Event.Perform(connection))
-    connectionRef.expectMsgType[RunJobRequest]
     connectionRef.send(actor, JobStarted("id"))
     connectionRef.send(actor, JobSuccess("id", JsLikeNumber(42)))
 
@@ -69,11 +82,13 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
     probe.send(actor, JobActor.Event.GetStatus)
     probe.expectMsgType[ExecStatus.Queued.type]
 
-    val connectionRef = TestProbe()
-    val connection = WorkerConnection("id", connectionRef.ref, workerLinkData, Promise[Unit].future)
-    probe.send(actor, JobActor.Event.Perform(connection))
-    connectionRef.expectMsgType[RunJobRequest]
+    val conn = mockConn()
+    probe.send(actor, JobActor.Event.Perform(conn))
+    eventually(timeout(Span(3, Seconds))) {
+      verify(conn).run(any[RunJobRequest], any[ActorRef])
+    }
 
+    val connectionRef = TestProbe()
     connectionRef.send(actor, JobStarted("id"))
 
     probe.send(actor, JobActor.Event.GetStatus)
@@ -144,16 +159,20 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
     probe.send(actor, JobActor.Event.GetStatus)
     probe.expectMsgType[ExecStatus.Queued.type]
 
-    val connectionRef = TestProbe()
-    val connection = WorkerConnection("id", connectionRef.ref, workerLinkData, Promise[Unit].future)
-    probe.send(actor, JobActor.Event.Perform(connection))
-    connectionRef.expectMsgType[RunJobRequest]
+    val conn = mockConn()
+    probe.send(actor, JobActor.Event.Perform(conn))
+    eventually(timeout(Span(3, Seconds))) {
+      verify(conn).run(any[RunJobRequest], any[ActorRef])
+    }
 
+    val connectionRef = TestProbe()
     connectionRef.send(actor, JobStarted("id"))
 
     probe.send(actor, JobActor.Event.Cancel)
 
-    connectionRef.expectMsgType[CancelJobRequest]
+    eventually(timeout(Span(3, Seconds))) {
+      verify(conn).cancel(any[String], any[ActorRef])
+    }
     connectionRef.send(actor, JobIsCancelled("id"))
     connectionRef.send(actor, JobFailure("id", "error"))
 
@@ -192,11 +211,14 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
     probe.expectMsgType[ExecStatus.Queued.type]
 
     val connTerm = Promise[Unit]
-    val connectionRef = TestProbe()
-    val connection = WorkerConnection("id", connectionRef.ref, workerLinkData, connTerm.future)
-    probe.send(actor, JobActor.Event.Perform(connection))
-    connectionRef.expectMsgType[RunJobRequest]
 
+    val conn = mockConn(term = connTerm)
+    probe.send(actor, JobActor.Event.Perform(conn))
+    eventually(timeout(Span(3, Seconds))) {
+      verify(conn).run(any[RunJobRequest], any[ActorRef])
+    }
+
+    val connectionRef = TestProbe()
     connectionRef.send(actor, JobStarted("id"))
 
     connTerm.success(())
@@ -213,6 +235,13 @@ class JobActorSpec extends ActorSpec("worker-conn") with TestData with TestUtils
       classOf[StartedEvent],
       classOf[FailedEvent]
     )
+  }
+
+  def mockConn(id: String = "id", term: Promise[Unit] = Promise[Unit]): PerJobConnection = {
+    val m = mock[PerJobConnection]
+    when(m.id).thenReturn(id)
+    when(m.whenTerminated).thenReturn(term.future)
+    m
   }
 
   class TestReporter extends StatusReporter {
