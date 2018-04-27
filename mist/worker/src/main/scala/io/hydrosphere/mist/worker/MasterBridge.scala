@@ -84,6 +84,7 @@ class MasterBridge(
 
     case ForceShutdown =>
       log.info(s"Received force shutdown command")
+      remote ! Goodbye
       worker ! PoisonPill
       context stop self
 

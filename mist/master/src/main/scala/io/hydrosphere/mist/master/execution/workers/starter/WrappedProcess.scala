@@ -10,6 +10,7 @@ import org.apache.commons.io.IOUtils
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
 import scala.io.Source
+import scala.util.Try
 
 case class WrappedProcess(
   ps: java.lang.Process,
@@ -91,31 +92,33 @@ case class WrappedProcess(
 
 object WrappedProcess {
 
-  def default(ps: java.lang.Process): WrappedProcess = {
+  def started(ps: java.lang.Process): WrappedProcess = {
     WrappedProcess(ps, exitValue => {
       val out = Source.fromInputStream(ps.getInputStream).getLines().take(25).mkString("; ")
       s"Process exited with status code $exitValue and out: $out"
     })
   }
 
-  def run(cmd: Seq[String], env: Map[String, String], out: Option[Path]): WrappedProcess = {
+  def run(cmd: Seq[String], env: Map[String, String], out: Option[Path]): Try[WrappedProcess] = {
     import scala.collection.JavaConverters._
 
-    val builder = new java.lang.ProcessBuilder(cmd.asJava)
-    builder.environment().putAll(env.asJava)
-    builder.redirectErrorStream(true)
-    val ps = builder.start()
+    Try {
+      val builder = new java.lang.ProcessBuilder(cmd.asJava)
+      builder.environment().putAll(env.asJava)
+      builder.redirectErrorStream(true)
+      val ps = builder.start()
 
-    val wp = default(ps)
-    out match {
-      case Some(p) => wp.saveOut(p)
-      case None => wp
+      val wp = started(ps)
+      out match {
+        case Some(p) => wp.saveOut(p)
+        case None => wp
+      }
     }
   }
 
-  def run(cmd: Seq[String], env: Map[String, String], out: Path): WrappedProcess = run(cmd, env, Some(out))
-  def run(cmd: Seq[String], out: Path): WrappedProcess = run(cmd, Map.empty[String, String], Some(out))
-  def run(cmd: Seq[String]): WrappedProcess = run(cmd, Map.empty[String, String], None)
+  def run(cmd: Seq[String], env: Map[String, String], out: Path): Try[WrappedProcess] = run(cmd, env, Some(out))
+  def run(cmd: Seq[String], out: Path): Try[WrappedProcess] = run(cmd, Map.empty[String, String], Some(out))
+  def run(cmd: Seq[String]): Try[WrappedProcess] = run(cmd, Map.empty[String, String], None)
 
 }
 

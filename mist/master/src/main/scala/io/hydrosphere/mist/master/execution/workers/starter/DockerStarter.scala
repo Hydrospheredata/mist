@@ -86,7 +86,7 @@ class DockerStarter(
       case Success(id) => logger.info(s"Container $id started for worker $name")
       case Failure(e) => logger.error(s"Container starting for worker $name failed", e)
     })
-    NonLocal
+    WorkerProcess.NonLocal
   }
 
   override def stopAction: StopAction = StopAction.Remote

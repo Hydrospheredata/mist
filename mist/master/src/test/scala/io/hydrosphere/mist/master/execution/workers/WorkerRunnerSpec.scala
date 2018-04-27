@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.master.execution.workers.starter.{NonLocal, WorkerProcess, WorkerStarter}
+import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{SpawnSettings, workers}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
 import io.hydrosphere.mist.utils.akka.ActorRegHub
@@ -31,7 +31,7 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
 
     it("should run worker") {
       val starter = new WorkerStarter {
-        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = NonLocal
+        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = WorkerProcess.NonLocal
         override def stopAction: StopAction = StopAction.Remote
       }
       val regHub = mock[ActorRegHub]
@@ -51,7 +51,7 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       val check = new AtomicBoolean(false)
 
       val runnerCmd = new WorkerStarter {
-        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = NonLocal
+        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = WorkerProcess.NonLocal
         override def stopAction: StopAction = StopAction.CustomFn(_ => check.set(true))
       }
 

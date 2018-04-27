@@ -7,6 +7,9 @@ import io.hydrosphere.mist.master.ManualRunnerConfig
 import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
+
 case class ManualStarter(
   start: Seq[String],
   stop: Option[Seq[String]],
@@ -22,14 +25,20 @@ case class ManualStarter(
       "MIST_WORKER_SPARK_CONF" -> initInfo.sparkConf.map({case (k, v) => s"$k=$v"}).mkString("|+|")
     )
     val out = outDirectory.resolve(s"manual-worker-$name.log")
-    val ps = WrappedProcess.run(start, env, out)
-    if (async) NonLocal else Local(ps.await())
+    WrappedProcess.run(start, env, out) match {
+      case Success(ps) => if (async) WorkerProcess.NonLocal else WorkerProcess.Local(ps.await())
+      case Failure(e) => WorkerProcess.Failed(e)
+    }
+
   }
 
   override def stopAction: StopAction = stop match {
     case Some(cmd) => StopAction.CustomFn(id => {
       val env = Map("MIST_WORKER_NAME" -> id)
-      WrappedProcess.run(cmd, env, outDirectory.resolve(s"manual-worker-onstop-$id.log"))
+      WrappedProcess.run(cmd, env, outDirectory.resolve(s"manual-worker-stop-$id.log")) match {
+        case Success(ps) => ps.await().onFailure({case e => logger.error(s"Calling stop script failed for $id", e)})
+        case Failure(e) => logger.error("Calling stop script failed for $id", e)
+      }
     })
     case None => StopAction.Remote
   }

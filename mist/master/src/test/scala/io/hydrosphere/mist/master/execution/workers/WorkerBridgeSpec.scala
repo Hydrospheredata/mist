@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.testkit.TestProbe
-import io.hydrosphere.mist.core.CommonData.{ForceShutdown, WorkerInitInfo, WorkerReady}
+import io.hydrosphere.mist.core.CommonData.{ForceShutdown, Goodbye, WorkerInitInfo, WorkerReady}
 import io.hydrosphere.mist.master.{ActorSpec, TestData, TestUtils}
 
 import scala.concurrent.Promise
@@ -58,6 +58,7 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
 
     bridge ! WorkerBridge.Shutdown
     remote.expectMsgType[ForceShutdown.type]
+    bridge ! Goodbye
     shouldTerminate(1 second)(bridge)
   }
 
@@ -80,6 +81,7 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
     connection.id shouldBe "id"
 
     bridge ! WorkerBridge.Shutdown
+    bridge ! Goodbye
     shouldTerminate(1 second)(bridge)
     check.get() shouldBe true
   }

@@ -1,11 +1,11 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated, Timers}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, ReceiveTimeout, Terminated, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 sealed trait StopAction
 object StopAction {
@@ -82,7 +82,9 @@ class WorkerBridge(
         case StopAction.CustomFn(f) => f(id)
       }
       terminated.success(())
-      context stop self
+      context unwatch remote
+      context.setReceiveTimeout(1 minute)
+      context become awaitStop
 
     case Goodbye =>
       log.info(s"Remote application was unexpectedly stopped")
@@ -90,6 +92,17 @@ class WorkerBridge(
       context stop self
 
     case other => remote forward other
+  }
+
+  // only for logging
+  private def awaitStop: Receive = {
+    case Goodbye =>
+      log.info(s"Remote worker $id application was correctly stopped")
+      context stop self
+
+    case ReceiveTimeout =>
+      log.error(s"Remote worker $id application wasn't correctly stopped")
+      context stop self
   }
 
 }

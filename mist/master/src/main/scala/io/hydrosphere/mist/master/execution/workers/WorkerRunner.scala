@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import akka.actor.{ActorRef, ActorRefFactory}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.execution.SpawnSettings
-import io.hydrosphere.mist.master.execution.workers.starter.{Local, NonLocal}
+import io.hydrosphere.mist.master.execution.workers.starter.WorkerProcess
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -26,27 +26,34 @@ object WorkerRunner {
       import spawn._
 
       val initInfo = toWorkerInitInfo(ctx)
-      val ps = runnerCmd.onStart(id, initInfo)
-      val regFuture = for {
-        ref <- regHub.waitRef(id, timeout)
-        connection <- connect(id, initInfo, readyTimeout, ref, runnerCmd.stopAction)
-      } yield connection
 
-      runnerCmd.stopAction match {
-        case StopAction.CustomFn(f) =>
-          regFuture.onFailure({case _ => f(id)})
-        case StopAction.Remote =>
+      def continueSetup(ps: WorkerProcess.StartedProcess): Future[WorkerConnection] ={
+        val regFuture = for {
+          ref <- regHub.waitRef(id, timeout)
+          connection <- connect(id, initInfo, readyTimeout, ref, runnerCmd.stopAction)
+        } yield connection
+
+        val promise = Promise[WorkerConnection]
+        ps match {
+          case WorkerProcess.Local(term) =>
+            term.onFailure({case e => promise.tryComplete(Failure(new RuntimeException(s"Process terminated with error $e")))})
+          case WorkerProcess.NonLocal =>
+        }
+
+        runnerCmd.stopAction match {
+          case StopAction.CustomFn(f) => regFuture.onFailure({case _ => f(id)})
+          case StopAction.Remote =>
+        }
+
+        regFuture.onComplete(r => promise.tryComplete(r))
+        promise.future
       }
 
-      val promise = Promise[WorkerConnection]
-      ps match {
-        case Local(term) =>
-          term.onFailure({case e => promise.tryComplete(Failure(new RuntimeException(s"Process terminated with error $e")))})
-        case NonLocal =>
-      }
-      regFuture.onComplete(r => promise.tryComplete(r))
 
-      promise.future
+      runnerCmd.onStart(id, initInfo) match {
+        case ps: WorkerProcess.StartedProcess => continueSetup(ps)
+        case WorkerProcess.Failed(e) => Future.failed(new RuntimeException("Starting worker failed", e))
+      }
     }
 
   }
