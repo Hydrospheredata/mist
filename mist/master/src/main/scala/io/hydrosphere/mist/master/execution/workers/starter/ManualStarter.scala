@@ -46,10 +46,10 @@ case class ManualStarter(
 
 object ManualStarter {
 
-  def apply(config: ManualRunnerConfig, outDirectory: Path): ManualStarter = {
-    def split(s: String): Seq[String] = s.split(" ").map(_.trim).filter(_.nonEmpty)
+  import PsUtil._
 
+  def apply(config: ManualRunnerConfig, outDirectory: Path): ManualStarter = {
     import config._
-    ManualStarter(split(cmdStart), cmdStop.map(split), async, outDirectory)
+    ManualStarter(parseArguments(cmdStart), cmdStop.map(parseArguments), async, outDirectory)
   }
 }
