@@ -46,4 +46,19 @@ class SparkSubmitBuilderSpec extends FunSpec with Matchers {
       "--name", "name"
     )
   }
+
+  it("should correctly parse runOptions") {
+    val debugCtx = testInfo.copy(runOptions = "--driver-java-options '-Xdebug -Xrunjdwp:transport=dt_socket,address=15000,server=y,suspend=y'")
+    val cmd = builder.submitWorker("name", debugCtx)
+    cmd should contain theSameElementsInOrderAs Seq(
+      "/usr/share/spark/bin/spark-submit",
+      "--driver-java-options", "-Xdebug -Xrunjdwp:transport=dt_socket,address=15000,server=y,suspend=y",
+      "--conf", "spark.master=spark://localhost:4433",
+      "--conf", "a.b.c=xyz",
+      "--class", "io.hydrosphere.mist.worker.Worker",
+      "/usr/share/mist/mist-worker.jar",
+      "--master", testInfo.masterAddress,
+      "--name", "name"
+    )
+  }
 }
