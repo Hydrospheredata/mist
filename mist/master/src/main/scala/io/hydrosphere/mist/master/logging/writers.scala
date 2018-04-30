@@ -5,7 +5,7 @@ import java.nio.file._
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.LogStoragePaths
 
 import scala.concurrent.Future

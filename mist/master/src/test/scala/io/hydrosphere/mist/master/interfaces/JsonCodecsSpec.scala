@@ -6,6 +6,7 @@ import mist.api.data._
 import io.hydrosphere.mist.master.TestData
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import mist.api.data.JsSyntax._
 import spray.json._
 
 class JsonCodecsSpec extends FunSpec with Matchers  with TestData {
@@ -17,7 +18,7 @@ class JsonCodecsSpec extends FunSpec with Matchers  with TestData {
       (QueuedEvent("id"), "queued"),
       (StartedEvent("id", 1), "started"),
       (CanceledEvent("id", 1), "canceled"),
-      (FinishedEvent("id", 1, JsLikeMap("1" -> JsLikeNumber(2))), "finished"),
+      (FinishedEvent("id", 1, JsMap("1" -> 2.js)), "finished"),
       (FailedEvent("id", 1, "error"), "failed"),
       (WorkerAssigned("id", "workerId"), "worker-assigned"),
       (JobFileDownloadingEvent("id", System.currentTimeMillis()), "job-file-downloading"),
@@ -26,7 +27,7 @@ class JsonCodecsSpec extends FunSpec with Matchers  with TestData {
 
      forAll(expected) { (e: SystemEvent, name: String) =>
        val json = e.toJson
-       json.asJsObject.fields.get("event") shouldBe Some(JsString(name))
+       json.asJsObject.fields.get("event") shouldBe Some(spray.json.JsString(name))
      }
   }
 }

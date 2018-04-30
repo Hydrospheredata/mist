@@ -52,7 +52,9 @@ object Library {
     "org.apache.spark" %% "spark-core" % v,
     "org.apache.spark" %% "spark-sql" % v,
     "org.apache.spark" %% "spark-hive" % v,
-    "org.apache.spark" %% "spark-streaming" % v
+    "org.apache.spark" %% "spark-streaming" % v,
   )
+
+  val jsr305 = "com.google.code.findbugs" % "jsr305" % "1.3.9"
 
 }

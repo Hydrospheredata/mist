@@ -4,11 +4,10 @@ import java.io.File
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
-import mist.api.data.{JsLikeData, _}
+import mist.api.data.{JsData, _}
 import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
@@ -27,7 +26,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     .setAppName("test")
     .set("spark.driver.allowMultipleContexts", "true")
 
-  var context: NamedContext = _
+  var context: MistScContext = _
   var spContext: SparkContext = _
 
   val artifactDownloader = {
@@ -45,24 +44,24 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   override def beforeAll {
     spContext = new SparkContext(conf)
-    context = new NamedContext(spContext, "test") {
+    context = new MistScContext(spContext, "test") {
       override def stop(): Unit = {} //do not close ctx during tests
     }
   }
 
 
   it(s"should execute jobs") {
-    val runner = SuccessRunnerSelector(JsLikeNumber(42))
+    val runner = SuccessRunnerSelector(JsNumber(42))
     val worker = createActor(runner)
     val probe = TestProbe()
 
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgType[JobFileDownloading]
     probe.expectMsgType[JobStarted]
     probe.expectMsgPF(){
       case JobSuccess("id", r) =>
-        r shouldBe JsLikeNumber(42)
+        r shouldBe JsNumber(42)
     }
   }
 
@@ -71,7 +70,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     val worker = createActor(runner)
 
     val probe = TestProbe()
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
     probe.expectMsgType[JobFileDownloading]
     probe.expectMsgType[JobStarted]
     probe.expectMsgPF() {
@@ -82,40 +81,39 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
   it(s"should cancel job") {
     val runnerSelector = RunnerSelector(new JobRunner {
-      override def run(req: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = {
-        val sc = c.sparkContext
+      override def run(req: RunJobRequest, c: MistScContext): Either[Throwable, JsData] = {
+        val sc = c.sc
         val r = sc.parallelize(1 to 10000, 2).map { i => Thread.sleep(10000); i }.count()
-        Right(JsLikeMap("r" -> JsLikeString("Ok")))
+        Right(JsMap("r" -> JsString("Ok")))
       }
     })
 
     val worker = createActor(runnerSelector)
 
     val probe = TestProbe()
-    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
     probe.send(worker, CancelJobRequest("id"))
 
     probe.expectMsgAllConformingOf(classOf[JobFileDownloading], classOf[JobStarted], classOf[JobIsCancelled])
   }
 
   def createActor(runnerSelector: RunnerSelector): TestActorRef[WorkerActor] = {
-    val props  = WorkerActor.props(context, artifactDownloader, runnerSelector)
+    val props  = WorkerActor.props(context, artifactDownloader, RequestSetup.NOOP, runnerSelector)
     TestActorRef[WorkerActor](props)
   }
-
 
   it("should limit jobs") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
     val worker = createActor(runnerSelector)
 
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-    probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-    probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("2", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("3", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
@@ -128,14 +126,14 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should complete and shutdown awaiting response") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
 
     val worker = createActor(runnerSelector)
 
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
@@ -148,7 +146,7 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
   it("should force shutdown when awaiting") {
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
@@ -162,13 +160,13 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     val runnerSelector = SuccessRunnerSelector({
       Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
+      JsMap("yoyo" -> JsString("hey"))
     })
 
     val probe = TestProbe()
 
     val worker = createActor(runnerSelector)
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
 
     probe.expectMsgAllConformingOf(
       classOf[JobFileDownloading],
@@ -179,64 +177,12 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     probe.expectTerminated(worker)
   }
 
-  describe("logging") {
-    val artifactDownloader = mock[ArtifactDownloader]
-
-    when(artifactDownloader.downloadArtifact(any[String]))
-      .thenSuccess(SparkArtifact(new File("doesn't matter"), "url"))
-
-    it("should add and remove appender") {
-      val completion = Promise[JsLikeData]
-      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
-      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
-
-      val worker = TestActorRef[WorkerActor](props)
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-      val appender = LogManager.getRootLogger.getAppender("id")
-      appender should not be null
-      completion.success(JsLikeNumber(42))
-      probe.expectMsgAllConformingOf(
-        classOf[JobFileDownloading],
-        classOf[JobStarted],
-        classOf[JobResponse]
-      )
-      val appender1 = LogManager.getRootLogger.getAppender("id")
-      appender1 shouldBe null
-    }
-
-    it("should remove appender when cancelling job") {
-      val completion = Promise[JsLikeData]
-      val runner = SuccessRunnerSelector(Await.result(completion.future, Duration.Inf))
-      val props  = WorkerActor.props(context, artifactDownloader, runner, WorkerActor.mkAppenderF(Some(CentralLoggingConf("localhost", 2005))))
-
-      val worker = TestActorRef[WorkerActor](props)
-      val probe = TestProbe()
-      probe.send(worker, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-      val appender = LogManager.getRootLogger.getAppender("id")
-      appender should not be null
-
-      probe.expectMsgAllConformingOf(
-        classOf[JobFileDownloading],
-        classOf[JobStarted]
-      )
-
-      probe.send(worker, CancelJobRequest("id"))
-      probe.expectMsgType[JobIsCancelled]
-
-      val appender1 = LogManager.getRootLogger.getAppender("id")
-      appender1 shouldBe null
-      completion.success(JsLikeNull)
-    }
-  }
-
   def RunnerSelector(r: JobRunner): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(artifact: SparkArtifact): JobRunner = r
     }
 
-  def SuccessRunnerSelector(r: => JsLikeData): RunnerSelector =
+  def SuccessRunnerSelector(r: => JsData): RunnerSelector =
     new RunnerSelector {
       override def selectRunner(artifact: SparkArtifact): JobRunner = SuccessRunner(r)
     }
@@ -246,15 +192,15 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       override def selectRunner(artifact: SparkArtifact): JobRunner = FailureRunner(error)
     }
 
-  def SuccessRunner(r: => JsLikeData): JobRunner =
+  def SuccessRunner(r: => JsData): JobRunner =
     testRunner(Right(r))
 
   def FailureRunner(error: String): JobRunner =
     testRunner(Left(new RuntimeException(error)))
 
-  def testRunner(f: => Either[Throwable, JsLikeData]): JobRunner = {
+  def testRunner(f: => Either[Throwable, JsData]): JobRunner = {
     new JobRunner {
-      def run(p: RunJobRequest, c: NamedContext): Either[Throwable, JsLikeData] = f
+      def run(p: RunJobRequest, c: MistScContext): Either[Throwable, JsData] = f
     }
   }
 }

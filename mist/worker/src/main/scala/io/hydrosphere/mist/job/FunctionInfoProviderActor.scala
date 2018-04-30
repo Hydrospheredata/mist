@@ -7,8 +7,12 @@ import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
+import mist.api.{Extracted, Failed}
+import mist.api.data.JsMap
+import mist.api.internal.BaseFunctionInstance
 
 import scala.concurrent.duration._
+import scala.util.Failure
 
 
 trait Cache[K, V] {
@@ -117,8 +121,25 @@ class FunctionInfoProviderActor(
       context become cached(next)
 
     case req: ValidateFunctionParameters =>
+      def validate(inst: BaseFunctionInstance, p: JsMap): TryLoad[Unit] = {
+        def buildError(f: Failed): String = {
+          f match {
+            case Failed.InternalError(msg) => s"Internal error: $msg"
+            case Failed.InvalidField(name, f) => s"Invalid field $name:" + buildError(f)
+            case Failed.InvalidValue(msg) => s"Invalid value: $msg"
+            case Failed.InvalidType(expected, got) => s"Invalid type: expected $expected, got $got"
+            case Failed.ComplexFailure(failures) => failures.map(buildError).mkString("Errors[", ",", "]")
+            case Failed.IncompleteObject(clazz, failure: Failed) => s"Incomplete object for class $clazz, reason: ${buildError(failure)}"
+          }
+        }
+
+        inst.validateParams(p) match {
+          case Extracted(_) => Succ(())
+          case f: Failed => Err(new IllegalArgumentException(buildError(f)))
+        }
+      }
       val (next, v) = usingCache(cache, req)
-      val rsp = v.flatMap(i => TryLoad.fromEither(i.instance.validateParams(req.params))) match {
+      val rsp = v.flatMap(i => validate(i.instance, req.params)) match {
         case Succ(_) => Status.Success(())
         case Err(e) =>
           log.info(s"Responding with err on {}: {} {}", req, e.getClass, e.getMessage)

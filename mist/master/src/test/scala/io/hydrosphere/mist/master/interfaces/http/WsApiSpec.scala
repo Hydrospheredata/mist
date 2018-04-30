@@ -4,11 +4,12 @@ import mist.api.data._
 import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.EventsStreamer
 import org.mockito.Mockito._
 import org.scalatest.{FunSpec, Matchers}
+
 import scala.concurrent.duration._
 
 class WsApiSpec extends FunSpec
@@ -44,7 +45,7 @@ class WsApiSpec extends FunSpec
       StartedEvent("1", 1),
       StartedEvent("2", 1),
       ReceivedLogs("1", Seq(LogEvent("1", "test", 1, 1, None)), 0),
-      FinishedEvent("1", 1, JsLikeMap("result" -> JsLikeNumber(42)))
+      FinishedEvent("1", 1, JsMap("result" -> JsNumber(42)))
     ))
 
     val streamer = mock(classOf[EventsStreamer])
@@ -68,7 +69,7 @@ class WsApiSpec extends FunSpec
       StartedEvent("1", 1),
       StartedEvent("2", 1),
       ReceivedLogs("1", Seq(LogEvent("1", "test", 1, 1, None)), 0),
-      FinishedEvent("1", 1, JsLikeMap("result" -> JsLikeNumber(42)))
+      FinishedEvent("1", 1, JsMap("result" -> JsNumber(42)))
     ))
 
     val streamer = mock(classOf[EventsStreamer])

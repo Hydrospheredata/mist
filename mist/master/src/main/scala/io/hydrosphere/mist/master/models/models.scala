@@ -5,6 +5,7 @@ import java.util.UUID
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
+import mist.api.data.{JsData, JsMap}
 
 
 case class RunSettings(
@@ -24,7 +25,7 @@ object RunSettings {
   */
 case class FunctionStartRequest(
   functionId: String,
-  parameters: Map[String, Any],
+  parameters: JsMap,
   externalId: Option[String] = None,
   runSettings: RunSettings = RunSettings.Default,
   id: String = UUID.randomUUID().toString
@@ -34,7 +35,7 @@ case class JobStartRequest(
   id: String,
   function: FunctionInfoData,
   context: ContextConfig,
-  parameters: Map[String, Any],
+  parameters: JsMap,
   source: JobDetails.Source,
   externalId: Option[String],
   action: Action = Action.Execute
@@ -48,7 +49,7 @@ case class JobStartResponse(id: String)
   */
 case class AsyncFunctionStartRequest(
   functionId: String,
-  parameters: Option[Map[String, Any]],
+  parameters: Option[JsMap],
   externalId: Option[String],
   runSettings: Option[RunSettings]
 ) {
@@ -56,7 +57,7 @@ case class AsyncFunctionStartRequest(
   def toCommon: FunctionStartRequest =
     FunctionStartRequest(
       functionId,
-      parameters.getOrElse(Map.empty),
+      parameters.getOrElse(JsMap.empty),
       externalId,
       runSettings.getOrElse(RunSettings.Default))
 }
@@ -66,7 +67,7 @@ case class DevJobStartRequest(
   fakeName: String,
   path: String,
   className: String,
-  parameters: Map[String, Any],
+  parameters: JsMap,
   externalId: Option[String],
   workerId: Option[String],
   context: String
@@ -76,7 +77,7 @@ case class DevJobStartRequestModel(
   fakeName: String,
   path: String,
   className: String,
-  parameters: Option[Map[String, Any]],
+  parameters: Option[JsMap],
   externalId: Option[String],
   workerId: Option[String],
   context: String
@@ -87,7 +88,7 @@ case class DevJobStartRequestModel(
       fakeName = fakeName,
       path = path,
       className = className,
-      parameters = parameters.getOrElse(Map.empty),
+      parameters = parameters.getOrElse(JsMap.empty),
       externalId = externalId,
       workerId = workerId,
       context = context

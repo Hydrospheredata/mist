@@ -4,8 +4,8 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink, Source}
 import akka.testkit.TestKit
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.FilteredException
 import org.mockito.Mockito.verify
 import org.scalatest.{FunSpecLike, Matchers}

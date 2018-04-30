@@ -1,23 +1,23 @@
 package mist.api
-import mist.api.args.{ArgDef, Extracted, SystemArg, ArgCombiner}
+
+import mist.api.internal.ArgCombiner
+
 /**
-  * Access to mist-specific job parameters + logger
+  * Access to mist-specific job parameters
   */
 class MistExtras(
   val jobId: String,
-  val workerId: String,
-  val logger: MLogger
+  val workerId: String
 )
 
 object MistExtras {
 
   val mistExtras: ArgDef[MistExtras] = SystemArg(Seq.empty, ctx => {
-    val jobId = ctx.setupConf.info.id
-    val workerId = ctx.setupConf.info.workerId
+    val jobId = ctx.info.id
+    val workerId = ctx.info.workerId
     Extracted(new MistExtras(
       jobId = jobId,
-      workerId = workerId,
-      logger = new MLogger(jobId)
+      workerId = workerId
     ))
   })
 }
@@ -28,7 +28,6 @@ object MistExtras {
   * {{{
   *   withMistExtras.onSparkContext((extras: MistExtras, sc: SparkContext) => {
   *      val jobId = extras.jobId
-  *      extras.logger.info(s"Hello from my job $jobId")
   *   })
   * }}}
   */

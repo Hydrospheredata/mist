@@ -7,20 +7,20 @@ import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.runners.JobRunner
 import io.hydrosphere.mist.worker.runners.python.wrappers._
-import io.hydrosphere.mist.worker.{NamedContext, SparkArtifact}
-import mist.api.data.JsLikeData
+import io.hydrosphere.mist.worker.{MistScContext, SparkArtifact}
+import mist.api.data.JsData
 import py4j.GatewayServer
 
 import scala.sys.process._
 import scala.util.{Failure, Success, Try}
 
-class PythonEntryPoint(req: RunJobRequest, context: NamedContext) {
+class PythonEntryPoint(req: RunJobRequest, context: MistScContext) {
 
   val errorWrapper: ErrorWrapper = new ErrorWrapper
   val dataWrapper: DataWrapper = new DataWrapper
-  val sparkContextWrapper: NamedContext = context
+  val sparkContextWrapper: MistScContext = context
   val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(req.params)
-  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration(req.id))
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.streamingDuration)
 
 }
 
@@ -28,16 +28,16 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
 
   override def run(
     req: RunJobRequest,
-    context: NamedContext
-  ): Either[Throwable, JsLikeData] = {
+    context: MistScContext
+  ): Either[Throwable, JsData] = {
 
     def pythonDriverEntry(): String = {
-      val conf = context.sparkContext.getConf
+      val conf = context.sc.getConf
       conf.getOption("spark.pyspark.driver.python").getOrElse(pythonGlobalEntry())
     }
 
     def pythonGlobalEntry(): String = {
-      val conf = context.sparkContext.getConf
+      val conf = context.sc.getConf
       conf.getOption("spark.pyspark.python").getOrElse("python")
     }
 
@@ -85,7 +85,7 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
         gatewayServer.shutdown()
       }
 
-      Try(JsLikeData.fromScala(entryPoint.dataWrapper.get)) match {
+      Try(JsData.fromScala(entryPoint.dataWrapper.get)) match {
         case Success(data) => Right(data)
         case Failure(e) => Left(e)
       }

@@ -3,20 +3,19 @@ package io.hydrosphere.mist.worker
 import java.nio.file.Path
 
 import akka.actor._
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax, ActorRegHub}
 import io.hydrosphere.mist.worker.MasterBridge.ReceiveInitTimeout
+import io.hydrosphere.mist.worker.logging.RemoteLogsWriter
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
-import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.concurrent.duration._
 
 class MasterBridge(
   id: String,
   regHub: ActorRef,
-  mkContext: WorkerInitInfo => NamedContext,
-  workerF: ActorF[(WorkerInitInfo, NamedContext)]
+  mkContext: WorkerInitInfo => MistScContext,
+  workerF: ActorF[(WorkerInitInfo, MistScContext)]
 ) extends Actor with ActorLogging with Timers with ActorFSyntax {
 
   val initTimerKey = s"$id-receive-init-data"
@@ -30,7 +29,7 @@ class MasterBridge(
   override def receive: Receive = waitInit
 
   private def waitInit: Receive = {
-    def createContext(initInfo: WorkerInitInfo): Either[Throwable, NamedContext] = {
+    def createContext(initInfo: WorkerInitInfo): Either[Throwable, MistScContext] = {
       try {
         Right(mkContext(initInfo))
       } catch {
@@ -52,7 +51,7 @@ class MasterBridge(
 
           case Right(ctx) =>
             val worker = workerF.create(init, ctx)
-            val sparkUI = SparkUtils.getSparkUiAddress(ctx.sparkContext)
+            val sparkUI = SparkUtils.getSparkUiAddress(ctx.sc)
             context watch remoteConnection
             context watch worker
             log.info("Become work")
@@ -97,8 +96,8 @@ object MasterBridge {
   def props(
     id: String,
     regHub: ActorRef,
-    mkContext: WorkerInitInfo => NamedContext,
-    workerF: ActorF[(WorkerInitInfo, NamedContext)]
+    mkContext: WorkerInitInfo => MistScContext,
+    workerF: ActorF[(WorkerInitInfo, MistScContext)]
   ): Props = {
     Props(classOf[MasterBridge], id, regHub, mkContext, workerF)
   }
@@ -109,34 +108,22 @@ object MasterBridge {
     regHub: ActorRef
   ): Props = {
     val mkContext = createNamedContext(id)(_)
-    val workerF = ActorF[(WorkerInitInfo, NamedContext)]({ case ((init, ctx), af) =>
+    val workerF = ActorF[(WorkerInitInfo, MistScContext)]({ case ((init, ctx), af) =>
       val hostPort = init.masterHttpConf.split(":")
       val downloader = ArtifactDownloader.create(
         hostPort(0), hostPort(1).toInt, init.maxArtifactSize, workerDir
       )
-      af.actorOf(WorkerActor.props(ctx, downloader))
+      val writer = {
+        val hostPort = init.logService.split(":")
+        RemoteLogsWriter.getOrCreate(hostPort(0), hostPort(1).toInt)
+      }
+      af.actorOf(WorkerActor.props(ctx, downloader, RequestSetup.loggingSetup(writer)))
     })
     props(id, regHub, mkContext, workerF)
   }
 
-  def createNamedContext(id: String)(init: WorkerInitInfo): NamedContext = {
-    val conf = new SparkConf()
-      .setAppName(id)
-      .setAll(init.sparkConf)
-      .set("spark.streaming.stopSparkContextByDefault", "false")
-    val sparkContext = new SparkContext(conf)
-
-    val centralLoggingConf = {
-      val hostPort = init.logService.split(":")
-      CentralLoggingConf(hostPort(0), hostPort(1).toInt)
-    }
-
-    new NamedContext(
-      sparkContext,
-      id,
-      Option(centralLoggingConf),
-      org.apache.spark.streaming.Duration(init.streamingDuration.toMillis)
-    )
+  def createNamedContext(id: String)(init: WorkerInitInfo): MistScContext = {
+    MistScContext(id, init.sparkConf, org.apache.spark.streaming.Duration(init.streamingDuration.toMillis))
   }
 }
 

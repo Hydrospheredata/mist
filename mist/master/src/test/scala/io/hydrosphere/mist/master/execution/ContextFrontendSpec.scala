@@ -8,6 +8,7 @@ import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData, TestUtils}
 import io.hydrosphere.mist.utils.akka.ActorF
+import mist.api.data.JsMap
 import org.mockito.Mockito.verify
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
@@ -43,7 +44,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     status.executorId shouldBe None
     status.jobs.isEmpty shouldBe true
 
-    probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
 
     probe.expectMsgPF(){
       case info: ExecutionInfo =>
@@ -120,7 +121,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(downtime = 1 second))
 
     val probe = TestProbe()
-    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgPF(){
       case info: ExecutionInfo =>
         info.request.id shouldBe "idx"
@@ -148,7 +149,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     val frontend = TestActorRef[ContextFrontend](props)
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
     val probe = TestProbe()
-    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest("idx", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgPF(){
       case info: ExecutionInfo =>
         info.request.id shouldBe "idx"
@@ -178,14 +179,14 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
     val probe = TestProbe()
 
-    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgType[ExecutionInfo]
 
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status.connectorFails shouldBe ContextFrontend.ConnectorFailedMaxTimes
 
-    probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgPF() {
       case ExecutionInfo(_, pr)=>
         intercept[FilteredException] {
@@ -208,13 +209,13 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
 
     val probe = TestProbe()
-    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgType[ExecutionInfo]
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status.connFails shouldBe ContextFrontend.ConnectionFailedMaxTimes
 
-    probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgPF() {
       case ExecutionInfo(_, pr)=>
         intercept[FilteredException] {
@@ -236,7 +237,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
 
     val probe = TestProbe()
-    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", Map.empty, Action.Execute)))
+    probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgType[ExecutionInfo]
     probe.send(frontend, ContextEvent.UpdateContext(TestUtils.FooContext))
     probe.send(frontend, ContextFrontend.Event.Status)

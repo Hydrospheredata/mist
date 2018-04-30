@@ -3,14 +3,14 @@ package io.hydrosphere.mist.master.interfaces
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
-import io.hydrosphere.mist.api.logging.MistLogging.LogEvent
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.{WorkerFullInfo, WorkerLink}
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.{JobDetails, JobResult}
-import mist.api.data._
+import mist.api.{data => mdata}
 import spray.json._
 
 import scala.collection.JavaConversions._
@@ -54,29 +54,37 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
 
 trait MDataFormat {
 
-  implicit val mDataFormat = new RootJsonFormat[JsLikeData] {
-    override def read(json: JsValue): JsLikeData = {
+  implicit val mDataFormat = new RootJsonFormat[mdata.JsData] {
+    override def read(json: JsValue): mdata.JsData = {
       json match {
-        case JsObject(fields) => JsLikeMap(fields.mapValues(v => read(v)))
-        case JsString(s) => JsLikeString(s)
-        case JsNumber(d) => new JsLikeNumber(d)
-        case JsFalse => JsLikeBoolean(false) //TODO MBoolean can has default false and true
-        case JsTrue  => JsLikeBoolean(true)
-        case JsNull  => JsLikeNull
-        case JsArray(values) => JsLikeList(values.map(read))
+        case JsObject(fields) => mdata.JsMap(fields.mapValues(v => read(v)))
+        case JsString(s) => mdata.JsString(s)
+        case JsNumber(d) => mdata.JsNumber(d)
+        case JsFalse => mdata.JsFalse //TODO MBoolean can has default false and true
+        case JsTrue  => mdata.JsTrue
+        case JsNull  => mdata.JsNull
+        case JsArray(values) => mdata.JsList(values.map(read))
       }
     }
 
-    override def write(obj: JsLikeData): JsValue = {
+    override def write(obj: mdata.JsData): JsValue = {
       obj match {
-        case JsLikeNumber(d)    => JsNumber(d)
-        case JsLikeBoolean(b)   => JsBoolean(b)
-        case JsLikeString(s)    => JsString(s)
-        case JsLikeNull         => JsNull
-        case JsLikeUnit         => JsObject(Map.empty[String, JsValue])
-        case JsLikeList(values) => JsArray(values.map(v => write(v)).toVector)
-        case JsLikeMap(map)     => JsObject(map.mapValues(v => write(v)))
+        case mdata.JsNumber(d) => JsNumber(d)
+        case mdata.JsTrue      => JsTrue
+        case mdata.JsString(s) => JsString(s)
+        case mdata.JsNull      => JsNull
+        case mdata.JsUnit      => JsObject(Map.empty[String, JsValue])
+        case mdata.JsList(values) => JsArray(values.map(v => write(v)).toVector)
+        case mdata.JsMap(map)     => JsObject(map.mapValues(v => write(v)))
       }
+    }
+  }
+
+  implicit val jsLikeMapFormat = new RootJsonFormat[mdata.JsMap] {
+    override def write(obj: mdata.JsMap): JsValue = JsObject(obj.map.mapValues(v => mDataFormat.write(v)))
+    override def read(json: JsValue): mdata.JsMap = json match {
+      case JsObject(fields) => mdata.JsMap(fields.mapValues(v => mDataFormat.read(v)))
+      case other => throw new DeserializationException(s"Json object required: got $other")
     }
   }
 }

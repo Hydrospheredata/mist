@@ -21,13 +21,14 @@ object Boilerplate {
 
 
   val templates: Seq[Template] = List(
+    GenHListerInstances, GenFnForTupleInstances,
     GenFuncInterfaces, GenFuncSyntax,
     GenJavaArgsClasses, GenJavaArgsMethods
   )
 
   /** Returns a seq of the generated files.  As a side-effect, it actually generates them... */
   def gen(dir : File) = for(t <- templates) yield {
-    val tgtFile = dir / "mist" / "api" / "jsdl" / t.filename
+    val tgtFile = dir / t.packageName / t.filename
     IO.write(tgtFile, t.body)
     tgtFile
   }
@@ -46,8 +47,54 @@ object Boilerplate {
 
     The block otherwise behaves as a standard interpolated string with regards to variable substitution.
   */
+  object GenHListerInstances extends ScalaTemplate {
+    val filename = "HListerInstances.scala"
+    def content(tv: TemplateVals): String = {
+      import tv._
+      block"""
+         |package mist.api.internal
+         |import shadedshapeless._
+         |
+         |trait HListerInstances extends LowerPriorityHLister {
+         |
+         -  implicit def hlister${arity}[${`A..N`}]: Aux[${`(A..N)`}, ${`A::N`}] = new HLister[${`(A..N)`}] {
+         -    type Out = ${`A::N`}
+         -    def apply(a: ${`(A..N)`}): ${`A::N`} = ${`(a._1::a._n)`}
+         -  }
+         |}
+      """
+    }
+  }
 
-  object GenFuncInterfaces extends Template {
+  object GenFnForTupleInstances extends ScalaTemplate {
+    val filename = "FnForTuple.scala"
+    def content(tv: TemplateVals): String = {
+      import tv._
+      val FnIn = if (arity == 1) "A" else tv.`(A..N)`
+      val Fn = s"$FnIn => Res"
+      val fnApply = if (arity == 1) "f(in)" else "f.tupled(in)"
+      block"""
+         |package mist.api.internal
+         |import scala.annotation.implicitNotFound
+         |
+         |trait FnForTuple[In, F] {
+         |  type Out
+         |  def apply(f: F, in: In): Out
+         |}
+         |trait FnForTupleInstances {
+         |  @implicitNotFound("couldn't find FnForTuple for {$$F} instance. Ensure that your function is receiving the same parameters as declared in Arg")
+         |  type Aux[In, F, Out0] = FnForTuple[In, F] { type Out = Out0 }
+         -  implicit def fn${arity}[${`A..N`}, Res]: Aux[$FnIn, $Fn, Res] = new FnForTuple[$FnIn, $Fn] {
+         -    type Out = Res
+         -    def apply(f: $Fn, in: $FnIn): Res = $fnApply
+         -  }
+         |}
+         |object FnForTuple extends FnForTupleInstances
+      """
+    }
+  }
+
+  object GenFuncInterfaces extends JavaTemplate {
     val filename = "functions.scala"
 
     def content(tv: TemplateVals) = {
@@ -65,7 +112,7 @@ object Boilerplate {
     }
   }
 
-  object GenFuncSyntax extends Template {
+  object GenFuncSyntax extends JavaTemplate {
     val filename = "functionsSyntax.scala"
     def content(tv: TemplateVals) = {
       import tv._
@@ -86,7 +133,7 @@ object Boilerplate {
   }
 
 
-  object GenJavaArgsClasses extends Template {
+  object GenJavaArgsClasses extends JavaTemplate {
     val filename = "args.scala"
     override def range: Range.Inclusive = (2 to 21)
     def content(tv: TemplateVals) = {
@@ -104,18 +151,19 @@ object Boilerplate {
          |package mist.api.jdsl
          |
          |import org.apache.spark.api.java.JavaSparkContext
+         |import org.apache.spark.sql.SparkSession
          |import org.apache.spark.streaming.api.java.JavaStreamingContext
-         |import FuncSyntax._
          |import mist.api.MistExtras
-         |import mist.api.BaseContextsArgs._
-         |import mist.api.args.ArgDef
+         |import FuncSyntax._
+         |import mist.api.SparkArgs._
+         |import mist.api.ArgDef
          |
          -class Args${arity-1}[${`T1..N-1`}](${`ArgDef1..n-1`}){
          -
          -  /**
          -    * Define job execution that use JavaSparkContext for invocation
          -    */
-         -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal[R]]): JHandle[R] = {
+         -  def onSparkContext(f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal]): JHandle = {
          -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
@@ -123,8 +171,18 @@ object Boilerplate {
          -  /**
          -    * Define job execution that use JavaStreamingContext for invocation
          -    */
-         -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal[R]]): JHandle[R] = {
+         -  def onStreamingContext(f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal]): JHandle = {
          -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
+         -    new JHandle(job)
+         -  }
+         -
+         -  def onSparkSession(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
+         -    val job = (${`a1&aN-1`} & sparkSession).apply(f.toScalaFunc)
+         -    new JHandle(job)
+         -  }
+         -
+         -  def onSparkSessionWithHive(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
+         -    val job = (${`a1&aN-1`} & sparkSessionWithHive).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
          ${extrasMethod}
@@ -133,7 +191,7 @@ object Boilerplate {
     }
   }
 
-  object GenJavaArgsMethods extends Template {
+  object GenJavaArgsMethods extends JavaTemplate {
     val filename = "WithArgs.scala"
     override def range: Range.Inclusive = (1 to 20)
     def content(tv: TemplateVals) = {
@@ -141,7 +199,7 @@ object Boilerplate {
       block"""
          |package mist.api.jdsl
          |
-         |import mist.api.args.ArgDef
+         |import mist.api.ArgDef
          |
          |trait WithArgs {
          |
@@ -160,6 +218,8 @@ object Boilerplate {
 
   trait Template { self =>
 
+    def packageName: String
+
     def createVals(arity: Int): TemplateVals = new TemplateVals(arity)
 
     def filename: String
@@ -172,6 +232,14 @@ object Boilerplate {
       val postBody = rawContents.head dropWhile (_ startsWith "|") dropWhile (_ startsWith "-") map (_.tail)
       (preBody ++ instances ++ postBody) mkString "\n"
     }
+  }
+
+  trait ScalaTemplate extends Template {
+    override def packageName = "mist/api/internal"
+  }
+
+  trait JavaTemplate extends Template {
+    override def packageName = "mist/api/jdsl"
   }
 
   class TemplateVals(val arity: Int) {
@@ -188,6 +256,7 @@ object Boilerplate {
     val `(A..N)`     = if (arity == 1) "Tuple1[A]" else synTypes.mkString("(", ", ", ")")
     val `(_.._)`     = if (arity == 1) "Tuple1[_]" else Seq.fill(arity)("_").mkString("(", ", ", ")")
     val `(a..n)`     = if (arity == 1) "Tuple1(a)" else synVals.mkString("(", ", ", ")")
+    val `(a._1::a._n)`  = ((1 to arity).map(i => s"a._$i") :+ "HNil").mkString("::")
     val `a:A..n:N`   = synTypedVals mkString ", "
 
     val synJavaTypes = (1 to arity) map (n => "T" + n)

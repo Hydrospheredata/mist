@@ -11,7 +11,7 @@ import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
@@ -43,7 +43,7 @@ class ContextFrontend(
   name: String,
   reporter: StatusReporter,
   connectorStarter: (String, ContextConfig) => WorkerConnector,
-  jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter)],
+  jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
   with ActorLogging
@@ -276,7 +276,7 @@ class ContextFrontend(
   }
 
   private def mkJob(req: RunJobRequest, st: State, respond: ActorRef): State = {
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
     val ref = jobFactory.create(self, req, promise, reporter)
     context.watchWith(ref, JobDied(req.id))
 
@@ -289,7 +289,7 @@ class ContextFrontend(
       s"Please update context ${brokenCtx.name} before running function ${req.params.className} invocation",
       error
     )
-    val promise = Promise[JsLikeData].failure(error)
+    val promise = Promise[JsData].failure(error)
     reporter.reportPlain(FailedEvent(req.id, System.currentTimeMillis(), msg))
     respond ! ExecutionInfo(req, promise)
   }
@@ -357,7 +357,7 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     connectorStarter: (String, ContextConfig) => WorkerConnector,
-    jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsLikeData], StatusReporter)],
+    jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter)],
     defaultInactiveTimeout: FiniteDuration
   ): Props = Props(classOf[ContextFrontend], name, status, connectorStarter, jobFactory, defaultInactiveTimeout)
 

@@ -5,6 +5,7 @@ import java.nio.file.Paths
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.JobDetails.Source
+import mist.api.data.JsMap
 import org.scalatest._
 
 class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeAndAfterAll {
@@ -60,7 +61,7 @@ class H2RepoSpec extends FlatSpec with Matchers with BeforeAndAfter with BeforeA
     jobId: String,
     status: JobDetails.Status = JobDetails.Status.Initialized): JobDetails = {
     JobDetails(
-      params = JobParams("path", "className", Map.empty, Action.Execute),
+      params = JobParams("path", "className", JsMap.empty, Action.Execute),
       jobId = jobId,
       source = Source.Http,
       function = "function",

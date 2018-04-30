@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC14"
+  version := "1.0.0-RC15"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -39,7 +39,6 @@ lazy val mistLib = project.in(file("mist-lib"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
-      Library.Akka.stream,
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
@@ -55,6 +54,7 @@ lazy val core = project.in(file("mist/core"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
+      Library.Akka.actor,
       Library.slf4j,
       Library.reflect,
       Library.Akka.testKit % "test",
@@ -84,6 +84,7 @@ lazy val master = project.in(file("mist/master"))
       Library.dockerJava,
 
       Library.commonsCodec, Library.scalajHttp,
+      Library.jsr305 % "provided",
 
       Library.scalaTest % "test",
       Library.mockito % "test"
@@ -162,6 +163,7 @@ lazy val root = project.in(file("."))
         ("hive-ctx-example", "HiveContextExample$"),
         ("sql-ctx-example", "SQLContextExample$"),
         ("text-search-example", "TextSearchExample$"),
+        ("less-verbose-example", "LessVerboseExample$"),
         ("pi-example", "PiExample$"),
         ("jpi-example", "JavaPiExample")
       ).map({case (name, clazz) => {

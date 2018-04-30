@@ -6,10 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-class JavaStreamingContextExample extends JMistFn<Void> {
+class JavaStreamingContextExample extends JMistFn {
 
     @Override
-    public JHandle<Void> handle() {
+    public JHandle handle() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();
@@ -27,7 +27,6 @@ class JavaStreamingContextExample extends JMistFn<Void> {
                .foreachRDD((rdd, time) -> {
                     List<scala.Tuple2<Integer, Integer>> values = rdd.collect();
                     String msg = "time:" + time + ", length:" + values.size() + ", collection:" + values;
-                    extras.logger().info(msg);
                });
 
             jsc.start();

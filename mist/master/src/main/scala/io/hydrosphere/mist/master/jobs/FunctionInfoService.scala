@@ -12,6 +12,7 @@ import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.FunctionConfigStorage
 import io.hydrosphere.mist.master.models.FunctionConfig
+import mist.api.data.JsMap
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -46,7 +47,7 @@ class FunctionInfoService(
 
   def validateFunctionParams(
     id: String,
-    params: Map[String, Any]
+    params: JsMap
   ): Future[Option[Unit]] = {
     val f = for {
       function   <- OptionT(functionStorage.get(id))
@@ -57,7 +58,7 @@ class FunctionInfoService(
     f.value
   }
 
-  def validateFunctionParamsByConfig(function: FunctionConfig, params: Map[String, Any]): Future[Unit] = {
+  def validateFunctionParamsByConfig(function: FunctionConfig, params: JsMap): Future[Unit] = {
     artifactRepository.get(function.path) match {
       case Some(file) =>
         askInfoProvider[Unit](createValidateParamsMsg(function, file, params))
@@ -117,7 +118,7 @@ class FunctionInfoService(
   private def createValidateParamsMsg(
     function: FunctionConfig,
     file: File,
-    params: Map[String, Any]
+    params: JsMap
   ): ValidateFunctionParameters = ValidateFunctionParameters(
     function.className,
     file.getAbsolutePath,
