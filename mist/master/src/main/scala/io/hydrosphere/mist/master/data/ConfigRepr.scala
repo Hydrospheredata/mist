@@ -77,7 +77,8 @@ object ConfigRepr {
         precreated = config.getBoolean("precreated"),
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
-        streamingDuration = Duration(config.getString("streaming-duration"))
+        streamingDuration = Duration(config.getString("streaming-duration")),
+        maxConnFailures = config.getInt("max-conn-failures")
       )
     }
 
@@ -97,7 +98,8 @@ object ConfigRepr {
         "precreated" -> fromAnyRef(a.precreated),
         "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
-        "streaming-duration" -> fromDuration(a.streamingDuration)
+        "streaming-duration" -> fromDuration(a.streamingDuration),
+        "max-conn-failures" -> fromAnyRef(a.maxConnFailures)
       )
       fromMap(map.asJava).toConfig
     }

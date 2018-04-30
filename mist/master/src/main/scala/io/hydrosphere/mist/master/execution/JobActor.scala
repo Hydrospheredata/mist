@@ -42,6 +42,7 @@ class JobActor(
 
   private def initial: Receive = {
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
+    case Event.ContextBroken(e) => cancelNotStarted(new RuntimeException("Cancel job - context is broken", e), Some(sender()))
     case Event.Timeout => cancelNotStarted("timeout", None)
 
     case Event.GetStatus => sender() ! ExecStatus.Queued
@@ -112,11 +113,11 @@ class JobActor(
       cancelStarted(reason, cancelRespond, Some(connection), err)
   }
 
-  private def cancelNotStarted(reason: String, respond: Option[ActorRef]): Unit = {
+  private def cancelNotStarted(err: Throwable, respond: Option[ActorRef]): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val time = System.currentTimeMillis()
-    promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
+    promise.failure(err)
     report.reportWithFlushCallback(CanceledEvent(req.id, time)).onComplete(t => {
       val response = t match {
         case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
@@ -124,10 +125,13 @@ class JobActor(
       }
       respond.foreach(_ ! response)
     })
-    log.info(s"Job ${req.id} was cancelled: $reason")
+    log.info(s"Job ${req.id} was cancelled: ${err.getMessage}")
     callback ! Event.Completed(req.id)
     context.stop(self)
   }
+
+  private def cancelNotStarted(reason: String, respond: Option[ActorRef]): Unit =
+    cancelNotStarted(new RuntimeException(s"Job was cancelled: $reason"), respond)
 
   private def cancelStarted(
     reason: String,
@@ -180,6 +184,7 @@ object JobActor {
   sealed trait Event
   object Event {
     case object Cancel extends Event
+    case class ContextBroken(e: Throwable) extends Event
     case object Timeout extends Event
     final case class Perform(conn: PerJobConnection) extends Event
     final case class Completed(id: String) extends Event

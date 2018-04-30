@@ -143,6 +143,11 @@ class ContextFrontend(
     def becomeNextConn(next: ConnectorState): Unit = becomeWithConnector(ctx, currentState, next)
     def becomeNext(c: ConnectorState, s: State): Unit = becomeWithConnector(ctx, s, c)
 
+    def becomeSleeping(state: State, conn: ConnectorState, brokenCtx: ContextConfig, error: Throwable): Unit = {
+      currentState.all.foreach({case (id, ref) => ref ! JobActor.Event.ContextBroken(error)})
+      context become sleepingTilUpdate(state, conn, brokenCtx, error)
+    }
+
     {
       case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
@@ -169,7 +174,7 @@ class ContextFrontend(
       case Event.ConnectionFailure(connId, e) if connId == connectorState.id =>
         log.error(e, "Ask new worker connection for {} failed", name)
         val newConnState = connectorState.askFailure
-        if (newConnState.failed >= ConnectionFailedMaxTimes) {
+        if (newConnState.failedTimes >= ctx.maxConnFailures) {
           connectorState.connector.shutdown(true)
           context become sleepingTilUpdate(currentState, newConnState, ctx, e)
         } else {
@@ -185,12 +190,11 @@ class ContextFrontend(
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>
         log.error(e, "Context {} - connector {} was crushed", name, id)
         val next = connectorState.connectorFailed
-        val failedTimes = next.connectorFailedTimes
-        if (failedTimes >= ConnectorFailedMaxTimes) {
+        if (next.failedTimes >= ctx.maxConnFailures) {
           context become sleepingTilUpdate(currentState, next, ctx, e)
         } else {
           val (newId, newConn) = startConnector(ctx)
-          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(connectorFailedTimes = failedTimes))
+          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(failedTimes = next.failedTimes))
         }
 
       case Event.ConnectorStopped(id) if id == connectorState.id =>
@@ -247,8 +251,7 @@ class ContextFrontend(
 
     case CancelJobRequest(id) => sleepingTilUpdate(cancelJob(id, state, sender()), conn, brokenCtx, error)
 
-    case Event.Connection(_, connection) =>
-      connection.release()
+    case Event.Connection(_, connection) => connection.release()
   }
 
   private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
@@ -337,20 +340,19 @@ object ContextFrontend {
     connector: WorkerConnector,
     used: Int,
     asked: Int,
-    failed: Int,
-    connectorFailedTimes: Int
+    failedTimes: Int
   ) {
 
     def all: Int = used + asked
-    def askSuccess: ConnectorState = copy(used = used + 1, asked = asked - 1, failed = 0, connectorFailedTimes = 0)
-    def askFailure: ConnectorState = copy(asked = asked - 1, failed = failed + 1)
+    def askSuccess: ConnectorState = copy(used = used + 1, asked = asked - 1, failedTimes = 0)
+    def askFailure: ConnectorState = copy(asked = asked - 1, failedTimes = failedTimes + 1)
     def connectionReleased: ConnectorState = copy(used = used - 1)
-    def connectorFailed: ConnectorState = copy(failed = 0, connectorFailedTimes = connectorFailedTimes + 1)
+    def connectorFailed: ConnectorState = copy(failedTimes = failedTimes + 1)
   }
 
   object ConnectorState {
     def initial(id: String, connector: WorkerConnector): ConnectorState =
-      ConnectorState(id, connector, 0, 0, 0, 0)
+      ConnectorState(id, connector, 0, 0, 0)
   }
 
   def props(
