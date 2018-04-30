@@ -71,6 +71,7 @@ class MasterBridge(
   }
 
 
+  //TODO - handle compelete andshutdown
   private def work(remote: ActorRef, worker: ActorRef): Receive = {
     case Terminated(ref) if ref == remote =>
       log.warning("Remote connection was terminated - shutdown")

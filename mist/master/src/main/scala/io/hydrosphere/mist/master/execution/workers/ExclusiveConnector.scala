@@ -7,6 +7,7 @@ import io.hydrosphere.mist.master.models.ContextConfig
 import scala.concurrent.Future
 import scala.util._
 
+//TODO handle shurdown - memory leak
 class ExclusiveConnector(
   id: String,
   ctx: ContextConfig,
