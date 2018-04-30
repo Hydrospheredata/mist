@@ -2,9 +2,10 @@ package io.hydrosphere.mist.master.execution.workers
 
 import java.util.concurrent.atomic.AtomicInteger
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData.{ReleaseConnection, ShutdownCommand}
+import io.hydrosphere.mist.core.CommonData
+import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, ShutdownCommand}
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -40,27 +41,29 @@ class SharedConnector(
   }
 
   private def process(
-    requests: Queue[Promise[WorkerConnection]],
+    requests: Queue[Promise[PerJobConnection]],
     pool: Queue[WorkerConnection],
     inUse: Map[String, WorkerConnection],
     startingConnections: Int
   ): Receive = {
+    def mkConn(workerConn: WorkerConnection): PerJobConnection = SharedConnector.wrappedConnection(self, workerConn)
+
+    {
 
     case Event.GetStatus => sender() ! SharedConnector.ProcessStatus(requests.size, pool.size, inUse.size, startingConnections)
 
     case conn: WorkerConnection if requests.isEmpty =>
       log.info(s"Receive ${conn.id} without requests, possibly warming up")
-      val wrapped = SharedConnector.ConnectionWrapper.wrap(self, conn)
+      //val wrapped = SharedConnector.wrappedConnection(self, conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
-      context become process(Queue.empty, pool :+ wrapped, inUse, startingConnections - 1)
+      context become process(Queue.empty, pool :+ conn, inUse, startingConnections - 1)
 
     case conn: WorkerConnection =>
       log.info(s"Receive ${conn.id} trying to handle incoming request")
-      val wrapped = SharedConnector.ConnectionWrapper.wrap(self, conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       val (req, updates) = requests.dequeue
-      req.success(wrapped)
-      context become process(updates, pool, inUse + (conn.id -> wrapped), startingConnections - 1)
+      req.success(mkConn(conn))
+      context become process(updates, pool, inUse + (conn.id -> conn), startingConnections - 1)
 
     case akka.actor.Status.Failure(e) =>
       log.error(e, s"Could not start worker connection")
@@ -92,23 +95,23 @@ class SharedConnector(
       val updatedRequests = requests :+ req
       val (nextReq, newRequests) = updatedRequests.dequeue
       val (conn, newPool) = pool.dequeue
-      nextReq.success(conn)
+      nextReq.success(mkConn(conn))
       context become process(newRequests, newPool, inUse + (conn.id -> conn), startingConnections)
 
     case Event.AskConnection(req) =>
       log.info(s"Schedule request: requests size ${requests.size}")
       context become process(requests :+ req, pool, inUse, startingConnections)
 
-    case ReleaseConnection(connId) =>
+    case SharedConnector.Released(conn) =>
       log.info(s"Releasing connection: requested ${requests.size}, pooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
-      inUse.get(connId) match {
+      inUse.get(conn.id) match {
         case Some(releasedConnection) =>
           val withReleasedConnection = pool :+ releasedConnection
-          val removedUsedConnection = inUse - connId
+          val removedUsedConnection = inUse - conn.id
           requests.dequeueOption match {
             case Some((req, rest)) =>
               val (conn, newPool) = withReleasedConnection.dequeue
-              req.success(conn)
+              req.success(mkConn(conn))
               context become process(rest, newPool, removedUsedConnection + (conn.id -> conn), startingConnections)
             case None =>
               context become process(Queue.empty, withReleasedConnection, removedUsedConnection, startingConnections)
@@ -131,7 +134,7 @@ class SharedConnector(
       idGen.decrementAndGet()
       val updatedPool = pool.filterNot(_.id == connId)
       context become process(requests, updatedPool, inUse - connId, startingConnections)
-  }
+  }}
 
   private def awaitingConnectionsAndShutdown(startingConnections: Int): Receive = {
     val lastConnection: Boolean = startingConnections == 1
@@ -143,7 +146,7 @@ class SharedConnector(
         log.error(e, "Could not start worker connection")
         context stop self
       case conn: WorkerConnection if lastConnection =>
-        conn.shutdown(true)
+        conn.shutdown()
         context stop self
 
       case akka.actor.Status.Failure(e) =>
@@ -151,7 +154,7 @@ class SharedConnector(
         context become awaitingConnectionsAndShutdown(startingConnections - 1)
 
       case conn: WorkerConnection =>
-        conn.shutdown(true)
+        conn.shutdown()
         context become awaitingConnectionsAndShutdown(startingConnections - 1)
     }
   }
@@ -164,28 +167,21 @@ object SharedConnector {
   case class ProcessStatus(requestsSize: Int, poolSize: Int, inUseSize: Int, startingConnections: Int) extends Status
   case class ShuttingDown(startingConnections: Int) extends Status
 
-  class ConnectionWrapper(connector: ActorRef, target: ActorRef) extends Actor {
+  case class Released(conn: WorkerConnection)
 
-    override def preStart(): Unit = {
-      context watch target
-    }
+  class SharedPerJobConnection(
+    connector: ActorRef,
+    direct: WorkerConnection
+  ) extends PerJobConnection.Direct(direct) {
 
-    override def receive: Receive = {
-      case ReleaseConnection(id) =>
-        connector ! ReleaseConnection(id)
-      case Terminated(_) => context stop self
-      case x => target forward x
-    }
+    import direct.ref
+    def run(req: CommonData.RunJobRequest, respond: ActorRef): Unit = ref.tell(req, respond)
+    def cancel(id: String, respond: ActorRef): Unit = ref.tell(CancelJobRequest(id), respond)
+    def release(): Unit = connector ! Released(direct)
   }
 
-  object ConnectionWrapper {
-    def props(connector: ActorRef, ref: ActorRef): Props = Props(classOf[ConnectionWrapper], connector, ref)
-
-    def wrap(connector: ActorRef, connection: WorkerConnection)(implicit af: ActorRefFactory): WorkerConnection = {
-      val wrappedRef = af.actorOf(props(connector, connection.ref))
-      connection.copy(ref = wrappedRef)
-    }
-  }
+  def wrappedConnection(connector: ActorRef, workerConn: WorkerConnection) =
+    new SharedPerJobConnection(connector, workerConn)
 
   def props(
     id: String,

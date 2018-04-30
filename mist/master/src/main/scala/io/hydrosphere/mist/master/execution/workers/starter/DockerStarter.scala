@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.{ContainerNetwork, Link}
 import com.github.dockerjava.core.{DefaultDockerClientConfig, DockerClientBuilder}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
 
 import scala.collection.JavaConverters._
@@ -85,9 +86,10 @@ class DockerStarter(
       case Success(id) => logger.info(s"Container $id started for worker $name")
       case Failure(e) => logger.error(s"Container starting for worker $name failed", e)
     })
-    NonLocal
+    WorkerProcess.NonLocal
   }
 
+  override def stopAction: StopAction = StopAction.Remote
 }
 
 object DockerStarter {

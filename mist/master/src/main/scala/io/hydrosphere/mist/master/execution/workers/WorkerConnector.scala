@@ -9,7 +9,7 @@ import scala.concurrent.{Future, Promise}
 
 trait WorkerConnector {
 
-  def askConnection(): Future[WorkerConnection]
+  def askConnection(): Future[PerJobConnection]
 
   def warmUp(): Unit
 
@@ -23,7 +23,7 @@ object WorkerConnector {
 
   sealed trait Event
   object Event {
-    final case class AskConnection(resolve: Promise[WorkerConnection]) extends Event
+    final case class AskConnection(resolve: Promise[PerJobConnection]) extends Event
     case object WarmUp extends Event
     case class ConnTerminated(connId: String) extends Event
     case object GetStatus
@@ -34,8 +34,8 @@ object WorkerConnector {
     termination: Future[Unit]
   ) extends WorkerConnector {
 
-    override def askConnection(): Future[WorkerConnection] = {
-      val promise = Promise[WorkerConnection]
+    override def askConnection(): Future[PerJobConnection] = {
+      val promise = Promise[PerJobConnection]
       underlying ! WorkerConnector.Event.AskConnection(promise)
       promise.future
     }

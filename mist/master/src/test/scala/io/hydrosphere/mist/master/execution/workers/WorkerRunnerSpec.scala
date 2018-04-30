@@ -1,8 +1,10 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.master.execution.workers.starter.{NonLocal, WorkerStarter}
+import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{SpawnSettings, workers}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
 import io.hydrosphere.mist.utils.akka.ActorRegHub
@@ -27,14 +29,11 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       maxArtifactSize = 100L
     )
 
-    def mockStarter: WorkerStarter = {
-      val starter = mock[WorkerStarter]
-      when(starter.onStart(any[String], any[WorkerInitInfo])).thenReturn(NonLocal)
-      starter
-    }
-
     it("should run worker") {
-      val starter = mockStarter
+      val starter = new WorkerStarter {
+        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = WorkerProcess.NonLocal
+        override def stopAction: StopAction = StopAction.Remote
+      }
       val regHub = mock[ActorRegHub]
       when(regHub.waitRef(any[String], any[Duration])).thenSuccess(null)
 
@@ -42,28 +41,27 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       val runner = new workers.WorkerRunner.DefaultRunner(
         spawn = mkSpawnSettings(starter),
         regHub = regHub,
-        connect = (_, _, _, _) => Future.successful(WorkerConnection("id", null, workerLinkData, termination.future))
+        connect = (_, _, _, _, _) => Future.successful(WorkerConnection("id", null, workerLinkData, termination.future))
       )
 
       Await.result(runner("id", FooContext), Duration.Inf)
-      verify(starter).onStart(any[String], any[WorkerInitInfo])
-
-      termination.success(())
-
-      eventually(timeout(Span(3, Seconds))) {
-        verify(starter).onStop(any[String])
-      }
     }
 
-    it("should call onStop if await ref was failed") {
-      val runnerCmd = mock[WorkerStarter]
+    it("should call onStop if connect was failed") {
+      val check = new AtomicBoolean(false)
+
+      val runnerCmd = new WorkerStarter {
+        override def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess = WorkerProcess.NonLocal
+        override def stopAction: StopAction = StopAction.CustomFn(_ => check.set(true))
+      }
+
       val regHub = mock[ActorRegHub]
       when(regHub.waitRef(any[String], any[Duration])).thenFailure(FilteredException())
 
       val runner = new workers.WorkerRunner.DefaultRunner(
         spawn = mkSpawnSettings(runnerCmd),
         regHub = regHub,
-        connect = (_, _, _, _) => Future.failed(FilteredException())
+        connect = (_, _, _, _, _) => Future.failed(FilteredException())
       )
 
       intercept[Throwable] {
@@ -71,28 +69,9 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       }
 
       eventually(timeout(Span(3, Seconds))) {
-        verify(runnerCmd).onStop(any[String])
+        check.get shouldBe true
       }
     }
 
-    it("should call onStop if connect was failed") {
-      val starter = mockStarter
-      val regHub = mock[ActorRegHub]
-      when(regHub.waitRef(any[String], any[Duration])).thenSuccess(null)
-
-      val runner = new workers.WorkerRunner.DefaultRunner(
-        spawn = mkSpawnSettings(starter),
-        regHub = regHub,
-        connect = (_, _, _, _) => Future.failed(FilteredException())
-      )
-
-      intercept[Throwable] {
-        Await.result(runner("id", FooContext), Duration.Inf)
-      }
-
-      eventually(timeout(Span(3, Seconds))) {
-        verify(starter).onStop(any[String])
-      }
-    }
   }
 }

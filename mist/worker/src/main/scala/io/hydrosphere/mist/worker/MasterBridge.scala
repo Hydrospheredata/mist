@@ -6,7 +6,7 @@ import akka.actor._
 import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax, ActorRegHub}
-import io.hydrosphere.mist.worker.MasterBridge.ReceiveInitTimeout
+import io.hydrosphere.mist.worker.MasterBridge.{AppShutdown, ReceiveInitTimeout}
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -39,6 +39,10 @@ class MasterBridge(
     }
 
     {
+      case AppShutdown =>
+        log.info("Receive shutdown before initialization")
+        context stop self
+
       case init:WorkerInitInfo =>
         timers.cancel(initTimerKey)
         log.info("Received init info, {}", init)
@@ -48,7 +52,7 @@ class MasterBridge(
             log.error(e, "Couldn't create spark context")
             val msg = s"Spark context instantiation failed, ${e.getMessage}"
             remoteConnection ! WorkerStartFailed(id, msg)
-            shutdown()
+            context stop self
 
           case Right(ctx) =>
             val worker = workerF.create(init, ctx)
@@ -62,7 +66,7 @@ class MasterBridge(
 
       case ReceiveInitTimeout =>
         log.error("Initial data wasn't received for a minutes - shutdown")
-        shutdown()
+        context stop self
       }
   }
 
@@ -71,28 +75,35 @@ class MasterBridge(
     case Terminated(ref) if ref == remote =>
       log.warning("Remote connection was terminated - shutdown")
       worker ! PoisonPill
-      shutdown()
+      context stop self
+
     case Terminated(ref) if ref == worker =>
       log.info("Underlying worker was terminated - shutdown")
-      shutdown()
+      remote ! Goodbye
+      context stop self
 
     case ForceShutdown =>
-      log.info("Received force shutdown")
+      log.info(s"Received force shutdown command")
+      remote ! Goodbye
       worker ! PoisonPill
-      shutdown()
+      context stop self
+
+    case AppShutdown =>
+      log.info(s"Received application shutdown command")
+      remote ! Goodbye
+      worker ! PoisonPill
+      context stop self
+
 
     case x => worker forward x
   }
 
-  private def shutdown(): Unit = {
-    context stop self
-    context.system.terminate()
-  }
 }
 
 object MasterBridge {
 
   case object ReceiveInitTimeout
+  case object AppShutdown
 
   def props(
     id: String,

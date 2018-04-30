@@ -4,7 +4,11 @@ import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.ManualRunnerConfig
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 case class ManualStarter(
   start: Seq[String],
@@ -21,21 +25,31 @@ case class ManualStarter(
       "MIST_WORKER_SPARK_CONF" -> initInfo.sparkConf.map({case (k, v) => s"$k=$v"}).mkString("|+|")
     )
     val out = outDirectory.resolve(s"manual-worker-$name.log")
-    val ps = WrappedProcess.run(start, env, out)
-    if (async) NonLocal else Local(ps.await())
+    WrappedProcess.run(start, env, out) match {
+      case Success(ps) => if (async) WorkerProcess.NonLocal else WorkerProcess.Local(ps.await())
+      case Failure(e) => WorkerProcess.Failed(e)
+    }
+
   }
 
-  override def onStop(name: String): Unit = {
-    stop.foreach(cmd => WrappedProcess.run(cmd, outDirectory.resolve(s"manual-worker-onstop-$name.log")))
+  override def stopAction: StopAction = stop match {
+    case Some(cmd) => StopAction.CustomFn(id => {
+      val env = Map("MIST_WORKER_NAME" -> id)
+      WrappedProcess.run(cmd, env, outDirectory.resolve(s"manual-worker-stop-$id.log")) match {
+        case Success(ps) => ps.await().onFailure({case e => logger.error(s"Calling stop script failed for $id", e)})
+        case Failure(e) => logger.error("Calling stop script failed for $id", e)
+      }
+    })
+    case None => StopAction.Remote
   }
 }
 
 object ManualStarter {
 
-  def apply(config: ManualRunnerConfig, outDirectory: Path): ManualStarter = {
-    def split(s: String): Seq[String] = s.split(" ").map(_.trim).filter(_.nonEmpty)
+  import PsUtil._
 
+  def apply(config: ManualRunnerConfig, outDirectory: Path): ManualStarter = {
     import config._
-    ManualStarter(split(cmdStart), cmdStop.map(split), async, outDirectory)
+    ManualStarter(parseArguments(cmdStart), cmdStop.map(parseArguments), async, outDirectory)
   }
 }

@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
+import akka.actor.ActorRef
+import io.hydrosphere.mist.core.{CommonData, MockitoSugar}
 import io.hydrosphere.mist.master.TestData
 import io.hydrosphere.mist.master.models.ContextConfig
 import org.scalatest.concurrent.Eventually
@@ -9,7 +11,7 @@ import org.scalatest.{FunSpec, Matchers}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future, Promise}
 
-class WorkerHubSpec extends FunSpec with Matchers with TestData with Eventually {
+class WorkerHubSpec extends FunSpec with Matchers with TestData with Eventually with MockitoSugar {
 
   it("should mirror connections") {
     val termination = Promise[Unit]
@@ -39,7 +41,9 @@ class WorkerHubSpec extends FunSpec with Matchers with TestData with Eventually 
     ctx: ContextConfig,
     runner: WorkerRunner) extends WorkerConnector {
 
-    def askConnection(): Future[WorkerConnection] = runner(id, ctx)
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    def askConnection(): Future[PerJobConnection] = runner(id, ctx).map(conn => mock[PerJobConnection])
 
     def warmUp(): Unit = ()
 

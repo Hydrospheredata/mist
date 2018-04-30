@@ -1,11 +1,17 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, Terminated, Timers}
-import io.hydrosphere.mist.core.CommonData.{ForceShutdown, WorkerInitInfo, WorkerReady, WorkerStartFailed}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, ReceiveTimeout, Terminated, Timers}
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+
+sealed trait StopAction
+object StopAction {
+  case object Remote extends StopAction
+  final case class CustomFn(f: String => Unit) extends StopAction
+}
 
 /**
   * Direct connection to remote worker
@@ -15,7 +21,8 @@ class WorkerBridge(
   initInfo: WorkerInitInfo,
   remote: ActorRef,
   ready: Promise[WorkerConnection],
-  readyTimeout: FiniteDuration
+  readyTimeout: FiniteDuration,
+  stopAction: StopAction
 ) extends Actor with ActorLogging with Timers{
 
   import WorkerBridge._
@@ -65,16 +72,37 @@ class WorkerBridge(
 
   private def process(terminated: Promise[Unit]): Receive = {
     case Terminated(_) =>
-      terminated.success(())
+      terminated.failure(new RuntimeException(s"Connection with worker $id was closed"))
       context stop self
 
-    case ForceShutdown =>
-      log.info("Received force shutdown")
-      remote ! ForceShutdown
+    case Shutdown =>
+      log.info(s"Received shutdown for worker conn $id")
+      stopAction match {
+        case StopAction.Remote => remote ! ForceShutdown
+        case StopAction.CustomFn(f) => f(id)
+      }
       terminated.success(())
+      context unwatch remote
+      context.setReceiveTimeout(1 minute)
+      context become awaitStop
+
+    case Goodbye =>
+      log.info(s"Remote application was unexpectedly stopped")
+      terminated.failure(new RuntimeException(s"Worker $id was stopped"))
       context stop self
 
     case other => remote forward other
+  }
+
+  // only for logging
+  private def awaitStop: Receive = {
+    case Goodbye =>
+      log.info(s"Remote worker $id application was correctly stopped")
+      context stop self
+
+    case ReceiveTimeout =>
+      log.error(s"Remote worker $id application wasn't correctly stopped")
+      context stop self
   }
 
 }
@@ -82,23 +110,26 @@ class WorkerBridge(
 object WorkerBridge {
 
   case object InitTimeout
+  case object Shutdown
 
   def props(
     id: String,
     initInfo: WorkerInitInfo,
     readyTimeout: FiniteDuration,
     ready: Promise[WorkerConnection],
-    remote: ActorRef
-  ): Props = Props(classOf[WorkerBridge], id, initInfo, remote, ready, readyTimeout)
+    remote: ActorRef,
+    stopAction: StopAction
+  ): Props = Props(classOf[WorkerBridge], id, initInfo, remote, ready, readyTimeout, stopAction)
 
   def connect(
     id: String,
     initInfo: WorkerInitInfo,
     readyTimeout: FiniteDuration,
-    remote: ActorRef
+    remote: ActorRef,
+    stopAction: StopAction
   )(implicit af: ActorRefFactory): Future[WorkerConnection] = {
     val ready = Promise[WorkerConnection]
-    af.actorOf(props(id, initInfo, readyTimeout, ready, remote))
+    af.actorOf(props(id, initInfo, readyTimeout, ready, remote, stopAction))
     ready.future
   }
 

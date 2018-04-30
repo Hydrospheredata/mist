@@ -4,19 +4,25 @@ import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
+import io.hydrosphere.mist.master.execution.workers.StopAction
 
 import scala.concurrent.Future
 import scala.language.postfixOps
 
 sealed trait WorkerProcess
-case object NonLocal extends WorkerProcess
-case class Local(termination: Future[Unit]) extends WorkerProcess
+object WorkerProcess {
+  final case class Failed (err: Throwable) extends WorkerProcess
+
+  sealed trait StartedProcess extends WorkerProcess
+  case object NonLocal extends StartedProcess
+  final case class Local(termination: Future[Unit]) extends StartedProcess
+}
 
 trait WorkerStarter {
 
   def onStart(name: String, initInfo: WorkerInitInfo): WorkerProcess
 
-  def onStop(name: String): Unit = {}
+  def stopAction: StopAction
 }
 
 object WorkerStarter {

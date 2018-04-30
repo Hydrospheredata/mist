@@ -3,7 +3,9 @@ package io.hydrosphere.mist.worker
 import java.nio.file.{Path, Paths}
 
 import akka.actor.{ActorRef, ActorSystem}
+import akka.util.Timeout
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import io.hydrosphere.mist.utils.akka.WhenTerminated
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 import org.apache.commons.io.FileUtils
 
@@ -93,15 +95,22 @@ object Worker extends App with Logger {
     } else {
       FileUtils.forceMkdir(workDirFile)
     }
+
     val props = MasterBridge.props(arguments.name, workDir, regHub)
-    system.actorOf(props, s"worker-$name")
+    val bridge = system.actorOf(props, s"worker-$name")
 
     val msg = s"Worker $name is started, context ${arguments.name}"
     logger.info(msg)
 
-    Await.result(system.whenTerminated, Duration.Inf)
+    sys.addShutdownHook {
+      bridge ! MasterBridge.AppShutdown
+    }
+
+    val completion = WhenTerminated(bridge)(system)
+    Await.result(completion, Duration.Inf)
     logger.info(s"Shutdown worker application $name ${arguments.name}")
     FileUtils.deleteQuietly(workDirFile)
+    system.terminate()
   } catch {
     case e: Throwable =>
       logger.error("Fatal error", e)
