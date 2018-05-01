@@ -110,6 +110,7 @@ class WorkerBridge(
 object WorkerBridge {
 
   case object InitTimeout
+  //TODO - remove this
   case object Shutdown
 
   def props(
