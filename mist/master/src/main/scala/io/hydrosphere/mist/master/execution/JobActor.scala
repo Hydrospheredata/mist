@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.execution
 
+import java.io.{PrintWriter, StringWriter}
+
 import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, PoisonPill, Props, SupervisorStrategy, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
@@ -42,7 +44,7 @@ class JobActor(
 
   private def initial: Receive = {
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
-    case Event.ContextBroken(e) => cancelNotStarted(new RuntimeException("Cancel job - context is broken", e), Some(sender()))
+    case Event.ContextBroken(e) => completeFailure(new RuntimeException("Context is broken", e), None)
     case Event.Timeout => cancelNotStarted("timeout", None)
 
     case Event.GetStatus => sender() ! ExecStatus.Queued
@@ -167,6 +169,14 @@ class JobActor(
     connection.release()
     context.stop(self)
   }
+
+  private def completeFailure(err: Throwable, maybeConn: Option[PerJobConnection]): Unit = {
+    val sw = new StringWriter()
+    err.printStackTrace(new PrintWriter(sw))
+    val errMessage = sw.toString
+    completeFailure(errMessage, maybeConn)
+  }
+
 
   private def completeFailure(err: String, maybeConn: Option[PerJobConnection]): Unit = {
     promise.failure(new RuntimeException(err))
