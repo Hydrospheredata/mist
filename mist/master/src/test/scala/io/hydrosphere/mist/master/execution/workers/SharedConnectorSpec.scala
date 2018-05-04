@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
-import io.hydrosphere.mist.master.execution.workers.SharedConnector.Released
+import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.{ActorSpec, TestData}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
@@ -175,7 +175,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
 
   describe("Shared conn wrapper") {
 
-    it("should release connection and update connector state") {
+    it("should release connection") {
       val connRef = TestProbe()
       val termination = Promise[Unit]
       val connection = WorkerConnection(

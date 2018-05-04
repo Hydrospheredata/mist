@@ -7,6 +7,7 @@ import akka.pattern.pipe
 import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.core.CommonData.CancelJobRequest
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
+import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.collection.immutable.Queue
@@ -54,7 +55,6 @@ class SharedConnector(
 
     case conn: WorkerConnection if requests.isEmpty =>
       log.info(s"Receive ${conn.id} without requests, possibly warming up")
-      //val wrapped = SharedConnector.wrappedConnection(self, conn)
       conn.whenTerminated.onComplete(_ => self ! Event.ConnTerminated(conn.id))
       context become process(Queue.empty, pool :+ conn, inUse, startingConnections - 1)
 
@@ -102,7 +102,7 @@ class SharedConnector(
       log.info(s"Schedule request: requests size ${requests.size}")
       context become process(requests :+ req, pool, inUse, startingConnections)
 
-    case SharedConnector.Released(conn) =>
+    case Event.Released(conn) =>
       log.info(s"Releasing connection: requested ${requests.size}, pooled ${pool.size}, in use ${inUse.size}, starting: $startingConnections")
       inUse.get(conn.id) match {
         case Some(releasedConnection) =>
@@ -167,7 +167,6 @@ object SharedConnector {
   case class ProcessStatus(requestsSize: Int, poolSize: Int, inUseSize: Int, startingConnections: Int) extends Status
   case class ShuttingDown(startingConnections: Int) extends Status
 
-  case class Released(conn: WorkerConnection)
 
   class SharedPerJobConnection(
     connector: ActorRef,

@@ -105,10 +105,12 @@ class WorkerBridge(
     case cancel: CancelJobRequest => remote ! cancel
     case x: JobResponse =>
       orig ! x
-      if (completeAndShutdown)
+      if (completeAndShutdown) {
+        term.success(())
         startShuttingDown()
-      else
+      } else {
         context become awaitRequest(term)
+      }
 
     case Event.CompleteAndShutdown => context become execution(term, orig, true)
     case Event.ForceShutdown | RequestTermination =>

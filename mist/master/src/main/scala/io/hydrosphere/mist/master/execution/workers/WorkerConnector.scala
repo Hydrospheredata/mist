@@ -23,6 +23,7 @@ object WorkerConnector {
   sealed trait Event
   object Event {
     final case class AskConnection(resolve: Promise[PerJobConnection]) extends Event
+    final case class Released(conn: WorkerConnection) extends Event
     final case class Shutdown(force: Boolean) extends Event
     case object WarmUp extends Event
     final case class ConnTerminated(connId: String) extends Event
