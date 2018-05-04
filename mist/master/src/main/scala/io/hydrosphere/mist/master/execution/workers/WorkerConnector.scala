@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, ForceShutdown}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.WhenTerminated
 
@@ -24,9 +23,9 @@ object WorkerConnector {
   sealed trait Event
   object Event {
     final case class AskConnection(resolve: Promise[PerJobConnection]) extends Event
-    case object Shutdown extends Event
+    final case class Shutdown(force: Boolean) extends Event
     case object WarmUp extends Event
-    case class ConnTerminated(connId: String) extends Event
+    final case class ConnTerminated(connId: String) extends Event
     case object GetStatus
   }
 
@@ -42,8 +41,7 @@ object WorkerConnector {
     }
 
     override def shutdown(force: Boolean): Future[Unit] = {
-      val msg = if (force) ForceShutdown else CompleteAndShutdown
-      underlying ! msg
+      underlying ! Event.Shutdown(force)
       whenTerminated()
     }
 

@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, ShutdownCommand}
+import io.hydrosphere.mist.core.CommonData.CancelJobRequest
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.models.ContextConfig
 
@@ -120,14 +120,14 @@ class SharedConnector(
           log.info("Released unused connection")
       }
 
-    case cmd: ShutdownCommand =>
+    case Event.Shutdown(force) =>
       requests.foreach(_.failure(new RuntimeException("connector was shutdown")))
-      pool.foreach(_.ref ! cmd)
-      inUse.values.foreach(_.ref ! cmd)
+      pool.foreach(_.shutdown(force))
+      inUse.values.foreach(_.shutdown(force))
       if (startingConnections == 0) {
         context stop self
       } else {
-        context become awaitingConnectionsAndShutdown(startingConnections)
+        context become awaitingConnectionsAndShutdown(startingConnections, force)
       }
 
     case Event.ConnTerminated(connId) =>
@@ -136,7 +136,7 @@ class SharedConnector(
       context become process(requests, updatedPool, inUse - connId, startingConnections)
   }}
 
-  private def awaitingConnectionsAndShutdown(startingConnections: Int): Receive = {
+  private def awaitingConnectionsAndShutdown(startingConnections: Int, force: Boolean): Receive = {
     val lastConnection: Boolean = startingConnections == 1
 
     {
@@ -146,16 +146,16 @@ class SharedConnector(
         log.error(e, "Could not start worker connection")
         context stop self
       case conn: WorkerConnection if lastConnection =>
-        conn.shutdown()
+        conn.shutdown(force)
         context stop self
 
       case akka.actor.Status.Failure(e) =>
         log.error(e, "Could not start worker connection")
-        context become awaitingConnectionsAndShutdown(startingConnections - 1)
+        context become awaitingConnectionsAndShutdown(startingConnections - 1, force)
 
       case conn: WorkerConnection =>
-        conn.shutdown()
-        context become awaitingConnectionsAndShutdown(startingConnections - 1)
+        conn.shutdown(force)
+        context become awaitingConnectionsAndShutdown(startingConnections - 1, force)
     }
   }
 }
