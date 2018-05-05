@@ -182,7 +182,9 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
 
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
-    status.connectorFails shouldBe ContextFrontend.ConnectorFailedMaxTimes
+    status.failures shouldBe TestUtils.FooContext.maxConnFailures
+
+    job.expectMsgType[JobActor.Event.ContextBroken]
 
     probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", Map.empty, Action.Execute)))
     probe.expectMsgPF() {
@@ -211,7 +213,9 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     probe.expectMsgType[ExecutionInfo]
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
-    status.connFails shouldBe ContextFrontend.ConnectionFailedMaxTimes
+    status.failures shouldBe TestUtils.FooContext.maxConnFailures
+
+    job.expectMsgType[JobActor.Event.ContextBroken]
 
     probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", Map.empty, Action.Execute)))
     probe.expectMsgPF() {
@@ -240,8 +244,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     probe.send(frontend, ContextEvent.UpdateContext(TestUtils.FooContext))
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
-    status.connectorFails shouldBe 0
-    status.connFails shouldBe 0
+    status.failures shouldBe 0
     status.jobs shouldBe Map()
   }
 

@@ -11,10 +11,11 @@ class PsUtilSpec extends FunSpec with Matchers {
       "echo",
       "YOYO"
     ))
-    parseArguments(" echo 'YOYO' abdc  ") should contain theSameElementsInOrderAs(Seq(
+    parseArguments(" echo 'YOYO' abdc") should contain theSameElementsInOrderAs(Seq(
       "echo",
       "YOYO",
       "abdc"
     ))
+    parseArguments("") shouldBe Seq.empty
   }
 }

@@ -46,13 +46,6 @@ class FrontendState[K, V](
     }
   }
 
-  def done(k: K): FrontendState[K, V] = {
-    working.get(k) match {
-      case Some(_) => new FrontendState(waiting, working - k)
-      case None => noSuchElement(k, "working")
-    }
-  }
-
   def getWithState(k: K): Option[(V, EntryState)] = {
     waiting.get(k).map(v => v -> Waiting) orElse
     working.get(k).map(v => v -> Working)
@@ -60,7 +53,7 @@ class FrontendState[K, V](
 
   def get(k: K): Option[V] = getWithState(k).map(_._1)
 
-  def remove(k: K): FrontendState[K, V] = {
+  def done(k: K): FrontendState[K, V] = {
     getWithState(k).map(_._2) match {
       case Some(Waiting) =>
         waiting.remove(k)
@@ -72,6 +65,7 @@ class FrontendState[K, V](
 
   def hasWaiting(k: K): Boolean = getWithState(k).exists(_._2 == Waiting)
   def hasWorking(k: K): Boolean = getWithState(k).exists(_._2 == Working)
+  def has(k: K): Boolean = getWithState(k).isDefined
 
   def isEmpty: Boolean = waiting.isEmpty && working.isEmpty
 }

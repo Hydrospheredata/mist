@@ -13,9 +13,6 @@ object StopAction {
   final case class CustomFn(f: String => Unit) extends StopAction
 }
 
-/**
-  * Direct connection to remote worker
-  */
 class WorkerBridge(
   id: String,
   initInfo: WorkerInitInfo,
@@ -23,19 +20,25 @@ class WorkerBridge(
   ready: Promise[WorkerConnection],
   readyTimeout: FiniteDuration,
   stopAction: StopAction
-) extends Actor with ActorLogging with Timers{
+) extends Actor with ActorLogging with Timers {
 
   import WorkerBridge._
+
+  override def receive: Receive = connecting
 
   private val initTimerKey = s"worker-conn-$id"
 
   override def preStart(): Unit = {
     context watch remote
     remote ! initInfo
-    timers.startSingleTimer(initTimerKey, InitTimeout, readyTimeout)
+    timers.startSingleTimer(initTimerKey, Event.InitTimeout, readyTimeout)
   }
 
-  override def receive: Receive = connecting
+  // call custom stop action if we lose connection to worker node
+  private def makeControllingShot(): Unit = stopAction match {
+    case StopAction.CustomFn(f) => f(id)
+    case StopAction.Remote =>
+  }
 
   private def connecting: Receive = {
     case WorkerReady(wId, sparkUi) if wId == id =>
@@ -48,7 +51,7 @@ class WorkerBridge(
         whenTerminated = terminated.future
       )
       ready.success(connection)
-      context become process(terminated)
+      context become awaitRequest(terminated)
 
     case WorkerStartFailed(wId, msg) if wId == id =>
       timers.cancel(initTimerKey)
@@ -57,45 +60,85 @@ class WorkerBridge(
       ready.failure(new RuntimeException(expl))
       context stop self
 
-    case InitTimeout =>
+    case Event.InitTimeout =>
       val msg = s"Worker $id was terminated during initialization"
       log.warning(msg)
       ready.failure(new RuntimeException(msg))
       context stop self
 
     case Terminated(_) =>
-      val msg = s"Worker $id was terminated during initialization"
-      log.warning(msg)
-      ready.failure(new RuntimeException(msg))
+      ready.failure(new RuntimeException(s"Connection with worker $id was closed"))
+      makeControllingShot()
       context stop self
   }
 
-  private def process(terminated: Promise[Unit]): Receive = {
-    case Terminated(_) =>
-      terminated.failure(new RuntimeException(s"Connection with worker $id was closed"))
-      context stop self
+  private def startShuttingDown(): Unit = {
+    remote ! ShutdownWorker
+    context unwatch remote
+    context.setReceiveTimeout(1 minute)
+    context become stopping()
+  }
 
-    case Shutdown =>
-      log.info(s"Received shutdown for worker conn $id")
+  private def awaitRequest(term: Promise[Unit]): Receive = {
+    case req: RunJobRequest =>
+      remote ! req
+      context become execution(term, sender(), false)
+
+    case _ @ (_: Event.ShutdownCommand | _: RequestTermination.type) =>
+      term.success(())
+      startShuttingDown()
+
+    case Terminated(_) =>
+      term.failure(new RuntimeException(s"Connection with worker $id was closed"))
+      makeControllingShot()
+      context stop self
+  }
+
+  private def execution(
+    term: Promise[Unit],
+    orig: ActorRef,
+    completeAndShutdown: Boolean
+  ): Receive = {
+    case req: RunJobRequest => sender() ! WorkerIsBusy
+    case x: RunJobResponse => orig ! x
+    case x: JobIsCancelled => orig ! x
+    case cancel: CancelJobRequest => remote ! cancel
+    case x: JobResponse =>
+      orig ! x
+      if (completeAndShutdown) {
+        term.success(())
+        startShuttingDown()
+      } else {
+        context become awaitRequest(term)
+      }
+
+    case Event.CompleteAndShutdown => context become execution(term, orig, true)
+    case Event.ForceShutdown | RequestTermination =>
+      term.failure(new RuntimeException(s"Worker $id was stopped forcibly"))
+      startShuttingDown()
+
+    case Terminated(_) =>
+      term.failure(new RuntimeException(s"Connection with worker $id was closed"))
+      makeControllingShot()
+      context stop self
+  }
+
+  private def stopping(): Receive = {
+    case RequestTermination =>
       stopAction match {
-        case StopAction.Remote => remote ! ForceShutdown
+        case StopAction.Remote => remote ! ShutdownWorkerApp
         case StopAction.CustomFn(f) => f(id)
       }
-      terminated.success(())
-      context unwatch remote
-      context.setReceiveTimeout(1 minute)
-      context become awaitStop
+      context setReceiveTimeout(1 minute)
+      context become disconnecting()
 
-    case Goodbye =>
-      log.info(s"Remote application was unexpectedly stopped")
-      terminated.failure(new RuntimeException(s"Worker $id was stopped"))
+    case ReceiveTimeout =>
+      log.error(s"Remote worker $id application wasn't correctly stopped")
+      makeControllingShot()
       context stop self
-
-    case other => remote forward other
   }
 
-  // only for logging
-  private def awaitStop: Receive = {
+  private def disconnecting(): Receive = {
     case Goodbye =>
       log.info(s"Remote worker $id application was correctly stopped")
       context stop self
@@ -104,13 +147,17 @@ class WorkerBridge(
       log.error(s"Remote worker $id application wasn't correctly stopped")
       context stop self
   }
-
 }
 
 object WorkerBridge {
 
-  case object InitTimeout
-  case object Shutdown
+  sealed trait Event
+  object Event {
+    case object InitTimeout
+    sealed trait ShutdownCommand extends Event
+    case object CompleteAndShutdown extends ShutdownCommand
+    case object ForceShutdown extends ShutdownCommand
+  }
 
   def props(
     id: String,
@@ -132,5 +179,4 @@ object WorkerBridge {
     af.actorOf(props(id, initInfo, readyTimeout, ready, remote, stopAction))
     ready.future
   }
-
 }

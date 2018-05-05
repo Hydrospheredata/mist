@@ -2,8 +2,10 @@ package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
-import io.hydrosphere.mist.core.CommonData.{CompleteAndShutdown, RunJobRequest}
-import io.hydrosphere.mist.master.{ActorSpec, TestData}
+import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.master.execution.workers.WorkerBridge.Event.CompleteAndShutdown
+import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
+import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
 
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
@@ -14,7 +16,7 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
     val connector = TestActorRef[ExclusiveConnector](ExclusiveConnector.props(
       id = "id",
       ctx = FooContext,
-      startWorker = (_, _) => Future.failed(new RuntimeException("err"))
+      startWorker = (_, _) => Future.failed(FilteredException())
     ))
 
     val probe = TestProbe()
@@ -45,27 +47,32 @@ class ExclusiveConnectorSpec extends ActorSpec("excl-conn") with TestData {
     connection.run(mkRunReq("id"), probe.ref)
 
     originalRef.expectMsgType[RunJobRequest]
-    originalRef.expectMsgType[CompleteAndShutdown.type]
+    originalRef.expectMsgType[WorkerBridge.Event.CompleteAndShutdown.type]
   }
 
   describe("Exclusive conn wrapper") {
 
-    it("should handle unused") {
+    it("should release connection") {
+
       val connRef = TestProbe()
       val termination = Promise[Unit]
+
       val connection = WorkerConnection(
         id = "id",
         ref = connRef.ref,
         data = workerLinkData,
         whenTerminated = termination.future
       )
-      val wrapped = ExclusiveConnector.wrappedConn(connection)
+
+      val connector = TestProbe()
+      val wrapped = ExclusiveConnector.wrappedConnection(connector.ref, connection)
 
       wrapped.release()
-      connRef.expectMsgType[CompleteAndShutdown.type]
+      connector.expectMsgType[WorkerConnector.Event.Released]
 
       wrapped.run(mkRunReq("id"), ActorRef.noSender)
       connRef.expectMsgType[RunJobRequest]
+      connRef.expectMsgType[CompleteAndShutdown.type]
     }
   }
 }

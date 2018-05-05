@@ -50,6 +50,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
           |  run-options = "--key"
           |  streaming-duration = 30 seconds
           |  worker-mode = "shared"
+          |  max-conn-failures = 5
           |
           |}
         """.stripMargin
@@ -81,7 +82,8 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         precreated = false,
         runOptions = "",
         workerMode = RunMode.Shared,
-        streamingDuration = 1.minutes
+        streamingDuration = 1.minutes,
+        maxConnFailures = 5
       )
       val raw = ConfigRepr.ContextConfigRepr.toConfig(e)
       Duration(raw.getString("downtime")) shouldBe 10.minutes
@@ -92,6 +94,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       sparkConf.get("z") shouldBe Some("4")
 
       raw.getString("worker-mode") shouldBe "shared"
+      raw.getInt("max-conn-failures") shouldBe 5
       Duration(raw.getString("streaming-duration")) shouldBe 1.minutes
     }
   }

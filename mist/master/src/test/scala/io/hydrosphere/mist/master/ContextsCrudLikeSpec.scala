@@ -17,7 +17,7 @@ class ContextsCrudLikeSpec extends FunSpec with Matchers with TestData with Mock
     val storage = mock[ContextsStorage]
     val executionS = mock[ExecutionService]
 
-    val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.Shared, 1 seconds)
+    val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.Shared, 1 seconds, 5)
     val req = ContextCreateRequest("yoyo", workerMode = Some(RunMode.ExclusiveContext))
 
     when(storage.defaultConfig).thenReturn(defaultValue)
@@ -29,7 +29,7 @@ class ContextsCrudLikeSpec extends FunSpec with Matchers with TestData with Mock
     }
 
     val result = Await.result(crud.create(req), Duration.Inf)
-    result shouldBe ContextConfig("yoyo", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.ExclusiveContext, 1 seconds)
+    result shouldBe ContextConfig("yoyo", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.ExclusiveContext, 1 seconds, 5)
 
     verify(executionS).updateContext(any[ContextConfig])
   }

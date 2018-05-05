@@ -1,9 +1,6 @@
 package io.hydrosphere.mist.worker
 
-import java.io.File
-
 import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
-import org.apache.commons.io.IOUtils
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.hive.HiveContext
@@ -39,6 +36,8 @@ class NamedContext(
       loggingConf = loggingConf
     )
   }
+
+  def getUIAddress(): Option[String] = SparkUtils.getSparkUiAddress(sparkContext)
 
   //TODO: can we call that inside python directly using setupConfiguration?
   // python support

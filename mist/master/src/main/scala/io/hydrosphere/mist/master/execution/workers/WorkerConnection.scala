@@ -12,8 +12,10 @@ case class WorkerConnection(
   whenTerminated: Future[Unit]
 ) {
 
-  def shutdown(): Future[Unit] = {
-    ref ! WorkerBridge.Shutdown
+  def shutdown(force: Boolean): Future[Unit] = {
+    import WorkerBridge.Event._
+    val msg = if(force) ForceShutdown else CompleteAndShutdown
+    ref ! msg
     whenTerminated
   }
 

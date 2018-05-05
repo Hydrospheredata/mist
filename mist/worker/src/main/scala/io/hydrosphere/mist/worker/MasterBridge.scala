@@ -56,7 +56,7 @@ class MasterBridge(
 
           case Right(ctx) =>
             val worker = workerF.create(init, ctx)
-            val sparkUI = SparkUtils.getSparkUiAddress(ctx.sparkContext)
+            val sparkUI = ctx.getUIAddress()
             context watch remoteConnection
             context watch worker
             log.info("Become work")
@@ -70,32 +70,47 @@ class MasterBridge(
       }
   }
 
-
   private def work(remote: ActorRef, worker: ActorRef): Receive = {
-    case Terminated(ref) if ref == remote =>
-      log.warning("Remote connection was terminated - shutdown")
-      worker ! PoisonPill
-      context stop self
+    def goToAwaitTermination(): Unit = {
+      remote ! RequestTermination
+      context.setReceiveTimeout(30 seconds)
+    }
+    {
+      case Terminated(ref) if ref == remote =>
+        log.warning("Remote connection was terminated - shutdown")
+        worker ! PoisonPill
+        context stop self
 
-    case Terminated(ref) if ref == worker =>
-      log.info("Underlying worker was terminated - shutdown")
-      remote ! Goodbye
-      context stop self
+      case Terminated(ref) if ref == worker =>
+        log.info("Underlying worker was terminated - request termination")
+        goToAwaitTermination()
 
-    case ForceShutdown =>
-      log.info(s"Received force shutdown command")
-      remote ! Goodbye
-      worker ! PoisonPill
-      context stop self
+      case ShutdownWorker =>
+        worker ! PoisonPill
+        goToAwaitTermination()
 
-    case AppShutdown =>
+      case AppShutdown =>
+        log.error(s"Unexpectedly received application shutdown command")
+        worker ! PoisonPill
+        goToAwaitTermination()
+
+      case x => worker forward x
+    }
+  }
+
+  private def awaitTermination(remote: ActorRef): Receive = {
+    case AppShutdown | ShutdownWorkerApp =>
       log.info(s"Received application shutdown command")
       remote ! Goodbye
-      worker ! PoisonPill
       context stop self
 
+    case Terminated(ref) if ref == remote =>
+      log.warning("Remote connection was terminated - shutdown")
+      context stop self
 
-    case x => worker forward x
+    case ReceiveTimeout =>
+      log.error("Didn't receive any stop command - shutdown")
+      context stop self
   }
 
 }

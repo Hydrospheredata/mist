@@ -125,60 +125,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     )
   }
 
-  it("should complete and shutdown awaiting response") {
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
-    })
-
-    val probe = TestProbe()
-
-    val worker = createActor(runnerSelector)
-
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-    probe.expectMsgAllConformingOf(
-      classOf[JobFileDownloading],
-      classOf[JobStarted]
-    )
-    probe.send(worker, CompleteAndShutdown)
-    probe.expectMsgType[JobResponse]
-  }
-
-  it("should force shutdown when awaiting") {
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
-    })
-
-    val probe = TestProbe()
-    val worker = createActor(runnerSelector)
-    probe watch worker
-    probe.send(worker, ForceShutdown)
-    probe.expectTerminated(worker)
-  }
-
-  it("should force shutdown when running request") {
-
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsLikeMap("yoyo" -> JsLikeString("hey"))
-    })
-
-    val probe = TestProbe()
-
-    val worker = createActor(runnerSelector)
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
-
-    probe.expectMsgAllConformingOf(
-      classOf[JobFileDownloading],
-      classOf[JobStarted]
-    )
-    probe watch worker
-    probe.send(worker, ForceShutdown)
-    probe.expectTerminated(worker)
-  }
-
   describe("logging") {
     val artifactDownloader = mock[ArtifactDownloader]
 

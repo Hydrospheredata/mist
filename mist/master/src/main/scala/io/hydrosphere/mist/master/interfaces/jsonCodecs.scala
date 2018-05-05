@@ -221,9 +221,9 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val jobDetailsLinkF = jsonFormat8(JobDetailsLink)
   implicit val workerFullInfoF = jsonFormat5(WorkerFullInfo)
 
-  implicit val contextConfigF = jsonFormat8(ContextConfig.apply)
+  implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
 
-  implicit val contextCreateRequestF = jsonFormat8(ContextCreateRequest.apply)
+  implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 
