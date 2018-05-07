@@ -2,6 +2,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+
 class ContextSupport:
     __metaclass__ = ABCMeta
 
@@ -14,6 +15,7 @@ class ContextSupport:
     def setup(self, context_wrapper):
         self.context = context_wrapper.context
 
+
 class MistJob(ContextSupport):
     __metaclass__ = ABCMeta
 
@@ -23,6 +25,7 @@ class MistJob(ContextSupport):
 
     def setup(self, context_wrapper):
         super(MistJob, self).setup(context_wrapper)
+
 
 class WithSQLSupport(ContextSupport):
     __metaclass__ = ABCMeta
@@ -38,6 +41,7 @@ class WithSQLSupport(ContextSupport):
             self.session = context_wrapper.session
         except ImportError:
             self.sql_context = context_wrapper.sql_context
+
 
 class WithHiveSupport(ContextSupport):
     __metaclass__ = ABCMeta

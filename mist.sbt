@@ -176,9 +176,9 @@ lazy val root = project.in(file("."))
         .to("data/artifacts")
 
       val mkPyfunctions = Seq(
-        ("simple_context.py", "SimpleContext"),
-        ("session_job.py", "SessionJob"),
-        ("simple_streaming.py", "SimpleStreaming")
+        ("simple_context.py", "simple_context")
+//        ("session_job.py", "SessionJob"),
+//        ("simple_streaming.py", "SimpleStreaming")
       ).flatMap({case (file, clazz) => {
         val name = file.replace(".py", "")
         Seq(
