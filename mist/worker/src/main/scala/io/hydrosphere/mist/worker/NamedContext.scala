@@ -5,7 +5,7 @@ import java.io.File
 import io.hydrosphere.mist.api.{CentralLoggingConf, RuntimeJobInfo, SetupConfiguration}
 import org.apache.commons.io.IOUtils
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.Duration
 import org.apache.spark.{SparkConf, SparkContext}
@@ -52,6 +52,10 @@ class NamedContext(
 
   // python support
   def hiveContext: HiveContext = new HiveContext(sparkContext)
+
+  // python support
+  def sparkSession: SparkSession =
+
 
   def stop(): Unit = {
     sparkContext.stop()

@@ -189,11 +189,12 @@ lazy val root = project.in(file("."))
         .to("data/artifacts")
 
       val mkPyfunctions = Seq(
-        ("simple_context.py", "simple_context")
-//        ("session_job.py", "SessionJob"),
-//        ("simple_streaming.py", "SimpleStreaming")
+        ("session_example.py",      "session_example"),
+        ("sparkctx_example.py",     "sparkctx_example"),
+        ("sqlctx_example.py",       "sqlctx_example"),
+        ("streamingctx_example.py", "streamingctx_example")
       ).flatMap({case (file, clazz) => {
-        val name = file.replace(".py", "")
+        val name = file.replace(".py", "_py")
         Seq(
           Write(
             s"data/functions/$name.conf",

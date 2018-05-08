@@ -85,4 +85,4 @@ def get_metadata(fn_or_class):
         if is_mist_function(fn_or_class):
             return FunctionEntry(fn_or_class)
         else:
-            raise Exception(fn_or_class + ' is not a mist function')
+            raise Exception(str(fn_or_class) + ' is not a mist function')

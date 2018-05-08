@@ -6,7 +6,7 @@ from py4j.java_collections import JavaMap, JavaList
 
 from pyspark.sql.types import *
 
-from executable_entry import get_metadata, ClassEntry
+from executable_entry import get_metadata
 from context_wrapper import ContextWrapper
 from decorators import SPARK_CONTEXT, SPARK_SESSION, SPARK_STREAMING, HIVE_CONTEXT, HIVE_SESSION, SQL_CONTEXT
 

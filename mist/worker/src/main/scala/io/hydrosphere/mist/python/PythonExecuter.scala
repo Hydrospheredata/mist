@@ -67,7 +67,6 @@ trait PythonCmd[A] extends Logger {
         "--module", module,
         "--gateway-port", py4jPort.toString
       )
-      println(cmd)
       logger.info(s"Running python task: $cmd, env $env")
       val ps = Process(cmd, None, env: _*)
       ps.!
