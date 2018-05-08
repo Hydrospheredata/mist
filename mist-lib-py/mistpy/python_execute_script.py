@@ -87,14 +87,7 @@ def execution_cmd(args):
         selected_spark_argument = executable_entry.selected_spark_argument
 
         argument = initialized_context_value(_gateway, context_wrapper, selected_spark_argument)
-
-        if isinstance(executable_entry, ClassEntry):
-            if executable_entry.with_publisher:
-                context_wrapper.init_publisher(_gateway)
-            result = executable_entry.invoke(context_wrapper, to_python_types(parameters))
-        else:
-            result = executable_entry.invoke(argument, to_python_types(parameters))
-
+        result = executable_entry.invoke(argument, to_python_types(parameters))
         data_wrapper.set(result)
 
     except Exception:

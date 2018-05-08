@@ -3,7 +3,6 @@
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
 
-
 class ContextWrapper(object):
 
     def __init__(self):
@@ -58,7 +57,3 @@ class ContextWrapper(object):
     @property
     def streaming_context(self):
         return self._streaming_context
-
-    @property
-    def publisher(self):
-        return self._publisher

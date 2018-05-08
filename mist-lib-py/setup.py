@@ -29,9 +29,8 @@ setup(
         'Programming Language :: Python :: 3.5',
     ),
 
-    packages=['mist'],
-    tests_require=[
-        'pytest', 'mock>=2.0.0'
-    ],
+    packages=find_packages(exclude=['tests']),
+    setup_requires=['pytest-runner'], 
+    tests_require=['pytest'],
     test_suite='tests'
 )

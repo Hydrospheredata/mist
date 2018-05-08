@@ -59,6 +59,7 @@ class NamedArg(AbstractArg):
         new_kw = dict(fn_kwargs)
         args = list(fn_args)
         if self.name not in fn_kwargs:
+            # TODO < 2 ?
             if len(args) < 2:  # one for context
                 raise BadParameterException("not found argument in kwargs by %s and by args order".format(self.name))
             else:
@@ -119,10 +120,9 @@ def with_args(*args_decorator):
             for arg_decorator in args_decorator:
                 fn = arg_decorator(f)
             return fn(*args, **kwargs)
-
+        
+        _wraps.__dict__.update(f.__dict__)
         _wraps.args_def = args_decorator
-        _wraps.fn_tags = f.fn_tags
-        _wraps.type_choice = f.type_choice
         return _wraps
 
     return _call

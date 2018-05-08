@@ -1,5 +1,3 @@
-#from typing import NamedTuple
-
 SPARK_CONTEXT = 'sp_context'
 SPARK_SESSION = 'sp_session'
 SQL_CONTEXT = 'sql_context'

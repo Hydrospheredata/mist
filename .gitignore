@@ -19,4 +19,9 @@ web/script.js
 spark_local
 ui_local
 *.egg-info
+.eggs/
+.pytest_cache/
+env-mistpy-2/
+
+
 
