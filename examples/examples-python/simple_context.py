@@ -1,4 +1,4 @@
-from mist.decorators import *
+from mistpy.decorators import *
 
 @with_args(
     arg('numbers', type_hint=list),

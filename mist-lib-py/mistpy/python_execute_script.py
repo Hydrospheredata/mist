@@ -6,9 +6,9 @@ from py4j.java_collections import JavaMap, JavaList
 
 from pyspark.sql.types import *
 
-from mist.executable_entry import get_metadata, ClassEntry
-from mist.context_wrapper import ContextWrapper
-from mist.decorators import SPARK_CONTEXT, SPARK_SESSION, SPARK_STREAMING, HIVE_CONTEXT, HIVE_SESSION, SQL_CONTEXT
+from executable_entry import get_metadata, ClassEntry
+from context_wrapper import ContextWrapper
+from decorators import SPARK_CONTEXT, SPARK_SESSION, SPARK_STREAMING, HIVE_CONTEXT, HIVE_SESSION, SQL_CONTEXT
 
 
 def to_python_types(any):

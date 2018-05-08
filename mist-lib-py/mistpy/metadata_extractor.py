@@ -6,8 +6,8 @@ import types
 
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
 
-from mist.decorators import __complex_type
-from mist.executable_entry import get_metadata
+from decorators import __complex_type
+from executable_entry import get_metadata
 
 
 def to_scala_arg_type(type_hint, gateway):

@@ -100,6 +100,19 @@ lazy val worker = project.in(file("mist/worker"))
   .settings(
     name := "mist-worker",
     scalacOptions ++= commonScalacOptions,
+    resourceGenerators in Compile += {
+      Def.task {
+        val resourceDir = (resourceManaged in Compile).value
+        val baseDir = (baseDirectory in ThisBuild).value
+        val f = baseDir / "mist-lib-py" / "mistpy"
+        val baseOut = resourceDir / "mistpy"
+        f.listFiles().toSeq.map(r => {
+          val target = baseOut / r.name
+          IO.write(target, IO.read(r))
+          target
+        })
+      }
+    },
     libraryDependencies ++= Library.Akka.base :+ Library.Akka.http,
     libraryDependencies += Library.Akka.testKit,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),

@@ -18,4 +18,5 @@ web/node_modules
 web/script.js
 spark_local
 ui_local
+*.egg-info
 

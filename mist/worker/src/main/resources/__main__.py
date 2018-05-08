@@ -1,8 +1,6 @@
 import argparse
 
-import metadata_extractor
-import python_execute_script
-
+from mistpy import metadata_extractor, python_execute_script
 
 def _main():
     parser = argparse.ArgumentParser()
