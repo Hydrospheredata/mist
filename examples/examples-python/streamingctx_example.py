@@ -1,4 +1,5 @@
 from mistpy.decorators import *
+import time
 
 @on_streaming_context
 def streamingctx_example(ssc):
@@ -6,10 +7,14 @@ def streamingctx_example(ssc):
     logger = log4jLogger.LogManager.getLogger(__name__)
     logger.info("Hello!")
 
-    def takeAndPublish(time, rdd):
+    def takeAndPublish(rdd):
         taken = rdd.take(11)
         logger.info(taken)
-    
+
+    rddQueue = []
+    for i in range(500):
+        rddQueue += [ssc.sparkContext.parallelize([j for j in range(1, 1001)], 10)]
+
     inputStream = ssc.queueStream(rddQueue)
     mappedStream = inputStream.map(lambda x: (x % 10, 1))
     reducedStream = mappedStream.reduceByKey(lambda a, b: a + b)

@@ -1,10 +1,10 @@
 package io.hydrosphere.mist.worker
 
 import org.apache.spark.api.java.JavaSparkContext
-import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.streaming.Duration
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{SparkConf, SparkContext, SparkSessionUtils}
 
 import scala.collection.mutable
 
@@ -38,6 +38,8 @@ class MistScContext(
 
   // python support
   def hiveContext: HiveContext = new HiveContext(sc)
+
+  def sparkSession(enableHive: Boolean): SparkSession = SparkSessionUtils.getOrCreate(sc, enableHive)
 
   def stop(): Unit = {
     sc.stop()

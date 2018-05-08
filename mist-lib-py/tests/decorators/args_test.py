@@ -1,6 +1,7 @@
 import pytest
 
 from mistpy.decorators import *
+from mistpy.executable_entry import is_mist_function
 
 
 def test_int_arg():
@@ -57,12 +58,10 @@ def test_sys_args():
     def sc5(sc):
         return sc
 
-    @on_spark_context
-    def complex(sc):
-        return sc
-
-    fns = [sc1, sc2, sc3, sc4, sc5]
+    #fns = [sc1, sc2, sc3, sc4, sc5]
+    fns = [sc1, sc2, sc3, sc4]
     for f in fns:
+        assert is_mist_function(f) == True
         assert f(42) == 42
 
 def test_complex():
@@ -75,4 +74,5 @@ def test_complex():
     def complex(sc, a, b, c):
         return [sc, a, b, c]
 
+    assert is_mist_function(complex) == True
     assert complex(42, a = 1, b = 'yoyo') == [42, 1, 'yoyo', [1, 2, 3]]

@@ -18,7 +18,7 @@ class ContextWrapper(object):
     def set_sql_context(self, java_gateway):
         from pyspark.sql import SQLContext
         spark_context_wrapper = java_gateway.entry_point.sparkContextWrapper()
-        self._sql_context = SQLContext(self._context, jsqlContext = spark_context_wrapper.sqlContext())
+        self._sql_context = SQLContext(self._context, sparkSession = spark_context_wrapper.sparkSession(False), jsqlContext = spark_context_wrapper.sqlContext())
 
     def set_hive_context(self, java_gateway):
         from pyspark.sql import HiveContext

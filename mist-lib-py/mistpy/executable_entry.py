@@ -41,7 +41,10 @@ class ExecutableEntry(object):
 class FunctionEntry(ExecutableEntry):
     def __init__(self, fn):
         self._fn = fn
-        args = fn.args_def
+        if hasattr(fn, 'args_def'):
+            args = fn.args_def
+        else:
+            args = []
         type_choice = fn.type_choice
         _tags = fn.fn_tags
         super(FunctionEntry, self).__init__(type_choice, args, _tags)
@@ -77,12 +80,12 @@ def extract_args_from_method(method):
 
 
 def is_mist_function(fn):
-    return hasattr(fn, 'fn_tags') and hasattr(fn, 'type_choice') and hasattr(fn, 'args_def')
+    return hasattr(fn, 'fn_tags') and hasattr(fn, 'type_choice')
 
 
-def get_metadata(fn_or_class):
-    if isfunction(fn_or_class):
-        if is_mist_function(fn_or_class):
-            return FunctionEntry(fn_or_class)
+def get_metadata(fn):
+    if isfunction(fn):
+        if is_mist_function(fn):
+            return FunctionEntry(fn)
         else:
-            raise Exception(str(fn_or_class) + ' is not a mist function')
+            raise Exception(fn.__name__ + ' is not a mist function')
