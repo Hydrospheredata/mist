@@ -1,10 +1,11 @@
 import mist.api._
-import mist.api.encoding.DefaultEncoders._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
-object TextSearchExample extends MistFn[Array[String]]{
+object TextSearchExample extends MistFn {
 
-  override def handle: Handle[Array[String]] = {
+  override def handle: Handle = {
     withArgs(
       arg[String]("filePath"),
       arg[Seq[String]]("filters")

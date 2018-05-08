@@ -10,10 +10,9 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.job.{Cache, FunctionInfo, FunctionInfoExtractor, FunctionInfoProviderActor}
 import io.hydrosphere.mist.utils.{Err, Succ}
-import mist.api.args.{ArgInfo, UserInputArgument}
-import mist.api.FullFnContext
-import mist.api.args.MInt
-import mist.api.data.{JsLikeData, JsLikeNull}
+import mist.api._
+import mist.api.data._
+import mist.api.data.JsSyntax._
 import mist.api.internal.BaseFunctionInstance
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
@@ -92,7 +91,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          TestJobInstance(Right(Map.empty)),
+          TestJobInstance(Extracted.unit),
           ExtractedFunctionData()
         )))
 
@@ -100,7 +99,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", Map.empty))
+        "Test", fnPath, "test", JsMap.empty))
       testProbe.expectMsgType[Status.Success]
 
     }
@@ -111,7 +110,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", "not_existing_file.jar", "test", Map.empty))
+        "Test", "not_existing_file.jar", "test", JsMap.empty))
 
       testProbe.expectMsgType[Status.Failure]
 
@@ -125,19 +124,19 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", Map.empty))
+        "Test", fnPath, "test", JsMap.empty))
       testProbe.expectMsgType[Status.Failure]
     }
     it("should return failure when validation fails") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          TestJobInstance(Right(Map.empty)),
+          TestJobInstance(Extracted.unit),
           ExtractedFunctionData()
         )))
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          TestJobInstance(Left(new IllegalArgumentException("invalid"))),
+          TestJobInstance(Failed.InternalError("invalid")),
           ExtractedFunctionData()
         )))
 
@@ -145,7 +144,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", Map.empty))
+        "Test", fnPath, "test", JsMap.empty))
       testProbe.expectMsgType[Status.Failure]
     }
 
@@ -189,7 +188,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          instance = TestJobInstance(Right(Map.empty)),
+          instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -200,7 +199,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       // heat up cache
       testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test"))
       testProbe.expectMsgType[ExtractedFunctionData]
-      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", Map.empty))
+      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty))
       testProbe.expectMsgType[Status.Success]
 
       verify(fnInfoExtractor, times(1)).extractInfo(any[File], any[String])
@@ -210,7 +209,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          instance = TestJobInstance(Right(Map.empty)),
+          instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -219,7 +218,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
       // heat up cache
-      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", Map.empty))
+      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty))
       testProbe.expectMsgType[Status.Success]
       testProbe.send(fnInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
@@ -229,7 +228,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       when(fnInfoExtractor.extractInfo(any[File], any[String]))
         .thenReturn(Succ(FunctionInfo(
-          instance = TestJobInstance(Right(Map.empty)),
+          instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
             lang = "scala",
             execute = Seq(UserInputArgument("test", MInt))
@@ -270,10 +269,10 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     }
   }
 
-  def TestJobInstance(validationResult: Either[Throwable, Map[String, Any]]): BaseFunctionInstance = new BaseFunctionInstance {
-    override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+  def TestJobInstance(validationResult: Extraction[Unit]): BaseFunctionInstance = new BaseFunctionInstance {
+    override def run(jobCtx: FullFnContext): Either[Throwable, JsData] = Right(JsNull)
 
-    override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = validationResult
+    override def validateParams(params: JsMap): Extraction[Unit] = validationResult
 
     override def describe(): Seq[ArgInfo] = Seq.empty
   }

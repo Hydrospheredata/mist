@@ -51,6 +51,7 @@ object TryLoad {
     case Right(v) => Succ(v)
     case Left(err) => Err(err)
   }
+
 }
 
 final case class Succ[+A](value: A) extends TryLoad[A] {

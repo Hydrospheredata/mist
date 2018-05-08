@@ -4,7 +4,9 @@ import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
 import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
 import io.hydrosphere.mist.master.execution.WorkerLink
-import mist.api.args.ArgInfo
+import mist.api.ArgInfo
+import mist.api.data._
+import mist.api.data.JsSyntax._
 
 trait TestData {
 
@@ -12,7 +14,7 @@ trait TestData {
     JobDetails(
       function = "function",
       jobId = "jobId",
-      params = JobParams("path", "class", Map("1" -> 2), Action.Execute),
+      params = JobParams("path", "class", JsMap("1" -> 2.js), Action.Execute),
       context = "context",
       externalId = None,
       source = JobDetails.Source.Http,
@@ -22,7 +24,7 @@ trait TestData {
 
 
   def mkRunReq(id: String): RunJobRequest = {
-    RunJobRequest(id, JobParams("path", "class", Map("1" -> 2), Action.Execute))
+    RunJobRequest(id, JobParams("path", "class", JsMap("1" -> 2.js), Action.Execute))
   }
 
   val FooContext = {

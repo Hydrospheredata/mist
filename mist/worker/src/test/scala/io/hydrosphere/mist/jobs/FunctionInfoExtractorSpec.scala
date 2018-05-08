@@ -4,16 +4,14 @@ import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader, OldInstanceWrapper}
+import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInstanceLoader}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
-import mist.api.args.{InternalArgument, MInt, UserInputArgument}
-import mist.api.internal.{JavaFunctionInstance, FunctionInstance, ScalaFunctionInstance}
+import mist.api.{InternalArgument, MInt, UserInputArgument}
+import mist.api.internal.{FunctionInstance, JavaFunctionInstance, ScalaFunctionInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
-
-import scala.util.{Failure, Success}
 
 class FunctionInfoExtractorSpec extends FunSpecLike
   with Matchers
@@ -71,7 +69,6 @@ class FunctionInfoExtractorSpec extends FunSpecLike
       val jobsLoader = mock[FunctionInstanceLoader]
       val scalaJobInstance = mock[ScalaFunctionInstance]
       val javaJobInstance = mock[JavaFunctionInstance]
-      val oldJobInstance = mock[OldInstanceWrapper]
 
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
       when(jobsLoader.loadFnInstance(mockitoEndsWith("Scala"), any[Action]))
@@ -80,20 +77,12 @@ class FunctionInfoExtractorSpec extends FunSpecLike
       when(jobsLoader.loadFnInstance(mockitoEndsWith("Java"), any[Action]))
         .thenReturn(Succ(javaJobInstance))
 
-      when(jobsLoader.loadFnInstance(mockitoEndsWith("Old"), any[Action]))
-        .thenReturn(Succ(oldJobInstance))
-
       when(scalaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
           InternalArgument()
         ))
       when(javaJobInstance.describe())
-        .thenReturn(Seq(
-          UserInputArgument("num", MInt),
-          InternalArgument()
-        ))
-      when(oldJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
           InternalArgument()
@@ -112,13 +101,6 @@ class FunctionInfoExtractorSpec extends FunSpecLike
         lang = "scala",
         execute=Seq(UserInputArgument("num", MInt))
       )
-      val otherJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestOld")
-
-      otherJob.isSuccess shouldBe true
-      otherJob.get.data shouldBe ExtractedFunctionData(
-        lang = "scala",
-        execute=Seq(UserInputArgument("num", MInt))
-      )
     }
 
     it("should return failure then jobsloader fails load instance") {
@@ -130,30 +112,6 @@ class FunctionInfoExtractorSpec extends FunSpecLike
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Rest")
 
       res.isFailure shouldBe true
-    }
-
-    it("should load job instance for old serve method") {
-      val oldInstance = mock[OldInstanceWrapper]
-      val jobsLoader = mock[FunctionInstanceLoader]
-      when(jobsLoader.loadFnInstance(any[String], mockitoEq(Action.Execute)))
-        .thenReturn(Err(new IllegalArgumentException("invalid")))
-      when(oldInstance.describe())
-        .thenReturn(Seq(
-          UserInputArgument("num", MInt),
-          InternalArgument()
-        ))
-      when(jobsLoader.loadFnInstance(any[String], mockitoEq(Action.Serve)))
-        .thenReturn(Succ(oldInstance))
-      val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
-
-      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestClass")
-
-      res.isSuccess shouldBe true
-      res.get.data shouldBe ExtractedFunctionData(
-        lang="scala",
-        execute = Seq(UserInputArgument("num", MInt)),
-        isServe = true
-      )
     }
 
     it("should get tags from internal arguments"){
@@ -196,8 +154,5 @@ class FunctionInfoExtractorSpec extends FunSpecLike
       res.get.instance shouldBe FunctionInstance.NoOpInstance
     }
   }
-
-
-
 
 }

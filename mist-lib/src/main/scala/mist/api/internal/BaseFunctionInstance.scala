@@ -1,36 +1,34 @@
 package mist.api.internal
 
 import mist.api._
-import mist.api.args.{ArgInfo, ArgType, MOption, UserInputArgument}
-import mist.api.data.{JsLikeData, JsLikeNull}
+import mist.api.data.{JsData, JsMap, JsNull}
 import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
+import scala.util._
 
 trait BaseFunctionInstance {
 
   def describe(): Seq[ArgInfo]
 
-  def validateParams(params: Map[String, Any]): Either[Throwable, Any]
+  def validateParams(params: JsMap): Extraction[Unit]
 
-  def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData]
+  def run(jobCtx: FullFnContext): Either[Throwable, JsData]
 }
 
-class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
+class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
-    jobDef.validate(params)
+  override def validateParams(params: JsMap): Extraction[Unit] = jobDef.validate(params)
 
-
-  override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullFnContext): Either[Throwable, JsData] = {
     try {
       instance.execute(ctx) match {
-        case f: JobFailure[_] => Left(f.e)
-        case JobSuccess(data) => Right(data)
+        case Success(data) => Right(data)
+        case Failure(e) => Left(e)
       }
     } catch {
       case e: Throwable => Left(e)
@@ -38,20 +36,19 @@ class ScalaFunctionInstance(instance: MistFn[_]) extends BaseFunctionInstance {
   }
 }
 
-class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
+class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle.underlying
 
   override def describe(): Seq[ArgInfo] = jobDef.describe()
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] =
-    jobDef.validate(params)
+  override def validateParams(params: JsMap): Extraction[Unit] = jobDef.validate(params)
 
-  override def run(ctx: FullFnContext): Either[Throwable, JsLikeData] = {
+  override def run(ctx: FullFnContext): Either[Throwable, JsData] = {
     try {
       instance.execute(ctx) match {
-        case f: JobFailure[_] => Left(f.e)
-        case JobSuccess(data) => Right(data)
+        case Success(data) => Right(data)
+        case Failure(e) => Left(e)
       }
     } catch {
       case e: Throwable => Left(e)
@@ -62,20 +59,18 @@ class JavaFunctionInstance(instance: JMistFn[_]) extends BaseFunctionInstance {
 
 class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
 
-  override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] =
+  override def run(jobCtx: FullFnContext): Either[Throwable, JsData] =
     Left(new RuntimeException("could not execute from here"))
 
-  override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = {
+  override def validateParams(params: JsMap): Extraction[Unit] = {
     val errors = args
       .collect { case x: UserInputArgument => x }
       .map(arg => validate(arg, params))
 
-    if (errors.exists(_.isLeft)) {
-      val errorMsg = errors.collect({ case Left(e) => e}).mkString("(", ",", ")")
-      val msg = s"Param validation errors: $errorMsg"
-      Left(new IllegalArgumentException(msg))
+    if (errors.exists(_.isFailed)) {
+      Failed.ComplexFailure(errors.collect({case f: Failed => f}))
     } else {
-      Right(())
+      Extracted.unit
     }
   }
 
@@ -84,13 +79,11 @@ class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
     case _ => false
   }
 
-  private def validate(arg: UserInputArgument, params: Map[String, Any]): Either[String, Unit] = {
-    params.get(arg.name) match {
-      case Some(_) if isOptionalArg(arg.t) => Right(())
-      case Some(_) =>
-        Right(())
-      case None =>
-        Left(s"Missing parameter by name: ${arg.name}")
+  private def validate(arg: UserInputArgument, params: JsMap): Extraction[Unit] = {
+    params.fieldValue(arg.name) match {
+      case JsNull if isOptionalArg(arg.t) => Extracted.unit
+      case JsNull => Failed.InvalidField(arg.name, Failed.InvalidType(arg.t.toString, "null"))
+      case x => Extracted.unit
     }
   }
 
@@ -101,21 +94,21 @@ object FunctionInstance {
 
   val NoOpInstance = new BaseFunctionInstance {
 
-    override def run(jobCtx: FullFnContext): Either[Throwable, JsLikeData] = Right(JsLikeNull)
+    override def run(jobCtx: FullFnContext): Either[Throwable, JsData] = Right(JsNull)
 
-    override def validateParams(params: Map[String, Any]): Either[Throwable, Any] = Right(Map.empty)
+    override def validateParams(params: JsMap): Extraction[Unit] = Extracted(())
 
     override def describe(): Seq[ArgInfo] = Seq()
   }
 
-  val ScalaJobClass = classOf[MistFn[_]]
-  val JavaJobClass = classOf[JMistFn[_]]
+  val ScalaJobClass = classOf[MistFn]
+  val JavaJobClass = classOf[JMistFn]
 
   def isScalaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
   def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
 
   def loadScala(clazz: Class[_]): ScalaFunctionInstance = {
-    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn[_]]
+    val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn]
     new ScalaFunctionInstance(i)
   }
 
@@ -123,7 +116,7 @@ object FunctionInstance {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new JavaFunctionInstance(i.asInstanceOf[JMistFn[_]])
+    new JavaFunctionInstance(i.asInstanceOf[JMistFn])
   }
 
   @tailrec

@@ -14,6 +14,9 @@ import io.hydrosphere.mist.master.models.FunctionConfig
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 
+import mist.api.data._
+import mist.api.data.JsSyntax._
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits._
@@ -81,7 +84,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty)
+      ), JsMap.empty)
 
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Success(()))
@@ -119,7 +122,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty)
+      ), JsMap.empty)
 
       intercept[IllegalArgumentException] {
         Await.result(f, Duration.Inf)
@@ -157,7 +160,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
-      ), Map.empty)
+      ), JsMap.empty)
 
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -217,7 +220,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
-      val f = functionInfoService.validateFunctionParams("test", Map.empty)
+      val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Success(()))
@@ -282,7 +285,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
-      val f = functionInfoService.validateFunctionParams("test", Map.empty)
+      val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -303,7 +306,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(None)
 
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
-      val f = functionInfoService.validateFunctionParams("test", Map.empty)
+      val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
 
@@ -346,7 +349,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
         .thenReturn(Some(new File(jobPath)))
 
       val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
-      val f = functionInfoService.validateFunctionParams("test", Map.empty)
+      val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
 

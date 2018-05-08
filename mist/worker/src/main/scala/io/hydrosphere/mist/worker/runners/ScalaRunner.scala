@@ -7,9 +7,9 @@ import io.hydrosphere.mist.core.CommonData.RunJobRequest
 import io.hydrosphere.mist.core.jvmjob.FunctionInstanceLoader
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.utils.{Err, Succ}
-import io.hydrosphere.mist.worker.{NamedContext, SparkArtifact}
-import mist.api.FnContext
-import mist.api.data.JsLikeData
+import io.hydrosphere.mist.worker.{MistScContext, SparkArtifact}
+import mist.api.{FnContext, RuntimeJobInfo}
+import mist.api.data.JsData
 import org.apache.spark.util.SparkClassLoader
 
 
@@ -17,7 +17,7 @@ class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
 
   override def run(
     request: RunJobRequest,
-    context: NamedContext):Either[Throwable, JsLikeData] = {
+    context: MistScContext):Either[Throwable, JsData] = {
 
     val params = request.params
     import params._
@@ -31,9 +31,8 @@ class ScalaRunner(artifact: SparkArtifact) extends JobRunner {
     }
     for {
       inst      <- instance
-      setupConf =  context.setupConfiguration(request.id)
-      _         <- inst.validateParams(params.arguments)
-      result    <- inst.run(FnContext(setupConf, params.arguments))
+      ctx       =  FnContext(context.sc, params.arguments, context.streamingDuration, RuntimeJobInfo(request.id, context.namespace))
+      result    <- inst.run(ctx)
     } yield result
   }
 

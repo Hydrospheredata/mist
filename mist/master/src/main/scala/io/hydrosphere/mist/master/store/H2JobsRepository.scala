@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import JsonCodecs._
-import mist.api.data.JsLikeData
+import mist.api.data.{JsData, JsMap}
 import slick.driver.H2Driver.api._
 import slick.lifted.ProvenShape
 import spray.json.{JsObject, JsString, enrichAny, enrichString}
@@ -26,7 +26,7 @@ trait JobsTable {
     string => JobDetails.Status(string)
   )
 
-  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, JsLikeData], String](
+  implicit def string2JobResponseOrError = MappedColumnType.base[Either[String, JsData], String](
     jobResponseOrError => {
       val jsValue = jobResponseOrError match {
         case Left(err) => JsObject("error" -> JsString(err))
@@ -42,7 +42,7 @@ trait JobsTable {
             case x => None
           })
           maybeErr match {
-            case None => Right(fields.get("result").get.convertTo[JsLikeData])
+            case None => Right(fields.get("result").get.convertTo[JsData])
             case Some(err) => Left(err)
           }
         // TODO: backward compatibility
@@ -52,9 +52,9 @@ trait JobsTable {
     }
   )
 
-  implicit def string2JobParameters = MappedColumnType.base[Map[String, Any], String](
+  implicit def string2JobParameters = MappedColumnType.base[JsMap, String](
     jobParameters => jobParameters.toJson.compactPrint,
-    string => string.parseJson.convertTo[Map[String, Any]]
+    string => string.parseJson.convertTo[JsMap]
   )
 
   implicit def string2Action = MappedColumnType.base[Action, String](
@@ -72,7 +72,7 @@ trait JobsTable {
     def path = column[String]("path")
     def className = column[String]("class_name")
     def namespace = column[String]("namespace")
-    def parameters = column[Map[String, Any]]("parameters")
+    def parameters = column[JsMap]("parameters")
     def externalId = column[Option[String]]("external_id")
     def function = column[String]("function")
     def action = column[Action]("action")
@@ -80,7 +80,7 @@ trait JobsTable {
     def jobId = column[String]("job_id", O.PrimaryKey)
     def startTime = column[Option[Long]]("start_time")
     def endTime = column[Option[Long]]("end_time")
-    def jobResult = column[Option[Either[String, JsLikeData]]]("job_result")
+    def jobResult = column[Option[Either[String, JsData]]]("job_result")
     def status = column[JobDetails.Status]("status")
     def workerId = column[Option[String]]("worker_id")
     def createTime = column[Long]("create_time")

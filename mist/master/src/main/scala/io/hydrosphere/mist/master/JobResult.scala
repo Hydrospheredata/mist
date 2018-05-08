@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import mist.api.data.{JsLikeData, JsLikeUnit}
+import mist.api.data.{JsData, JsUnit}
 
 /** Used for packing results for response
   *
@@ -10,12 +10,12 @@ import mist.api.data.{JsLikeData, JsLikeUnit}
   */
 case class JobResult(
   success: Boolean,
-  payload: JsLikeData,
+  payload: JsData,
   errors: List[String])
 
 object JobResult {
 
-  def success(payload: JsLikeData): JobResult = {
+  def success(payload: JsData): JobResult = {
     JobResult(
       success = true,
       payload = payload,
@@ -25,7 +25,7 @@ object JobResult {
   def failure(errors: List[String]): JobResult = {
     JobResult(
       success = false,
-      payload = JsLikeUnit,
+      payload = JsUnit,
       errors = errors)
   }
 

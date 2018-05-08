@@ -5,7 +5,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerConnection
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 
 import scala.concurrent.Promise
 import scala.concurrent.duration.FiniteDuration
@@ -21,7 +21,7 @@ object ExecStatus {
 class JobActor(
   callback: ActorRef,
   req: RunJobRequest,
-  promise: Promise[JsLikeData],
+  promise: Promise[JsData],
   report: StatusReporter
 ) extends Actor with ActorLogging with Timers {
 
@@ -155,7 +155,7 @@ class JobActor(
   private def onConnectionTermination(maybeConn: Option[WorkerConnection]): Unit =
     completeFailure("Executor was terminated", maybeConn)
 
-  private def completeSuccess(data: JsLikeData, connection: WorkerConnection): Unit = {
+  private def completeSuccess(data: JsData, connection: WorkerConnection): Unit = {
     promise.success(data)
     report.reportPlain(FinishedEvent(req.id, System.currentTimeMillis(), data))
     log.info(s"Job ${req.id} completed successfully")
@@ -190,7 +190,7 @@ object JobActor {
   def props(
     callback: ActorRef,
     req: RunJobRequest,
-    promise: Promise[JsLikeData],
+    promise: Promise[JsData],
     reporter: StatusReporter
   ): Props = Props(classOf[JobActor], callback, req, promise, reporter)
 

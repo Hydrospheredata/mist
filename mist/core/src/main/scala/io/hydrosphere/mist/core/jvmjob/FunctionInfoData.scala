@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.core.jvmjob
 
-import mist.api.args.UserInputArgument
+import mist.api.UserInputArgument
 
 case class ExtractedFunctionData(
   name: String = "",

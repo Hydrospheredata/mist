@@ -4,11 +4,11 @@ import java.io.File
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.core.CommonData.RunJobRequest
-import io.hydrosphere.mist.utils.{Collections, Logger}
-import io.hydrosphere.mist.worker.NamedContext
+import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.worker.MistScContext
 import io.hydrosphere.mist.worker.runners.python.wrappers.{ConfigurationWrapper, SparkStreamingWrapper}
-import mist.api.args._
-import mist.api.data.JsLikeData
+import mist.api.ArgInfo
+import mist.api.data.JsData
 import org.apache.spark.SparkConf
 import py4j.GatewayServer
 
@@ -111,10 +111,10 @@ trait DataExtractor[+T] {
   def extract(a: Any): Try[T]
 }
 
-class JsLikeDataExtractor extends DataExtractor[JsLikeData] {
-  override def extract(a: Any): Try[JsLikeData] = a match {
+class JsLikeDataExtractor extends DataExtractor[JsData] {
+  override def extract(a: Any): Try[JsData] = a match {
     case returnValue: java.util.Map[_, _] =>
-      Try(JsLikeData.fromJava(returnValue))
+      Try(JsData.fromJava(returnValue))
     case _ => Failure(new IllegalArgumentException("We should only return here ju.HashMap[String, Any] type"))
   }
 }
@@ -131,10 +131,10 @@ class ArgInfoSeqDataE extends DataExtractor[Seq[ArgInfo]] {
 }
 
 
-class ExecutePythonEntryPoint(req: RunJobRequest, context: NamedContext) extends EntryPoint {
-  val sparkContextWrapper: NamedContext = context
+class ExecutePythonEntryPoint(req: RunJobRequest, context: MistScContext) extends EntryPoint {
+  val sparkContextWrapper: MistScContext = context
   val configurationWrapper: ConfigurationWrapper = new ConfigurationWrapper(req.params)
-  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.setupConfiguration(req.id))
+  val sparkStreamingWrapper: SparkStreamingWrapper = new SparkStreamingWrapper(context.streamingDuration)
 }
 
 
@@ -146,14 +146,14 @@ class GetInfoPythonEntryPoint(
 
 class PythonFunctionExecuter(
     req    : RunJobRequest,
-    context: NamedContext
-) extends PythonCmd[JsLikeData] {
+    context: MistScContext
+) extends PythonCmd[JsData] {
 
   override val module: String = "python_execute_script"
 
   override def mkEntryPoint(): EntryPoint = new ExecutePythonEntryPoint(req, context)
 
-  override def dataExtractor: DataExtractor[JsLikeData] = new JsLikeDataExtractor
+  override def dataExtractor: DataExtractor[JsData] = new JsLikeDataExtractor
 
 }
 

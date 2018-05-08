@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.python
 
-import mist.api.args._
+import mist.api._
 
 
 object PythonUtils {
