@@ -63,29 +63,29 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
 
 }
 
+//TODO: define context value
 class PythonFunctionInfoExtractor(mkExecuter: (File, String) => PythonCmd[Seq[ArgInfo]]) extends FunctionInfoExtractor with Logger {
 
   override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
-    val executer = mkExecuter(file, className)
-    //TODO: define context value
-    val args = executer.invoke() match {
-      case Left(ex) =>
-        logger.error(ex.getLocalizedMessage, ex)
-        Seq.empty
-      case Right(out) => out
+    def mkInfo(args: Seq[ArgInfo]): FunctionInfo = {
+      val instance = new PythonFunctionInstance(args)
+      FunctionInfo(
+        instance,
+        ExtractedFunctionData(
+          className,
+          FunctionInfoData.PythonLang,
+          args.collect { case u: UserInputArgument => u },
+          isServe = false,
+          args.collect { case InternalArgument(t) => t }.flatten
+        )
+      )
     }
 
-    val instance = new PythonFunctionInstance(args)
-    Succ(FunctionInfo(
-      instance,
-      ExtractedFunctionData(
-        className,
-        FunctionInfoData.PythonLang,
-        args.collect { case u: UserInputArgument => u },
-        isServe = false,
-        args.collect { case InternalArgument(t) => t }.flatten
-      )
-    ))
+    val executer = mkExecuter(file, className)
+    executer.invoke() match {
+      case Left(ex) => Err(ex)
+      case Right(out) => Succ(mkInfo(out))
+    }
   }
 }
 
