@@ -35,7 +35,7 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(PyProject.settings: _*)
   .settings(
     PyProject.pyName := "mistpy",
-    PyProject.pyDir := (ThisBuild / baseDirectory).value / "mist-lib-py",
+    PyProject.pyDir := baseDirectory.value / "src" / "main" / "python"
   )
   .settings(
     scalacOptions ++= commonScalacOptions,
@@ -48,7 +48,8 @@ lazy val mistLib = project.in(file("mist-lib"))
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
     ),
-    parallelExecution in Test := false
+    parallelExecution in Test := false,
+    test in Test := Def.sequential(test in Test, PyProject.pyTest in Test).value
   )
 
 lazy val core = project.in(file("mist/core"))
@@ -109,8 +110,7 @@ lazy val worker = project.in(file("mist/worker"))
     resourceGenerators in Compile += {
       Def.task {
         val resourceDir = (resourceManaged in Compile).value
-        val baseDir = (baseDirectory in ThisBuild).value
-        val f = baseDir / "mist-lib-py" / "mistpy"
+        val f = (mistLib / PyProject.pySources).value
         val baseOut = resourceDir / "mistpy"
         f.listFiles().toSeq.map(r => {
           val target = baseOut / r.name
