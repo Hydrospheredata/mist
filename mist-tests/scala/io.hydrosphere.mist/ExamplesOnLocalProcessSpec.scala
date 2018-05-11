@@ -53,7 +53,6 @@ class ExamplesOnLocalProcessSpec
 
   override def beforeAll = {
     container = TestContainer.run(DockerImage("ansi","mosquitto","latest"), Map(1883 -> 1883))
-//    container.starting()
     instance = startMist
     val persistence = new MemoryPersistence
     mqttClient = new MqttClient(s"tcp://localhost:1883", MqttClient.generateClientId, persistence)
@@ -77,14 +76,14 @@ class ExamplesOnLocalProcessSpec
   }
 
   it("should run py simple context") {
-    val result = interface.runJob("simple_context",
+    val result = interface.runJob("sparkctx_example_py",
       "numbers" -> List(1, 2, 3)
     )
     assert(result.success, s"Job is failed $result")
   }
 
   it("should run session py") {
-    val result = interface.runJob("session_job",
+    val result = interface.runJob("session_example_py",
       "path" -> "./mist-tests/resources/hive_job_data.json"
     )
     assert(result.success, s"Job is failed $result")
