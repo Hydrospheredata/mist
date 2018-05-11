@@ -32,6 +32,11 @@ lazy val commonSettings = Seq(
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
+  .settings(PyProject.settings: _*)
+  .settings(
+    PyProject.pyName := "mistpy",
+    PyProject.pyDir := (ThisBuild / baseDirectory).value / "mist-lib-py",
+  )
   .settings(
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
