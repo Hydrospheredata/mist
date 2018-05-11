@@ -2,12 +2,11 @@
 
 import argparse
 import traceback
-import types
 
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
 
 from decorators import __complex_type
-from executable_entry import get_metadata
+from executable_entry import load_entry
 
 
 def to_scala_arg_type(type_hint, gateway):
@@ -56,18 +55,12 @@ def metadata_cmd(input_args):
     java_import(_gateway.jvm, 'java.util.*')
     java_import(_gateway.jvm, 'io.hydrosphere.mist.python.PythonUtils')
     error_wrapper = _entry_point.error()
-    class_name = _entry_point.functionName()
+    fn_name = _entry_point.functionName()
     file_path = _entry_point.filePath()
     data_wrapper = _entry_point.data()
 
     try:
-        with open(file_path) as file:
-            code = compile(file.read(), file_path, "exec")
-        user_job_module = types.ModuleType("<user_job>")
-        exec(code, user_job_module.__dict__)
-
-        module_entry = getattr(user_job_module, class_name)
-        executable_entry = get_metadata(module_entry)
+        executable_entry = load_entry(file_path, fn_name)
         internal_arg = to_scala_internal_arg_info(executable_entry.tags, _gateway)
         arg_infos = list(map(lambda a: to_scala_arg_info(a, _gateway), executable_entry.args_info))
         arg_infos.append(internal_arg)

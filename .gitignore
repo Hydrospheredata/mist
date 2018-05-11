@@ -22,6 +22,7 @@ ui_local
 .eggs/
 .pytest_cache/
 env-mistpy-2/
+dist/
 
 
 

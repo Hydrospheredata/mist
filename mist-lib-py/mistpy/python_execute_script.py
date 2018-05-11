@@ -1,12 +1,12 @@
 # coding=utf-8
 
-import sys, traceback, types, argparse
+import sys, traceback, argparse
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
 from py4j.java_collections import JavaMap, JavaList
 
 from pyspark.sql.types import *
 
-from executable_entry import get_metadata
+from executable_entry import load_entry
 from context_wrapper import ContextWrapper
 from decorators import SPARK_CONTEXT, SPARK_SESSION, SPARK_STREAMING, HIVE_CONTEXT, HIVE_SESSION, SQL_CONTEXT
 
@@ -71,19 +71,14 @@ def execution_cmd(args):
     configuration_wrapper = _entry_point.configurationWrapper()
     error_wrapper = _entry_point.error()
     path = configuration_wrapper.path()
-    class_name = configuration_wrapper.className()
+    fn_name = configuration_wrapper.className()
     parameters = configuration_wrapper.parameters()
 
     data_wrapper = _entry_point.data()
 
-    try:
-        with open(path) as file:
-            code = compile(file.read(), path, "exec")
-        user_job_module = types.ModuleType("<user_job>")
-        exec(code, user_job_module.__dict__)
 
-        module_entry = getattr(user_job_module, class_name)
-        executable_entry = get_metadata(module_entry)
+    try:
+        executable_entry = load_entry(path, fn_name)
         selected_spark_argument = executable_entry.selected_spark_argument
 
         argument = initialized_context_value(_gateway, context_wrapper, selected_spark_argument)

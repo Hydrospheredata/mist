@@ -114,7 +114,7 @@ class BaseFunctionInfoExtractor(
 
   private def selectExtractor(file: File): FunctionInfoExtractor =
     FilenameUtils.getExtension(file.getAbsolutePath) match {
-      case "py" => pythonJobInfoExtractor
+      case "py" | "egg" => pythonJobInfoExtractor
       case "jar" => jvmJobInfoExtractor
     }
 }

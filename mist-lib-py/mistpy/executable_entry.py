@@ -1,5 +1,7 @@
 import inspect
 import sys
+import importlib
+import types
 from abc import abstractmethod
 from collections import namedtuple
 from inspect import isfunction
@@ -89,3 +91,29 @@ def get_metadata(fn):
             return FunctionEntry(fn)
         else:
             raise Exception(fn.__name__ + ' is not a mist function')
+
+def load_entry_object(path, fn_name):
+    def load_egg_entry(path):
+        sys.path.append(path)
+        splitted = fn_name.split('.')
+        module_path = '.'.join(splitted[:-1])
+        fn_attr = splitted[-1]
+
+        module = importlib.import_module(module_path)
+        return getattr(module, fn_attr)
+
+    def load_one_file(path):
+        with open(path) as file:
+            code = compile(file.read(), path, "exec")
+        user_job_module = types.ModuleType("<user_job>")
+        exec(code, user_job_module.__dict__)
+        return getattr(user_job_module, fn_name)
+
+    if (path.endswith(".egg")):
+        return load_egg_entry(path)
+    else:
+        return load_one_file(path)
+
+def load_entry(path, fn_name):
+    module_entry = load_entry_object(path, fn_name)
+    return get_metadata(module_entry)
