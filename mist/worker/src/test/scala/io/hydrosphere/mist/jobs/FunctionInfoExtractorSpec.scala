@@ -139,19 +139,23 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     }
 
   }
+
   describe("PyJobInfoExtractor") {
-    it("should create py job info extractor") {
-      new PythonFunctionInfoExtractor
-    }
+//    it("should create py job info extractor") {
+//      new PythonFunctionInfoExtractor
+//    }
 
     it("should extract py info") {
-      val pythonJobInfoExtractor = new PythonFunctionInfoExtractor
+      val pythonJobInfoExtractor =
+        new PythonFunctionInfoExtractor((_, _) => Right(Seq(UserInputArgument("x", MInt))))
+
       val res = pythonJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Test")
       res.isSuccess shouldBe true
       res.get.data shouldBe ExtractedFunctionData(
-        lang="python"
+        name = "Test",
+        lang="python",
+        execute = Seq(UserInputArgument("x", MInt))
       )
-      res.get.instance shouldBe FunctionInstance.NoOpInstance
     }
   }
 

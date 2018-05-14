@@ -144,7 +144,7 @@ class GetInfoPythonEntryPoint(
 ) extends EntryPoint
 
 
-class PythonFunctionExecuter(
+class PythonFunctionExecutor(
     req    : RunJobRequest,
     context: MistScContext
 ) extends PythonCmd[JsData] {
@@ -157,7 +157,7 @@ class PythonFunctionExecuter(
 
 }
 
-class FunctionInfoPythonExecuter(jobFile: File, fnName: String) extends PythonCmd[Seq[ArgInfo]] {
+class FunctionInfoPythonExecutor(jobFile: File, fnName: String) extends PythonCmd[Seq[ArgInfo]] {
 
   override val module: String = "metadata_extractor"
 

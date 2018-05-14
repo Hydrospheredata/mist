@@ -5,7 +5,7 @@ import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
-import io.hydrosphere.mist.python.{FunctionInfoPythonExecuter, PythonCmd}
+import io.hydrosphere.mist.python.{FunctionInfoPythonExecutor, PythonCmd}
 import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
 import mist.api.internal.{BaseFunctionInstance, FunctionInstance, JavaFunctionInstance, PythonFunctionInstance}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
@@ -64,7 +64,9 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
 }
 
 //TODO: define context value
-class PythonFunctionInfoExtractor(mkExecuter: (File, String) => PythonCmd[Seq[ArgInfo]]) extends FunctionInfoExtractor with Logger {
+class PythonFunctionInfoExtractor(
+  executor: (File, String) => Either[Throwable, Seq[ArgInfo]]
+) extends FunctionInfoExtractor with Logger {
 
   override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
     def mkInfo(args: Seq[ArgInfo]): FunctionInfo = {
@@ -81,8 +83,7 @@ class PythonFunctionInfoExtractor(mkExecuter: (File, String) => PythonCmd[Seq[Ar
       )
     }
 
-    val executer = mkExecuter(file, className)
-    executer.invoke() match {
+    executor(file, className) match {
       case Left(ex) => Err(ex)
       case Right(out) => Succ(mkInfo(out))
     }
@@ -92,8 +93,8 @@ class PythonFunctionInfoExtractor(mkExecuter: (File, String) => PythonCmd[Seq[Ar
 object PythonFunctionInfoExtractor {
 
   def apply(): PythonFunctionInfoExtractor = {
-    val mkExecuter = (file: File, fnName: String) => new FunctionInfoPythonExecuter(file, fnName)
-    new PythonFunctionInfoExtractor(mkExecuter)
+    val executor = (file: File, fnName: String) => new FunctionInfoPythonExecutor(file, fnName).invoke()
+    new PythonFunctionInfoExtractor(executor)
   }
 }
 
