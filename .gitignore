@@ -21,8 +21,6 @@ ui_local
 *.egg-info
 .eggs/
 .pytest_cache/
-env-mistpy-2/
+env-*
 dist/
-
-
-
+build/

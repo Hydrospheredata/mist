@@ -34,10 +34,6 @@ lazy val mistLib = project.in(file("mist-lib"))
   .settings(PublishSettings.settings: _*)
   .settings(PyProject.settings: _*)
   .settings(
-    PyProject.pyName := "mistpy",
-    PyProject.pyDir := baseDirectory.value / "src" / "main" / "python"
-  )
-  .settings(
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
@@ -48,6 +44,7 @@ lazy val mistLib = project.in(file("mist-lib"))
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
     ),
+    PyProject.pyName := "mistpy",
     parallelExecution in Test := false,
     test in Test := Def.sequential(test in Test, PyProject.pyTest in Test).value
   )
@@ -192,26 +189,24 @@ lazy val root = project.in(file("."))
              |namespace = foo""".stripMargin
         )
       }}) :+ CpFile(sbt.Keys.`package`.in(examples, Compile).value)
-        .as(s"mist-examples.jar")
+        .as("mist-examples.jar")
         .to("data/artifacts")
 
       val mkPyfunctions = Seq(
-        ("session_example.py",      "session_example"),
-        ("sparkctx_example.py",     "sparkctx_example"),
-        ("sqlctx_example.py",       "sqlctx_example"),
-        ("streamingctx_example.py", "streamingctx_example")
-      ).flatMap({case (file, clazz) => {
-        val name = file.replace(".py", "_py")
-        Seq(
-          Write(
-            s"data/functions/$name.conf",
-            s"""path = $file
-               |className = "$clazz"
-               |namespace = foo""".stripMargin
-          ),
-          CpFile(s"examples/examples-python/$file").to("data/artifacts")
+        "session_example",
+        "sparkctx_example",
+        "sqlctx_example",
+        "streamingctx_example"
+      ).map(fn => {
+        Write(
+          s"data/functions/${fn}_py.conf",
+          s"""path = mist_pyexamples.egg
+             |className = "mist_examples.${fn}"
+             |namespace = foo""".stripMargin
         )
-      }})
+      }) :+ CpFile(PyProject.pyBdistEgg.in(examples).value)
+          .as("mist_pyexamples.egg")
+          .to("data/artifacts")
 
       Seq(MkDir("data/artifacts"), MkDir("data/functions")) ++ mkJfunctions ++ mkPyfunctions
     }
@@ -334,9 +329,11 @@ addCommandAlias("testAll", ";test;it:test")
 lazy val examples = project.in(file("examples/examples"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
+  .settings(PyProject.settings:_*)
   .settings(
     name := "mist-examples",
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    PyProject.pyName := "mist_examples"
   )
 
 lazy val docs = project.in(file("docs"))
