@@ -83,7 +83,7 @@ class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
     params.fieldValue(arg.name) match {
       case JsNull if isOptionalArg(arg.t) => Extracted.unit
       case JsNull => Failed.InvalidField(arg.name, Failed.InvalidType(arg.t.toString, "null"))
-      case x => Extracted.unit
+      case _ => Extracted.unit
     }
   }
 

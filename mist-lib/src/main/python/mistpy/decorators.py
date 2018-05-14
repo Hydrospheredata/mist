@@ -38,9 +38,10 @@ class SystemArg(object):
 
 
 class AbstractArg(object):
-    def __init__(self, name, type_hint):
+    def __init__(self, name, type_hint, is_optional):
         self.name = name
         self.type_hint = type_hint
+        self.is_optional = is_optional
 
     @abstractmethod
     def _decorate(self, fn_args, fn_kwargs):
@@ -55,6 +56,10 @@ class AbstractArg(object):
 
 
 class NamedArg(AbstractArg):
+
+    def __init__(self, name, type_hint):
+        super(NamedArg, self).__init__(name, type_hint, False)
+
     def _decorate(self, fn_args, fn_kwargs):
         new_kw = dict(fn_kwargs)
         args = list(fn_args)
@@ -70,7 +75,7 @@ class NamedArg(AbstractArg):
 
 class NamedArgWithDefault(AbstractArg):
     def __init__(self, name, type_hint, default=None):
-        super(NamedArgWithDefault, self).__init__(name, type_hint)
+        super(NamedArgWithDefault, self).__init__(name, type_hint, True)
         self.default = default
 
     def _decorate(self, fn_args, fn_kwargs):
@@ -83,7 +88,7 @@ class NamedArgWithDefault(AbstractArg):
 
 class OptionalArg(AbstractArg):
     def __init__(self, name, type_hint):
-        super(OptionalArg, self).__init__(name, type_hint)
+        super(OptionalArg, self).__init__(name, type_hint, True)
 
     def _decorate(self, fn_args, fn_kwargs):
         new_kwargs = dict(fn_kwargs)

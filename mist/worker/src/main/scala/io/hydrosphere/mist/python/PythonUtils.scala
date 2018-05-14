@@ -23,6 +23,7 @@ object PythonUtils {
   val boolType: ArgType = MBoolean
 
   def listType(underlying: ArgType): ArgType = MList(underlying)
+  def optType(underlying: ArgType): ArgType = MOption(underlying)
 
   def userArg(name: String, argType: ArgType): ArgInfo = UserInputArgument(name, argType)
 

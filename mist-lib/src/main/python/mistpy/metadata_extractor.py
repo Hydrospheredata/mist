@@ -44,6 +44,8 @@ def to_scala_internal_arg_info(tags, gateway):
 def to_scala_arg_info(arg_decorator_like, gateway):
     type_hint = arg_decorator_like.type_hint
     arg_type = to_scala_arg_type(type_hint, gateway)
+    if arg_decorator_like.is_optional:
+        arg_type = gateway.jvm.PythonUtils.optType(arg_type)
     arg = gateway.jvm.PythonUtils.userArg(arg_decorator_like.name, arg_type)
     return arg
 
