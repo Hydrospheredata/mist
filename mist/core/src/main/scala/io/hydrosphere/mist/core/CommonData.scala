@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.core
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.jvmjob.PythonEntrySettings
 import mist.api.data.{JsData, JsMap}
 
 import scala.concurrent.duration.Duration
@@ -109,7 +108,7 @@ object CommonData {
 
   case class RegisterJobInfoProvider(ref: ActorRef)
 
-  case class InfoEnv(pythonSettings: PythonEntrySettings)
+  case class EnvInfo(pythonSettings: PythonEntrySettings)
 
   sealed trait JobInfoMessage
 
@@ -117,13 +116,13 @@ object CommonData {
     val className: String
     val jobPath: String
     val name: String
-    val infoEnv: InfoEnv
+    val envInfo: EnvInfo
   }
   case class GetFunctionInfo(
     className: String,
     jobPath: String,
     name: String,
-    infoEnv: InfoEnv
+    envInfo: EnvInfo
   ) extends InfoRequest
 
   case class ValidateFunctionParameters(
@@ -131,7 +130,7 @@ object CommonData {
     jobPath: String,
     name: String,
     params: JsMap,
-    infoEnv: InfoEnv
+    envInfo: EnvInfo
   ) extends InfoRequest
 
   case class GetAllFunctions(

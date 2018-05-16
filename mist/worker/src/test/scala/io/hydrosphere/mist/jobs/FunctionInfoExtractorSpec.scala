@@ -2,9 +2,8 @@ package io.hydrosphere.mist.jobs
 
 import java.io.File
 
-import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInstanceLoader}
+import io.hydrosphere.mist.core.CommonData.{Action, EnvInfo}
+import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
 import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.{InternalArgument, MInt, UserInputArgument}
@@ -22,38 +21,40 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     FunctionInfoExtractor()
   }
 
+  val envInfo = EnvInfo(PythonEntrySettings("python", "python"))
+
   describe("BaseJobInfoExtractor") {
     it("should extract jvm job") {
       val jvmExtractor = mock[JvmFunctionInfoExtractor]
       val pyExtractor = mock[PythonFunctionInfoExtractor]
 
-      when(jvmExtractor.extractInfo(any[File], any[String]))
+      when(jvmExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(data = ExtractedFunctionData("test"))))
 
       val baseJobInfoExtractor = new BaseFunctionInfoExtractor(jvmExtractor, pyExtractor)
 
-      val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.jar"), "Test")
+      val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.jar"), "Test", envInfo)
 
       info.get shouldBe FunctionInfo(data = ExtractedFunctionData("test"))
 
-      verify(jvmExtractor, times(1)).extractInfo(any[File], any[String])
-      verify(pyExtractor, never()).extractInfo(any[File], any[String])
+      verify(jvmExtractor, times(1)).extractInfo(any[File], any[String], any[EnvInfo])
+      verify(pyExtractor, never()).extractInfo(any[File], any[String], any[EnvInfo])
     }
     it("should extract py job") {
       val jvmExtractor = mock[JvmFunctionInfoExtractor]
       val pyExtractor = mock[PythonFunctionInfoExtractor]
 
-      when(pyExtractor.extractInfo(any[File], any[String]))
+      when(pyExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(data = ExtractedFunctionData("test"))))
 
       val baseJobInfoExtractor = new BaseFunctionInfoExtractor(jvmExtractor, pyExtractor)
 
-      val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.py"), "Test")
+      val info = baseJobInfoExtractor.extractInfo(new File("doesnt_matter.py"), "Test", envInfo)
 
       info.get shouldBe FunctionInfo(data = ExtractedFunctionData("test"))
 
-      verify(jvmExtractor, never()).extractInfo(any[File], any[String])
-      verify(pyExtractor, times(1)).extractInfo(any[File], any[String])
+      verify(jvmExtractor, never()).extractInfo(any[File], any[String], any[EnvInfo])
+      verify(pyExtractor, times(1)).extractInfo(any[File], any[String], any[EnvInfo])
 
     }
   }
@@ -88,13 +89,13 @@ class FunctionInfoExtractorSpec extends FunSpecLike
           InternalArgument()
         ))
 
-      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
+      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava", envInfo)
       res.isSuccess shouldBe true
       res.get.data shouldBe ExtractedFunctionData(
         lang = "java",
         execute=Seq(UserInputArgument("num", MInt))
       )
-      val scalaJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestScala")
+      val scalaJob = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestScala", envInfo)
 
       scalaJob.isSuccess shouldBe true
       scalaJob.get.data shouldBe ExtractedFunctionData(
@@ -109,7 +110,7 @@ class FunctionInfoExtractorSpec extends FunSpecLike
         .thenReturn(Err(new IllegalArgumentException("invalid")))
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
-      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Rest")
+      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Rest", envInfo)
 
       res.isFailure shouldBe true
     }
@@ -128,7 +129,7 @@ class FunctionInfoExtractorSpec extends FunSpecLike
         ))
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
-      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava")
+      val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava", envInfo)
       res.isSuccess shouldBe true
       res.get.data shouldBe ExtractedFunctionData(
         lang = "java",
@@ -141,15 +142,12 @@ class FunctionInfoExtractorSpec extends FunSpecLike
   }
 
   describe("PyJobInfoExtractor") {
-//    it("should create py job info extractor") {
-//      new PythonFunctionInfoExtractor
-//    }
 
     it("should extract py info") {
       val pythonJobInfoExtractor =
-        new PythonFunctionInfoExtractor((_, _) => Right(Seq(UserInputArgument("x", MInt))))
+        new PythonFunctionInfoExtractor((_, _, _) => Right(Seq(UserInputArgument("x", MInt))))
 
-      val res = pythonJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Test")
+      val res = pythonJobInfoExtractor.extractInfo(new File("doesnt_matter"), "Test", envInfo)
       res.isSuccess shouldBe true
       res.get.data shouldBe ExtractedFunctionData(
         name = "Test",

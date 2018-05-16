@@ -3,8 +3,8 @@ package io.hydrosphere.mist.python
 import java.io.File
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.CommonData.{InfoEnv, RunJobRequest}
-import io.hydrosphere.mist.core.jvmjob.PythonEntrySettings
+import io.hydrosphere.mist.core.CommonData.{EnvInfo, RunJobRequest}
+import io.hydrosphere.mist.core.PythonEntrySettings
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.MistScContext
 import io.hydrosphere.mist.worker.runners.python.wrappers.{ConfigurationWrapper, SparkStreamingWrapper}
@@ -163,7 +163,7 @@ class PythonFunctionExecutor(
 class FunctionInfoPythonExecutor(
   jobFile: File,
   fnName: String,
-  info: InfoEnv
+  info: EnvInfo
 ) extends PythonCmd[Seq[ArgInfo]] {
 
   override val module: String = "metadata_extractor"

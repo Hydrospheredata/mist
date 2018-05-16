@@ -7,10 +7,10 @@ import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{GetAllFunctions, GetFunctionInfo, InfoEnv, ValidateFunctionParameters}
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
+import io.hydrosphere.mist.core.CommonData.{GetAllFunctions, GetFunctionInfo, EnvInfo, ValidateFunctionParameters}
+import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}
 import io.hydrosphere.mist.utils.Logger
 import mist.api.data.JsMap
@@ -22,7 +22,7 @@ import scala.reflect.ClassTag
 class FunctionInfoService(
   functionInfoActor: ActorRef,
   functionStorage: FunctionConfigStorage,
-  ctxStorage: ContextsStorage,
+  ctxStorage: Contexts,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) extends Logger {
   val timeoutDuration = 5 seconds
@@ -74,7 +74,7 @@ class FunctionInfoService(
       case Some(file) =>
         for {
           ctx <- ctxStorage.getOrDefault(function.defaultContext)
-          _ <- askInfoProvider[ExtractedFunctionData](createValidateParamsMsg(function, ctx, file, params))
+          _ <- askInfoProvider[Unit](createValidateParamsMsg(function, ctx, file, params))
         } yield ()
       case None => Future.failed(new IllegalArgumentException(s"file not exists by path ${function.path}"))
     }
@@ -135,7 +135,7 @@ class FunctionInfoService(
     function.className,
     file.getAbsolutePath,
     function.name,
-    InfoEnv(PythonEntrySettings.fromConf(ctx.sparkConf))
+    EnvInfo(PythonEntrySettings.fromConf(ctx.sparkConf))
   )
 
   private def createValidateParamsMsg(
@@ -148,6 +148,6 @@ class FunctionInfoService(
     file.getAbsolutePath,
     function.name,
     params,
-    InfoEnv(PythonEntrySettings.fromConf(ctx.sparkConf))
+    EnvInfo(PythonEntrySettings.fromConf(ctx.sparkConf))
   )
 }

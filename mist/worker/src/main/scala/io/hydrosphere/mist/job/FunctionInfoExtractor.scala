@@ -3,8 +3,10 @@ package io.hydrosphere.mist.job
 import java.io.File
 import java.net.URLClassLoader
 
-import io.hydrosphere.mist.core.CommonData.{Action, InfoEnv}
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
+import io.hydrosphere.mist.core
+import io.hydrosphere.mist.core.CommonData.{Action, EnvInfo}
+import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData}
+import io.hydrosphere.mist.core.ExtractedFunctionData
 import io.hydrosphere.mist.python.{FunctionInfoPythonExecutor, PythonCmd}
 import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
 import mist.api.internal.{BaseFunctionInstance, FunctionInstance, JavaFunctionInstance, PythonFunctionInstance}
@@ -18,12 +20,12 @@ case class FunctionInfo(
 )
 
 trait FunctionInfoExtractor {
-  def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo]
+  def extractInfo(file: File, className: String, infoEnv: EnvInfo): TryLoad[FunctionInfo]
 }
 
 class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) extends FunctionInfoExtractor {
 
-  override def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo] = {
+  override def extractInfo(file: File, className: String, infoEnv: EnvInfo): TryLoad[FunctionInfo] = {
     val prev = Thread.currentThread().getContextClassLoader
     try {
       val existing = this.getClass.getClassLoader
@@ -38,7 +40,7 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
           case _: JavaFunctionInstance => FunctionInfoData.JavaLang
           case _ => FunctionInfoData.ScalaLang
         }
-        FunctionInfo(instance, ExtractedFunctionData(
+        FunctionInfo(instance, core.ExtractedFunctionData(
           lang = lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeFnInstance.isSuccess,
@@ -64,10 +66,10 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
 }
 
 class PythonFunctionInfoExtractor(
-  executor: (File, String, InfoEnv) => Either[Throwable, Seq[ArgInfo]]
+  executor: (File, String, EnvInfo) => Either[Throwable, Seq[ArgInfo]]
 ) extends FunctionInfoExtractor with Logger {
 
-  override def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo] = {
+  override def extractInfo(file: File, className: String, infoEnv: EnvInfo): TryLoad[FunctionInfo] = {
     def mkInfo(args: Seq[ArgInfo]): FunctionInfo = {
       val instance = new PythonFunctionInstance(args)
       FunctionInfo(
@@ -92,7 +94,7 @@ class PythonFunctionInfoExtractor(
 object PythonFunctionInfoExtractor {
 
   def apply(): PythonFunctionInfoExtractor = {
-    val executor = (file: File, fnName: String, infoEnv: InfoEnv) => new FunctionInfoPythonExecutor(file, fnName, infoEnv).invoke()
+    val executor = (file: File, fnName: String, infoEnv: EnvInfo) => new FunctionInfoPythonExecutor(file, fnName, infoEnv).invoke()
     new PythonFunctionInfoExtractor(executor)
   }
 }
@@ -111,7 +113,7 @@ class BaseFunctionInfoExtractor(
   override def extractInfo(
     file: File,
     className: String,
-    infoEnv: InfoEnv
+    infoEnv: EnvInfo
   ): TryLoad[FunctionInfo] = selectExtractor(file).extractInfo(file, className, infoEnv)
 
   private def selectExtractor(file: File): FunctionInfoExtractor =

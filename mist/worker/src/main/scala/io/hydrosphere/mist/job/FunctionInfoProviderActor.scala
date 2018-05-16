@@ -5,7 +5,7 @@ import java.io.File
 import akka.actor.SupervisorStrategy.Resume
 import akka.actor.{Status, _}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.jvmjob.ExtractedFunctionData
+import io.hydrosphere.mist.core.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.{Extracted, Failed}
 import mist.api.data.JsMap
@@ -183,14 +183,14 @@ class FunctionInfoProviderActor(
   private def jobInfo(req: InfoRequest): TryLoad[FunctionInfo] = {
     import req._
     val f = new File(jobPath)
-    jobInfoExtractor.extractInfo(f, className, req.infoEnv).map(e => e.copy(data = e.data.copy(name = req.name)))
+    jobInfoExtractor.extractInfo(f, className, req.envInfo).map(e => e.copy(data = e.data.copy(name = req.name)))
   }
 
   case class CacheKey(
     name: String,
     className: String,
     lastModified: Long,
-    env: InfoEnv
+    env: EnvInfo
   )
 
   private def mkKey(req: InfoRequest, file: File): CacheKey =
@@ -198,7 +198,7 @@ class FunctionInfoProviderActor(
       name = req.name,
       className = req.className,
       lastModified = file.lastModified(),
-      env = req.infoEnv
+      env = req.envInfo
     )
 
 }

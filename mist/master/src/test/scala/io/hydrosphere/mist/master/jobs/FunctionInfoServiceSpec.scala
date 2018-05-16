@@ -6,18 +6,18 @@ import java.nio.file.Paths
 import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData.{Action, GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
+import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, MockitoSugar}
+import io.hydrosphere.mist.core.ExtractedFunctionData
+import io.hydrosphere.mist.master.TestData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.data.FunctionConfigStorage
-import io.hydrosphere.mist.master.models.FunctionConfig
+import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
-
 import mist.api.data._
 import mist.api.data.JsSyntax._
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits._
 
@@ -30,6 +30,8 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
   val baseDir = "./target/test-jobs"
   val jobPath = Paths.get(baseDir, "testJob.jar").toString
+
+  val testContexts = TestContexts.mk(TestData.FooContext.copy(name = "default"), TestData.FooContext)
 
   override def beforeAll(): Unit = {
     val f = new File(baseDir)
@@ -52,7 +54,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -81,7 +83,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), JsMap.empty)
@@ -100,7 +102,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -118,7 +120,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
 
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
@@ -138,7 +140,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -157,7 +159,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), JsMap.empty)
@@ -185,7 +187,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       probe.expectMsgType[GetFunctionInfo]
@@ -219,7 +221,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       probe.expectMsgType[ValidateFunctionParameters]
@@ -242,7 +244,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
@@ -264,7 +266,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
@@ -284,7 +286,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
@@ -305,7 +307,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
@@ -326,7 +328,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
       probe.expectMsgType[GetFunctionInfo]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -348,7 +350,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -374,7 +376,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.allFunctions
       probe.expectMsgType[GetAllFunctions]
       probe.reply(Seq(ExtractedFunctionData(name="test")))
@@ -392,12 +394,29 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
       when(artifactRepo.get(any[String])).thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, artifactRepo)
+      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.allFunctions
 
       val response = Await.result(f, Duration.Inf)
       response.size shouldBe 0
     }
 
+  }
+
+  class TestContexts(
+    default: ContextConfig,
+    ctxs: Map[String, ContextConfig]
+  ) extends Contexts {
+    override def get(name: String): Future[Option[ContextConfig]] = Future.successful(ctxs.get(name))
+    override def getOrDefault(name: String): Future[ContextConfig] = get(name).map(_.getOrElse(default))
+    override def all: Future[Seq[ContextConfig]] = Future.successful(ctxs.values.toSeq)
+    override def defaultConfig: ContextConfig = default
+  }
+
+  object TestContexts {
+
+    def mk(default: ContextConfig, ctxs: ContextConfig*): Contexts = {
+      new TestContexts(default, ctxs.map(c => c.name -> c).toMap)
+    }
   }
 }

@@ -8,8 +8,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
+import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -24,7 +23,6 @@ import org.mockito.Matchers.{anyInt, eq => mockitoEq}
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
-
 import mist.api.data._
 import mist.api.data.JsSyntax._
 

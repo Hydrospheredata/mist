@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
-import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
+import io.hydrosphere.mist.core.FunctionInfoData
 import io.hydrosphere.mist.master.execution.WorkerLink
 import mist.api.ArgInfo
 import mist.api.data._

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
-from .tags import TYPE_CHOICES, SPARK_CONTEXT, SPARK_SESSION, SQL_CONTEXT, HIVE_CONTEXT, HIVE_SESSION, SPARK_STREAMING
-from .tags import tags as dec_tags
+from mistpy.tags import TYPE_CHOICES, SPARK_CONTEXT, SPARK_SESSION, SQL_CONTEXT, HIVE_CONTEXT, HIVE_SESSION, SPARK_STREAMING
+from mistpy.tags import tags as dec_tags
 
 
 class BadParameterException(Exception):

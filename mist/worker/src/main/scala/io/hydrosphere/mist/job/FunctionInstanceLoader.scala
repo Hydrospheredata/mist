@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core.jvmjob
+package io.hydrosphere.mist.job
 
 import java.io.File
 import java.net.URLClassLoader
@@ -19,11 +19,6 @@ class FunctionInstanceLoader(val classLoader: ClassLoader) {
         val e = new IllegalStateException(s"Can not instantiate job for action $action")
         Err(e)
     })
-  }
-
-  private def methodNameByAction(action: Action): String = action match {
-    case Action.Execute => "execute"
-    case Action.Serve => "serve"
   }
 
   private def loadClass(name: String): TryLoad[Class[_]] =

@@ -6,8 +6,7 @@ import java.nio.file.Paths
 import akka.actor.{Actor, ActorSystem, Status}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData}
+import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
 import io.hydrosphere.mist.job.{Cache, FunctionInfo, FunctionInfoExtractor, FunctionInfoProviderActor}
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api._
@@ -42,11 +41,13 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     FileUtils.deleteQuietly(f)
   }
 
+  val envInfo = EnvInfo(PythonEntrySettings("python", "python"))
+
   describe("Actor") {
 
     it("should get fn info when file is found") {
       val functionInfoExtractor = mock[FunctionInfoExtractor]
-      when(functionInfoExtractor.extractInfo(any[File], any[String]))
+      when(functionInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           data = ExtractedFunctionData(
             lang = "scala",
@@ -55,7 +56,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
         )))
       val testProbe = TestProbe()
       val fnInfoProvider = TestActorRef[Actor](FunctionInfoProviderActor.props(functionInfoExtractor))
-      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", fnPath, "test"))
+      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", fnPath, "test", envInfo))
       testProbe.expectMsg(ExtractedFunctionData(
         lang = "scala",
         execute = Seq(UserInputArgument("test", MInt)),
@@ -69,27 +70,27 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProvider = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       val notExistingFile = "not_existing_file.jar"
-      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", notExistingFile, "test"))
+      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", notExistingFile, "test", envInfo))
 
       testProbe.expectMsgType[Status.Failure]
     }
 
     it("should handle failure of extraction when get fn info") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Err(new IllegalArgumentException("invalid fn")))
 
       val testProbe = TestProbe()
       val fnInfoProvider = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
-      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", fnPath, "test"))
+      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", fnPath, "test", envInfo))
 
       testProbe.expectMsgType[Status.Failure]
     }
 
     it("should return validation success when validation is passed") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           TestJobInstance(Extracted.unit),
           ExtractedFunctionData()
@@ -99,7 +100,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", JsMap.empty))
+        "Test", fnPath, "test", JsMap.empty, envInfo))
       testProbe.expectMsgType[Status.Success]
 
     }
@@ -110,31 +111,31 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", "not_existing_file.jar", "test", JsMap.empty))
+        "Test", "not_existing_file.jar", "test", JsMap.empty, envInfo))
 
       testProbe.expectMsgType[Status.Failure]
 
     }
     it("should return failure when fail to extract instance") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Err(new IllegalArgumentException("invalid")))
 
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", JsMap.empty))
+        "Test", fnPath, "test", JsMap.empty, envInfo))
       testProbe.expectMsgType[Status.Failure]
     }
     it("should return failure when validation fails") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           TestJobInstance(Extracted.unit),
           ExtractedFunctionData()
         )))
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           TestJobInstance(Failed.InternalError("invalid")),
           ExtractedFunctionData()
@@ -144,13 +145,13 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
       testProbe.send(fnInfoProviderActor, ValidateFunctionParameters(
-        "Test", fnPath, "test", JsMap.empty))
+        "Test", fnPath, "test", JsMap.empty, envInfo))
       testProbe.expectMsgType[Status.Failure]
     }
 
     it("should cache fn info when requested") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           data = ExtractedFunctionData(
             lang = "scala",
@@ -160,7 +161,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
 
-      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test"))
+      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test", envInfo))
       testProbe.expectMsgType[ExtractedFunctionData]
       testProbe.send(fnInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
@@ -168,7 +169,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     it("should hit cache when get fn info") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           data = ExtractedFunctionData(
             lang = "scala",
@@ -178,15 +179,15 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
       // heat up cache
-      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test"))
+      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test", envInfo))
       testProbe.expectMsgType[ExtractedFunctionData]
-      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test"))
-      verify(fnInfoExtractor, times(1)).extractInfo(any[File], any[String])
+      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test", envInfo))
+      verify(fnInfoExtractor, times(1)).extractInfo(any[File], any[String], any[EnvInfo])
     }
 
     it("should hit cache when validate fn info") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
@@ -197,17 +198,17 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
       // heat up cache
-      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test"))
+      testProbe.send(fnInfoProviderActor, GetFunctionInfo("Test", fnPath, "test", envInfo))
       testProbe.expectMsgType[ExtractedFunctionData]
-      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty))
+      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty, envInfo))
       testProbe.expectMsgType[Status.Success]
 
-      verify(fnInfoExtractor, times(1)).extractInfo(any[File], any[String])
+      verify(fnInfoExtractor, times(1)).extractInfo(any[File], any[String], any[EnvInfo])
     }
 
     it("should cache fn info when validate fn") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
@@ -218,7 +219,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val testProbe = TestProbe()
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
       // heat up cache
-      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty))
+      testProbe.send(fnInfoProviderActor, ValidateFunctionParameters("Test", fnPath, "test", JsMap.empty, envInfo))
       testProbe.expectMsgType[Status.Success]
       testProbe.send(fnInfoProviderActor, GetCacheSize)
       testProbe.expectMsg(1)
@@ -226,7 +227,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
 
     it("should get all items in request") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
-      when(fnInfoExtractor.extractInfo(any[File], any[String]))
+      when(fnInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
         .thenReturn(Succ(FunctionInfo(
           instance = TestJobInstance(Extracted.unit),
           data = ExtractedFunctionData(
@@ -238,7 +239,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       val fnInfoProviderActor = TestActorRef[Actor](FunctionInfoProviderActor.props(fnInfoExtractor))
       // heat up cache
       testProbe.send(fnInfoProviderActor,
-        GetAllFunctions(List(GetFunctionInfo("Test", fnPath, "test"))))
+        GetAllFunctions(List(GetFunctionInfo("Test", fnPath, "test", envInfo))))
       testProbe.expectMsg(Seq(ExtractedFunctionData(
         "test",
         "scala",

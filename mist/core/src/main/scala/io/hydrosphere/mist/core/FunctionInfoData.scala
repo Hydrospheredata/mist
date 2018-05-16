@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core.jvmjob
+package io.hydrosphere.mist.core
 
 import mist.api.UserInputArgument
 
