@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC15"
+  version := IO.read(baseDirectory.in(ThisBuild).value / "version")
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
