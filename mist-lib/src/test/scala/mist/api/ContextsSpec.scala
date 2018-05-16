@@ -13,7 +13,7 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
   import mist.api.encoding.defaults._
   import mist.api.MistFnSyntax._
   import mist.api.data._
-  import mist.api.data.JsSyntax._
+  import mist.api.encoding.JsSyntax._
 
   it("for spark context") {
    val spJob = arg[Seq[Int]]("nums").onSparkContext(

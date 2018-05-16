@@ -2,7 +2,8 @@ package mist.api.data
 
 import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import java.util
-import JsSyntax._
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._

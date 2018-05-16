@@ -1,7 +1,8 @@
 package mist.api.data
 
 import org.scalatest.{FunSpec, Matchers}
-import JsSyntax._
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 
 import scala.util.Success
 

@@ -24,7 +24,7 @@ import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._

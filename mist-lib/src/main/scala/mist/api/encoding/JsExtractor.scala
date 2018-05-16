@@ -65,7 +65,7 @@ object JsExtractor {
 
 }
 
-trait DefaultExtractors {
+trait defaultExtractors {
 
   import java.{lang => jl, util => ju}
 
@@ -137,4 +137,4 @@ trait DefaultExtractors {
 }
 
 
-object DefaultExtractors extends DefaultExtractors
+object defaultExtractors extends defaultExtractors

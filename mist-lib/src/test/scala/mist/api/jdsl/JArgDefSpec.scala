@@ -5,7 +5,8 @@ import java.util
 import mist.api._
 import mist.api.FnContext
 import mist.api.data.JsMap
-import mist.api.data.JsSyntax._
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
 

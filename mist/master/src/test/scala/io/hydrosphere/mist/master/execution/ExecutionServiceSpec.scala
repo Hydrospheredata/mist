@@ -12,7 +12,7 @@ import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
 import org.scalatest._
 import org.mockito.Mockito.verify
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

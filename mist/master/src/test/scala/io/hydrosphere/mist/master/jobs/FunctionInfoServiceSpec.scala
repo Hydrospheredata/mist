@@ -15,7 +15,7 @@ import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration

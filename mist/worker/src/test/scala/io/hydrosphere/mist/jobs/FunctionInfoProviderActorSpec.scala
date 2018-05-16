@@ -11,7 +11,7 @@ import io.hydrosphere.mist.job.{Cache, FunctionInfo, FunctionInfoExtractor, Func
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api._
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 import mist.api.internal.BaseFunctionInstance
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}

@@ -1,7 +1,7 @@
 package mist.api
 
 import mist.api.data.JsMap
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 import org.scalatest.{FunSpec, Matchers}
 import shadedshapeless.HNil
 

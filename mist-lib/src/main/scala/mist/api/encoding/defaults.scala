@@ -1,3 +1,3 @@
 package mist.api.encoding
 
-object defaults extends DefaultEncoders with DefaultExtractors
+object defaults extends defaultEncoders with defaultExtractors

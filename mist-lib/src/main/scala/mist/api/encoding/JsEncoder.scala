@@ -20,8 +20,9 @@ object JsEncoder {
   }
 }
 
-trait DefaultEncoders {
+trait defaultEncoders {
 
+  implicit val identity: JsEncoder[JsData] = JsEncoder(data => data)
   implicit val unitEnc: JsEncoder[Unit] = JsEncoder(_ => JsUnit)
 
   implicit val booleanEnc: JsEncoder[Boolean] = JsEncoder(b => JsBoolean(b))
@@ -41,4 +42,4 @@ trait DefaultEncoders {
   implicit def mapEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Map[String, A]] = JsEncoder(m => JsMap(m.mapValues(enc.apply)))
 }
 
-object DefaultEncoders extends DefaultEncoders
+object defaultEncoders extends defaultEncoders

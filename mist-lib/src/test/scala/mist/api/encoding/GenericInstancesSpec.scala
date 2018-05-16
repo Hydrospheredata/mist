@@ -2,7 +2,7 @@ package mist.api.encoding
 
 import mist.api.Extracted
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import JsSyntax._
 import org.scalatest.{FunSpec, Matchers}
 
 case class TestPlain(

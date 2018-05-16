@@ -4,7 +4,7 @@ import mist.api.data.JsMap
 import org.scalatest._
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 import mist.api.encoding.defaults._
 
 case class Z(hz: String, yoyo: Int)

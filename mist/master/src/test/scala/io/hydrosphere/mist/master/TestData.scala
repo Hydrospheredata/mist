@@ -6,7 +6,7 @@ import io.hydrosphere.mist.core.FunctionInfoData
 import io.hydrosphere.mist.master.execution.WorkerLink
 import mist.api.ArgInfo
 import mist.api.data._
-import mist.api.data.JsSyntax._
+import mist.api.encoding.JsSyntax._
 
 trait TestData {
 
