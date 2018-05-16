@@ -12,7 +12,7 @@ class PythonRunner(artifact: SparkArtifact) extends JobRunner with Logger {
   override def run(request: RunJobRequest, context: MistScContext): Either[Throwable, JsData] = {
     val newReq = request.copy(params = request.params.copy(filePath = artifact.local.getAbsolutePath))
     //Move to class dependency
-    val executer = new PythonFunctionExecutor(newReq, context)
-    executer.invoke(Some(context.sparkConf))
+    val executor = new PythonFunctionExecutor(newReq, context)
+    executor.invoke(Some(context.sparkConf))
   }
 }

@@ -5,8 +5,8 @@ import traceback
 
 from py4j.java_gateway import java_import, JavaGateway, GatewayClient
 
-from decorators import __complex_type
-from executable_entry import load_entry
+from .decorators import __complex_type
+from .executable_entry import load_entry
 
 
 def to_scala_arg_type(type_hint, gateway):

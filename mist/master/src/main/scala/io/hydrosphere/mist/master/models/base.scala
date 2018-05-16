@@ -45,6 +45,7 @@ case class ContextConfig(
     case RunMode.Shared => maxJobs
     case RunMode.ExclusiveContext => 1
   }
+
 }
 
 case class FunctionConfig(

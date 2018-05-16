@@ -28,14 +28,11 @@ class FsArtifactRepository(
       Future.successful(
         artifactDir.listFiles()
           .map(_.getName)
-          .filter(allowedExtension)
           .toSet
       )
     } else Future.failed(new IllegalStateException(s"$rootDir is not directory"))
   }
-  private def allowedExtension(fileName: String): Boolean = {
-    fileName.endsWith(".jar") || fileName.endsWith(".py")
-  }
+
   override def get(key: String): Option[File] = {
     Paths.get(rootDir, key).toFile match {
       case f if f.exists => Some(f)

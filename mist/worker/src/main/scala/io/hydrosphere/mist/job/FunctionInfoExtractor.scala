@@ -3,7 +3,7 @@ package io.hydrosphere.mist.job
 import java.io.File
 import java.net.URLClassLoader
 
-import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.core.CommonData.{Action, InfoEnv}
 import io.hydrosphere.mist.core.jvmjob.{ExtractedFunctionData, FunctionInfoData, FunctionInstanceLoader}
 import io.hydrosphere.mist.python.{FunctionInfoPythonExecutor, PythonCmd}
 import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
@@ -18,12 +18,12 @@ case class FunctionInfo(
 )
 
 trait FunctionInfoExtractor {
-  def extractInfo(file: File, className: String): TryLoad[FunctionInfo]
+  def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo]
 }
 
 class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) extends FunctionInfoExtractor {
 
-  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
+  override def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo] = {
     val prev = Thread.currentThread().getContextClassLoader
     try {
       val existing = this.getClass.getClassLoader
@@ -63,12 +63,11 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
 
 }
 
-//TODO: define context value
 class PythonFunctionInfoExtractor(
-  executor: (File, String) => Either[Throwable, Seq[ArgInfo]]
+  executor: (File, String, InfoEnv) => Either[Throwable, Seq[ArgInfo]]
 ) extends FunctionInfoExtractor with Logger {
 
-  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] = {
+  override def extractInfo(file: File, className: String, infoEnv: InfoEnv): TryLoad[FunctionInfo] = {
     def mkInfo(args: Seq[ArgInfo]): FunctionInfo = {
       val instance = new PythonFunctionInstance(args)
       FunctionInfo(
@@ -83,7 +82,7 @@ class PythonFunctionInfoExtractor(
       )
     }
 
-    executor(file, className) match {
+    executor(file, className, infoEnv) match {
       case Left(ex) => Err(ex)
       case Right(out) => Succ(mkInfo(out))
     }
@@ -93,7 +92,7 @@ class PythonFunctionInfoExtractor(
 object PythonFunctionInfoExtractor {
 
   def apply(): PythonFunctionInfoExtractor = {
-    val executor = (file: File, fnName: String) => new FunctionInfoPythonExecutor(file, fnName).invoke()
+    val executor = (file: File, fnName: String, infoEnv: InfoEnv) => new FunctionInfoPythonExecutor(file, fnName, infoEnv).invoke()
     new PythonFunctionInfoExtractor(executor)
   }
 }
@@ -109,9 +108,11 @@ class BaseFunctionInfoExtractor(
   pythonJobInfoExtractor: PythonFunctionInfoExtractor
 ) extends FunctionInfoExtractor {
 
-  override def extractInfo(file: File, className: String): TryLoad[FunctionInfo] =
-    selectExtractor(file)
-      .extractInfo(file, className)
+  override def extractInfo(
+    file: File,
+    className: String,
+    infoEnv: InfoEnv
+  ): TryLoad[FunctionInfo] = selectExtractor(file).extractInfo(file, className, infoEnv)
 
   private def selectExtractor(file: File): FunctionInfoExtractor =
     FilenameUtils.getExtension(file.getAbsolutePath) match {

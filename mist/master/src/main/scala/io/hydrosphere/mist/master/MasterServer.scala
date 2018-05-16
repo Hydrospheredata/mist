@@ -133,6 +133,7 @@ object MasterServer extends Logger {
       jobInfoProviderService =  new FunctionInfoService(
                                       jobInfoProvider,
                                       functionsStorage,
+                                      contextsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
       executionService       =  runExecutionService(logService)

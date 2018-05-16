@@ -3,7 +3,8 @@ package io.hydrosphere.mist.python
 import java.io.File
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.core.CommonData.{InfoEnv, RunJobRequest}
+import io.hydrosphere.mist.core.jvmjob.PythonEntrySettings
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.MistScContext
 import io.hydrosphere.mist.worker.runners.python.wrappers.{ConfigurationWrapper, SparkStreamingWrapper}
@@ -32,37 +33,31 @@ trait EntryPoint {
 trait PythonCmd[A] extends Logger {
   val module: String
 
+  def pythonEntrySettings: PythonEntrySettings
+
   private def selfJarPath = new File(getClass.getProtectionDomain.getCodeSource.getLocation.toURI.getPath)
 
   def invoke(fnConf: Option[SparkConf] = None): Either[Throwable, A] = {
-    def pythonDriverEntry(): String = {
-      //      val conf = context.sparkContext.getConf
-      fnConf.flatMap(_.getOption("spark.pyspark.driver.python")).getOrElse(pythonGlobalEntry())
-    }
-
-    def pythonGlobalEntry(): String = {
-      //      val conf = context.sparkContext.getConf
-      fnConf.flatMap(_.getOption("spark.pyspark.python")).getOrElse("python")
-    }
-
     def runPython(py4jPort: Int): Int = {
       val pypath = sys.env.get("PYTHONPATH")
       val sparkHome = sys.env("SPARK_HOME")
       val pySpark = Paths.get(sparkHome, "python")
       val py4jZip = pySpark.resolve("lib").toFile.listFiles().find(_.getName.startsWith("py4j"))
       val py4jPath = py4jZip match {
-        case None => throw new RuntimeException("Coudn't find py4j.zip")
+        case None => throw new RuntimeException("Couldn't find py4j.zip")
         case Some(f) => f.toPath.toString
       }
 
+      val settings = pythonEntrySettings
+
       val env = Seq(
         "PYTHONPATH" -> (Seq(pySpark.toString, py4jPath) ++ pypath).mkString(":"),
-        "PYSPARK_PYTHON" -> pythonGlobalEntry(),
-        "PYSPARK_DRIVER_PYTHON" -> pythonDriverEntry()
+        "PYSPARK_PYTHON" -> settings.global,
+        "PYSPARK_DRIVER_PYTHON" -> settings.driver
       )
 
       val cmd = Seq(
-        pythonDriverEntry(),
+        settings.driver,
         selfJarPath.toString,
         "--module", module,
         "--gateway-port", py4jPort.toString
@@ -155,13 +150,27 @@ class PythonFunctionExecutor(
 
   override def dataExtractor: DataExtractor[JsData] = new JsLikeDataExtractor
 
+  override def pythonEntrySettings: PythonEntrySettings = {
+    import PythonEntrySettings._
+
+    val conf = context.sc.getConf
+    val driver = conf.getOption(PythonDriverKey).orElse(conf.getOption(PythonGlobalKey)).getOrElse(PythonDefault)
+    val global = conf.getOption(PythonGlobalKey).getOrElse(PythonDefault)
+    PythonEntrySettings(driver, global)
+  }
 }
 
-class FunctionInfoPythonExecutor(jobFile: File, fnName: String) extends PythonCmd[Seq[ArgInfo]] {
+class FunctionInfoPythonExecutor(
+  jobFile: File,
+  fnName: String,
+  info: InfoEnv
+) extends PythonCmd[Seq[ArgInfo]] {
 
   override val module: String = "metadata_extractor"
 
   override def mkEntryPoint(): EntryPoint = new GetInfoPythonEntryPoint(fnName, jobFile.getAbsolutePath)
 
   override def dataExtractor: DataExtractor[Seq[ArgInfo]] = new ArgInfoSeqDataE
+
+  override def pythonEntrySettings: PythonEntrySettings = info.pythonSettings
 }

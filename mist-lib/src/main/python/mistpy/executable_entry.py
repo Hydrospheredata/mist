@@ -6,8 +6,8 @@ from abc import abstractmethod
 from collections import namedtuple
 from inspect import isfunction
 
-from tags import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
-from tags import tags as dec_tags
+from .tags import SPARK_CONTEXT, SPARK_SESSION, HIVE_SESSION, HIVE_CONTEXT, SQL_CONTEXT
+from .tags import tags as dec_tags
 
 
 class ExecutableEntry(object):

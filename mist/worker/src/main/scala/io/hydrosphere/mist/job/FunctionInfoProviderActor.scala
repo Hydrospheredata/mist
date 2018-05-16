@@ -89,7 +89,7 @@ class FunctionInfoProviderActor(
   ttl: FiniteDuration
 ) extends Actor with ActorLogging {
 
-  type StateCache = Cache[String, TryLoad[FunctionInfo]]
+  type StateCache = Cache[CacheKey, TryLoad[FunctionInfo]]
 
   implicit val ec = context.dispatcher
 
@@ -101,7 +101,7 @@ class FunctionInfoProviderActor(
 
   context.system.scheduler.schedule(ttl, ttl, self, EvictCache)
 
-  override def receive: Receive = cached(Cache[String, TryLoad[FunctionInfo]](ttl))
+  override def receive: Receive = cached(Cache[CacheKey, TryLoad[FunctionInfo]](ttl))
 
   private def wrapError(e: Throwable): Throwable = e match {
     case e: Error => new RuntimeException(e)
@@ -175,7 +175,7 @@ class FunctionInfoProviderActor(
   private def usingCache(cache: StateCache, req: InfoRequest): (StateCache, TryLoad[FunctionInfo]) = {
     val file = new File(req.jobPath)
     if (file.exists() && file.isFile) {
-      val key = cacheKey(req, file)
+      val key = mkKey(req, file)
       cache.getOrUpdate(key)(_ => jobInfo(req))
     } else cache -> Err(new IllegalArgumentException(s"File should exists in path ${req.jobPath}"))
   }
@@ -183,12 +183,23 @@ class FunctionInfoProviderActor(
   private def jobInfo(req: InfoRequest): TryLoad[FunctionInfo] = {
     import req._
     val f = new File(jobPath)
-    jobInfoExtractor.extractInfo(f, className).map(e => e.copy(data = e.data.copy(name = req.name)))
+    jobInfoExtractor.extractInfo(f, className, req.infoEnv).map(e => e.copy(data = e.data.copy(name = req.name)))
   }
 
-  private def cacheKey(req: InfoRequest, file: File): String = {
-    s"${req.name}_${req.className}_${file.lastModified()}"
-  }
+  case class CacheKey(
+    name: String,
+    className: String,
+    lastModified: Long,
+    env: InfoEnv
+  )
+
+  private def mkKey(req: InfoRequest, file: File): CacheKey =
+    CacheKey(
+      name = req.name,
+      className = req.className,
+      lastModified = file.lastModified(),
+      env = req.infoEnv
+    )
 
 }
 

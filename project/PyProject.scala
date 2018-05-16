@@ -23,16 +23,6 @@ object PyProject {
     pyUpdate := {
       venv(pyDir.value, virtualDir.value, pythonVersion.value)("pip install .")
     }
-//    pyBdist := {
-//      val name = pyName.value
-//      val dir = pyDir.value / "dist"
-//      IO.delete(dir)
-//      inVenv(pyDir, virtualDir, pythonVersion, "python setup.py bdist").value
-//      IO.listFiles(dir).find(f => f.name.startsWith(name)) match {
-//        case Some(f) => f
-//        case None => throw new RuntimeException(s"Could'n find dist file for $name")
-//      }
-//    }
   ) ++ inConfig(Test)(Seq(
     pyTest := {
       sLog.value.info(s"Starting python test for ${pyName.value}")
