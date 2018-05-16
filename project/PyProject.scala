@@ -9,7 +9,6 @@ object PyProject {
   lazy val pySources = taskKey[File]("Source directory")
   lazy val pythonVersion = taskKey[String]("Python version")
   lazy val virtualDir = taskKey[File]("Directory for virtual env")
-  lazy val pyUpdate = taskKey[Unit]("Install deps")
   lazy val pyTest = taskKey[Unit]("Run tests")
   lazy val pySdist = taskKey[File]("Make source distribution")
   lazy val pyBdist = taskKey[File]("Make binary distribution")
@@ -19,10 +18,7 @@ object PyProject {
     pythonVersion := "2",
     pyDir := baseDirectory.value / "src" / "main" / "python",
     virtualDir := pyDir.value / ("env-" + pyName.value + "-" + pythonVersion.value),
-    pySources := pyDir.value / pyName.value,
-    pyUpdate := {
-      venv(pyDir.value, virtualDir.value, pythonVersion.value)("pip install .")
-    }
+    pySources := pyDir.value / pyName.value
   ) ++ inConfig(Test)(Seq(
     pyTest := {
       sLog.value.info(s"Starting python test for ${pyName.value}")
@@ -38,7 +34,8 @@ object PyProject {
   ): Seq[Def.Setting[_]] = {
     Seq(
       pyBdist -> "bdist",
-      pyBdistEgg -> "bdist_egg"
+      pyBdistEgg -> "bdist_egg",
+      pySdist -> "sdist"
     ).map({case (key, cmd) =>
       key := mkDistTask(nameKey, dirKey, venvKey, pyVersionKey, cmd).value
     })
@@ -60,7 +57,7 @@ object PyProject {
     ).value
 
     val name = pyName.value
-    IO.listFiles(pyDir.value / "dist").map(x => {println(x); x}).find(f => f.name.startsWith(name)) match {
+    IO.listFiles(pyDir.value / "dist").map(x => x).find(f => f.name.startsWith(name)) match {
       case Some(f) => f
       case None => throw new RuntimeException(s"Could'n find dist file for $name")
     }
