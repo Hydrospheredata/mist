@@ -12,6 +12,7 @@ def sqlctx_example(sql_context, path):
     df2 = sql_context.sql("SELECT AVG(age) AS avg_age FROM people")
     df2.show()
 
-    result = df2.toJSON().first()
+    result = df2.first().asDict(True)
 
     return {"result": result}
+
