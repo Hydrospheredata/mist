@@ -55,11 +55,10 @@ def test_sys_args():
         return sc
 
     @on_streaming_context
-    def sc5(sc):
+    def sc6(sc):
         return sc
 
-    #fns = [sc1, sc2, sc3, sc4, sc5]
-    fns = [sc1, sc2, sc3, sc4]
+    fns = [sc1, sc2, sc3, sc4, sc5, sc6]
     for f in fns:
         assert is_mist_function(f) == True
         assert f(42) == 42

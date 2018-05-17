@@ -10,7 +10,7 @@ import scala.util.Try
   * Example:
   * {{{
   *
-  * import mist.api.all._
+  * import mist.api._
   * import org.apache.spark.SparkContext
   *
   * object MyJob extends MistFn {
