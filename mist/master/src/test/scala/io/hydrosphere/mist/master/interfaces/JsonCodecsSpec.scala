@@ -6,6 +6,7 @@ import mist.api.data._
 import io.hydrosphere.mist.master.TestData
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
+import mist.api.encoding.defaultEncoders._
 import mist.api.encoding.JsSyntax._
 import spray.json._
 

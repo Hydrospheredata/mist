@@ -14,6 +14,7 @@ import mist.api.data.{JsList, JsMap}
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpecLike, Matchers}
+import mist.api.encoding.defaultEncoders._
 import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.Await

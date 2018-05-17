@@ -8,6 +8,7 @@ import org.mockito.Mockito._
 import org.scalatest.FunSpec
 import org.mockito.Mockito._
 import org.mockito.Matchers._
+import mist.api.encoding.defaultEncoders._
 import mist.api.encoding.JsSyntax._
 import mist.api.data._
 
