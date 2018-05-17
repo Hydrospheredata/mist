@@ -2,12 +2,14 @@ package io.hydrosphere.mist.worker
 
 import java.io.File
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
 import mist.api.data.{JsData, _}
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 import org.apache.log4j.LogManager
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest._
@@ -121,60 +123,6 @@ class WorkerActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       classOf[WorkerIsBusy],
       classOf[WorkerIsBusy]
     )
-  }
-
-  it("should complete and shutdown awaiting response") {
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsMap("yoyo" -> JsString("hey"))
-    })
-
-    val probe = TestProbe()
-
-    val worker = createActor(runnerSelector)
-
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
-
-    probe.expectMsgAllConformingOf(
-      classOf[JobFileDownloading],
-      classOf[JobStarted]
-    )
-    probe.send(worker, CompleteAndShutdown)
-    probe.expectMsgType[JobResponse]
-  }
-
-  it("should force shutdown when awaiting") {
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsMap("yoyo" -> JsString("hey"))
-    })
-
-    val probe = TestProbe()
-    val worker = createActor(runnerSelector)
-    probe watch worker
-    probe.send(worker, ForceShutdown)
-    probe.expectTerminated(worker)
-  }
-
-  it("should force shutdown when running request") {
-
-    val runnerSelector = SuccessRunnerSelector({
-      Thread.sleep(1000)
-      JsMap("yoyo" -> JsString("hey"))
-    })
-
-    val probe = TestProbe()
-
-    val worker = createActor(runnerSelector)
-    probe.send(worker, RunJobRequest("1", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
-
-    probe.expectMsgAllConformingOf(
-      classOf[JobFileDownloading],
-      classOf[JobStarted]
-    )
-    probe watch worker
-    probe.send(worker, ForceShutdown)
-    probe.expectTerminated(worker)
   }
 
   def RunnerSelector(r: JobRunner): RunnerSelector =

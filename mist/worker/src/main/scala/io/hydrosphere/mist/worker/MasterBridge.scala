@@ -5,7 +5,7 @@ import java.nio.file.Path
 import akka.actor._
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax, ActorRegHub}
-import io.hydrosphere.mist.worker.MasterBridge.ReceiveInitTimeout
+import io.hydrosphere.mist.worker.MasterBridge.{AppShutdown, ReceiveInitTimeout}
 import io.hydrosphere.mist.worker.logging.RemoteLogsWriter
 import io.hydrosphere.mist.worker.runners.ArtifactDownloader
 
@@ -38,6 +38,10 @@ class MasterBridge(
     }
 
     {
+      case AppShutdown =>
+        log.info("Receive shutdown before initialization")
+        context stop self
+
       case init:WorkerInitInfo =>
         timers.cancel(initTimerKey)
         log.info("Received init info, {}", init)
@@ -47,11 +51,11 @@ class MasterBridge(
             log.error(e, "Couldn't create spark context")
             val msg = s"Spark context instantiation failed, ${e.getMessage}"
             remoteConnection ! WorkerStartFailed(id, msg)
-            shutdown()
+            context stop self
 
           case Right(ctx) =>
             val worker = workerF.create(init, ctx)
-            val sparkUI = SparkUtils.getSparkUiAddress(ctx.sc)
+            val sparkUI = ctx.getUIAddress()
             context watch remoteConnection
             context watch worker
             log.info("Become work")
@@ -61,37 +65,59 @@ class MasterBridge(
 
       case ReceiveInitTimeout =>
         log.error("Initial data wasn't received for a minutes - shutdown")
-        shutdown()
+        context stop self
       }
   }
 
-
   private def work(remote: ActorRef, worker: ActorRef): Receive = {
+    def goToAwaitTermination(): Unit = {
+      remote ! RequestTermination
+      context.setReceiveTimeout(30 seconds)
+    }
+    {
+      case Terminated(ref) if ref == remote =>
+        log.warning("Remote connection was terminated - shutdown")
+        worker ! PoisonPill
+        context stop self
+
+      case Terminated(ref) if ref == worker =>
+        log.info("Underlying worker was terminated - request termination")
+        goToAwaitTermination()
+
+      case ShutdownWorker =>
+        worker ! PoisonPill
+        goToAwaitTermination()
+
+      case AppShutdown =>
+        log.error(s"Unexpectedly received application shutdown command")
+        worker ! PoisonPill
+        goToAwaitTermination()
+
+      case x => worker forward x
+    }
+  }
+
+  private def awaitTermination(remote: ActorRef): Receive = {
+    case AppShutdown | ShutdownWorkerApp =>
+      log.info(s"Received application shutdown command")
+      remote ! Goodbye
+      context stop self
+
     case Terminated(ref) if ref == remote =>
       log.warning("Remote connection was terminated - shutdown")
-      worker ! PoisonPill
-      shutdown()
-    case Terminated(ref) if ref == worker =>
-      log.info("Underlying worker was terminated - shutdown")
-      shutdown()
+      context stop self
 
-    case ForceShutdown =>
-      log.info("Received force shutdown")
-      worker ! PoisonPill
-      shutdown()
-
-    case x => worker forward x
+    case ReceiveTimeout =>
+      log.error("Didn't receive any stop command - shutdown")
+      context stop self
   }
 
-  private def shutdown(): Unit = {
-    context stop self
-    context.system.terminate()
-  }
 }
 
 object MasterBridge {
 
   case object ReceiveInitTimeout
+  case object AppShutdown
 
   def props(
     id: String,

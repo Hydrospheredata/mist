@@ -1,10 +1,12 @@
 package io.hydrosphere.mist.master.execution
 
+import java.io.{PrintWriter, StringWriter}
+
 import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, PoisonPill, Props, SupervisorStrategy, Timers}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.WorkerConnection
+import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
 import mist.api.data.JsData
 
 import scala.concurrent.Promise
@@ -42,25 +44,26 @@ class JobActor(
 
   private def initial: Receive = {
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
+    case Event.ContextBroken(e) => completeFailure(new RuntimeException("Context is broken", e), None)
     case Event.Timeout => cancelNotStarted("timeout", None)
 
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
       report.reportPlain(WorkerAssigned(req.id, connection.id))
-      connection.ref ! req
+      connection.run(req, self)
 
       connection.whenTerminated.onComplete(_ => self ! Event.ConnectionTerminated)(context.dispatcher)
       context become starting(connection)
   }
 
-  def cancelRemotely(cancelRespond: ActorRef, connection: WorkerConnection, reason: String): Unit = {
+  def cancelRemotely(cancelRespond: ActorRef, connection: PerJobConnection, reason: String): Unit = {
     log.info(s"Start cancelling ${req.id} remotely: $reason")
-    connection.ref ! CancelJobRequest(req.id)
+    connection.cancel(req.id, self)
     context become cancellingOnExecutor(Seq(cancelRespond), connection, reason)
   }
 
-  private def starting(connection: WorkerConnection): Receive = {
+  private def starting(connection: PerJobConnection): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Queued
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
@@ -79,7 +82,7 @@ class JobActor(
       context become completion(callback, connection)
   }
 
-  private def completion(callback: ActorRef, connection: WorkerConnection): Receive = {
+  private def completion(callback: ActorRef, connection: PerJobConnection): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Started
     case Event.Cancel => cancelRemotely(sender(), connection, "user request")
     case Event.Timeout => cancelRemotely(sender(), connection, "timeout")
@@ -90,7 +93,7 @@ class JobActor(
     case JobFailure(_, err) => completeFailure(err, Some(connection))
   }
 
-  private def cancellingOnExecutor(cancelRespond: Seq[ActorRef], connection: WorkerConnection, reason: String): Receive = {
+  private def cancellingOnExecutor(cancelRespond: Seq[ActorRef], connection: PerJobConnection, reason: String): Receive = {
     case Event.GetStatus => sender() ! ExecStatus.Cancelling
     case Event.Cancel => context become cancellingOnExecutor(cancelRespond :+ sender(), connection, reason)
     case Event.Timeout => log.info(s"Timeout exceeded for ${req.id} that is in cancelling process")
@@ -112,11 +115,11 @@ class JobActor(
       cancelStarted(reason, cancelRespond, Some(connection), err)
   }
 
-  private def cancelNotStarted(reason: String, respond: Option[ActorRef]): Unit = {
+  private def cancelNotStarted(err: Throwable, respond: Option[ActorRef]): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val time = System.currentTimeMillis()
-    promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
+    promise.failure(err)
     report.reportWithFlushCallback(CanceledEvent(req.id, time)).onComplete(t => {
       val response = t match {
         case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
@@ -124,15 +127,18 @@ class JobActor(
       }
       respond.foreach(_ ! response)
     })
-    log.info(s"Job ${req.id} was cancelled: $reason")
+    log.info(s"Job ${req.id} was cancelled: ${err.getMessage}")
     callback ! Event.Completed(req.id)
     context.stop(self)
   }
 
+  private def cancelNotStarted(reason: String, respond: Option[ActorRef]): Unit =
+    cancelNotStarted(new RuntimeException(s"Job was cancelled: $reason"), respond)
+
   private def cancelStarted(
     reason: String,
     respond: Seq[ActorRef],
-    maybeConn: Option[WorkerConnection],
+    maybeConn: Option[PerJobConnection],
     error: String
   ): Unit = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -152,10 +158,10 @@ class JobActor(
     context.stop(self)
   }
 
-  private def onConnectionTermination(maybeConn: Option[WorkerConnection]): Unit =
+  private def onConnectionTermination(maybeConn: Option[PerJobConnection]): Unit =
     completeFailure("Executor was terminated", maybeConn)
 
-  private def completeSuccess(data: JsData, connection: WorkerConnection): Unit = {
+  private def completeSuccess(data: JsData, connection: PerJobConnection): Unit = {
     promise.success(data)
     report.reportPlain(FinishedEvent(req.id, System.currentTimeMillis(), data))
     log.info(s"Job ${req.id} completed successfully")
@@ -164,7 +170,15 @@ class JobActor(
     context.stop(self)
   }
 
-  private def completeFailure(err: String, maybeConn: Option[WorkerConnection]): Unit = {
+  private def completeFailure(err: Throwable, maybeConn: Option[PerJobConnection]): Unit = {
+    val sw = new StringWriter()
+    err.printStackTrace(new PrintWriter(sw))
+    val errMessage = sw.toString
+    completeFailure(errMessage, maybeConn)
+  }
+
+
+  private def completeFailure(err: String, maybeConn: Option[PerJobConnection]): Unit = {
     promise.failure(new RuntimeException(err))
     report.reportPlain(FailedEvent(req.id, System.currentTimeMillis(), err))
     log.info(s"Job ${req.id} completed with error")
@@ -180,8 +194,9 @@ object JobActor {
   sealed trait Event
   object Event {
     case object Cancel extends Event
+    case class ContextBroken(e: Throwable) extends Event
     case object Timeout extends Event
-    final case class Perform(connection: WorkerConnection) extends Event
+    final case class Perform(conn: PerJobConnection) extends Event
     final case class Completed(id: String) extends Event
     case object GetStatus extends Event
     case object ConnectionTerminated extends Event

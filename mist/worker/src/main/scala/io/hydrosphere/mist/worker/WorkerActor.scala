@@ -27,17 +27,13 @@ class WorkerActor(
       val cleanUp = requestSetup(req)
       sender() ! JobFileDownloading(req.id)
       artifactDownloader.downloadArtifact(req.params.filePath) pipeTo self
-      context become downloading(sender(), req, cleanUp, running)
-
-    case _: ShutdownCommand =>
-      self ! PoisonPill
+      context become downloading(sender(), req, cleanUp)
   }
 
   private def downloading(
     respond: ActorRef,
     req: RunJobRequest,
-    cleanUp: CleanUp,
-    next: (RunJobRequest, ActorRef, JobFuture, CleanUp) => Receive
+    cleanUp: CleanUp
   ): Receive = {
     case artifact: SparkArtifact =>
       val runner = runnerSelector.selectRunner(artifact)
@@ -45,20 +41,13 @@ class WorkerActor(
       val jobFuture = run(runner, req)
       respond ! JobStarted(req.id)
       jobFuture.future pipeTo self
-      context become next(req, respond, jobFuture, cleanUp)
+      context become running(req, respond, jobFuture, cleanUp)
 
     case CancelJobRequest(id) =>
       cleanUp(req)
       respond ! JobIsCancelled(id)
       respond ! mkFailure(req, new RuntimeException("Job was cancelled before starting"))
       context become awaitRequest()
-
-    case ForceShutdown =>
-      respond ! mkFailure(req, "Worker has been stopped")
-      self ! PoisonPill
-
-    case CompleteAndShutdown =>
-      context become downloading(respond, req, cleanUp, completeAndShutdown)
 
     case Status.Failure(e) =>
       respond ! mkFailure(req, e)
@@ -88,35 +77,6 @@ class WorkerActor(
 
     case CancelJobRequest(id) =>
       cancel(req, sender(), jobFuture)
-
-    case ForceShutdown =>
-      self ! PoisonPill
-
-    case CompleteAndShutdown =>
-      context become completeAndShutdown(req, respond, jobFuture, cleanUp)
-  }
-
-  private def completeAndShutdown(
-    req: RunJobRequest,
-    respond: ActorRef,
-    jobFuture: JobFuture,
-    cleanUp: CleanUp
-  ): Receive = {
-    case CancelJobRequest(id) =>
-      cancel(req, sender(), jobFuture)
-      cleanUp(req)
-
-    case data: JsData =>
-      log.info(s"Job execution done. Returning result $data and become awaiting new request")
-      cleanUp(req)
-      respond ! JobSuccess(req.id, data)
-      self ! PoisonPill
-
-    case Status.Failure(e) =>
-      log.info(s"Job execution done. Returning result $e and become awaiting new request")
-      cleanUp(req)
-      respond ! mkFailure(req, e)
-      self ! PoisonPill
   }
 
   private def cancel(req: RunJobRequest, respond: ActorRef, jobFuture: JobFuture): Unit = {
@@ -128,6 +88,7 @@ class WorkerActor(
 
   override def postStop(): Unit = {
     artifactDownloader.stop()
+    namedContext.stop()
   }
 
   private def run(runner: JobRunner, req: RunJobRequest): JobFuture = CancellableFuture.onDetachedThread {

@@ -39,6 +39,7 @@ trait TestData {
         | spark-conf = { }
         | worker-mode = "shared"
         | run-options = "--opt"
+        | max-conn-failures = 5
         |}
         |
         |context {

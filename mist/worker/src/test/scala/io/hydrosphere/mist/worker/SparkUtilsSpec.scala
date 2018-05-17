@@ -24,11 +24,12 @@ class SparkUtilsSpec extends FunSpec with Matchers with BeforeAndAfterAll {
       .set("spark.driver.allowMultipleContexts", "true")
       .set("spark.ui.port", "5051")
 
-    sc = new SparkContext(conf)
+    sc = SparkContext.getOrCreate(conf)
+    //sc = new SparkContext(conf)
   }
 
   override def afterAll {
-    sc.stop()
+    //sc.stop()
   }
 
 }

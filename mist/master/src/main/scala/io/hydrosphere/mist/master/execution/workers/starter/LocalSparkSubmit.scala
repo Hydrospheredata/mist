@@ -3,7 +3,10 @@ package io.hydrosphere.mist.master.execution.workers.starter
 import java.nio.file.Path
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger
+
+import scala.util.{Failure, Success}
 
 class LocalSparkSubmit(builder: SparkSubmitBuilder, outDirectory: Path) extends WorkerStarter with Logger {
 
@@ -11,11 +14,14 @@ class LocalSparkSubmit(builder: SparkSubmitBuilder, outDirectory: Path) extends 
     val cmd = builder.submitWorker(name, initInfo)
     logger.info(s"Try submit local worker $name, cmd: ${cmd.mkString(" ")}")
     val out = outDirectory.resolve(s"local-worker-$name.log")
-    val ps = WrappedProcess.run(cmd, out)
-    val future = ps.await()
-    Local(future)
+
+    WrappedProcess.run(cmd, out) match {
+      case Success(ps) => WorkerProcess.Local(ps.await())
+      case Failure(e) => WorkerProcess.Failed(e)
+    }
   }
 
+  override def stopAction: StopAction = StopAction.Remote
 }
 
 object LocalSparkSubmit {

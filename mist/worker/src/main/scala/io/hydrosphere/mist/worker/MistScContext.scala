@@ -26,6 +26,8 @@ class MistScContext(
     }
   }
 
+  def getUIAddress(): Option[String] = SparkUtils.getSparkUiAddress(sc)
+
   //TODO: can we call that inside python directly using setupConfiguration?
   // python support
   def sparkConf: SparkConf = sc.getConf

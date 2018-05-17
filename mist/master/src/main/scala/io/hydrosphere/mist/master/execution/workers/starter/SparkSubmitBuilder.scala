@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 
-class SparkSubmitBuilder(mistHome: String, sparkHome: String) {
+class SparkSubmitBuilder(mistHome: String, sparkHome: String) extends PsUtil {
 
   private val localWorkerJar = Paths.get(mistHome, "mist-worker.jar").toString
   private val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toString
@@ -15,10 +15,7 @@ class SparkSubmitBuilder(mistHome: String, sparkHome: String) {
   def submitWorker(name: String, info: WorkerInitInfo): Seq[String] = {
     val conf = info.sparkConf.flatMap({case (k, v) => Seq("--conf", s"$k=$v")})
 
-    val runOpts = {
-      val trimmed = info.runOptions.trim
-      if (trimmed.isEmpty) Seq.empty else trimmed.split(" ").map(_.trim).filter(_.nonEmpty).toSeq
-    }
+    val runOpts = parseArguments(info.runOptions)
 
     val workerJar = if(info.isK8S) workerJarUrl(info.masterHttpConf) else localWorkerJar
 
@@ -39,4 +36,5 @@ object SparkSubmitBuilder {
     def realpath(p: String): String = Paths.get(p).toRealPath().toString
     new SparkSubmitBuilder(realpath(mistHome), realpath(sparkHome))
   }
+
 }

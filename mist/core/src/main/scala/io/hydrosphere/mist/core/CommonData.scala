@@ -13,10 +13,14 @@ object CommonData {
   )
   case class WorkerStartFailed(id: String, message: String)
 
-  case class ReleaseConnection(id: String)
-  sealed trait ShutdownCommand
-  case object CompleteAndShutdown extends ShutdownCommand
-  case object ForceShutdown extends ShutdownCommand
+  // ask worker node to stop worker actor
+  case object ShutdownWorker
+  // ask worker node to stop self
+  case object ShutdownWorkerApp
+  // ask master to stop worker node - call user fn or send ShutdownWorkerApp
+  case object RequestTermination
+  // last word from worker node
+  case object Goodbye
 
   /**
     * Data for creation spark/mist context on worker

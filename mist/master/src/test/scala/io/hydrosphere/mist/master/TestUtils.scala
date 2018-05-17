@@ -27,6 +27,7 @@ object TestUtils extends TestUtils {
       | spark-conf = { }
       | worker-mode = "shared"
       | run-options = "--opt"
+      | max-conn-failures = 5
       |}
       |
       |context {

@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.testkit.TestProbe
-import io.hydrosphere.mist.core.CommonData.ShutdownCommand
 import io.hydrosphere.mist.master.ActorSpec
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.ActorBasedWorkerConnector
 
@@ -20,7 +19,7 @@ class WorkerConnectorSpec extends ActorSpec("actor-based-connector") {
     target.expectMsgType[WorkerConnector.Event.WarmUp.type]
 
     connector.shutdown(true)
-    target.expectMsgType[ShutdownCommand]
+    target.expectMsgType[WorkerConnector.Event.Shutdown]
   }
 
 }
