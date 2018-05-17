@@ -72,11 +72,13 @@ Demo:
 
 ### Build your own function
 
-Mist provides typeful library for writing functions in scala/java.
+Mist provides typeful library for writing functions in scala/java and special dsl for python.
 For a quick start please check out a [demo project](https://github.com/Hydrospheredata/hello_mist). Demo setup includes:
 - simple function example in [Scala](https://github.com/Hydrospheredata/hello_mist/blob/master/scala/src/main/scala/HelloMist.scala) 
-and [Java](https://github.com/Hydrospheredata/hello_mist/blob/master/java/src/main/java/HelloMist.java)
-- build setup (sbt/mvn)
+, [Java](https://github.com/Hydrospheredata/hello_mist/blob/master/java/src/main/java/HelloMist.java) and
+[Python](https://github.com/Hydrospheredata/hello_mist/blob/master/python/example/hello_mist.py)
+
+- build setup (sbt/mvn/setup.py)
 - configuration files for `mist-cli`
 
 ```sh
@@ -111,6 +113,18 @@ mist-cli apply -f conf
 
 # run it
 curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-java/jobs?force=true"
+```
+
+Python:
+```sh
+cd hello_mist/python
+
+# build function and send its settings to mist
+python setup.py bdist_egg
+mist-cli apply -f conf
+
+# run it
+curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-python/jobs?force=true"
 ```
 
 NOTE: here we use `force=true` to get job result syncronously in the same http req/resp pair,
@@ -256,6 +270,46 @@ public class HelloMist extends JMistFn {
   }
 }
 ```
+
+#### Python - more details
+
+`setup.py`:
+```python
+import os
+from setuptools import setup
+
+setup(
+    name='hello-mist',
+    install_requires=["pyspark==2.3.0", "mistpy=={{ site.version }}"]
+)
+```
+
+`hello_mist.py`:
+```python
+from mistpy.decorators import *
+import random
+
+# Here we declare a function that takes `pyspark.SparkContext` and one optional int argument and 
+# declare an input argument with name `samples` and type `int` and default value `10000`
+# we could call it by sending:
+#  - {} - empty request, n will be taken from default value
+#  - {"samples": 5 } - n will be 5
+@with_args(
+    arg("samples", type_hint=int, default = 10000)
+)
+@on_spark_context
+def hello_mist(sc, n):
+    def inside(p):
+        x, y = random.random(), random.random()
+        return x * x + y * y < 1
+
+    count = sc.parallelize(xrange(0, n)) \
+        .filter(inside).count()
+
+    pi = 4.0 * count / samples
+    return {'result': pi}
+```
+
 
 ### Connect to your existing Apache Spark cluster
 
