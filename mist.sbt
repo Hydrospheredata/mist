@@ -1,6 +1,7 @@
 import sbt.Keys._
 import StageDist._
 import complete.DefaultParsers._
+import microsites._
 import microsites.ConfigYml
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyOption
@@ -364,8 +365,14 @@ lazy val docs = project.in(file("docs"))
     git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
     micrositeConfigYaml := ConfigYml(
       yamlCustomProperties = Map("version" -> version.value)
-    )
-  )
+    ),
+    micrositeFavicons := {
+      Seq("16", "32", "48", "72", "96", "192", "194").map(s => {
+        val size = s + "x" + s
+        MicrositeFavicon(s"favicon-$size.png", size)
+      })
+    }
+)
 
 
 lazy val commonAssemblySettings = Seq(

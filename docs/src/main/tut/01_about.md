@@ -11,7 +11,7 @@ It provides a better way to write, deploy, run, and manage spark applications.
 
 Features:
 - Spark Function as a Service. Deploy Spark functions rather than nodetebooks or scripts.
-- Typeful library api for scala and java.
+- Typeful library api for scala and java + python dsl.
 - Spark contexts managing. Decoupling of user API from Spark settings, cluster provisioning, resource isolation, sharing and auto-scaling. 
 - Support several interfaces for communication:
     - HTTP API
