@@ -22,18 +22,26 @@ final case class JsString(value: String) extends JsData {
   override def toString: String = value
 }
 
-case object JsTrue extends JsData {
+object JsString {
+  def of(s: String): JsString = JsString(s)
+}
+
+trait JsBoolean extends JsData
+
+case object JsTrue extends JsBoolean {
   override def toString: String = "true"
 }
-case object JsFalse extends JsData {
+case object JsFalse extends JsBoolean {
   override def toString: String = "false"
 }
 
 object JsBoolean {
-  def apply(b: Boolean): JsData = b match {
+  def apply(b: Boolean): JsBoolean = b match {
     case true => JsTrue
     case false => JsFalse
   }
+
+  def of(b: Boolean): JsBoolean = JsBoolean(b)
 }
 
 final case class JsNumber(v: BigDecimal) extends JsData {
@@ -49,6 +57,11 @@ object JsNumber {
     case _                 => new JsNumber(BigDecimal(n))
   }
   def apply(n: BigInt): JsNumber = new JsNumber(BigDecimal(n))
+
+  def of(n: Int): JsNumber = JsNumber(n)
+  def of(n: Long): JsNumber = JsNumber(n)
+  def of(n: Double): JsNumber = JsNumber(n)
+  def of(n: BigInt): JsNumber = JsNumber(n)
 }
 
 final class JsMap(val map: Map[String, JsData]) extends JsData {
@@ -58,6 +71,8 @@ final class JsMap(val map: Map[String, JsData]) extends JsData {
   def get(key: String): Option[JsData] = map.get(key)
   def fieldValue(key: String): JsData = get(key).getOrElse(JsNull)
 
+  def addField(key: String, value: JsData): JsMap = JsMap(map + key -> value)
+
   override def equals(obj: scala.Any): Boolean = {
     obj match {
       case JsMap(other) => other.equals(map)
@@ -66,7 +81,17 @@ final class JsMap(val map: Map[String, JsData]) extends JsData {
   }
 
   override def hashCode(): Int = map.hashCode()
+
 }
+
+/**
+  * java wrapper
+  */
+class Field(val key: String, val value: JsData)
+object Field {
+  def of(key: String, value: JsData): Field = new Field(key, value)
+}
+
 
 object JsMap {
 
@@ -85,6 +110,11 @@ object JsMap {
 
   def unapply(arg: JsMap): Option[Map[String, JsData]] = Option(arg.map)
 
+  def of(fields: java.util.List[Field]): JsMap = {
+    import scala.collection.JavaConverters._
+    val in = fields.asScala.map(f => f.key -> f.value)
+    JsMap(in: _*)
+  }
 }
 
 final case class JsList(list: Seq[JsData]) extends JsData {

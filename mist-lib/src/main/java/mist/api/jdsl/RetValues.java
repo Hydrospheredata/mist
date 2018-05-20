@@ -6,31 +6,31 @@ import java.util.Optional;
 
 public class RetValues {
 
-    private static RetVals instance = RetVals$.MODULE$;
+    public static
 
     public static RetVal of(Object val) {
-        return instance.fromAny(val);
+        return RetVals.fromAny(val);
     }
 
     public static RetVal empty() {
-        return instance.empty();
+        return RetVals.empty();
     }
 
     public static <T> RetVal some(T t) {
-        return instance.fromAny(Optional.of(t));
+        return RetVals.fromAny(Optional.of(t));
     }
 
     public static RetVal none() {
-        return instance.fromAny(Optional.empty());
+        return RetVals.fromAny(Optional.empty());
     }
 
     public static <T> RetVal of(List<T> it) {
-        return instance.fromAny(it);
+        return RetVals.fromAny(it);
     }
 
     @SafeVarargs
     public static <T> RetVal of(T... ts) {
-        return instance.fromAny(java.util.Arrays.asList(ts));
+        return RetVals.fromAny(java.util.Arrays.asList(ts));
     }
 
     public static <T> RetVal of(String k1, T v1) {

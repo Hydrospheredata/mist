@@ -6,25 +6,25 @@ import mist.api.encoding.JsEncoder
 /**
   *  Job result for java api
   */
-trait RetVal {
+abstract class RetVal {
   def encoded(): JsData
 }
 
 object RetVal {
+
   def apply[T](value: T, encoder: JsEncoder[T]): RetVal = new RetVal {
     override def encoded(): JsData = encoder(value)
   }
-  def static(f: => JsData): RetVal = new RetVal {
-    override def encoded(): JsData = f
+
+  def fromJs(js: JsData): RetVal = new RetVal {
+    override def encoded(): JsData = js
   }
 }
 
-trait RetVals {
-
-  def fromAny(t: Any): RetVal = RetVal(t, JsEncoder[Any](JsData.fromJava))
-  val empty: RetVal = RetVal.static(JsNull)
-
-}
-
-object RetVals extends RetVals
+//object RetVals extends {
+//
+//  def fromAny(t: Any): RetVal = RetVal(t, JsEncoder[Any](JsData.fromJava))
+//  val empty: RetVal = RetVal.static(JsNull)
+//
+//}
 
