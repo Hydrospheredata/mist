@@ -50,7 +50,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
           |  run-options = "--key"
           |  streaming-duration = 30 seconds
           |  worker-mode = "shared"
-          |  max-conn-failures = 5
+          |  max-conn-failures = 10
           |
           |}
         """.stripMargin
@@ -64,6 +64,30 @@ class ConfigReprsSpec extends FunSpec with Matchers {
       context.runOptions shouldBe "--key"
       context.workerMode shouldBe RunMode.Shared
       context.streamingDuration shouldBe 30.seconds
+      context.maxConnFailures shouldBe 10
+    }
+
+    it("should ignore missing max failures") {
+      val cfg = ConfigFactory.parseString(
+        """
+          |{
+          |  spark-conf {
+          |    "x.y" = "z"
+          |    a = 1
+          |  }
+          |  downtime = Inf
+          |  max-parallel-jobs = 100
+          |  precreated = false
+          |  run-options = "--key"
+          |  streaming-duration = 30 seconds
+          |  worker-mode = "shared"
+          |
+          |}
+        """.stripMargin
+        , ConfigParseOptions.defaults())
+
+      val context = cfg.to[ContextConfig]("test")
+      context.maxConnFailures shouldBe 5
     }
 
     it("should render to raw") {
