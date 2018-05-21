@@ -26,7 +26,7 @@ object JsString {
   def of(s: String): JsString = JsString(s)
 }
 
-trait JsBoolean extends JsData
+sealed trait JsBoolean extends JsData
 
 case object JsTrue extends JsBoolean {
   override def toString: String = "true"
@@ -76,7 +76,7 @@ final class JsMap(val map: Map[String, JsData]) extends JsData {
   override def equals(obj: scala.Any): Boolean = {
     obj match {
       case JsMap(other) => other.equals(map)
-      case any => false
+      case _ => false
     }
   }
 

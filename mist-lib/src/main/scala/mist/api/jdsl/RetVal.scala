@@ -1,6 +1,6 @@
 package mist.api.jdsl
 
-import mist.api.data.{JsData, JsNull}
+import mist.api.data.{JsData, JsUnit}
 import mist.api.encoding.JsEncoder
 
 /**
@@ -19,12 +19,8 @@ object RetVal {
   def fromJs(js: JsData): RetVal = new RetVal {
     override def encoded(): JsData = js
   }
+
+  def fromAny(t: Any): RetVal = RetVal(t, JsEncoder[Any](JsData.fromJava))
+
+  val empty: RetVal = RetVal.fromJs(JsUnit)
 }
-
-//object RetVals extends {
-//
-//  def fromAny(t: Any): RetVal = RetVal(t, JsEncoder[Any](JsData.fromJava))
-//  val empty: RetVal = RetVal.static(JsNull)
-//
-//}
-

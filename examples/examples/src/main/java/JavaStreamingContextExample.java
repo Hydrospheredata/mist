@@ -1,3 +1,4 @@
+import static mist.api.jdsl.JDsl.*;
 import mist.api.jdsl.*;
 import org.apache.spark.api.java.JavaRDD;
 

@@ -1,7 +1,7 @@
+import static mist.api.jdsl.JDsl.*;
 import mist.api.data.*;
 import mist.api.encoding.JsEncoder;
 import mist.api.jdsl.*;
-import scala.Function1;
 
 import java.util.ArrayList;
 import java.util.List;

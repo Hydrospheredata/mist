@@ -131,7 +131,7 @@ lazy val worker = project.in(file("mist/worker"))
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(mistLib, core, master, worker)
+  .aggregate(mistLib, core, master, worker, examples)
   .dependsOn(master)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
