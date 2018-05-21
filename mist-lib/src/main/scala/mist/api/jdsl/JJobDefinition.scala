@@ -13,7 +13,7 @@ trait JJobDefinition extends WithArgs {
     * Define job execution that use JavaSparkContext for invocation
     */
   def onSparkContext(f: Func1[JavaSparkContext, RetVal]): JHandle = {
-    val job = SparkArgs.javaSparkContext.apply(f.toScalaFunc)
+    val job = SparkArgs.javaSparkContextArg.apply(f.toScalaFunc)
     new JHandle(job)
   }
 
@@ -21,7 +21,7 @@ trait JJobDefinition extends WithArgs {
     * Define job execution that use JavaStreamingContext for invocation
     */
   def onStreamingContext(f: Func1[JavaStreamingContext, RetVal]): JHandle = {
-    val job = SparkArgs.javaStreamingContext.apply(f.toScalaFunc)
+    val job = SparkArgs.javaStreamingContextArg.apply(f.toScalaFunc)
     new JHandle(job)
   }
 
@@ -29,7 +29,7 @@ trait JJobDefinition extends WithArgs {
     * Define job execution that use SparkSession for invocation
     */
   def onSparkSession(f: Func1[SparkSession, RetVal]): JHandle = {
-    val job = SparkArgs.sparkSession.apply(f.toScalaFunc)
+    val job = SparkArgs.sparkSessionArg.apply(f.toScalaFunc)
     new JHandle(job)
   }
 
@@ -37,7 +37,7 @@ trait JJobDefinition extends WithArgs {
     * Define job execution that use SparkSession with enabled Hive for invocation
     */
   def onSparkSessionWithHive(f: Func1[SparkSession, RetVal]): JHandle = {
-    val job = SparkArgs.sparkSessionWithHive.apply(f.toScalaFunc)
+    val job = SparkArgs.sparkSessionWithHiveArg.apply(f.toScalaFunc)
     new JHandle(job)
   }
 

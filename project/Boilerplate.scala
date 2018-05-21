@@ -164,7 +164,7 @@ object Boilerplate {
          -    * Define job execution that use JavaSparkContext for invocation
          -    */
          -  def onSparkContext(f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & javaSparkContext).apply(f.toScalaFunc)
+         -    val job = (${`a1&aN-1`} & javaSparkContextArg).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
          -
@@ -172,17 +172,17 @@ object Boilerplate {
          -    * Define job execution that use JavaStreamingContext for invocation
          -    */
          -  def onStreamingContext(f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & javaStreamingContext).apply(f.toScalaFunc)
+         -    val job = (${`a1&aN-1`} & javaStreamingContextArg).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
          -
          -  def onSparkSession(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & sparkSession).apply(f.toScalaFunc)
+         -    val job = (${`a1&aN-1`} & sparkSessionArg).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
          -
          -  def onSparkSessionWithHive(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & sparkSessionWithHive).apply(f.toScalaFunc)
+         -    val job = (${`a1&aN-1`} & sparkSessionWithHiveArg).apply(f.toScalaFunc)
          -    new JHandle(job)
          -  }
          ${extrasMethod}

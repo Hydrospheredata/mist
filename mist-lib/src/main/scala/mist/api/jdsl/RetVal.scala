@@ -1,26 +1,33 @@
 package mist.api.jdsl
 
-import mist.api.data.{JsData, JsUnit}
+import mist.api.data.{JsData, JsNull, JsUnit}
 import mist.api.encoding.JsEncoder
 
 /**
   *  Job result for java api
   */
-abstract class RetVal {
+abstract class RetVal[T] {
+  def value(): T
   def encoded(): JsData
 }
 
 object RetVal {
 
-  def apply[T](value: T, encoder: JsEncoder[T]): RetVal = new RetVal {
-    override def encoded(): JsData = encoder(value)
+  def apply[T](v: T, encoder: JsEncoder[T]): RetVal[T] = new RetVal[T] {
+    override def value(): T = v
+    override def encoded(): JsData = encoder(v)
   }
 
-  def fromJs(js: JsData): RetVal = new RetVal {
+  def fromJs(js: JsData): RetVal[JsData] = new RetVal[JsData] {
+    override def value(): JsData = js
     override def encoded(): JsData = js
   }
 
-  def fromAny(t: Any): RetVal = RetVal(t, JsEncoder[Any](JsData.fromJava))
+  def fromAny(t: Any): RetVal[Any] = RetVal(t, JsEncoder[Any](JsData.fromJava))
 
-  val empty: RetVal = RetVal.fromJs(JsUnit)
+  val empty: RetVal[Void] = new RetVal[Void] {
+    override def value(): Void = null
+    override def encoded(): JsData = JsUnit
+  }
+
 }

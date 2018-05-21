@@ -334,6 +334,10 @@ lazy val examples = project.in(file("examples/examples"))
   .settings(
     name := "mist-examples",
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= Seq(
+      Library.scalaTest % "test",
+      Library.junit % "test"
+    ),
     PyProject.pyName := "mist_examples"
   )
 

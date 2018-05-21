@@ -21,7 +21,7 @@ trait UserArg[A] extends ArgDef[A] { self =>
   }
 
   final override def validate(params: JsMap): Extraction[Unit] =
-    extract(FnContext(params)).map(_ => ())
+    extract(FnContext.onlyInput(params)).map(_ => ())
 }
 
 class NamedUserArg[A](name: String)(implicit ext: JsExtractor[A]) extends UserArg[A] {

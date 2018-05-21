@@ -5,11 +5,9 @@ import mist.api.data.JsData
 
 import scala.util._
 
-class JHandle(val underlying: LowHandle[RetVal])
-
 abstract class JMistFn extends FnEntryPoint {
 
-  def handle: JHandle
+  def handle: Handle
 
   final def execute(ctx: FnContext): Try[JsData] = handle.underlying.invoke(ctx).map(_.encoded())
 }

@@ -118,7 +118,14 @@ object JsMap {
 }
 
 final case class JsList(list: Seq[JsData]) extends JsData {
-  override def toString: String = list.mkString(",")
+  override def toString: String = list.mkString("[", ",", "]")
+}
+
+object JsList {
+  def of(elems: java.util.List[JsData]): JsList = {
+    import scala.collection.JavaConverters._
+    JsList(elems.asScala)
+  }
 }
 
 object JsData {

@@ -17,8 +17,8 @@ case class FullFnContext(
 
 object FnContext {
 
-  def apply(userParams: JsMap): FnContext = new FnContext {
-    override val params: JsMap = userParams
+  def onlyInput(in: JsMap): FnContext = new FnContext {
+    override val params: JsMap = in
   }
 
   def apply(

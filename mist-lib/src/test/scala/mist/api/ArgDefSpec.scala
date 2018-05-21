@@ -39,13 +39,13 @@ class ArgDefSpec extends FunSpec with Matchers {
   describe("job def") {
 
     it("should describe job") {
-      val job42: LowHandle[Int] = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
+      val job42: RawHandle[Int] = const(40) & const(2) apply { (a: Int, b: Int) => a + b }
       val res = job42.invoke(testCtx())
       res shouldBe Success(42)
     }
 
     it("should apply arguments in correct order") {
-      val hello: LowHandle[String] = const("W") & const("o") & const("r") & const("l") & const("d") apply {
+      val hello: RawHandle[String] = const("W") & const("o") & const("r") & const("l") & const("d") apply {
         (a: String, b: String, c: String, d: String, e: String) =>
           s"Hello $a$b$c$d$e"
       }
@@ -53,19 +53,19 @@ class ArgDefSpec extends FunSpec with Matchers {
     }
 
     it("shouldn't work with missing args") {
-      val invalid: LowHandle[String] = const("valid") & missing[Int]("msg") & const("last") apply {
+      val invalid: RawHandle[String] = const("valid") & missing[Int]("msg") & const("last") apply {
         (a: String, b: Int, c: String) => "wtf?"
       }
       invalid.invoke(testCtx()) shouldBe a[Failure[_]]
     }
 
     it("should fail on error") {
-      val broken: LowHandle[String] = const("a")({(a: String) => throw new RuntimeException("broken") })
+      val broken: RawHandle[String] = const("a")({(a: String) => throw new RuntimeException("broken") })
       broken.invoke(testCtx()) shouldBe a[Failure[_]]
     }
 
     it("should work with one arg") {
-      val jobDef: LowHandle[String] = const("single") { (a: String) => a }
+      val jobDef: RawHandle[String] = const("single") { (a: String) => a }
       val res = jobDef.invoke(testCtx())
       res shouldBe Success("single")
     }
