@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
 import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig, RunMode}
+import io.hydrosphere.mist.utils.ConfigUtils._
 
 import scala.concurrent.duration._
 
@@ -78,7 +79,7 @@ object ConfigRepr {
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration")),
-        maxConnFailures = config.getInt("max-conn-failures")
+        maxConnFailures = config.getOptInt("max-conn-failures").getOrElse(5)
       )
     }
 

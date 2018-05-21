@@ -4,7 +4,7 @@ import java.io.File
 
 import cats.Eval
 import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.ConfigUtils._
+import io.hydrosphere.mist.utils.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
 import cats._
@@ -351,20 +351,3 @@ object MasterConfig extends Logger {
 
 }
 
-object ConfigUtils {
-
-  implicit class ExtConfig(c: Config) {
-
-    def getFiniteDuration(path: String): FiniteDuration =
-      getScalaDuration(path) match {
-        case f: FiniteDuration => f
-        case _ => throw new IllegalArgumentException(s"Can not crate finite duration from $path")
-      }
-
-    def getScalaDuration(path: String): Duration = Duration(c.getString(path))
-
-    def getOptString(path: String): Option[String] = {
-      if(c.getIsNull(path)) None else c.getString(path).some
-    }
-  }
-}
