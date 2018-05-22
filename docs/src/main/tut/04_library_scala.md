@@ -13,7 +13,7 @@ Definitions:
 *Job* - a Spark job triggered by Mist Function.
 
 Mist Library provides a DSL for Mist Functions that could be deployed and executed in Mist.
-`MistFn[A]` is a base interface for function definition.
+`MistFn` is a base interface for function definition.
 
 `PiExample.scala`:
 ```tut:silent
@@ -34,7 +34,7 @@ object PiExample extends MistFn {
 
       val pi = (4.0 * count) / n
       pi
-    })
+    }).asHandle
   }
 }
 ```
@@ -131,16 +131,108 @@ val two = withArgs(arg[Int]("n"), arg[String]("str"))
 val three = withArgs(arg[Int]("n"), arg[String]("str"), arg[Boolean]("flag"))
 ```
 
+Or you could use `&`/`combine` to get the same result
+```scala
+val one = arg[Int]("n")
+
+val two = arg[Int]("n") combine arg[String]("str")
+
+val three = arg[Int]("n") & arg[String]("str") & arg[Boolean]("flag")
+```
+
+Also it's possible to use case classes as argument:
+
+```tut:silent
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding
+import mist.api.encoding._
+import mist.api.encoding.defaults._
+import org.apache.spark.SparkContext
+
+case class Foo(a: Int, b: String)
+
+object ComplexRootArgFn extends MistFn {
+
+  implicit val fooExt: RootExtractor[Foo] = encoding.generic.extractor[Foo]
+
+  // expected input is json:
+  //  {
+  //    "a": 42,
+  //    "b": "some_str"
+  //  }
+  override def handle: Handle = {
+    withArgs(arg[Foo]).onSparkContext((foo: Foo, sc: SparkContext) => 42 ).asHandle
+  }
+}
+```
+
+More examples:
+```tut:silent
+import mist.api._
+// for primitives and collections
+import mist.api.encoding
+import mist.api.encoding._
+import mist.api.encoding.defaults._
+
+case class Bar(a: Int, b: String)
+case class Foo(x: Int, bars: Seq[Bar])
+
+// to derive an extractor for `Foo` we need to also have it for `Bar`
+implicit val barExt: JsExtractor[Bar] = encoding.generic.extractor[Bar]
+implicit val fooExt: RootExtractor[Foo] = encoding.generic.extractor[Foo]
+
+// define root arg that expects following input:
+// {
+//   "x": 42,
+//   "bars": [
+//     {"a": 1, "b": "str"},
+//     {"a": 2, "b": "str2"}
+//   ]
+// }
+val rootArg = arg[Foo]
+
+// define just complex arg
+// {
+//   "foo": {
+//      "x": 42,
+//      "bars": [
+//       {"a": 1, "b": "str"},
+//       {"a": 2, "b": "str2"}
+//     ]
+//   }
+// }
+val fieldArg = arg[Foo]("foo")
+```
+
+If you want to allow to skip field with default values:
+```tut:silent
+import mist.api._
+import mist.api.encoding
+import mist.api.encoding._
+// for primitives and collections
+import mist.api.encoding.defaults._
+
+case class Bar(a: Int, b: String = "default")
+implicit val barExt: JsExtractor[Bar] = encoding.generic.extractorWithDefaults[Bar]
+
+case class Foo(x: Int, bar: Bar = Bar(1, "str"))
+// to derive an extractor that respects default values for Foo
+// we also need to have JsExtractor and JsEncoder for Bar
+implicit val barEnc: JsEncoder[Bar] = encoding.generic.encoder[Bar]
+implicit val fooExt: RootExtractor[Foo] = encoding.generic.extractorWithDefaults[Foo]
+```
+
 #### Contexts
 
 Next to complete Mist Function definition we should inject Spark Context.
 Mist provides managed Spark Contexts, so developer does not care about context's lifecycle and settings.
 There are following methods of `ArgDef` to define Spark Context:
 - `onSparkContext`
+- `onSparkSession`
 - `onStreamingContext`
 - `onSqlContext`
 - `onHiveContext`
-- `onSparkSession` (for spark >= 2.0.0)
 
 It accepts function with `n+1` arguments where `n` is count of combined argument plus `SparkContext` at end.
 ```scala
@@ -159,13 +251,105 @@ import mist.api.dsl._
 import mist.api.encoding.defaults._
 import org.apache.spark.SparkContext
 
-object NoArgsHandler extends MistFn {
+object NoArgsFn extends MistFn {
 
   override def handle: Handle = {
-    onSparkContext((sc: SparkContext) => 42 )
+    onSparkContext((sc: SparkContext) => 42 ).asHandle
+  }
+}
+```
+
+
+#### RawHandle / Handle
+
+Mist should be able to return result back to the client (http request, async interfaces) and it requires
+that result should be serialized to json.
+After we define argument and function body we receive a `RawHandle[A]` and then we should call
+`asHandle` method on it to turn it into `Handle`.
+
+So there is not much difference between them:
+- RawHandle[A] represents a function `Json + SparkContext => A`
+- Handle represents a function `Json + SparkContext => Json`
+
+```tut:silent
+import mist.api._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
+import org.apache.spark.SparkContext
+
+object MyFn extends MistFn {
+
+  override def handle: Handle = {
+    val rawHandle: RawHandle[Int] = onSparkContext((sc: SparkContext) => 42 )
+    // use JsEncoder for Int to build a Handle
+    rawHandle.asHandle
   }
 }
 
+```
+
+
+#### Encoding
+
+Json encoding is based on `mist.api.JsEncoder[A]` and `mist.api.data.JsData` (json ast)
+There are implementations for common result types:
+```scala
+import mist.api.encoding.defaults._
+```
+It supports:
+- Unit
+- primitives: Short, Int, Long, Float, String, Double, Boolean
+- collections: Array, Seq, Map
+- experimental: DataFrame, DataSet - *Warning* - return them only if you sure that they are small, otherwise it will lead to `OutOfMemory`
+  ```scala
+  import mist.api.encoding.spark._
+  ```
+
+Also if you need you could define it by your self:
+```tut:silent
+import mist.api._
+import mist.api.data._
+import mist.api.dsl._
+
+class Foo(val a: Int, val b: String)
+
+object MyFn extends MistFn {
+
+  implicit val fooEnc: JsEncoder[Foo] = JsEncoder(foo => JsMap("a" -> JsNumber(foo.a), "b" -> JsString("b")))
+
+  override def handle: Handle = {
+    val rawHandle: RawHandle[Foo] = onSparkContext((sc: SparkContext) => new Foo(42, "str"))
+    rawHandle.asHandle
+  }
+
+}
+
+```
+
+For more convenient work with `JsData` there is `JsSyntax`:
+```tut:silent
+import mist.api.data._
+import mist.api.encoding.JsSyntax._
+import mist.api.encoding.JsEncoder
+
+class Foo(val a: Int, val b: String)
+val fooEnc: JsEncoder[Foo] = JsEncoder(foo => JsMap("a" -> foo.a.js, "b" -> foo.b.js))
+```
+
+Also it's possible to automatically derive an encoder for case classes:
+```tut:silent
+import mist.api._
+import mist.api.encoding
+import mist.api.encoding._
+// for primitives and collections
+import mist.api.encoding.defaults._
+
+case class Bar(a: Int, b: String)
+case class Foo(x: Int, foos: Seq[Bar])
+
+// to derive an encoder for `Foo` we need to also have it for `Bar`
+implicit val barEnc: JsEncoder[Bar] = encoding.generic.encoder[Bar]
+val fooEnc: JsEncoder[Foo] = encoding.generic.encoder[Foo]
 ```
 
 #### Validation
@@ -195,31 +379,19 @@ object PiExample extends MistFn {
 
       val pi = (4.0 * count) / n
       pi
-    })
+    }).asHandle
   }
 }
 ```
 
-#### Encoding
-
-Mist should be able to return result back to the client (http request, async interfaces) and it requires
-that result should be serialized to json. Scala api ensures that it's possible during compilation,
-(there should be an instance of `Encoder` that performs serialization).
-There are implementations for common result types:
-```scala
-import mist.api.encoding.DefaultEncoders._
-```
-It supports:
-- Unit
-- primitives: Short, Int, Float, String, Double, Boolean
-- collections: Array, Seq, Map
-- experimental: DataFrame, DataSet - *Warning* - return them only if you sure that they are small, otherwise it will lead to `OutOfMemory`
 
 
-#### Mist extras
+#### Mist extras and logging
 
 Every function invocation on Mist has unique id and associated worker. It could be useful in some cases
 to have that extra information in a function body.
+Also, to be able to log and see what's going on on job side from mist-ui you could just use `org.slf4j.Logger`
+or use `mist.api.Logging` mixin:
 These utilities are called `MistExtras`. Example:
 
 ```tut:silent
@@ -237,7 +409,16 @@ object HelloWorld extends MistFn with Logging {
          // import jobId, workerId, logger into scope
          import extras._ 
          logger.info(s"Hello from $jobId")
-    })
+    }).asHandle
   }
 }
 ```
+
+#### Passing function into spark-submit
+
+`MisFn` trait has a default `main` implementation, so it's possible to pass mist functions into `spark-submit` directly.
+- only ensure that `mist-lib` is will be presented in classpath.
+
+#### Testing
+
+If you want to unit-test your function there is an [example](https://github.com/Hydrospheredata/mist/blob/fix/library_complete/examples/examples/src/test/scala/TestExampleSpec.scala)

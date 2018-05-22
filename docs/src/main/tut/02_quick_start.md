@@ -97,9 +97,9 @@ cd hello_mist/scala
 
 # build function and send its settings to mist
 sbt package
-mist-cli apply -f conf
+mist-cli apply -f conf -u ''
 
-# run it. ?force=true flag forces syncronous execution. By default function is executed in async mode 
+# run it. ?force=true flag forces synchronous execution. By default function is executed in async mode
 curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-scala/jobs?force=true"
 ```
 
@@ -109,7 +109,7 @@ cd hello_mist/java
 
 # build function and send its settings to mist
 mvn package
-mist-cli apply -f conf
+mist-cli apply -f conf -u ''
 
 # run it
 curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-java/jobs?force=true"
@@ -121,7 +121,7 @@ cd hello_mist/python
 
 # build function and send its settings to mist
 python setup.py bdist_egg
-mist-cli apply -f conf
+mist-cli apply -f conf -u ''
 
 # run it
 curl -d '{"samples": 10000}' "http://localhost:2004/v2/api/functions/hello-mist-python/jobs?force=true"
@@ -135,7 +135,7 @@ Please check [reactive interfaces](/mist-docs/reactive_api.html) API as well.
 
 build.sbt:
 ```scala
-lazy val sparkVersion = "2.2.0"
+lazy val sparkVersion = "2.3.0"
 libraryDependencies ++= Seq(
   "io.hydrosphere" %% "mist-lib" % "{{ site.version }}",
 
@@ -180,7 +180,7 @@ object HelloMist extends MistFn with Logging {
 
       val pi = (4.0 * count) / n
       pi
-    })
+    }).asHandle
   }
 }
 ```
@@ -232,6 +232,7 @@ object HelloMist extends MistFn with Logging {
 import mist.api.jdsl.JArg;
 import mist.api.jdsl.JHandle;
 import mist.api.jdsl.JMistFn;
+import mist.api.jdsl.JEncoders;
 import mist.api.jdsl.RetValues;
 
 import java.util.ArrayList;
@@ -265,8 +266,8 @@ public class HelloMist extends JMistFn {
          }).count();
 
          double pi = (4.0 * count) / n;
-         return RetValues.of(pi);
-    });
+         return pi;
+    }).toHandle(JEncoders.doubleEncoder());
   }
 }
 ```
