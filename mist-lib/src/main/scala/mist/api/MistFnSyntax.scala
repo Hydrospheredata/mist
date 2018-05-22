@@ -46,8 +46,8 @@ import scala.annotation.implicitNotFound
   */
 trait MistFnSyntax {
 
-  implicit class ToHandleOps[A](raw: RawHandle[A])(implicit enc: JsEncoder[A]) {
-    def toHandle: Handle = raw.toHandle(enc)
+  implicit class AsHandleOps[A](raw: RawHandle[A]) {
+    def asHandle(implicit enc: JsEncoder[A]): Handle = raw.toHandle(enc)
   }
 
 

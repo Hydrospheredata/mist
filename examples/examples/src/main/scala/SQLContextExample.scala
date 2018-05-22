@@ -16,6 +16,6 @@ object SQLContextExample extends MistFn {
         .map(r => r.getDouble(0).toInt)
         .toSeq
     })
-    raw.toHandle
+    raw.asHandle
   }
 }

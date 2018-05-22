@@ -29,7 +29,7 @@ object StreamingExample extends MistFn with Logging {
       })
       ssc.stop()
     })
-    raw.toHandle
+    raw.asHandle
   }
 
 }

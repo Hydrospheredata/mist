@@ -15,7 +15,7 @@ object SparkContextExample extends MistFn with Logging {
        logger.info(s"Heello from $jobId")
        sc.parallelize(nums).map(x => {logger.info("yoo"); x * mult}).collect()
      })
-    raw.toHandle
+    raw.asHandle
   }
 
 }

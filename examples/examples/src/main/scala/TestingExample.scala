@@ -13,6 +13,6 @@ object TestingExample extends MistFn {
 
   val raw = in.onSparkContext(body _)
 
-  override def handle: Handle = raw.toHandle
+  override def handle: Handle = raw.asHandle
 
 }

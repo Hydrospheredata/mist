@@ -153,7 +153,7 @@ object Boilerplate {
          |import org.apache.spark.api.java.JavaSparkContext
          |import org.apache.spark.sql.SparkSession
          |import org.apache.spark.streaming.api.java.JavaStreamingContext
-         |import mist.api.MistExtras
+         |import mist.api._
          |import FuncSyntax._
          |import mist.api.SparkArgs._
          |import mist.api.ArgDef
@@ -163,28 +163,27 @@ object Boilerplate {
          -  /**
          -    * Define job execution that use JavaSparkContext for invocation
          -    */
-         -  def onSparkContext(f: Func${arity}[${`T1..N-1`}, JavaSparkContext, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & javaSparkContextArg).apply(f.toScalaFunc)
-         -    new JHandle(job)
+         -  def onSparkContext[R](f: Func${arity}[${`T1..N-1`}, JavaSparkContext, R]): RawHandle[R] = {
+         -    (${`a1&aN-1`} & javaSparkContextArg).apply(f.toScalaFunc)
          -  }
          -
          -  /**
          -    * Define job execution that use JavaStreamingContext for invocation
          -    */
-         -  def onStreamingContext(f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & javaStreamingContextArg).apply(f.toScalaFunc)
-         -    new JHandle(job)
+         -  def onStreamingContext[R](f: Func${arity}[${`T1..N-1`}, JavaStreamingContext, R]): RawHandle[R] = {
+         -    (${`a1&aN-1`} & javaStreamingContextArg).apply(f.toScalaFunc)
          -  }
          -
-         -  def onSparkSession(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & sparkSessionArg).apply(f.toScalaFunc)
-         -    new JHandle(job)
+         -  def onSparkSession[R](f: Func${arity}[${`T1..N-1`}, SparkSession, R]): RawHandle[R] = {
+         -    (${`a1&aN-1`} & sparkSessionArg).apply(f.toScalaFunc)
          -  }
          -
-         -  def onSparkSessionWithHive(f: Func${arity}[${`T1..N-1`}, SparkSession, RetVal]): JHandle = {
-         -    val job = (${`a1&aN-1`} & sparkSessionWithHiveArg).apply(f.toScalaFunc)
-         -    new JHandle(job)
+         -  def onSparkSessionWithHive[R](f: Func${arity}[${`T1..N-1`}, SparkSession, R]): RawHandle[R] = {
+         -    (${`a1&aN-1`} & sparkSessionWithHiveArg).apply(f.toScalaFunc)
          -  }
+         -
+         -  def extract(ctx: FnContext): Extraction[${`(T1..N-1)`}] = (${`a1&aN-1`}).extract(ctx)
+         -
          ${extrasMethod}
          -}
       """
@@ -262,6 +261,8 @@ object Boilerplate {
     val synJavaTypes = (1 to arity) map (n => "T" + n)
     val synJavaVals  =  (1 to arity) map (n => "a" + n)
     val `T1..N`      = synJavaTypes.mkString(",")
+    val `(T1..N)`    = if (arity == 1) "T1" else synJavaTypes.mkString("(", ", ", ")")
+    val `(T1..N-1)`    = if (arity == 1) "T1" else synJavaTypes.dropRight(1).mkString("(", ", ", ")")
     val `T1..N-1`    = synJavaTypes.dropRight(1).mkString(",")
     val `-T1..N`     = synJavaTypes.map("-" + _).mkString(",")
     val `a1:T1..aN:TN`  = (synJavaVals zip synJavaTypes).map({case (a, t) => a + ":" + t}).mkString(",")

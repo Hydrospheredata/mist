@@ -17,6 +17,6 @@ object TextSearchExample extends MistFn {
           .filter(s => upper.exists(filter => s.toUpperCase.contains(filter)))
           .collect()
     })
-    raw.toHandle
+    raw.asHandle
   }
 }

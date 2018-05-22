@@ -49,6 +49,7 @@ final case class JsNumber(v: BigDecimal) extends JsData {
 }
 
 object JsNumber {
+  def apply(n: Short): JsNumber = new JsNumber(BigDecimal(n.toInt))
   def apply(n: Int): JsNumber = new JsNumber(BigDecimal(n))
   def apply(n: Long): JsNumber = new JsNumber(BigDecimal(n))
   def apply(n: Double): JsData = n match {
@@ -58,6 +59,7 @@ object JsNumber {
   }
   def apply(n: BigInt): JsNumber = new JsNumber(BigDecimal(n))
 
+  def of(n: Short): JsNumber = JsNumber(n)
   def of(n: Int): JsNumber = JsNumber(n)
   def of(n: Long): JsNumber = JsNumber(n)
   def of(n: Double): JsNumber = JsNumber(n)
@@ -71,7 +73,7 @@ final class JsMap(val map: Map[String, JsData]) extends JsData {
   def get(key: String): Option[JsData] = map.get(key)
   def fieldValue(key: String): JsData = get(key).getOrElse(JsNull)
 
-  def addField(key: String, value: JsData): JsMap = JsMap(map + key -> value)
+  def addField(key: String, value: JsData): JsMap = JsMap(map + (key -> value))
 
   override def equals(obj: scala.Any): Boolean = {
     obj match {

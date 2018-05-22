@@ -336,7 +336,8 @@ lazy val examples = project.in(file("examples/examples"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       Library.scalaTest % "test",
-      Library.junit % "test"
+      Library.junit % "test",
+      "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep")
     ),
     PyProject.pyName := "mist_examples"
   )

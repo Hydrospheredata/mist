@@ -14,7 +14,7 @@ object SparkSessionExample extends MistFn {
         spark.sparkContext.parallelize(nums).map(_ * mult).collect()
       })
 
-    raw.toHandle
+    raw.asHandle
  }
 
 }

@@ -1,17 +1,18 @@
 import static mist.api.jdsl.JDsl.*;
+
+import mist.api.Handle;
+import mist.api.MistFn;
 import mist.api.jdsl.JArg;
-import mist.api.jdsl.JHandle;
-import mist.api.jdsl.JMistFn;
-import mist.api.jdsl.RetValues;
+import mist.api.jdsl.JEncoders;
 
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class JavaPiExample extends JMistFn {
+public class JavaPiExample extends MistFn {
 
     @Override
-    public JHandle handle() {
+    public Handle handle() {
         JArg<Integer> samples = intArg("samples").validated(s -> s > 0, "Samples must be positive");
         return withArgs(samples).onSparkContext((n, sc) -> {
             List<Integer> l = new ArrayList<>(n);
@@ -26,7 +27,7 @@ public class JavaPiExample extends JMistFn {
             }).count();
 
             double pi = (4.0 * count) / n;
-            return RetValues.of(pi);
-        });
+            return pi;
+        }).toHandle(JEncoders.doubleEncoder());
     }
 }

@@ -19,6 +19,10 @@ sealed trait Extraction[+A] { self =>
 
   def isExtracted: Boolean = !isFailed
 
+  def get(): A = self match {
+    case Extracted(a) => a
+    case f:Failed => throw new IllegalStateException(s"Extraction is failed: ${f}")
+  }
 }
 
 final case class Extracted[+A](value: A) extends Extraction[A]

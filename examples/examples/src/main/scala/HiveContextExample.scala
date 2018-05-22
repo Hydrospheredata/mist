@@ -14,6 +14,6 @@ object HiveContextExample extends MistFn {
 
       hiveCtx.sql("SELECT AVG(age) AS avg_age FROM people")
     })
-    raw.toHandle
+    raw.asHandle
   }
 }

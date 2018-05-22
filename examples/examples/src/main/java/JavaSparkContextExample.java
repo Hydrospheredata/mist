@@ -1,4 +1,7 @@
 import static mist.api.jdsl.JDsl.*;
+
+import mist.api.Handle;
+import mist.api.MistFn;
 import mist.api.data.*;
 import mist.api.encoding.JsEncoder;
 import mist.api.jdsl.*;
@@ -39,15 +42,14 @@ class MyEnc implements JsEncoder<Point> {
 
 }
 
-class JavaSparkContextExample extends JMistFn {
+class JavaSparkContextExample extends MistFn {
 
     @Override
-    public JHandle handle() {
+    public Handle handle() {
         return withArgs(intArg("num")).onSparkContext((num, sc) -> {
             List<Integer> nums = Stream.of(0, 10).collect(Collectors.toList());
-            List<Integer> result = sc.parallelize(nums).map(x -> x * 2).collect();
-            return RetValues.of(result);
-        });
+            return sc.parallelize(nums).map(x -> x * 2).collect();
+        }).toHandle(JEncoders.listEncoderOf(JEncoders.intEncoder()));
     }
 
 }

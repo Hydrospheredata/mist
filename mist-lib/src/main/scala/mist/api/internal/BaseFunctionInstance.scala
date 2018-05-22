@@ -2,7 +2,6 @@ package mist.api.internal
 
 import mist.api._
 import mist.api.data.{JsData, JsMap, JsNull}
-import mist.api.jdsl.JMistFn
 
 import scala.annotation.tailrec
 import scala.util._
@@ -36,26 +35,26 @@ class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
   }
 }
 
-class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
-
-  private val jobDef = instance.handle.underlying
-
-  override def describe(): Seq[ArgInfo] = jobDef.describe()
-
-  override def validateParams(params: JsMap): Extraction[Unit] = jobDef.validate(params)
-
-  override def run(ctx: FullFnContext): Either[Throwable, JsData] = {
-    try {
-      instance.execute(ctx) match {
-        case Success(data) => Right(data)
-        case Failure(e) => Left(e)
-      }
-    } catch {
-      case e: Throwable => Left(e)
-    }
-  }
-
-}
+//class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
+//
+//  private val jobDef = instance.handle.underlying
+//
+//  override def describe(): Seq[ArgInfo] = jobDef.describe()
+//
+//  override def validateParams(params: JsMap): Extraction[Unit] = jobDef.validate(params)
+//
+//  override def run(ctx: FullFnContext): Either[Throwable, JsData] = {
+//    try {
+//      instance.execute(ctx) match {
+//        case Success(data) => Right(data)
+//        case Failure(e) => Left(e)
+//      }
+//    } catch {
+//      case e: Throwable => Left(e)
+//    }
+//  }
+//
+//}
 
 class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
 
@@ -102,21 +101,21 @@ object FunctionInstance {
   }
 
   val ScalaJobClass = classOf[MistFn]
-  val JavaJobClass = classOf[JMistFn]
+//  val JavaJobClass = classOf[JMistFn]
 
-  def isScalaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
-  def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
+  def isInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
+//  def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
 
-  def loadScala(clazz: Class[_]): ScalaFunctionInstance = {
+  def loadObject(clazz: Class[_]): ScalaFunctionInstance = {
     val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn]
     new ScalaFunctionInstance(i)
   }
 
-  def loadJava(clazz: Class[_]): JavaFunctionInstance = {
+  def loadClass(clazz: Class[_]): ScalaFunctionInstance = {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new JavaFunctionInstance(i.asInstanceOf[JMistFn])
+    new ScalaFunctionInstance(i.asInstanceOf[MistFn])
   }
 
   @tailrec

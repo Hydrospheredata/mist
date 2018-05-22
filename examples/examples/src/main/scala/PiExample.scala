@@ -16,6 +16,6 @@ object PiExample extends MistFn {
 
       val pi = (4.0 * count) / n
       pi
-    }).toHandle
+    }).asHandle
   }
 }

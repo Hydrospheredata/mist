@@ -1,7 +1,6 @@
 package mist.api.jdsl
 
-import mist.api.SparkArgs
-import mist.api.MistExtras
+import mist.api.{MistExtras, RawHandle, SparkArgs}
 import mist.api.jdsl.FuncSyntax._
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.SparkSession
@@ -12,33 +11,29 @@ trait JJobDefinition extends WithArgs {
   /**
     * Define job execution that use JavaSparkContext for invocation
     */
-  def onSparkContext(f: Func1[JavaSparkContext, RetVal]): JHandle = {
-    val job = SparkArgs.javaSparkContextArg.apply(f.toScalaFunc)
-    new JHandle(job)
+  def onSparkContext[R](f: Func1[JavaSparkContext, R]): RawHandle[R] = {
+    SparkArgs.javaSparkContextArg.apply(f.toScalaFunc)
   }
 
   /**
     * Define job execution that use JavaStreamingContext for invocation
     */
-  def onStreamingContext(f: Func1[JavaStreamingContext, RetVal]): JHandle = {
-    val job = SparkArgs.javaStreamingContextArg.apply(f.toScalaFunc)
-    new JHandle(job)
+  def onStreamingContext[R](f: Func1[JavaStreamingContext, R]): RawHandle[R] = {
+    SparkArgs.javaStreamingContextArg.apply(f.toScalaFunc)
   }
 
   /**
     * Define job execution that use SparkSession for invocation
     */
-  def onSparkSession(f: Func1[SparkSession, RetVal]): JHandle = {
-    val job = SparkArgs.sparkSessionArg.apply(f.toScalaFunc)
-    new JHandle(job)
+  def onSparkSession[R](f: Func1[SparkSession, R]): RawHandle[R] = {
+    SparkArgs.sparkSessionArg.apply(f.toScalaFunc)
   }
 
   /**
     * Define job execution that use SparkSession with enabled Hive for invocation
     */
-  def onSparkSessionWithHive(f: Func1[SparkSession, RetVal]): JHandle = {
-    val job = SparkArgs.sparkSessionWithHiveArg.apply(f.toScalaFunc)
-    new JHandle(job)
+  def onSparkSessionWithHive[R](f: Func1[SparkSession, R]): RawHandle[R] = {
+    SparkArgs.sparkSessionWithHiveArg.apply(f.toScalaFunc)
   }
 
   def withMistExtras(): Args1[MistExtras] = new Args1[MistExtras](MistExtras.mistExtras)

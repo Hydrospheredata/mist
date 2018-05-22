@@ -26,5 +26,25 @@ object FnContext {
     params: JsMap,
     streamingDuration: Duration = Duration(1000),
     info: RuntimeJobInfo = RuntimeJobInfo.Unknown): FullFnContext = FullFnContext(sc, streamingDuration, info, params)
+}
 
+/**
+  * For java
+  */
+object FnContextBuilder {
+
+
+  def create(sc: SparkContext, params: JsMap): FullFnContext = FnContext(sc, params)
+
+  def create(
+    sc: SparkContext,
+    params: JsMap,
+    streamingDuration: Duration): FullFnContext = FnContext(sc, params, streamingDuration)
+
+  def create(
+    sc: SparkContext,
+    params: JsMap,
+    streamingDuration: Duration,
+    info: RuntimeJobInfo
+  ): FullFnContext = FnContext(sc, params, streamingDuration, info)
 }
