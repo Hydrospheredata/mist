@@ -1,6 +1,5 @@
 package mist.api
 
-import mist.api.data.{JsNumber, JsString}
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.scalatest.{FunSpec, Matchers}
@@ -22,15 +21,15 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
        "2"
     })
     val res = spJob.invoke(testCtx(JsMap("nums" -> (1 to 10).to[Seq].js)))
-    res shouldBe Success("2".js)
+    res shouldBe Success("2")
   }
 
   it("for only sc") {
-    val spJob: Handle = onSparkContext((sc: SparkContext) => {
+    val spJob = onSparkContext((sc: SparkContext) => {
       5
     })
     val res = spJob.invoke(testCtx(JsMap.empty))
-    res shouldBe Success(JsNumber(5))
+    res shouldBe Success(5)
   }
 
   def pathToResource(path: String): String = {
@@ -50,7 +49,7 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
     })
     spJob.invoke(testCtx(JsMap.empty))
     val res = spJob.invoke(testCtx(JsMap.empty))
-    res shouldBe Success(JsNumber(30))
+    res shouldBe Success(30)
   }
 
   def testCtx(params: JsMap): FnContext = {

@@ -1,4 +1,4 @@
-package mist.api.internal
+package io.hydrosphere.mist.job
 
 import mist.api._
 import mist.api.data.{JsData, JsMap, JsNull}
@@ -13,9 +13,11 @@ trait BaseFunctionInstance {
   def validateParams(params: JsMap): Extraction[Unit]
 
   def run(jobCtx: FullFnContext): Either[Throwable, JsData]
+
+  def lang: String
 }
 
-class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
+class JvmFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
 
   private val jobDef = instance.handle
 
@@ -33,28 +35,9 @@ class ScalaFunctionInstance(instance: MistFn) extends BaseFunctionInstance {
       case e: Throwable => Left(e)
     }
   }
-}
 
-//class JavaFunctionInstance(instance: JMistFn) extends BaseFunctionInstance {
-//
-//  private val jobDef = instance.handle.underlying
-//
-//  override def describe(): Seq[ArgInfo] = jobDef.describe()
-//
-//  override def validateParams(params: JsMap): Extraction[Unit] = jobDef.validate(params)
-//
-//  override def run(ctx: FullFnContext): Either[Throwable, JsData] = {
-//    try {
-//      instance.execute(ctx) match {
-//        case Success(data) => Right(data)
-//        case Failure(e) => Left(e)
-//      }
-//    } catch {
-//      case e: Throwable => Left(e)
-//    }
-//  }
-//
-//}
+  override def lang: String = JvmLangDetector.lang(instance.getClass)
+}
 
 class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
 
@@ -87,6 +70,8 @@ class PythonFunctionInstance(args: Seq[ArgInfo]) extends BaseFunctionInstance {
   }
 
   override def describe(): Seq[ArgInfo] = args
+
+  override def lang: String = "python"
 }
 
 object FunctionInstance {
@@ -98,24 +83,24 @@ object FunctionInstance {
     override def validateParams(params: JsMap): Extraction[Unit] = Extracted(())
 
     override def describe(): Seq[ArgInfo] = Seq()
+
+    override def lang: String = "scala"
   }
 
-  val ScalaJobClass = classOf[MistFn]
-//  val JavaJobClass = classOf[JMistFn]
+  val JobClass = classOf[MistFn]
 
-  def isInstance(clazz: Class[_]): Boolean = implementsClass(clazz, ScalaJobClass)
-//  def isJavaInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JavaJobClass)
+  def isInstance(clazz: Class[_]): Boolean = implementsClass(clazz, JobClass)
 
-  def loadObject(clazz: Class[_]): ScalaFunctionInstance = {
+  def loadObject(clazz: Class[_]): JvmFunctionInstance = {
     val i = clazz.getField("MODULE$").get(null).asInstanceOf[MistFn]
-    new ScalaFunctionInstance(i)
+    new JvmFunctionInstance(i)
   }
 
-  def loadClass(clazz: Class[_]): ScalaFunctionInstance = {
+  def loadClass(clazz: Class[_]): JvmFunctionInstance = {
     val constr = clazz.getDeclaredConstructor()
     constr.setAccessible(true)
     val i = constr.newInstance()
-    new ScalaFunctionInstance(i.asInstanceOf[MistFn])
+    new JvmFunctionInstance(i.asInstanceOf[MistFn])
   }
 
   @tailrec

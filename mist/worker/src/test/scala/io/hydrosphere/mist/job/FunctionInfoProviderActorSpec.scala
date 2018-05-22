@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.jobs
+package io.hydrosphere.mist.job
 
 import java.io.File
 import java.nio.file.Paths
@@ -7,12 +7,10 @@ import akka.actor.{Actor, ActorSystem, Status}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
-import io.hydrosphere.mist.job.{Cache, FunctionInfo, FunctionInfoExtractor, FunctionInfoProviderActor}
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api._
 import mist.api.data._
 import mist.api.encoding.JsSyntax._
-import mist.api.internal.BaseFunctionInstance
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
 import org.mockito.Mockito.{times, verify}
@@ -276,5 +274,7 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
     override def validateParams(params: JsMap): Extraction[Unit] = validationResult
 
     override def describe(): Seq[ArgInfo] = Seq.empty
+
+    override def lang: String = "scala"
   }
 }

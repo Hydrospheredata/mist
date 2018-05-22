@@ -9,7 +9,6 @@ import io.hydrosphere.mist.core.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.{Extracted, Failed}
 import mist.api.data.JsMap
-import mist.api.internal.BaseFunctionInstance
 
 import scala.concurrent.duration._
 import scala.util.Failure

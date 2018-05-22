@@ -1,13 +1,11 @@
-package io.hydrosphere.mist.jobs
+package io.hydrosphere.mist.job
 
 import java.io.File
 
 import io.hydrosphere.mist.core.CommonData.{Action, EnvInfo}
 import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
-import io.hydrosphere.mist.job._
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.{InternalArgument, MInt, UserInputArgument}
-import mist.api.internal.{FunctionInstance, JavaFunctionInstance, ScalaFunctionInstance}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}
 import org.mockito.Mockito._
 import org.scalatest.{BeforeAndAfterAll, FunSpecLike, Matchers}
@@ -68,8 +66,8 @@ class FunctionInfoExtractorSpec extends FunSpecLike
 
     it("should extract job info prior to language") {
       val jobsLoader = mock[FunctionInstanceLoader]
-      val scalaJobInstance = mock[ScalaFunctionInstance]
-      val javaJobInstance = mock[JavaFunctionInstance]
+      val scalaJobInstance = mock[JvmFunctionInstance]
+      val javaJobInstance = mock[JvmFunctionInstance]
 
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
       when(jobsLoader.loadFnInstance(mockitoEndsWith("Scala"), any[Action]))
@@ -83,11 +81,14 @@ class FunctionInfoExtractorSpec extends FunSpecLike
           UserInputArgument("num", MInt),
           InternalArgument()
         ))
+      when(scalaJobInstance.lang).thenReturn("scala")
+
       when(javaJobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
           InternalArgument()
         ))
+      when(javaJobInstance.lang).thenReturn("java")
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava", envInfo)
       res.isSuccess shouldBe true
@@ -116,17 +117,19 @@ class FunctionInfoExtractorSpec extends FunSpecLike
     }
 
     it("should get tags from internal arguments"){
-      val javaJobInstance = mock[JavaFunctionInstance]
+      val jobInstance = mock[JvmFunctionInstance]
       val jobsLoader = mock[FunctionInstanceLoader]
 
       when(jobsLoader.loadFnInstance(mockitoEndsWith("Java"), any[Action]))
-        .thenReturn(Succ(javaJobInstance))
+        .thenReturn(Succ(jobInstance))
 
-      when(javaJobInstance.describe())
+      when(jobInstance.describe())
         .thenReturn(Seq(
           UserInputArgument("num", MInt),
           InternalArgument(Seq("testTag"))
         ))
+      when(jobInstance.lang).thenReturn("java")
+
       val jvmJobInfoExtractor = new JvmFunctionInfoExtractor(_ => jobsLoader)
 
       val res = jvmJobInfoExtractor.extractInfo(new File("doesnt_matter"), "TestJava", envInfo)

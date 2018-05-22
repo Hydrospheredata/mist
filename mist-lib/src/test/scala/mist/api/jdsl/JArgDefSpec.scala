@@ -47,21 +47,20 @@ class JArgDefSpec extends FunSpec with Matchers {
     (doubleArg("d", 2.2), JsMap.empty,        Extracted(2.2)),
     (doubleArg("d"),      JsMap.empty,        miss),
     (optDoubleArg("d"),   JsMap("d" -> 42.1.js), Extracted(java.util.Optional.of(42.1))),
-    (optDoubleArg("d"),   JsMap.empty,        Extracted(java.util.Optional.empty()))
+    (optDoubleArg("d"),   JsMap.empty,        Extracted(java.util.Optional.empty())),
 
-    //TODO
-//    (intListArg("ints"),       JsMap("ints" -> Seq(1,2,3).js), Extracted(javaList(1, 2, 3))),
-//
-//    (doubleListArg("doubles"), JsMap("doubles" -> Seq(1.1,2.2,3.3).js), Extracted(javaList(1.1, 2.2, 3.3))),
-//
-//    (stringListArg("strings"), JsMap("strings" -> Seq("a", "b", "c").js), Extracted(javaList("a", "b", "c"))),
-//
-//    (booleanListArg("boolean"), JsMap("boolean" -> Seq(true, false).js), Extracted(javaList(true, false)))
+    (intListArg("ints"),       JsMap("ints" -> Seq(1,2,3).js), Extracted(javaList(1, 2, 3))),
+
+    (doubleListArg("doubles"), JsMap("doubles" -> Seq(1.1,2.2,3.3).js), Extracted(javaList(1.1, 2.2, 3.3))),
+
+    (stringListArg("strings"), JsMap("strings" -> Seq("a", "b", "c").js), Extracted(javaList("a", "b", "c"))),
+
+    (booleanListArg("boolean"), JsMap("boolean" -> Seq(true, false).js), Extracted(javaList(true, false)))
   )
 
   it("should extract expected result") {
     forAll(expected) { (arg, params, expected) =>
-      val ctx = FnContext(params)
+      val ctx = FnContext.onlyInput(params)
       val result = arg.asScala.extract(ctx)
       (expected, result) match {
         case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr
@@ -77,8 +76,8 @@ class JArgDefSpec extends FunSpec with Matchers {
       override def apply(a1: java.lang.Integer): java.lang.Boolean = a1 > 2
     }).asScala
 
-    arg.extract(FnContext(JsMap("a" -> 5.js))) shouldBe Extracted(5)
-    arg.extract(FnContext(JsMap("a" -> 1.js))) shouldBe a[Failed]
+    arg.extract(FnContext.onlyInput(JsMap("a" -> 5.js))) shouldBe Extracted(5)
+    arg.extract(FnContext.onlyInput(JsMap("a" -> 1.js))) shouldBe a[Failed]
   }
 
 }

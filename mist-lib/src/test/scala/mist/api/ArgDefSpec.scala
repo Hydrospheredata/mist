@@ -72,6 +72,6 @@ class ArgDefSpec extends FunSpec with Matchers {
   }
 
   def testCtx(params: (String, JsData)*): FnContext = {
-    FnContext(JsMap(params:_*))
+    FnContext.onlyInput(JsMap(params:_*))
   }
 }
