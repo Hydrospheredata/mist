@@ -52,5 +52,8 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
 
     remote.send(bridge, ShutdownWorker)
     remote.expectMsgType[RequestTermination.type]
+
+    remote.send(bridge, ShutdownWorkerApp)
+    remote.expectMsgType[Goodbye.type]
   }
 }
