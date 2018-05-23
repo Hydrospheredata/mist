@@ -140,7 +140,7 @@ val two = arg[Int]("n") combine arg[String]("str")
 val three = arg[Int]("n") & arg[String]("str") & arg[Boolean]("flag")
 ```
 
-Also it's possible to use case classes as argument:
+Also it's possible to use case classes as an argument:
 
 ```tut:silent
 import mist.api._
@@ -210,15 +210,13 @@ If you want to allow to skip field with default values:
 import mist.api._
 import mist.api.encoding
 import mist.api.encoding._
-// for primitives and collections
 import mist.api.encoding.defaults._
 
 case class Bar(a: Int, b: String = "default")
 implicit val barExt: JsExtractor[Bar] = encoding.generic.extractorWithDefaults[Bar]
 
 case class Foo(x: Int, bar: Bar = Bar(1, "str"))
-// to derive an extractor that respects default values for Foo
-// we also need to have JsExtractor and JsEncoder for Bar
+// JsEncoder for bar is required
 implicit val barEnc: JsEncoder[Bar] = encoding.generic.encoder[Bar]
 implicit val fooExt: RootExtractor[Foo] = encoding.generic.extractorWithDefaults[Foo]
 ```
@@ -281,13 +279,11 @@ object MyFn extends MistFn {
 
   override def handle: Handle = {
     val rawHandle: RawHandle[Int] = onSparkContext((sc: SparkContext) => 42 )
-    // use JsEncoder for Int to build a Handle
     rawHandle.asHandle
   }
 }
 
 ```
-
 
 #### Encoding
 
@@ -323,7 +319,6 @@ object MyFn extends MistFn {
   }
 
 }
-
 ```
 
 For more convenient work with `JsData` there is `JsSyntax`:
@@ -341,15 +336,13 @@ Also it's possible to automatically derive an encoder for case classes:
 import mist.api._
 import mist.api.encoding
 import mist.api.encoding._
-// for primitives and collections
 import mist.api.encoding.defaults._
 
 case class Bar(a: Int, b: String)
 case class Foo(x: Int, foos: Seq[Bar])
 
-// to derive an encoder for `Foo` we need to also have it for `Bar`
 implicit val barEnc: JsEncoder[Bar] = encoding.generic.encoder[Bar]
-val fooEnc: JsEncoder[Foo] = encoding.generic.encoder[Foo]
+implicit val fooEnc: JsEncoder[Foo] = encoding.generic.encoder[Foo]
 ```
 
 #### Validation
@@ -384,15 +377,12 @@ object PiExample extends MistFn {
 }
 ```
 
-
-
 #### Mist extras and logging
 
 Every function invocation on Mist has unique id and associated worker. It could be useful in some cases
 to have that extra information in a function body.
 Also, to be able to log and see what's going on on job side from mist-ui you could just use `org.slf4j.Logger`
 or use `mist.api.Logging` mixin:
-These utilities are called `MistExtras`. Example:
 
 ```tut:silent
 import mist.api._
@@ -406,8 +396,7 @@ object HelloWorld extends MistFn with Logging {
     withArgs(arg[Int]("samples"))
       .withMistExtras
       .onSparkContext((n: Int, extras: MistExtras, sc: SparkContext) => {
-         // import jobId, workerId, logger into scope
-         import extras._ 
+         import extras._
          logger.info(s"Hello from $jobId")
     }).asHandle
   }

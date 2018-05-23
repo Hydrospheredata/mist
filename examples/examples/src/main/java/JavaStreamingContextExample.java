@@ -1,4 +1,4 @@
-import static mist.api.jdsl.JDsl.*;
+import static mist.api.jdsl.Jdsl.*;
 
 import mist.api.Handle;
 import mist.api.MistFn;

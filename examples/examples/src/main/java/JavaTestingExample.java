@@ -6,10 +6,8 @@ import mist.api.jdsl.JEncoders;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static mist.api.jdsl.JDsl.*;
+import static mist.api.jdsl.Jdsl.*;
 
 public class JavaTestingExample extends MistFn {
 

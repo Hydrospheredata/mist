@@ -229,20 +229,23 @@ object HelloMist extends MistFn with Logging {
 
 `src/main/java/HelloMist.java`:
 ```java
-import mist.api.jdsl.JArg;
-import mist.api.jdsl.JHandle;
-import mist.api.jdsl.JMistFn;
+import static mist.api.jdsl.Jdsl.*;
+
+import mist.api.Handle;
+import mist.api.MistFn;
 import mist.api.jdsl.JEncoders;
-import mist.api.jdsl.RetValues;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import java.util.ArrayList;
 import java.util.List;
 
 // function class
-public class HelloMist extends JMistFn {
+public class HelloMist extends MistFn {
 
   @Override
-  public JHandle handle() {
+  public Handle handle() {
     // declare an input argument with name `samples` and type `Int` and default value `10000`
     // we could call it by sending:
     //  - {} - empty request, n will be taken from default value

@@ -114,6 +114,18 @@ Where:
 
 `with_args` is optional for usage, if you don't need any argument expect spark context you can skip it
 
+#### Logging
+
+To be able to log and see what's going on on job side from mist-ui you to use log4j logger:
+```python
+@on_spark_context
+def example(sc):
+    log4jLogger = sc._jvm.org.apache.log4j
+    logger = log4jLogger.LogManager.getLogger(__name__)
+    logger.info("Hello!")
+    ...
+```
+
 ### Python versions
 
 Python version could be explicitly specified with spark configurations in default mist context for function.

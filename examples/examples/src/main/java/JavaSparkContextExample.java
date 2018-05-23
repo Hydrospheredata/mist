@@ -1,48 +1,22 @@
-import static mist.api.jdsl.JDsl.*;
+import static mist.api.jdsl.Jdsl.*;
 
 import mist.api.Handle;
 import mist.api.MistFn;
 import mist.api.data.*;
 import mist.api.encoding.JsEncoder;
-import mist.api.jdsl.*;
+import mist.api.jdsl.JEncoders;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class Point {
-
-    private int x;
-    private int y;
-
-    public Point(int x, int y) {
-        this.x = x;
-        this.y = y;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public int getX() {
-        return x;
-    }
-}
-
-class MyEnc implements JsEncoder<Point> {
-
-    @Override
-    public JsData apply(Point point) {
-        List<Field> fields = new ArrayList<>();
-        fields.add(Field.of("x", JsNumber.of(point.getX())));
-        fields.add(Field.of("y", JsNumber.of(point.getY())));
-        return JsMap.of(fields);
-    }
-
-}
-
 class JavaSparkContextExample extends MistFn {
+
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
     public Handle handle() {
