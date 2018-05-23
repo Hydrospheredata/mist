@@ -4,33 +4,54 @@ import scala.sys.process._
 
 object PyProject {
 
-  lazy val pyName = taskKey[String]("Project name")
-  lazy val pyDir = taskKey[File]("Directory with python project")
-  lazy val pySources = taskKey[File]("Source directory")
-  lazy val pythonVersion = taskKey[String]("Python version")
-  lazy val virtualDir = taskKey[File]("Directory for virtual env")
+  lazy val pyProjectVersion = settingKey[String]("Py project version")
+  lazy val pyName = settingKey[String]("Project name")
+  lazy val pyDir = settingKey[File]("Directory with python project")
+  lazy val pySources = settingKey[File]("Source directory")
+  lazy val pythonVersion = settingKey[String]("Python version")
+  lazy val virtualDir = settingKey[File]("Directory for virtual env")
+
   lazy val pyTest = taskKey[Unit]("Run tests")
   lazy val pySdist = taskKey[File]("Make source distribution")
   lazy val pyBdist = taskKey[File]("Make binary distribution")
   lazy val pyBdistEgg = taskKey[File]("Make binary egg distribution")
+  lazy val pypiRepo = taskKey[String]("Pypi repo")
+  lazy val pyPublish = taskKey[Unit]("Publish to pypi")
 
-  val settings = Seq(
-    pythonVersion := "2",
-    pyDir := baseDirectory.value / "src" / "main" / "python",
-    virtualDir := pyDir.value / ("env-" + pyName.value + "-" + pythonVersion.value),
-    pySources := pyDir.value / pyName.value
-  ) ++ inConfig(Test)(Seq(
-    pyTest := {
-      sLog.value.info(s"Starting python test for ${pyName.value}")
-      venv(pyDir.value, virtualDir.value, pythonVersion.value)("python setup.py test")
-    }
-  )) ++ distTasks(pyName, pyDir, virtualDir, pythonVersion)
+  val settings = {
+    Seq(
+      pyProjectVersion := {
+        val v = version.value
+        val out = pyDir.value / pyName.value / "__version__.py"
+        val data = s"__version__ = '$v'"
+        IO.write(out, data)
+        v
+      },
+      pythonVersion := "2",
+      pyDir := baseDirectory.value / "src" / "main" / "python",
+      virtualDir := pyDir.value / ("env-" + pyName.value + "-" + pythonVersion.value),
+      pySources := pyDir.value / pyName.value,
+      pypiRepo := "testpypi",
+      pyPublish := {
+        val repo = pypiRepo.value
+        val sdist = pySdist.value
+        val path = sdist.getAbsolutePath
+        venv(pyDir.value, virtualDir.value, pythonVersion.value)("pip install twine")
+        venv(pyDir.value, virtualDir.value, pythonVersion.value)(s"twine upload --repository $repo $path")
+      }
+    ) ++ inConfig(Test)(Seq(
+      pyTest := {
+        sLog.value.info(s"Starting python test for ${pyName.value}")
+        venv(pyDir.value, virtualDir.value, pythonVersion.value)("python setup.py test")
+      }
+    )) ++ distTasks(pyName, pyDir, virtualDir, pythonVersion)
+  }
 
   private def distTasks(
-    nameKey: TaskKey[String],
-    dirKey: TaskKey[File],
-    venvKey: TaskKey[File],
-    pyVersionKey: TaskKey[String]
+    nameKey: SettingKey[String],
+    dirKey: SettingKey[File],
+    venvKey: SettingKey[File],
+    pyVersionKey: SettingKey[String]
   ): Seq[Def.Setting[_]] = {
     Seq(
       pyBdist -> "bdist",
@@ -42,10 +63,10 @@ object PyProject {
   }
 
   private def mkDistTask(
-    nameKey: TaskKey[String],
-    dirKey: TaskKey[File],
-    venvKey: TaskKey[File],
-    pyVersionKey: TaskKey[String],
+    nameKey: SettingKey[String],
+    dirKey: SettingKey[File],
+    venvKey: SettingKey[File],
+    pyVersionKey: SettingKey[String],
     distType: String
   ): Def.Initialize[Task[File]] = Def.task {
     Def.sequential(
@@ -64,9 +85,9 @@ object PyProject {
   }
 
   private def inVenv(
-    dirKey: TaskKey[File],
-    venvKey: TaskKey[File],
-    pyVersionKey: TaskKey[String],
+    dirKey: SettingKey[File],
+    venvKey: SettingKey[File],
+    pyVersionKey: SettingKey[String],
     cmd: String
   ): Def.Initialize[Task[Unit]] = Def.task(venv(dirKey.value, venvKey.value, pyVersionKey.value)(cmd))
 
