@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master
 import io.hydrosphere.mist.core.CommonData.JobParams
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import mist.api.data.JsLikeData
+import mist.api.data.JsData
 
 object JobDetails {
   
@@ -102,7 +102,7 @@ case class JobDetails(
   source: JobDetails.Source,
   startTime: Option[Long] = None,
   endTime: Option[Long] = None,
-  jobResult: Option[Either[String, JsLikeData]] = None,
+  jobResult: Option[Either[String, JsData]] = None,
   status: JobDetails.Status = JobDetails.Status.Initialized,
   workerId: Option[String] = None,
   createTime: Long = System.currentTimeMillis()
@@ -117,7 +117,7 @@ case class JobDetails(
 
   def ends(): JobDetails = withEndTime(System.currentTimeMillis())
 
-  def withJobResult(result: JsLikeData): JobDetails =
+  def withJobResult(result: JsData): JobDetails =
     copy(jobResult = Some(Right(result)))
 
   def withFailure(message: String): JobDetails =

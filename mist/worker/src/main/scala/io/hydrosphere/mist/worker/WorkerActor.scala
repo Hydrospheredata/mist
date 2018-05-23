@@ -2,50 +2,49 @@ package io.hydrosphere.mist.worker
 
 import akka.actor._
 import akka.pattern.pipe
-import io.hydrosphere.mist.api.CentralLoggingConf
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
-import mist.api.data.JsLikeData
-import org.apache.log4j.{Appender, LogManager}
+import mist.api.data.JsData
 import org.apache.spark.streaming.StreamingContext
+import RequestSetup._
 
 class WorkerActor(
-  val runnerSelector: RunnerSelector,
-  val namedContext: NamedContext,
-  val artifactDownloader: ArtifactDownloader,
-  mkAppender: String => Option[Appender]
+  namedContext: MistScContext,
+  artifactDownloader: ArtifactDownloader,
+  requestSetup: ReqSetup,
+  runnerSelector: RunnerSelector
 ) extends Actor with ActorLogging {
 
   import context._
 
-  val sparkRootLogger = LogManager.getRootLogger
-
-  type JobFuture = CancellableFuture[JsLikeData]
+  type JobFuture = CancellableFuture[JsData]
+  type CleanUp = RunJobRequest => Unit
 
   override def receive: Receive = awaitRequest()
 
   private def awaitRequest(): Receive = {
     case req: RunJobRequest =>
-      mkAppender(req.id).foreach(sparkRootLogger.addAppender)
+      val cleanUp = requestSetup(req)
       sender() ! JobFileDownloading(req.id)
       artifactDownloader.downloadArtifact(req.params.filePath) pipeTo self
-      context become downloading(sender(), req)
+      context become downloading(sender(), req, cleanUp)
   }
 
   private def downloading(
     respond: ActorRef,
-    req: RunJobRequest
+    req: RunJobRequest,
+    cleanUp: CleanUp
   ): Receive = {
     case artifact: SparkArtifact =>
       val runner = runnerSelector.selectRunner(artifact)
-      namedContext.sparkContext.setJobGroup(req.id, req.id)
+      namedContext.sc.setJobGroup(req.id, req.id)
       val jobFuture = run(runner, req)
       respond ! JobStarted(req.id)
       jobFuture.future pipeTo self
-      context become running(req, respond, jobFuture)
+      context become running(req, respond, jobFuture, cleanUp)
 
     case CancelJobRequest(id) =>
-      sparkRootLogger.removeAppender(id)
+      cleanUp(req)
       respond ! JobIsCancelled(id)
       respond ! mkFailure(req, new RuntimeException("Job was cancelled before starting"))
       context become awaitRequest()
@@ -55,32 +54,36 @@ class WorkerActor(
       context become awaitRequest()
   }
 
-  private def running(req: RunJobRequest, respond: ActorRef, jobFuture: JobFuture): Receive = {
+  private def running(
+    req: RunJobRequest,
+    respond: ActorRef,
+    jobFuture: JobFuture,
+    cleanUp: CleanUp
+  ): Receive = {
     case RunJobRequest(id, _, _) =>
       sender() ! WorkerIsBusy(id)
 
-    case data: JsLikeData =>
+    case data: JsData =>
       log.info(s"Job execution done. Returning result $data and become awaiting new request")
-      sparkRootLogger.removeAppender(req.id)
+      cleanUp(req)
       respond ! JobSuccess(req.id, data)
       context become awaitRequest()
 
     case Status.Failure(e) =>
       log.info(s"Job execution done. Returning result $e and become awaiting new request")
-      sparkRootLogger.removeAppender(req.id)
+      cleanUp(req)
       respond ! mkFailure(req, e)
       context become awaitRequest()
 
     case CancelJobRequest(id) =>
-      cancel(id, sender(), jobFuture)
+      cancel(req, sender(), jobFuture)
   }
 
-  private def cancel(id: String, respond: ActorRef, jobFuture: JobFuture): Unit = {
-    sparkRootLogger.removeAppender(id)
-    namedContext.sparkContext.cancelJobGroup(id)
+  private def cancel(req: RunJobRequest, respond: ActorRef, jobFuture: JobFuture): Unit = {
+    namedContext.sc.cancelJobGroup(req.id)
     StreamingContext.getActive().foreach( _.stop(stopSparkContext = false, stopGracefully = true))
     jobFuture.cancel()
-    respond ! JobIsCancelled(id)
+    respond ! JobIsCancelled(req.id)
   }
 
   override def postStop(): Unit = {
@@ -112,21 +115,15 @@ class WorkerActor(
 object WorkerActor {
 
   def props(
-    context: NamedContext,
+    context: MistScContext,
     artifactDownloader: ArtifactDownloader,
-    runnerSelector: RunnerSelector,
-    mkAppender: String => Option[Appender]
+    requestSetup: ReqSetup,
+    runnerSelector: RunnerSelector
   ): Props =
-    Props(new WorkerActor(runnerSelector, context, artifactDownloader, mkAppender))
+    Props(classOf[WorkerActor], context, artifactDownloader, requestSetup, runnerSelector)
 
-  def props(context: NamedContext, artifactDownloader: ArtifactDownloader, runnerSelector: RunnerSelector): Props =
-    props(context, artifactDownloader, runnerSelector, mkAppenderF(context.loggingConf))
-
-  def props(context: NamedContext, artifactDownloader: ArtifactDownloader): Props =
-    props(context, artifactDownloader, new SimpleRunnerSelector)
-
-  def mkAppenderF(conf: Option[CentralLoggingConf]): String => Option[Appender] =
-    (id: String) => conf.map(c => RemoteAppender(id, c))
+  def props(context: MistScContext, artifactDownloader: ArtifactDownloader, requestSetup: ReqSetup): Props =
+    props(context, artifactDownloader, requestSetup, new SimpleRunnerSelector)
 
 }
 

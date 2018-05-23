@@ -8,8 +8,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
 import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
+import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
@@ -24,6 +23,9 @@ import org.mockito.Matchers.{anyInt, eq => mockitoEq}
 import org.mockito.Mockito.{times, verify}
 import org.scalatest.{FunSpec, Matchers}
 import spray.json.RootJsonWriter
+import mist.api.data._
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -102,7 +104,7 @@ class HttpApiV2Spec extends FunSpec
 
       val route = HttpV2Routes.functionRoutes(master)
 
-      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", JsMap("1" -> "Hello".js)) ~> route ~> check {
         status shouldBe StatusCodes.OK
       }
     }
@@ -116,7 +118,7 @@ class HttpApiV2Spec extends FunSpec
         any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
       )).thenSuccess(Seq(
         JobDetails("id", "1",
-          JobParams("path", "className", Map.empty, Action.Execute),
+          JobParams("path", "className", JsMap.empty, Action.Execute),
           "context", None, JobDetails.Source.Http)
       ))
 
@@ -222,7 +224,7 @@ class HttpApiV2Spec extends FunSpec
   describe("jobs") {
 
     val jobDetails = JobDetails(
-      params = JobParams("path", "className", Map.empty, Action.Execute),
+      params = JobParams("path", "className", JsMap.empty, Action.Execute),
       jobId = "id",
       source = Source.Http,
       function = "function",
@@ -457,7 +459,7 @@ class HttpApiV2Spec extends FunSpec
         .thenFailure(new IllegalArgumentException("argument missing"))
 
       val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository], "")
-      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", JsMap("1" -> "Hello".js)) ~> route ~> check {
         responseAs[String] shouldBe "Bad request: argument missing"
         status shouldBe StatusCodes.BadRequest
       }
@@ -471,7 +473,7 @@ class HttpApiV2Spec extends FunSpec
 
       val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository], "")
 
-      Post(s"/v2/api/functions/x/jobs", Map("1" -> "Hello")) ~> route ~> check {
+      Post(s"/v2/api/functions/x/jobs", JsMap("1" -> "Hello".js)) ~> route ~> check {
         status shouldBe StatusCodes.InternalServerError
       }
     }

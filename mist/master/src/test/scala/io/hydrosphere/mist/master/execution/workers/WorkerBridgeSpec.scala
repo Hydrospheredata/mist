@@ -6,7 +6,7 @@ import akka.testkit.TestProbe
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.execution.workers.WorkerBridge.Event.CompleteAndShutdown
 import io.hydrosphere.mist.master.{ActorSpec, TestData, TestUtils}
-import mist.api.data.JsLikeMap
+import mist.api.data._
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
@@ -121,7 +121,7 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
 
     jobProbe.expectMsgType[JobIsCancelled]
 
-    remote.send(connection.ref, JobSuccess("id", JsLikeMap()))
+    remote.send(connection.ref, JobSuccess("id", JsMap.empty))
     jobProbe.expectMsgType[JobSuccess]
   }
 
@@ -144,7 +144,7 @@ class WorkerBridgeSpec extends ActorSpec("worker-conn") with TestData with TestU
     remote.expectMsgType[RunJobRequest]
     connection.ref ! CompleteAndShutdown
 
-    remote.send(connection.ref, JobSuccess("id", JsLikeMap()))
+    remote.send(connection.ref, JobSuccess("id", JsMap.empty))
     jobProbe.expectMsgType[JobSuccess]
 
     remote.expectMsgType[ShutdownWorker.type]

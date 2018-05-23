@@ -6,10 +6,19 @@ import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.{ExecutionContext, Future}
 
+trait Contexts {
+
+  def get(name: String): Future[Option[ContextConfig]]
+  def getOrDefault(name: String): Future[ContextConfig]
+  def all: Future[Seq[ContextConfig]]
+  def defaultConfig: ContextConfig
+
+}
+
 class ContextsStorage(
   fsStorage: FsStorage[ContextConfig],
   defaults: ContextDefaults
-)(implicit ex: ExecutionContext) {
+)(implicit ex: ExecutionContext) extends Contexts {
 
   import defaults._
 
@@ -51,5 +60,6 @@ object ContextsStorage {
     val fsStorage = new FsStorage(checkDirectory(path), ConfigRepr.ContextConfigRepr)
     new ContextsStorage(fsStorage, new ContextDefaults(mistConfigPath))(ec)
   }
+
 }
 

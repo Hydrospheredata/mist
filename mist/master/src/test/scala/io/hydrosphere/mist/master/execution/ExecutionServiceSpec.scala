@@ -2,8 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
+import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub
@@ -12,6 +11,9 @@ import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
 import org.scalatest._
 import org.mockito.Mockito.verify
+import mist.api.data._
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -38,7 +40,7 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
           id = "id",
           function = FunctionInfoData("name", path="path", className="className", defaultContext="context"),
           context = TestUtils.contextSettings.default,
-          parameters = Map("1" -> 2),
+          parameters = JsMap("1" -> 2.js),
           source = JobDetails.Source.Http,
           externalId = None
       ))

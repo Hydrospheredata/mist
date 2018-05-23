@@ -8,7 +8,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData, TestUtils}
-import mist.api.data.{JsLikeData, JsLikeNumber}
+import mist.api.data.{JsData, JsNumber}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
@@ -26,7 +26,7 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
   it("should execute") {
     val callback = TestProbe()
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
 
     val reporter = TestReporter()
     val actor = TestActorRef[JobActor](JobActor.props(
@@ -49,10 +49,10 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
     val connectionRef = TestProbe()
     connectionRef.send(actor, JobStarted("id"))
-    connectionRef.send(actor, JobSuccess("id", JsLikeNumber(42)))
+    connectionRef.send(actor, JobSuccess("id", JsNumber(42)))
 
     val result = Await.result(promise.future, 5 seconds)
-    result shouldBe JsLikeNumber(42)
+    result shouldBe JsNumber(42)
 
     callback.expectMsgType[JobActor.Event.Completed]
     shouldTerminate(1 second)(actor)
@@ -67,7 +67,7 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
   it("should be failed") {
     val callback = TestProbe()
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
 
     val reporter = TestReporter()
     val actor = TestActorRef[JobActor](JobActor.props(
@@ -112,7 +112,7 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
   it("should cancel locally") {
     val callback = TestProbe()
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
 
     val reporter = TestReporter()
     val actor = TestActorRef[JobActor](JobActor.props(
@@ -144,7 +144,7 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
   it("should cancel remotely") {
     val callback = TestProbe()
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
 
     val reporter = TestReporter()
     val actor = TestActorRef[JobActor](JobActor.props(
@@ -195,7 +195,7 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
   it("should handle connection termination") {
     val callback = TestProbe()
-    val promise = Promise[JsLikeData]
+    val promise = Promise[JsData]
 
     val reporter = TestReporter()
     val actor = TestActorRef[JobActor](JobActor.props(

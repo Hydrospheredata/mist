@@ -2,8 +2,11 @@ package mist.api.jdsl
 
 import java.util
 
-import mist.api.args.{ArgExtraction, Extracted, Missing}
+import mist.api._
 import mist.api.FnContext
+import mist.api.data.JsMap
+import mist.api.encoding.defaultEncoders._
+import mist.api.encoding.JsSyntax._
 import org.scalatest.{FunSpec, Matchers}
 import org.scalatest.prop.TableDrivenPropertyChecks._
 
@@ -12,59 +15,58 @@ class JArgDefSpec extends FunSpec with Matchers {
 
   import JArgsDef._
 
-  def miss: Missing[Nothing] = Missing("")
+  def miss: Failed = Failed.InternalError("fail")
   def javaList[T](values: T*): java.util.List[T] = {
     val list = new util.ArrayList[T]()
     values.foreach(v => list.add(v))
     list
   }
 
-  val expected = Table[JUserArg[_], Seq[(String, Any)], ArgExtraction[_]](
+  val expected = Table[JUserArg[_], JsMap, Extraction[_]](
     ("arg", "data", "expected"),
-    (booleanArg("b"),        Seq("b" -> true), Extracted(true)),
-    (booleanArg("b", false), Seq.empty,        Extracted(false)),
-    (booleanArg("b", false), Seq("b" -> true), Extracted(true)),
-    (booleanArg("b"),        Seq.empty,        miss),
-    (optBooleanArg("b"),     Seq("b" -> true), Extracted(java.util.Optional.of(true))),
-    (optBooleanArg("b"),     Seq.empty,        Extracted(java.util.Optional.empty())),
+    (booleanArg("b"),        JsMap("b" -> true.js), Extracted(true)),
+    (booleanArg("b", false), JsMap.empty,        Extracted(false)),
+    (booleanArg("b", false), JsMap("b" -> true.js), Extracted(true)),
+    (booleanArg("b"),        JsMap.empty,        miss),
+    (optBooleanArg("b"),     JsMap("b" -> true.js), Extracted(java.util.Optional.of(true))),
+    (optBooleanArg("b"),     JsMap.empty,        Extracted(java.util.Optional.empty())),
 
-    (intArg("n"),    Seq("n" -> 2),  Extracted(2)),
-    (intArg("n", 0), Seq.empty,      Extracted(0)),
-    (intArg("n"),    Seq.empty,      miss),
-    (optIntArg("n"), Seq("n" -> 42), Extracted(java.util.Optional.of(42))),
-    (optIntArg("n"), Seq.empty,      Extracted(java.util.Optional.empty())),
+    (intArg("n"),    JsMap("n" -> 2.js),  Extracted(2)),
+    (intArg("n", 0), JsMap.empty,      Extracted(0)),
+    (intArg("n"),    JsMap.empty,      miss),
+    (optIntArg("n"), JsMap("n" -> 42.js), Extracted(java.util.Optional.of(42))),
+    (optIntArg("n"), JsMap.empty,      Extracted(java.util.Optional.empty())),
 
-    (stringArg("s"),          Seq("s" -> "value"),  Extracted("value")),
-    (stringArg("s", "value"), Seq.empty,            Extracted("value")),
-    (stringArg("s"),          Seq.empty,            miss),
-    (optStringArg("s"),       Seq("s" -> "yoyo"),   Extracted(java.util.Optional.of("yoyo"))),
-    (optStringArg("s"),       Seq.empty,            Extracted(java.util.Optional.empty())),
+    (stringArg("s"),          JsMap("s" -> "value".js),  Extracted("value")),
+    (stringArg("s", "value"), JsMap.empty,            Extracted("value")),
+    (stringArg("s"),          JsMap.empty,            miss),
+    (optStringArg("s"),       JsMap("s" -> "yoyo".js),   Extracted(java.util.Optional.of("yoyo"))),
+    (optStringArg("s"),       JsMap.empty,            Extracted(java.util.Optional.empty())),
 
-    (doubleArg("d"),      Seq("d" -> 2.4),  Extracted(2.4)),
-    (doubleArg("d", 2.2), Seq.empty,        Extracted(2.2)),
-    (doubleArg("d"),      Seq.empty,        miss),
-    (optDoubleArg("d"),   Seq("d" -> 42.1), Extracted(java.util.Optional.of(42.1))),
-    (optDoubleArg("d"),   Seq.empty,        Extracted(java.util.Optional.empty())),
+    (doubleArg("d"),      JsMap("d" -> 2.4.js),  Extracted(2.4)),
+    (doubleArg("d", 2.2), JsMap.empty,        Extracted(2.2)),
+    (doubleArg("d"),      JsMap.empty,        miss),
+    (optDoubleArg("d"),   JsMap("d" -> 42.1.js), Extracted(java.util.Optional.of(42.1))),
+    (optDoubleArg("d"),   JsMap.empty,        Extracted(java.util.Optional.empty())),
 
-    (intListArg("ints"),       Seq("ints" -> Seq(1,2,3)), Extracted(javaList(1, 2, 3))),
+    (intListArg("ints"),       JsMap("ints" -> Seq(1,2,3).js), Extracted(javaList(1, 2, 3))),
 
-    (doubleListArg("doubles"), Seq("doubles" -> Seq(1.1,2.2,3.3)), Extracted(javaList(1.1, 2.2, 3.3))),
+    (doubleListArg("doubles"), JsMap("doubles" -> Seq(1.1,2.2,3.3).js), Extracted(javaList(1.1, 2.2, 3.3))),
 
-    (stringListArg("strings"), Seq("strings" -> Seq("a", "b", "c")), Extracted(javaList("a", "b", "c"))),
+    (stringListArg("strings"), JsMap("strings" -> Seq("a", "b", "c").js), Extracted(javaList("a", "b", "c"))),
 
-    (booleanListArg("boolean"), Seq("boolean" -> Seq(true, false)), Extracted(javaList(true, false)))
+    (booleanListArg("boolean"), JsMap("boolean" -> Seq(true, false).js), Extracted(javaList(true, false)))
   )
 
   it("should extract expected result") {
     forAll(expected) { (arg, params, expected) =>
-      val ctx = FnContext(params.toMap)
+      val ctx = FnContext.onlyInput(params)
       val result = arg.asScala.extract(ctx)
       (expected, result) match {
         case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr
-        case (extr: Extracted[_], res: Missing[_]) => fail(s"for $arg got $res, expected $extr")
-        case (extr: Missing[_], res: Extracted[_]) => fail(s"for $arg got $res, expected $extr")
-        case (extr: Missing[_], res: Missing[_]) =>
-//        case (a, b) => println(s"WTF? $a $b")
+        case (extr: Extracted[_], res: Failed) => fail(s"for $arg got $res, expected $extr")
+        case (extr: Failed, res: Extracted[_]) => fail(s"for $arg got $res, expected $extr")
+        case (extr: Failed, res: Failed) =>
       }
     }
   }
@@ -74,11 +76,8 @@ class JArgDefSpec extends FunSpec with Matchers {
       override def apply(a1: java.lang.Integer): java.lang.Boolean = a1 > 2
     }).asScala
 
-    arg.extract(FnContext(Map("a" -> 5))) shouldBe Extracted(5)
-    arg.extract(FnContext(Map("a" -> 1))) shouldBe a[Missing[_]]
+    arg.extract(FnContext.onlyInput(JsMap("a" -> 5.js))) shouldBe Extracted(5)
+    arg.extract(FnContext.onlyInput(JsMap("a" -> 1.js))) shouldBe a[Failed]
   }
 
-  def testCtx(params: (String, Any)*): FnContext = {
-    FnContext(params.toMap)
-  }
 }

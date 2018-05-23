@@ -1,8 +1,8 @@
 package mist.api
 
-import mist.api.args.{ArgsInstances, WithArgsScala}
-import mist.api.data.JsLikeData
-import mist.api.encoding.Encoder
+import mist.api.data.JsData
+
+import scala.util.Try
 
 /**
   * Scala api - root class for jobs definition
@@ -11,10 +11,9 @@ import mist.api.encoding.Encoder
   * {{{
   *
   * import mist.api._
-  * import mist.api.DefaultEncoders._
   * import org.apache.spark.SparkContext
   *
-  * object MyJob extends MistJob[Array[Int]] {
+  * object MyJob extends MistFn {
   *   override def handle = {
   *     withArgs(arg[Int]("number").onSparkContext((i: Int, sc: SparkContext) => {
   *       sc.parallelize(1 to i).map(_ * 2).collect()
@@ -23,20 +22,11 @@ import mist.api.encoding.Encoder
   * }
   * }}}
   */
-abstract class MistFn[A](implicit enc: Encoder[A])
-  extends ArgsInstances
-  with Contexts
-  with MistExtrasDef
-  with WithArgsScala {
+abstract class MistFn extends FnEntryPoint {
 
-  def handle: Handle[A]
+  def handle: Handle
 
-  final def execute(ctx: FnContext): JobResult[JsLikeData] = {
-    handle.invoke(ctx) match {
-      case JobSuccess(data) => JobSuccess(enc(data))
-      case f: JobFailure[_] => f.asInstanceOf[JobFailure[JsLikeData]]
-    }
-  }
+  final def execute(ctx: FnContext): Try[JsData] = handle.invoke(ctx)
 
 }
 

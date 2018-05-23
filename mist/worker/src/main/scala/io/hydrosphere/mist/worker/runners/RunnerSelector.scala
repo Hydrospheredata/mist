@@ -10,7 +10,7 @@ trait RunnerSelector {
 class SimpleRunnerSelector extends RunnerSelector {
 
   override def selectRunner(artifact: SparkArtifact): JobRunner = artifact.fileExt match {
-    case "py"  => new PythonRunner(artifact)
+    case "py" | "egg"  => new PythonRunner(artifact)
     case "jar" => new ScalaRunner(artifact)
     case f => throw new IllegalArgumentException(s"Unknown file type $f is passed, cannot select runner")
   }

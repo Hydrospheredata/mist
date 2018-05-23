@@ -1,22 +1,25 @@
 package io.hydrosphere.mist.utils
 
+import java.util
+
 import scala.collection.JavaConverters._
 
 object Collections {
+
   def asJavaRecursively[K, V](map: Map[K, V]): java.util.HashMap[K, Any] = {
     new java.util.HashMap(map.map {
       case (key, value) =>
         value match {
-          case v: List[_] => key -> asJavaRecursively(v)
+          case v: Seq[_] => key -> asJavaRecursively(v)
           case v: Map[_, _] => key -> asJavaRecursively(v)
           case _ => key -> value
         }
     }.asJava)
   }
 
-  def asJavaRecursively[V](list: List[V]): java.util.List[Any] = {
+  def asJavaRecursively[V](list: Seq[V]): java.util.List[Any] = {
     list.map {
-      case value: List[_] => value.asJava
+      case value: Seq[_] => value.asJava
       case value: Map[_, _] => asJavaRecursively(value)
       case value => value
     }.asJava

@@ -1,10 +1,10 @@
 import mist.api._
-import mist.api.MistExtras
-import mist.api.args.ArgExtractor
-import mist.api.encoding.DefaultEncoders._
+import mist.api.dsl._
+import mist.api.encoding._
+
 import org.apache.spark.SparkContext
 
-case class Args(
+case class Req(
   numbers: Seq[Int],
   multiplier: Option[Int]
 ) {
@@ -12,19 +12,23 @@ case class Args(
   def mult: Int = multiplier.getOrElse(2)
 }
 
-object LessVerboseExample extends MistFn[Array[Int]] {
+case class Resp(
+  wtf: Array[Int],
+  req: Req
+)
 
-  import MistExtras._
+object LessVerboseExample extends MistFn {
 
-  implicit val extractor = ArgExtractor.rootFor[Args]
+  import defaults._
 
-  override def handle = (arg[Args] & mistExtras).onSparkContext(
-    (args: Args, extras: MistExtras, sc: SparkContext) => {
-      import extras._
+  implicit val reqExt: RootExtractor[Req] = encoding.generic.extractor[Req]
+  implicit val reqEnc: JsEncoder[Req] = encoding.generic.encoder[Req]
+  implicit val respEnc: JsEncoder[Resp] = encoding.generic.encoder[Resp]
 
-      logger.info(s"Heello from $jobId")
-      sc.parallelize(args.numbers).map(_ * args.mult).collect()
-    })
+  override def handle: Handle = arg[Req].onSparkContext((req: Req, sc: SparkContext) => {
+    val x = sc.parallelize(req.numbers).map(_ * req.mult).collect()
+    Resp(x, req)
+  }).asHandle
 
 }
 

@@ -1,6 +1,7 @@
 import sbt.Keys._
 import StageDist._
 import complete.DefaultParsers._
+import microsites._
 import microsites.ConfigYml
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtassembly.AssemblyOption
@@ -26,12 +27,13 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC15"
+  version := IO.read(baseDirectory.in(ThisBuild).value / "version")
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
   .settings(commonSettings: _*)
   .settings(PublishSettings.settings: _*)
+  .settings(PyProject.settings: _*)
   .settings(
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
@@ -39,12 +41,13 @@ lazy val mistLib = project.in(file("mist-lib"))
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
-      Library.Akka.stream,
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
     ),
-    parallelExecution in Test := false
+    PyProject.pyName := "mistpy",
+    parallelExecution in Test := false,
+    test in Test := Def.sequential(test in Test, PyProject.pyTest in Test).value
   )
 
 lazy val core = project.in(file("mist/core"))
@@ -55,6 +58,7 @@ lazy val core = project.in(file("mist/core"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
+      Library.Akka.actor,
       Library.slf4j,
       Library.reflect,
       Library.Akka.testKit % "test",
@@ -84,6 +88,7 @@ lazy val master = project.in(file("mist/master"))
       Library.dockerJava,
 
       Library.commonsCodec, Library.scalajHttp,
+      Library.jsr305 % "provided",
 
       Library.scalaTest % "test",
       Library.mockito % "test"
@@ -100,6 +105,18 @@ lazy val worker = project.in(file("mist/worker"))
   .settings(
     name := "mist-worker",
     scalacOptions ++= commonScalacOptions,
+    resourceGenerators in Compile += {
+      Def.task {
+        val resourceDir = (resourceManaged in Compile).value
+        val f = (mistLib / PyProject.pySources).value
+        val baseOut = resourceDir / "mistpy"
+        f.listFiles().toSeq.map(r => {
+          val target = baseOut / r.name
+          IO.write(target, IO.read(r))
+          target
+        })
+      }
+    },
     libraryDependencies ++= Library.Akka.base :+ Library.Akka.http,
     libraryDependencies += Library.Akka.testKit,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
@@ -114,7 +131,7 @@ lazy val worker = project.in(file("mist/worker"))
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(mistLib, core, master, worker)
+  .aggregate(mistLib, core, master, worker, examples)
   .dependsOn(master)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
@@ -162,6 +179,7 @@ lazy val root = project.in(file("."))
         ("hive-ctx-example", "HiveContextExample$"),
         ("sql-ctx-example", "SQLContextExample$"),
         ("text-search-example", "TextSearchExample$"),
+        ("less-verbose-example", "LessVerboseExample$"),
         ("pi-example", "PiExample$"),
         ("jpi-example", "JavaPiExample")
       ).map({case (name, clazz) => {
@@ -172,25 +190,24 @@ lazy val root = project.in(file("."))
              |namespace = foo""".stripMargin
         )
       }}) :+ CpFile(sbt.Keys.`package`.in(examples, Compile).value)
-        .as(s"mist-examples.jar")
+        .as("mist-examples.jar")
         .to("data/artifacts")
 
       val mkPyfunctions = Seq(
-        ("simple_context.py", "SimpleContext"),
-        ("session_job.py", "SessionJob"),
-        ("simple_streaming.py", "SimpleStreaming")
-      ).flatMap({case (file, clazz) => {
-        val name = file.replace(".py", "")
-        Seq(
-          Write(
-            s"data/functions/$name.conf",
-            s"""path = $file
-               |className = "$clazz"
-               |namespace = foo""".stripMargin
-          ),
-          CpFile(s"examples/examples-python/$file").to("data/artifacts")
+        "session_example",
+        "sparkctx_example",
+        "sqlctx_example",
+        "streamingctx_example"
+      ).map(fn => {
+        Write(
+          s"data/functions/${fn}_py.conf",
+          s"""path = mist_pyexamples.egg
+             |className = "mist_examples.${fn}"
+             |namespace = foo""".stripMargin
         )
-      }})
+      }) :+ CpFile(PyProject.pyBdistEgg.in(examples).value)
+          .as("mist_pyexamples.egg")
+          .to("data/artifacts")
 
       Seq(MkDir("data/artifacts"), MkDir("data/functions")) ++ mkJfunctions ++ mkPyfunctions
     }
@@ -313,9 +330,16 @@ addCommandAlias("testAll", ";test;it:test")
 lazy val examples = project.in(file("examples/examples"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
+  .settings(PyProject.settings:_*)
   .settings(
     name := "mist-examples",
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided")
+    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= Seq(
+      Library.scalaTest % "test",
+      Library.junit % "test",
+      "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep")
+    ),
+    PyProject.pyName := "mist_examples"
   )
 
 lazy val docs = project.in(file("docs"))
@@ -346,8 +370,14 @@ lazy val docs = project.in(file("docs"))
     git.remoteRepo := "git@github.com:Hydrospheredata/mist.git",
     micrositeConfigYaml := ConfigYml(
       yamlCustomProperties = Map("version" -> version.value)
-    )
-  )
+    ),
+    micrositeFavicons := {
+      Seq("16", "32", "48", "72", "96", "192", "194").map(s => {
+        val size = s + "x" + s
+        MicrositeFavicon(s"favicon-$size.png", size)
+      })
+    }
+)
 
 
 lazy val commonAssemblySettings = Seq(

@@ -6,7 +6,7 @@ import akka.testkit.TestActorRef
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.logging.JobLogger
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData}
-import mist.api.data.JsLikeNumber
+import mist.api.data.JsNumber
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
 
@@ -39,7 +39,7 @@ class StoreFlusherSpec extends ActorSpec("store-flusher") with TestData with Eve
     Seq("1", "2").foreach(id => {
       flusher ! ReportedEvent.plain(QueuedEvent(id))
       flusher ! ReportedEvent.plain(StartedEvent(id, System.currentTimeMillis()))
-      flusher ! ReportedEvent.plain(FinishedEvent(id, System.currentTimeMillis(), JsLikeNumber(42)))
+      flusher ! ReportedEvent.plain(FinishedEvent(id, System.currentTimeMillis(), JsNumber(42)))
     })
     initial1.success(mkDetails(JobDetails.Status.Initialized).copy(jobId = "1"))
     initial2.success(mkDetails(JobDetails.Status.Initialized).copy(jobId = "2"))

@@ -5,6 +5,7 @@ import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
+import mist.api.data.JsMap
 import org.scalatest.{BeforeAndAfterAll, FunSpec, FunSpecLike, Matchers}
 
 import scala.concurrent.duration._
@@ -24,20 +25,20 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
       "spark.master" -> "local[*]",
       "spark.driver.allowMultipleContexts" -> "true"
     )
-    val namedContext = MasterBridge.createNamedContext("test")( mkInitInfo(sparkConf))
-    val propertyValue = namedContext.sparkContext.getConf.getBoolean("spark.streaming.stopSparkContextByDefault", true)
+    val namedContext = MasterBridge.createNamedContext("test")(mkInitInfo(sparkConf))
+    val propertyValue = namedContext.sc.getConf.getBoolean("spark.streaming.stopSparkContextByDefault", true)
     propertyValue shouldBe false
-    namedContext.sparkContext.stop()
+    namedContext.sc.stop()
   }
 
   it("should shutdown correctly") {
-    val namedMock = mock[NamedContext]
+    val namedMock = mock[MistScContext]
     when(namedMock.getUIAddress()).thenReturn(Some("addr"))
 
     val regHub = TestProbe()
     val worker = TestProbe()
 
-    val props = MasterBridge.props("id", regHub.ref, _ => namedMock, ActorF.static[(WorkerInitInfo, NamedContext)](worker.ref))
+    val props = MasterBridge.props("id", regHub.ref, _ => namedMock, ActorF.static[(WorkerInitInfo, MistScContext)](worker.ref))
     val bridge = system.actorOf(props)
 
     regHub.expectMsgType[ActorRegHub.Register]
@@ -46,7 +47,7 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
     remote.send(bridge, mkInitInfo(Map.empty))
 
     remote.expectMsgType[WorkerReady]
-    remote.send(bridge, RunJobRequest("id", JobParams("path", "MyClass", Map.empty, action = Action.Execute)))
+    remote.send(bridge, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, action = Action.Execute)))
     worker.expectMsgType[RunJobRequest]
 
     remote.send(bridge, ShutdownWorker)

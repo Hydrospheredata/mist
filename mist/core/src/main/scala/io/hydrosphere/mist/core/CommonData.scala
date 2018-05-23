@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.core
 
 import akka.actor.ActorRef
-import mist.api.data.JsLikeData
+import mist.api.data.{JsData, JsMap}
 
 import scala.concurrent.duration.Duration
 
@@ -42,7 +42,7 @@ object CommonData {
   case class JobParams(
     filePath: String,
     className: String,
-    arguments: Map[String, Any],
+    arguments: JsMap,
     action: Action
   )
 
@@ -84,7 +84,7 @@ object CommonData {
     val id: String
   }
 
-  case class JobSuccess(id: String, result: JsLikeData) extends JobResponse
+  case class JobSuccess(id: String, result: JsData) extends JobResponse
   case class JobFailure(id: String, error: String) extends JobResponse
 
   sealed trait GetRunInitInfo
@@ -112,24 +112,29 @@ object CommonData {
 
   case class RegisterJobInfoProvider(ref: ActorRef)
 
+  case class EnvInfo(pythonSettings: PythonEntrySettings)
+
   sealed trait JobInfoMessage
 
   sealed trait InfoRequest extends JobInfoMessage {
     val className: String
     val jobPath: String
     val name: String
+    val envInfo: EnvInfo
   }
   case class GetFunctionInfo(
     className: String,
     jobPath: String,
-    name: String
+    name: String,
+    envInfo: EnvInfo
   ) extends InfoRequest
 
   case class ValidateFunctionParameters(
     className: String,
     jobPath: String,
     name: String,
-    params: Map[String, Any]
+    params: JsMap,
+    envInfo: EnvInfo
   ) extends InfoRequest
 
   case class GetAllFunctions(

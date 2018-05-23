@@ -1,17 +1,15 @@
 import mist.api._
-import mist.api.MistExtras
-import mist.api.encoding.DefaultEncoders._
+import mist.api.dsl._
+import mist.api.encoding.defaults._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 
 import scala.collection.mutable
 
-object StreamingExample extends MistFn[Unit]{
+object StreamingExample extends MistFn with Logging {
 
-  override def handle: Handle[Unit] = {
-    withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
-      import extras._
-
+  override def handle: Handle = {
+    val raw = onStreamingContext((ssc: StreamingContext) => {
       val rddQueue = new mutable.Queue[RDD[Int]]()
       ssc.queueStream(rddQueue)
         .map(x => (x % 10, 1))
@@ -31,6 +29,7 @@ object StreamingExample extends MistFn[Unit]{
       })
       ssc.stop()
     })
+    raw.asHandle
   }
 
 }

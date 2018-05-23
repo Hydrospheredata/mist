@@ -3,9 +3,9 @@ package io.hydrosphere.mist.master.interfaces.http
 import java.lang.management._
 import java.time.LocalDateTime
 
-import io.hydrosphere.mist.core.jvmjob.FunctionInfoData
+import io.hydrosphere.mist.core.FunctionInfoData
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
-import mist.api.args.UserInputArgument
+import mist.api._
 
 import scala.concurrent.duration.Duration
 
@@ -53,7 +53,6 @@ case class HttpJobArg(
 object HttpJobArg {
 
   import cats.syntax.option._
-  import mist.api.args._
 
   def plain(`type`: String): HttpJobArg =
     HttpJobArg(`type`, None, None)
