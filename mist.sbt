@@ -131,7 +131,7 @@ lazy val worker = project.in(file("mist/worker"))
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(mistLib, core, master, worker)
+  .aggregate(mistLib, core, master, worker, examples)
   .dependsOn(master)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
@@ -334,6 +334,11 @@ lazy val examples = project.in(file("examples/examples"))
   .settings(
     name := "mist-examples",
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
+    libraryDependencies ++= Seq(
+      Library.scalaTest % "test",
+      Library.junit % "test",
+      "com.novocode" % "junit-interface" % "0.11" % Test exclude("junit", "junit-dep")
+    ),
     PyProject.pyName := "mist_examples"
   )
 

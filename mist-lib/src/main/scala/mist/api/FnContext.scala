@@ -17,8 +17,8 @@ case class FullFnContext(
 
 object FnContext {
 
-  def apply(userParams: JsMap): FnContext = new FnContext {
-    override val params: JsMap = userParams
+  def onlyInput(in: JsMap): FnContext = new FnContext {
+    override val params: JsMap = in
   }
 
   def apply(
@@ -26,5 +26,25 @@ object FnContext {
     params: JsMap,
     streamingDuration: Duration = Duration(1000),
     info: RuntimeJobInfo = RuntimeJobInfo.Unknown): FullFnContext = FullFnContext(sc, streamingDuration, info, params)
+}
 
+/**
+  * For java
+  */
+object FnContextBuilder {
+
+
+  def create(sc: SparkContext, params: JsMap): FullFnContext = FnContext(sc, params)
+
+  def create(
+    sc: SparkContext,
+    params: JsMap,
+    streamingDuration: Duration): FullFnContext = FnContext(sc, params, streamingDuration)
+
+  def create(
+    sc: SparkContext,
+    params: JsMap,
+    streamingDuration: Duration,
+    info: RuntimeJobInfo
+  ): FullFnContext = FnContext(sc, params, streamingDuration, info)
 }

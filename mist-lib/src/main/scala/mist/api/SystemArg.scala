@@ -31,27 +31,27 @@ object SystemArg {
   }
 }
 
-object SparkArgs {
+trait SparkArgs {
 
-  val sparkContext: ArgDef[SparkContext] = SystemArg(
+  val sparkContextArg: ArgDef[SparkContext] = SystemArg(
     Seq.empty,
     c => Extracted(c.sc)
   )
 
-  val streamingContext: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
+  val streamingContextArg: ArgDef[StreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
     ctx => {
       val ssc = StreamingContext.getActiveOrCreate(() => new StreamingContext(ctx.sc, ctx.streamingDuration))
       Extracted(ssc)
     }
   )
 
-  val sqlContext: ArgDef[SQLContext] = SystemArg(Seq(ArgInfo.SqlContextTag),
-    ctx => sparkContext.map(SQLContext.getOrCreate).extract(ctx)
+  val sqlContextArg: ArgDef[SQLContext] = SystemArg(Seq(ArgInfo.SqlContextTag),
+    ctx => sparkContextArg.map(SQLContext.getOrCreate).extract(ctx)
   )
 
   // HiveContext should be cached per jvm
   // see #325
-  val hiveContext: ArgDef[HiveContext] = new SystemArg[HiveContext] {
+  val hiveContextArg: ArgDef[HiveContext] = new SystemArg[HiveContext] {
 
     var cache: HiveContext = _
 
@@ -70,17 +70,17 @@ object SparkArgs {
       Seq(ArgInfo.HiveContextTag, ArgInfo.SqlContextTag)))
   }
 
-  val javaSparkContext: ArgDef[JavaSparkContext] = sparkContext.map(sc => new JavaSparkContext(sc))
-  val javaStreamingContext: ArgDef[JavaStreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
-    ctx => streamingContext.map(scc => new JavaStreamingContext(scc)).extract(ctx))
+  val javaSparkContextArg: ArgDef[JavaSparkContext] = sparkContextArg.map(sc => new JavaSparkContext(sc))
+  val javaStreamingContextArg: ArgDef[JavaStreamingContext] = SystemArg(Seq(ArgInfo.StreamingContextTag),
+    ctx => streamingContextArg.map(scc => new JavaStreamingContext(scc)).extract(ctx))
 
-  val sparkSession: ArgDef[SparkSession] = SystemArg(Seq(ArgInfo.SqlContextTag),
-    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, false)).extract(ctx)
+  val sparkSessionArg: ArgDef[SparkSession] = SystemArg(Seq(ArgInfo.SqlContextTag),
+    ctx => sparkContextArg.map(sc => SparkSessionUtils.getOrCreate(sc, false)).extract(ctx)
   )
 
-  val sparkSessionWithHive: ArgDef[SparkSession] = SystemArg(
+  val sparkSessionWithHiveArg: ArgDef[SparkSession] = SystemArg(
     Seq(ArgInfo.SqlContextTag, ArgInfo.HiveContextTag),
-    ctx => sparkContext.map(sc => SparkSessionUtils.getOrCreate(sc, true)).extract(ctx))
+    ctx => sparkContextArg.map(sc => SparkSessionUtils.getOrCreate(sc, true)).extract(ctx))
 }
 
-
+object SparkArgs extends SparkArgs

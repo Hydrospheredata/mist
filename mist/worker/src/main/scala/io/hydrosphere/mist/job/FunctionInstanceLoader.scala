@@ -4,19 +4,18 @@ import java.io.File
 import java.net.URLClassLoader
 
 import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.job
 import io.hydrosphere.mist.utils.{Err, TryLoad}
-import mist.api.internal.BaseFunctionInstance
 
 class FunctionInstanceLoader(val classLoader: ClassLoader) {
 
-  def loadFnInstance(className: String, action: Action): TryLoad[BaseFunctionInstance] = {
+  def loadFnInstance(className: String, action: Action): TryLoad[JvmFunctionInstance] = {
     loadClass(className).flatMap({
-      case clz if mist.api.internal.FunctionInstance.isScalaInstance(clz) =>
-        TryLoad(mist.api.internal.FunctionInstance.loadScala(clz))
-      case clz if mist.api.internal.FunctionInstance.isJavaInstance(clz) =>
-        TryLoad(mist.api.internal.FunctionInstance.loadJava(clz))
-      case clz =>
-        val e = new IllegalStateException(s"Can not instantiate job for action $action")
+      case clz if FunctionInstance.isInstance(clz) =>
+        TryLoad(job.FunctionInstance.loadObject(clz))
+          .orElse(TryLoad(job.FunctionInstance.loadClass(clz)))
+      case _ =>
+        val e = new IllegalStateException(s"Can not instantiate job class: $className for action $action")
         Err(e)
     })
   }

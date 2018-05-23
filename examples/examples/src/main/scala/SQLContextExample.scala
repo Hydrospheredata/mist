@@ -7,7 +7,7 @@ import org.apache.spark.sql.SQLContext
 object SQLContextExample extends MistFn {
 
   override def handle: Handle = {
-    withArgs(arg[String]("file")).onSqlContext((file: String, sqlCtx: SQLContext) => {
+    val raw = withArgs(arg[String]("file")).onSqlContext((file: String, sqlCtx: SQLContext) => {
       val df = sqlCtx.read.json(file)
       df.registerTempTable("people")
 
@@ -16,5 +16,6 @@ object SQLContextExample extends MistFn {
         .map(r => r.getDouble(0).toInt)
         .toSeq
     })
+    raw.asHandle
   }
 }

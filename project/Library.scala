@@ -19,6 +19,7 @@ object Library {
   val cats = "org.typelevel" %% "cats" % "0.9.0"
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1"
+  val junit = "junit" % "junit" % "4.12"
   val mockito ="org.mockito" % "mockito-all" % "1.10.19"
 
   val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"

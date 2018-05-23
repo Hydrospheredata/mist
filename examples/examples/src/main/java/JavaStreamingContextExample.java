@@ -1,3 +1,7 @@
+import static mist.api.jdsl.Jdsl.*;
+
+import mist.api.Handle;
+import mist.api.MistFn;
 import mist.api.jdsl.*;
 import org.apache.spark.api.java.JavaRDD;
 
@@ -6,10 +10,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-class JavaStreamingContextExample extends JMistFn {
+class JavaStreamingContextExample extends MistFn {
 
     @Override
-    public JHandle handle() {
+    public Handle handle() {
         return withMistExtras().onStreamingContext((extras, jsc) -> {
 
             List<Integer> list = new ArrayList<>();
@@ -33,7 +37,7 @@ class JavaStreamingContextExample extends JMistFn {
             jsc.awaitTerminationOrTimeout(10 * 1000);
             jsc.stop();
 
-            return RetValues.empty();
-        });
+            return (Void) null;
+        }).toHandle(JEncoders.empty());
     }
 }

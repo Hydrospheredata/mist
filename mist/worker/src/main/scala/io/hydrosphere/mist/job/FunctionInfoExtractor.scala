@@ -9,7 +9,6 @@ import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData}
 import io.hydrosphere.mist.core.ExtractedFunctionData
 import io.hydrosphere.mist.python.{FunctionInfoPythonExecutor, PythonCmd}
 import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
-import mist.api.internal.{BaseFunctionInstance, FunctionInstance, JavaFunctionInstance, PythonFunctionInstance}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.{ArgInfo, InternalArgument, UserInputArgument}
 import org.apache.commons.io.FilenameUtils
@@ -36,12 +35,9 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
       val loader = mkLoader(clzLoader)
       val executeFnInstance = loader.loadFnInstance(className, Action.Execute)
       executeFnInstance orElse loader.loadFnInstance(className, Action.Serve) map { instance =>
-        val lang = instance match {
-          case _: JavaFunctionInstance => FunctionInfoData.JavaLang
-          case _ => FunctionInfoData.ScalaLang
-        }
+
         FunctionInfo(instance, core.ExtractedFunctionData(
-          lang = lang,
+          lang = instance.lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeFnInstance.isSuccess,
           tags = instance.describe()

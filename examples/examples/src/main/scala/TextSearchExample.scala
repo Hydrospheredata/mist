@@ -6,7 +6,7 @@ import org.apache.spark.SparkContext
 object TextSearchExample extends MistFn {
 
   override def handle: Handle = {
-    withArgs(
+    val raw = withArgs(
       arg[String]("filePath"),
       arg[Seq[String]]("filters")
     ).onSparkContext(
@@ -17,5 +17,6 @@ object TextSearchExample extends MistFn {
           .filter(s => upper.exists(filter => s.toUpperCase.contains(filter)))
           .collect()
     })
+    raw.asHandle
   }
 }

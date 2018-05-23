@@ -9,7 +9,7 @@ import scala.collection.mutable
 object StreamingExample extends MistFn with Logging {
 
   override def handle: Handle = {
-    withMistExtras.onStreamingContext((extras: MistExtras, ssc: StreamingContext) => {
+    val raw = onStreamingContext((ssc: StreamingContext) => {
       val rddQueue = new mutable.Queue[RDD[Int]]()
       ssc.queueStream(rddQueue)
         .map(x => (x % 10, 1))
@@ -29,6 +29,7 @@ object StreamingExample extends MistFn with Logging {
       })
       ssc.stop()
     })
+    raw.asHandle
   }
 
 }

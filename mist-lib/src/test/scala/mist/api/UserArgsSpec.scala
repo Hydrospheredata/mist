@@ -33,105 +33,13 @@ class UserArgsSpec extends FunSpec with Matchers {
 
   import ArgsInstances._
 
-  describe("complex case class") {
-
-//    it("lazy labelled") {
-//      implicit val ext = ArgExtractor.rootFor[ArgsX]
-//
-//      val params = Map(
-//        "number" -> Map(
-//          "n"  -> 1,
-//          "mult" -> 2
-//        )
-//      )
-//      val r = arg[ArgsX].extract(FnContext(params))
-//      r.isExtracted shouldBe true
-//    }
-
-//    it("example") {
-//      val params = Map(
-//        "locationList" -> Seq(Map(
-//          "id"  -> 1,
-//          "lat" -> 42.5,
-//          "lon" -> 45.6
-//        )),
-//        "scalingFactors" -> Seq(Map(
-//          "dmaId" -> 34,
-//          "scalingFactor" -> 22.4
-//        )),
-//        "campaignId" -> 5,
-//        "dateStart" -> "xxxxx",
-//        "dateEnd" -> "yyyyy",
-//        "distToVisit" -> 256.7,
-//        "proximityZone" -> 1.2,
-//        "eventsFileLocation" -> "asd,asd,sad"
-//      )
-//      implicit val ext2 = ArgExtractor.rootFor[VisitRateArguments]
-//      val r = arg[VisitRateArguments].extract(FnContext(params))
-//      r.isExtracted shouldBe true
-//    }
-
-//    it("should extract") {
-//      val params = Map(
-//        "abc" -> 1,
-//        "hehe" -> "ads",
-//        "x" -> false,
-//        "z" -> Seq(Map("hz" -> "asdsad", "yoyo" -> 1))
-//      )
-//      implicit val ext = ArgExtractor.rootFor[ComplexCase]
-//      val r = arg[ComplexCase].extract(FnContext(params))
-//      r shouldBe Extracted(ComplexCase(1, "ads", false, Seq(Z("asdsad", 1))))
-//    }
-//
-//    it("should fail on invalid map") {
-//      val params = Map(
-//        "abc" -> 1,
-//        "hehe" -> "ads",
-//        "x" -> false,
-//        "z" -> Map(1 -> "asdsad", 2 -> 1)
-//      )
-//      implicit val ext = ArgExtractor.rootFor[ComplexCase]
-//      val r = arg[ComplexCase].extract(FnContext(params))
-//      r.isMissing shouldBe true
-//    }
-
-//    it("should fail on invalid value") {
-//      val params = Map(
-//        "abc" -> 1,
-//        "hehe" -> "ads",
-//        "x" -> false,
-//        "z" -> 50
-//      )
-//      implicit val ext = ArgExtractor.rootFor[ComplexCase]
-//      val r = arg[ComplexCase].extract(FnContext(params))
-//      r.isMissing shouldBe true
-//    }
-
-  }
-
-//  describe("case class plain") {
-//
-//    it("should extract") {
-//      val params = Map(
-//        "a" -> "A",
-//        "b" -> 1,
-//        "z" -> false,
-//        "l" -> 10L
-//      )
-//
-//      implicit val ext = ArgExtractor.rootFor[Test]
-//      val r = arg[Test].extract(FnContext(params))
-//      r shouldBe Extracted(Test("A", 1, false, 10L))
-//    }
-//  }
-
   describe("basic args") {
 
     it("named arg") {
       val myArg = arg[Int]("a")
 
-      myArg.extract(FnContext(JsMap("a" -> 5.js))) shouldBe Extracted(5)
-      myArg.extract(FnContext(JsMap.empty)).isFailed shouldBe true
+      myArg.extract(FnContext.onlyInput(JsMap("a" -> 5.js))) shouldBe Extracted(5)
+      myArg.extract(FnContext.onlyInput(JsMap.empty)).isFailed shouldBe true
     }
 
     def failed: Failed = Failed.InternalError("missing value")
@@ -177,7 +85,7 @@ class UserArgsSpec extends FunSpec with Matchers {
 
     it("should extract expected result") {
       forAll(expected) { (arg, params, expected) =>
-        val ctx = FnContext(params)
+        val ctx = FnContext.onlyInput(params)
         val result = arg.extract(ctx)
         (expected, result) match {
           case (extr: Extracted[_], res: Extracted[_]) => res shouldBe extr

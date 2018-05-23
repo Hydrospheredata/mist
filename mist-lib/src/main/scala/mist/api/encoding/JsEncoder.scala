@@ -6,12 +6,7 @@ import scala.annotation.implicitNotFound
 
 @implicitNotFound("Couldn't find JsEncoder instance for ${A}. Check that function return value type has encoder instance or import default `mist.api.encoder.defaults._`")
 trait JsEncoder[A] { self =>
-
   def apply(a : A): JsData
-
-  final def contramap[B](f: B => A): JsEncoder[B] = new JsEncoder[B] {
-    def apply(b: B): JsData = self(f(b))
-  }
 }
 
 object JsEncoder {
@@ -31,10 +26,10 @@ trait defaultEncoders {
   implicit val longEnc: JsEncoder[Long] = JsEncoder(i => JsNumber(i))
   implicit val floatEnc: JsEncoder[Float] = JsEncoder(f => JsNumber(f.toDouble))
   implicit val doubleEnc: JsEncoder[Double] = JsEncoder(d => JsNumber(d))
-  implicit val stringEnc: JsEncoder[String] = JsEncoder(JsString)
+  implicit val stringEnc: JsEncoder[String] = JsEncoder(s => JsString(s))
 
   implicit def seqEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Seq[A]] = JsEncoder(seq => JsList(seq.map(v => enc(v))))
-  implicit def arrEnc[A](implicit enc: JsEncoder[Seq[A]]): JsEncoder[Array[A]] = enc.contramap(_.toSeq)
+  implicit def arrEnc[A](implicit enc: JsEncoder[Seq[A]]): JsEncoder[Array[A]] = JsEncoder(arr => enc(arr.toSeq))
   implicit def optEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Option[A]] = JsEncoder {
     case Some(a) => enc(a)
     case None => JsNull

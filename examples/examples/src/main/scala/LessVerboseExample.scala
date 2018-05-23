@@ -28,7 +28,7 @@ object LessVerboseExample extends MistFn {
   override def handle: Handle = arg[Req].onSparkContext((req: Req, sc: SparkContext) => {
     val x = sc.parallelize(req.numbers).map(_ * req.mult).collect()
     Resp(x, req)
-  })
+  }).asHandle
 
 }
 
