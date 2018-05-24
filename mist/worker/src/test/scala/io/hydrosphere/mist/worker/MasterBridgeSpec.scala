@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestKit, TestProbe}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
@@ -39,7 +39,7 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
     val worker = TestProbe()
 
     val props = MasterBridge.props("id", regHub.ref, _ => namedMock, ActorF.static[(WorkerInitInfo, MistScContext)](worker.ref))
-    val bridge = system.actorOf(props)
+    val bridge = TestActorRef(props)
 
     regHub.expectMsgType[ActorRegHub.Register]
 
