@@ -52,6 +52,7 @@ node("JenkinsOnDemand") {
       stage('Publish in Maven') {
           sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
           sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeReleaseAll'"
+          sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'pyPublish'"
       }
       
     }
