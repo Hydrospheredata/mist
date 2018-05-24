@@ -31,7 +31,7 @@ object PyProject {
       pyDir := baseDirectory.value / "src" / "main" / "python",
       virtualDir := pyDir.value / ("env-" + pyName.value + "-" + pythonVersion.value),
       pySources := pyDir.value / pyName.value,
-      pypiRepo := "testpypi",
+      pypiRepo := "pypi",
       pyPublish := {
         val repo = pypiRepo.value
         val sdist = pySdist.value
