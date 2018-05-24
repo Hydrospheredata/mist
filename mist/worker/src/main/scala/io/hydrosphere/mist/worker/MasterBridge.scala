@@ -73,6 +73,7 @@ class MasterBridge(
     def goToAwaitTermination(): Unit = {
       remote ! RequestTermination
       context.setReceiveTimeout(30 seconds)
+      context become awaitTermination(remote)
     }
     {
       case Terminated(ref) if ref == remote =>
