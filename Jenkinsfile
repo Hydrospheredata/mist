@@ -28,6 +28,7 @@ node("JenkinsOnDemand") {
              checkout scm
              sh "cd ${env.WORKSPACE}"
              sh "git fetch --tags"
+             sh "${env.WORKSPACE}/sbt/sbt clean"
     }
 
     if (publishDocs()) {
