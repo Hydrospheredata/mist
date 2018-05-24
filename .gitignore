@@ -24,3 +24,4 @@ ui_local
 env-*
 dist/
 build/
+__version__.py

@@ -238,11 +238,13 @@ import mist.api.jdsl.JEncoders;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // function class
 public class HelloMist extends MistFn {
+
+  Logger logger = LoggerFactory.getLogger(getClass());
 
   @Override
   public Handle handle() {
@@ -256,7 +258,7 @@ public class HelloMist extends MistFn {
            withMistExtras().
            onSparkContext((n, extras, sc) -> {
 
-         extras.logger().info("Hello Mist started with samples:" + n);
+         logger.info("Hello Mist started with samples:" + n);
          List<Integer> l = new ArrayList<>(n);
          for (int i = 0; i < n ; i++) {
              l.add(i);

@@ -6,12 +6,14 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open('README.rst', 'r') as f:
     readme = f.read()
 
-with open('../../../../version', 'r') as f:
-    version = f.read()
+
+about = {}
+with open(os.path.join(here, 'mistpy', '__version__.py'), 'r') as f:
+    exec(f.read(), about)
 
 setup(
     name = 'mistpy',
-    version= version,
+    version= about['__version__'],
     description = 'Mist python library api',
     long_description=readme,
     author= 'Hydrospheredata',
