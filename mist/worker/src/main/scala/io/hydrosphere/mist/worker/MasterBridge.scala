@@ -102,15 +102,16 @@ class MasterBridge(
     case AppShutdown | ShutdownWorkerApp =>
       log.info(s"Received application shutdown command")
       remote ! Goodbye
-      context stop self
+      self ! PoisonPill
 
     case Terminated(ref) if ref == remote =>
       log.warning("Remote connection was terminated - shutdown")
-      context stop self
+      self ! PoisonPill
 
     case ReceiveTimeout =>
       log.error("Didn't receive any stop command - shutdown")
       context stop self
+      self ! PoisonPill
   }
 
 }
