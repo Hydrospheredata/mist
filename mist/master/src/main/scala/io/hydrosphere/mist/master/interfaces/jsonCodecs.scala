@@ -71,6 +71,7 @@ trait MDataFormat {
       obj match {
         case mdata.JsNumber(d) => JsNumber(d)
         case mdata.JsTrue      => JsTrue
+        case mdata.JsFalse     => JsFalse
         case mdata.JsString(s) => JsString(s)
         case mdata.JsNull      => JsNull
         case mdata.JsUnit      => JsObject(Map.empty[String, JsValue])
