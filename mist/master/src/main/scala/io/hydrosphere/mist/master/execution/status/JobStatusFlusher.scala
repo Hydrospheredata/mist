@@ -84,7 +84,9 @@ class JobStatusFlusher(
       s"FinishedEvent"
     case _: StartedEvent =>
       s"StartedEvent"
-    case _: CanceledEvent =>
+    case _: CancellingEvent =>
+      s"CancellingEvent"
+    case _: CancelledEvent =>
       s"CanceledEvent"
     case _: JobFileDownloadingEvent =>
       s"JobFileDownloadingEvent"
@@ -116,14 +118,15 @@ object JobStatusFlusher {
       case InitializedEvent(_, _, _) => d
       case QueuedEvent(_) => d.withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Started)
-      case CanceledEvent(_, time) => d.withStatus(Status.Canceled)
+      case WorkerAssigned(_, workerId) => d.copy(workerId = Some(workerId))
+      case CancellingEvent(_, time) => d.withStatus(Status.Cancelling)
       case JobFileDownloadingEvent(_, _) => d.withStatus(Status.FileDownloading)
       case FinishedEvent(_, time, result) =>
         d.withEndTime(time).withJobResult(result).withStatus(Status.Finished)
       case FailedEvent(_, time, error) =>
-        val status = if (d.status == Status.Canceled) d else d.withStatus(Status.Failed)
-        status.withEndTime(time).withFailure(error)
-      case WorkerAssigned(_, workerId) => d.copy(workerId = Some(workerId))
+        d.withStatus(Status.Failed).withEndTime(time).withFailure(error)
+      case CancelledEvent(_, time) =>
+        d.withEndTime(time).withStatus(Status.Canceled)
     }
   }
 }

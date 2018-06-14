@@ -59,6 +59,7 @@ class JobActor(
 
   def cancelRemotely(cancelRespond: ActorRef, connection: PerJobConnection, reason: String): Unit = {
     log.info(s"Start cancelling ${req.id} remotely: $reason")
+    report.reportPlain(CancellingEvent(req.id, System.currentTimeMillis()))
     connection.cancel(req.id, self)
     context become cancellingOnExecutor(Seq(cancelRespond), connection, reason)
   }
@@ -103,8 +104,7 @@ class JobActor(
       cancelRespond.foreach(_ ! msg)
       onConnectionTermination(Some(connection))
 
-    case ev @ JobIsCancelled(_, time) =>
-      report.reportPlain(CanceledEvent(req.id, time))
+    case ev @ JobIsCancelled(_, time) => // do nothing wait succ/failure
 
     case JobSuccess(_, data) =>
       val msg = akka.actor.Status.Failure(new IllegalStateException(s"Job ${req.id} was completed"))
@@ -120,7 +120,8 @@ class JobActor(
 
     val time = System.currentTimeMillis()
     promise.failure(err)
-    report.reportWithFlushCallback(CanceledEvent(req.id, time)).onComplete(t => {
+    report.reportPlain(CancellingEvent(req.id, time))
+    report.reportWithFlushCallback(CancelledEvent(req.id, time)).onComplete(t => {
       val response = t match {
         case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
         case Failure(e) => akka.actor.Status.Failure(e)
@@ -145,7 +146,7 @@ class JobActor(
 
     val time = System.currentTimeMillis()
     promise.failure(new RuntimeException(s"Job was cancelled: $reason"))
-    report.reportWithFlushCallback(FailedEvent(req.id, time, error)).onComplete(t => {
+    report.reportWithFlushCallback(CancelledEvent(req.id, time)).onComplete(t => {
       val response = t match {
         case Success(d) => ContextEvent.JobCancelledResponse(req.id, d)
         case Failure(e) => akka.actor.Status.Failure(e)

@@ -138,7 +138,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
 
     reporter.containsExactly(
       classOf[QueuedEvent],
-      classOf[CanceledEvent]
+      classOf[CancellingEvent],
+      classOf[CancelledEvent]
     )
   }
 
@@ -188,8 +189,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       classOf[QueuedEvent],
       classOf[WorkerAssigned],
       classOf[StartedEvent],
-      classOf[CanceledEvent],
-      classOf[FailedEvent]
+      classOf[CancellingEvent],
+      classOf[CancelledEvent]
     )
   }
 

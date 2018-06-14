@@ -28,7 +28,8 @@ object Messages {
     final case class WorkerAssigned(id: String, workerId: String) extends UpdateStatusEvent
     final case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent
     final case class JobFileDownloadingEvent(id: String, time: Long) extends UpdateStatusEvent
-    final case class CanceledEvent(id: String, time: Long) extends UpdateStatusEvent
+    final case class CancellingEvent(id: String, time: Long) extends UpdateStatusEvent
+    final case class CancelledEvent(id: String, time: Long) extends UpdateStatusEvent
     final case class FinishedEvent(id: String, time: Long, result: JsData) extends UpdateStatusEvent
     final case class FailedEvent(id: String, time: Long, error: String) extends UpdateStatusEvent
 
