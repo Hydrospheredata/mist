@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.store
 import java.nio.file.Paths
 
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
-import io.hydrosphere.mist.master.JobDetails
+import io.hydrosphere.mist.master.{FilterClause, JobDetails, JobDetailsRequest, JobDetailsResponse}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import JsonCodecs._
 import mist.api.data.{JsData, JsMap}
@@ -157,27 +157,36 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     run(query.result)
   }
 
-  override def getByWorkerIdBeforeDate(workerId: String, timestamp: Long): Future[Seq[JobDetails]] = {
-    val query = table.filter(_.workerId === workerId)
-        .filter(_.startTime >= timestamp)
-        .sortBy(_.createTime.desc)
-    run(query.result)
-  }
-
-  override def getByWorkerId(workerId: String): Future[Seq[JobDetails]] = {
-    val query = table.filter(_.workerId === workerId)
-    run(query.result)
-  }
-
   override def clear(): Future[Unit] = run(table.delete).map(_ => ())
 
-  override def getByFunctionId(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] = {
-    val byId = table.filter(_.function === id)
-    val filtered = if (statuses.nonEmpty) byId.filter(_.status inSet statuses) else byId
-    val query = filtered.sortBy(_.createTime.desc)
-      .drop(offset).take(limit)
+  type Table = JobDetailsTable
+  type Elem =  Table#TableElementType
 
-    run(query.result)
+  type TQuery = Query[Table, Elem, Seq]
+
+  override def getJobs(req: JobDetailsRequest): Future[JobDetailsResponse] = {
+    def applyFilter(q: TQuery, f: FilterClause): TQuery = f match {
+      case FilterClause.ByFunctionId(id) => q.filter(_.function === id)
+      case FilterClause.ByWorkerId(id) => q.filter(_.workerId === id)
+      case FilterClause.ByStatuses(s) if s.nonEmpty => q.filter(_.status inSet s)
+      case FilterClause.ByStatuses(_) => q
+    }
+
+    val filtered = req.filters.foldLeft[TQuery](table)({case (q, f) => applyFilter(q, f)})
+
+    val incLimit = req.limit + 1
+    val q = filtered.sortBy(_.createTime.desc).drop(req.offset).take(incLimit)
+
+    run(q.result).map(jobs => {
+      if (jobs.length == incLimit) {
+        JobDetailsResponse(
+          jobs = jobs.dropRight(1),
+          hasNext = true
+        )
+      } else {
+        JobDetailsResponse(jobs = jobs, hasNext = false)
+      }
+    })
   }
 }
 

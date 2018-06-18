@@ -12,7 +12,7 @@ import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerFullInfo, WorkerLink}
+import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerLink}
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.jobs.FunctionInfoService
@@ -73,23 +73,46 @@ class HttpApiV2Spec extends FunSpec
         status shouldBe StatusCodes.OK
       }
     }
+
     it("should get full worker info") {
       val execution = mock[ExecutionService]
-      when(execution.getWorkerInfo(any[String]))
-        .thenSuccess(Some(WorkerFullInfo(
-          "id", "test", None, Seq(),
+      when(execution.getWorkerLink(any[String]))
+        .thenReturn(Some(WorkerLink(
+          "id", "test", None,
           WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "localhost:0", 262144000, ""))))
 
       val route = HttpV2Routes.workerRoutes(execution)
 
       Get("/v2/api/workers/id") ~> route ~> check {
         status shouldBe StatusCodes.OK
-        val resp = responseAs[WorkerFullInfo]
+        val resp = responseAs[WorkerLink]
         resp.name shouldBe "id"
-        resp.jobs shouldBe empty
         resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0","localhost:0", 262144000, "")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
+      }
+    }
+
+    it("should return worker jobs") {
+      val execution = mock[ExecutionService]
+      when(execution.getHistory(any[JobDetailsRequest])).thenSuccess(JobDetailsResponse(
+        Seq(JobDetails("id", "1",
+          JobParams("path", "className", JsMap.empty, Action.Execute),
+          "context", None, JobDetails.Source.Http)
+        ), false
+      ))
+
+      val route = HttpV2Routes.workerRoutes(execution)
+
+      Get("/v2/api/workers/id/jobs?status=started") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val jobs = responseAs[Seq[JobDetails]]
+        jobs.size shouldBe 1
+      }
+      Get("/v2/api/workers/id/jobs?status=started&paginate=true") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val rsp = responseAs[JobDetailsResponse]
+        rsp.jobs.size shouldBe 1
       }
     }
 
@@ -114,21 +137,24 @@ class HttpApiV2Spec extends FunSpec
       val master = mock[MainService]
       when(master.execution).thenReturn(execution)
 
-      when(execution.functionJobHistory(
-        any[String], anyInt(), anyInt(), any[Seq[JobDetails.Status]]
-      )).thenSuccess(Seq(
-        JobDetails("id", "1",
+      when(execution.getHistory(any[JobDetailsRequest])).thenSuccess(JobDetailsResponse(
+        Seq(JobDetails("id", "1",
           JobParams("path", "className", JsMap.empty, Action.Execute),
           "context", None, JobDetails.Source.Http)
+        ), false
       ))
 
       val route = HttpV2Routes.functionRoutes(master)
 
       Get("/v2/api/functions/id/jobs?status=started") ~> route ~> check {
         status shouldBe StatusCodes.OK
-
         val jobs = responseAs[Seq[JobDetails]]
         jobs.size shouldBe 1
+      }
+      Get("/v2/api/functions/id/jobs?status=started&paginate=true") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val rsp = responseAs[JobDetailsResponse]
+        rsp.jobs.size shouldBe 1
       }
     }
 
@@ -232,6 +258,25 @@ class HttpApiV2Spec extends FunSpec
       externalId = None
     )
 
+    it("should return jobs") {
+      val execution = mock[ExecutionService]
+      val master = mock[MainService]
+      when(master.execution).thenReturn(execution)
+      when(execution.getHistory(any[JobDetailsRequest]))
+        .thenSuccess(JobDetailsResponse(Seq(jobDetails), false))
+
+      val route = HttpV2Routes.jobsRoutes(master)
+
+      Get(s"/v2/api/jobs") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[Seq[JobDetails]]
+      }
+      Get(s"/v2/api/jobs?paginate=true") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[JobDetailsResponse]
+      }
+    }
+
     it("should return jobs status by id") {
       val execution = mock[ExecutionService]
       val master = mock[MainService]
@@ -256,34 +301,6 @@ class HttpApiV2Spec extends FunSpec
 
       val route = HttpV2Routes.jobsRoutes(master)
       Get(s"/v2/api/jobs/id/logs") ~> route ~> check {
-        status shouldBe StatusCodes.NotFound
-      }
-    }
-    it("should return worker info") {
-      val execution = mock[ExecutionService]
-      val master = mock[MainService]
-      when(master.execution)
-        .thenReturn(execution)
-      when(execution.workerByJobId(any[String]))
-        .thenSuccess(Some(workerLinkData))
-
-      val route = HttpV2Routes.jobsRoutes(master)
-
-      Get("/v2/api/jobs/id/worker") ~> route ~> check {
-        status shouldBe StatusCodes.OK
-        responseAs[WorkerLink].name shouldBe "worker"
-      }
-    }
-    it("should return 404 when worker not found") {
-      val execution = mock[ExecutionService]
-      val master = mock[MainService]
-      when(master.execution)
-        .thenReturn(execution)
-      when(execution.workerByJobId(any[String]))
-        .thenSuccess(None)
-      val route = HttpV2Routes.jobsRoutes(master)
-
-      Get("/v2/api/jobs/id/worker") ~> route ~> check {
         status shouldBe StatusCodes.NotFound
       }
     }

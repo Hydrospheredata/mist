@@ -13,7 +13,7 @@ import cats.implicits._
 import io.hydrosphere.mist.utils.FutureOps._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.ContextsStorage
-import io.hydrosphere.mist.master.{ContextsCRUDLike, JobDetails, MainService}
+import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
@@ -39,9 +39,10 @@ case class JobRunQueryParams(
   }
 }
 
-case class LimitOffsetQuery(
+case class PaginationQuery(
   limit: Int,
-  offset: Int
+  offset: Int,
+  paginate: Boolean
 )
 
 /**
@@ -67,11 +68,12 @@ object HttpV2Base {
       'context ?
     ).as(JobRunQueryParams)
 
-  val jobsQuery = {
+  val paginationQuery = {
     parameters(
       'limit.?(25),
-      'offset.?(0)
-    ).as(LimitOffsetQuery)
+      'offset.?(0),
+      'paginate.?(false)
+    ).as(PaginationQuery)
   }
 
   val completeOpt = rejectEmptyResponse & complete _
@@ -103,6 +105,15 @@ object HttpV2Base {
       case Left(errors) => complete { HttpResponse(StatusCodes.BadRequest, entity = errors.mkString(",")) }
       case Right(statuses) => complete(m(statuses))
     }
+  }
+
+  val statusesQuery: Directive1[Seq[JobDetails.Status]] = {
+    parameter('status *).flatMap(raw => {
+      toStatuses(raw) match {
+        case Left(errors) => reject(ValidationRejection(s"Unknown statuses: ${errors.mkString(",")}"))
+        case Right(validated) => provide(validated)
+      }
+    })
   }
 
   private def toStatuses(s: Iterable[String]): Either[List[String], List[JobDetails.Status]] = {
@@ -148,9 +159,23 @@ object HttpV2Routes extends Logger {
         completeU(jobService.stopWorker(workerId))
       } ~
       get {
-        completeOpt { jobService.getWorkerInfo(workerId) }
+        completeOpt { jobService.getWorkerLink(workerId) }
       }
-    }
+    } ~
+    path( root / "workers"/ Segment / "jobs") { workerId =>
+      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+        val req = JobDetailsRequest(pagination.limit, pagination.offset)
+          .withFilter(FilterClause.ByStatuses(statuses))
+          .withFilter(FilterClause.ByWorkerId(workerId))
+
+        onSuccess(jobService.getHistory(req))(rsp => {
+          if (pagination.paginate)
+            complete(rsp)
+          else
+            complete(rsp.jobs)
+        })
+      }
+    }}
   }
 
   def functionRoutes(master: MainService): Route = {
@@ -208,12 +233,17 @@ object HttpV2Routes extends Logger {
       }}
     } ~
     path( root / "functions" / Segment / "jobs" ) { functionId =>
-      get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
-        withValidatedStatuses(rawStatuses) { statuses =>
-          master.execution.functionJobHistory(
-            functionId,
-            limits.limit, limits.offset, statuses)
-        }
+      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+        val req = JobDetailsRequest(pagination.limit, pagination.offset)
+          .withFilter(FilterClause.ByStatuses(statuses))
+          .withFilter(FilterClause.ByFunctionId(functionId))
+
+        onSuccess(master.execution.getHistory(req))(rsp => {
+          if (pagination.paginate)
+            complete(rsp)
+          else
+            complete(rsp.jobs)
+        })
       }}
     } ~
     path( root / "functions" / Segment / "jobs" ) { functionId =>
@@ -299,43 +329,43 @@ object HttpV2Routes extends Logger {
   }
 
   def jobsRoutes(master: MainService): Route = {
-    path( root / "jobs" ) {
-      get { (jobsQuery & parameter('status * )) { (limits, rawStatuses) =>
-        withValidatedStatuses(rawStatuses) { statuses =>
-          master.execution.getHistory(limits.limit, limits.offset, statuses)
+    pathPrefix( root / "jobs") {
+      pathEnd {
+        get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+          val req = JobDetailsRequest(pagination.limit, pagination.offset)
+            .withFilter(FilterClause.ByStatuses(statuses))
+
+          onSuccess(master.execution.getHistory(req))(rsp => {
+            if (pagination.paginate)
+              complete(rsp)
+            else
+              complete(rsp.jobs)
+          })
+        }}
+      } ~
+      path( Segment ) { jobId =>
+        get {
+          completeOpt(master.execution.jobStatusById(jobId))
         }
-      }}
-    } ~
-    path( root / "jobs" / Segment ) { jobId =>
-      get { completeOpt {
-        master.execution.jobStatusById(jobId)
-      }}
-    } ~
-    path( root / "jobs" / Segment / "logs") { jobId =>
-      get {
-        onSuccess(master.execution.jobStatusById(jobId)) {
-          case Some(_) =>
-            master.logsPaths.pathFor(jobId).toFile match {
-              case file if file.exists => getFromFile(file)
-              case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
-            }
-          case None =>
-            complete { HttpResponse(StatusCodes.NotFound, entity=s"Job $jobId not found")}
+      } ~
+      path( root / "jobs" / Segment ) { jobId =>
+        delete { completeOpt {
+          master.execution.stopJob(jobId)
+        }}
+      } ~
+      path( Segment / "logs") { jobId =>
+        get {
+          onSuccess(master.execution.jobStatusById(jobId)) {
+            case Some(_) =>
+              master.logsPaths.pathFor(jobId).toFile match {
+                case file if file.exists => getFromFile(file)
+                case _ => complete { HttpResponse(StatusCodes.OK, entity=HttpEntity.Empty) }
+              }
+            case None =>
+              complete { HttpResponse(StatusCodes.NotFound, entity=s"Job $jobId not found")}
+          }
         }
       }
-    } ~
-    path( root / "jobs" / Segment / "worker" ) { jobId =>
-      get {
-        onSuccess(master.execution.workerByJobId(jobId)) {
-          case Some(worker) => complete { worker }
-          case None => complete { HttpResponse(StatusCodes.NotFound, entity=s"Worker by jobId $jobId not found") }
-        }
-      }
-    } ~
-    path( root / "jobs" / Segment ) { jobId =>
-      delete { completeOpt {
-        master.execution.stopJob(jobId)
-      }}
     }
   }
 
