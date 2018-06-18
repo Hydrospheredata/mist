@@ -99,14 +99,6 @@ object HttpV2Base {
     }
   }
 
-  def withValidatedStatuses(s: Iterable[String])
-      (m: Seq[JobDetails.Status]=> ToResponseMarshallable): StandardRoute = {
-    toStatuses(s) match {
-      case Left(errors) => complete { HttpResponse(StatusCodes.BadRequest, entity = errors.mkString(",")) }
-      case Right(statuses) => complete(m(statuses))
-    }
-  }
-
   val statusesQuery: Directive1[Seq[JobDetails.Status]] = {
     parameter('status *).flatMap(raw => {
       toStatuses(raw) match {

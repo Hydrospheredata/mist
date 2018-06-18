@@ -12,7 +12,7 @@ import slick.lifted.ProvenShape
 import spray.json.{JsObject, JsString, enrichAny, enrichString}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 
 trait JobsTable {
 
@@ -173,20 +173,14 @@ class H2JobsRepository(db: Database) extends JobRepository with JobsTable {
     }
 
     val filtered = req.filters.foldLeft[TQuery](table)({case (q, f) => applyFilter(q, f)})
+    val sorted = filtered.sortBy(_.createTime.desc)
 
-    val incLimit = req.limit + 1
-    val q = filtered.sortBy(_.createTime.desc).drop(req.offset).take(incLimit)
+    val q = sorted.drop(req.offset).take(req.limit)
 
-    run(q.result).map(jobs => {
-      if (jobs.length == incLimit) {
-        JobDetailsResponse(
-          jobs = jobs.dropRight(1),
-          hasNext = true
-        )
-      } else {
-        JobDetailsResponse(jobs = jobs, hasNext = false)
-      }
-    })
+    val countAction = sorted.length.result
+    val action = countAction.flatMap(total => q.result.map(elems => JobDetailsResponse(elems, total)))
+
+    run(action)
   }
 }
 

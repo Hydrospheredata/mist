@@ -99,7 +99,7 @@ class HttpApiV2Spec extends FunSpec
         Seq(JobDetails("id", "1",
           JobParams("path", "className", JsMap.empty, Action.Execute),
           "context", None, JobDetails.Source.Http)
-        ), false
+        ), 1
       ))
 
       val route = HttpV2Routes.workerRoutes(execution)
@@ -141,7 +141,7 @@ class HttpApiV2Spec extends FunSpec
         Seq(JobDetails("id", "1",
           JobParams("path", "className", JsMap.empty, Action.Execute),
           "context", None, JobDetails.Source.Http)
-        ), false
+        ), 1
       ))
 
       val route = HttpV2Routes.functionRoutes(master)
@@ -263,7 +263,7 @@ class HttpApiV2Spec extends FunSpec
       val master = mock[MainService]
       when(master.execution).thenReturn(execution)
       when(execution.getHistory(any[JobDetailsRequest]))
-        .thenSuccess(JobDetailsResponse(Seq(jobDetails), false))
+        .thenSuccess(JobDetailsResponse(Seq(jobDetails), 1))
 
       val route = HttpV2Routes.jobsRoutes(master)
 

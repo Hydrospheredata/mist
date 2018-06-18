@@ -66,7 +66,7 @@ position: 8
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
           <li>status - optional, repeated (values: started, finished ... )</li>
-          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "hasNext": boolean}`</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
         </ul>
       </td>
       <td>List of jobs that was ran with given function</td>
@@ -94,7 +94,7 @@ position: 8
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
           <li>status - optional, repeated (values: started, finished ... )</li>
-          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "hasNext": boolean}`</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
         </ul>
       </td>
       <td>List of all jobs that was ran on all functions</td>
@@ -157,7 +157,7 @@ position: 8
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
           <li>status - optional, repeated (values: started, finished ... )</li>
-          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "hasNext": boolean}`</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
         </ul>
       </td>
       <td>List of all jobs that was ran on worker</td>

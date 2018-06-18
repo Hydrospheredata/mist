@@ -23,6 +23,6 @@ object JobDetailsRequest {
 
 case class JobDetailsResponse(
   jobs: Seq[JobDetails],
-  hasNext: Boolean
+  total: Int
 )
 
