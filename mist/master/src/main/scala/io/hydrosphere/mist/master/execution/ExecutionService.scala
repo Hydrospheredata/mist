@@ -151,7 +151,7 @@ object ExecutionService {
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
 
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, hub.start)
+      val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref

@@ -6,6 +6,7 @@ import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, _}
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection, WorkerConnector}
+import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData, TestUtils}
 import io.hydrosphere.mist.utils.akka.ActorF
 import mist.api.data.JsMap
@@ -22,13 +23,18 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   with MockitoSugar
   with Eventually {
 
+  val NOOPLoggerFactory = new JobLoggersFactory {
+    override def getJobLogger(id: String): JobLogger = JobLogger.NOOP
+  }
+
   it("should execute jobs") {
     val connector = successfulConnector()
 
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -70,10 +76,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     val connector = mock[WorkerConnector]
     when(connector.whenTerminated).thenReturn(Promise[Unit].future)
 
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -89,10 +96,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   it("should respect idle timeout - awaitRequest") {
     val connector = successfulConnector()
 
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 1 second
@@ -106,10 +114,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   it("should respect idle timeout - emptyConnected") {
     val connector = successfulConnector()
 
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 1 second
@@ -134,10 +143,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     val connectionPromise = Promise[PerJobConnection]
     val connector = oneTimeConnector(connectionPromise.future)
 
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -166,10 +176,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
 
   it("should restart connector 'til max start times and then sleep") {
     val connector = crushedConnector()
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -198,10 +209,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
 
   it("should ask connection 'til max ask times and then sleep") {
     val connector = failedConnection()
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -228,10 +240,11 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   }
   it("should wake up after context update") {
     val connector = failedConnection()
-    val job = TestProbe()
+    val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
       connectorStarter = (_, _) => connector,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
@@ -247,6 +260,15 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status.failures shouldBe 0
     status.jobs shouldBe Map()
+  }
+
+  def mkJobProbe(): TestProbe = {
+    val p = TestProbe()
+    p.ignoreMsg {
+      case JobActor.Event.WorkerRequested => true
+      case _ => false
+    }
+    p
   }
 
   def successfulConnector(): WorkerConnector = {

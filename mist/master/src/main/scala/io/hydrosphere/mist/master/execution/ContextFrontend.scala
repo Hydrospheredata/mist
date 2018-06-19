@@ -9,6 +9,7 @@ import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnector}
+import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory, LogService}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsData
@@ -41,8 +42,9 @@ trait FrontendBasics {
 class ContextFrontend(
   name: String,
   reporter: StatusReporter,
+  loggersFactory: JobLoggersFactory,
   connectorStarter: (String, ContextConfig) => WorkerConnector,
-  jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter)],
+  jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
   with ActorLogging
@@ -121,7 +123,10 @@ class ContextFrontend(
       val need = math.min(state.queued.size - connectorState.asked, available)
       val nextConnState = {
         if (need > 0) {
-          for (_ <- 0 until need) askConnection()
+          for (job <- state.takeNext(need)) {
+            askConnection()
+            job ! JobActor.Event.WorkerRequested
+          }
           connectorState.copy(asked = connectorState.asked + need)
         } else {
           connectorState
@@ -286,7 +291,7 @@ class ContextFrontend(
 
   private def mkJob(req: RunJobRequest, st: State, respond: ActorRef): State = {
     val promise = Promise[JsData]
-    val ref = jobFactory.create(self, req, promise, reporter)
+    val ref = jobFactory.create(self, req, promise, reporter, loggersFactory.getJobLogger(req.id))
     context.watchWith(ref, JobDied(req.id))
 
     respond ! ExecutionInfo(req, promise)
@@ -361,15 +366,17 @@ object ContextFrontend {
   def props(
     name: String,
     status: StatusReporter,
+    loggersFactory: JobLoggersFactory,
     connectorStarter: (String, ContextConfig) => WorkerConnector,
-    jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter)],
+    jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
     defaultInactiveTimeout: FiniteDuration
-  ): Props = Props(classOf[ContextFrontend], name, status, connectorStarter, jobFactory, defaultInactiveTimeout)
+  ): Props = Props(classOf[ContextFrontend], name, status, loggersFactory, connectorStarter, jobFactory, defaultInactiveTimeout)
 
 
   def props(
     name: String,
     status: StatusReporter,
+    loggersFactory: JobLoggersFactory,
     connectorStarter: (String, ContextConfig) => WorkerConnector
-  ): Props = props(name, status, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
+  ): Props = props(name, status, loggersFactory, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
 }

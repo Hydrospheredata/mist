@@ -7,6 +7,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
+import io.hydrosphere.mist.master.logging.JobLogger
 import mist.api.data.JsData
 
 import scala.concurrent.Promise
@@ -24,7 +25,8 @@ class JobActor(
   callback: ActorRef,
   req: RunJobRequest,
   promise: Promise[JsData],
-  report: StatusReporter
+  report: StatusReporter,
+  jobLogger: JobLogger
 ) extends Actor with ActorLogging with Timers {
 
   import JobActor._
@@ -44,9 +46,14 @@ class JobActor(
     startTimeoutTimer(startTimeoutKey, req.startTimeout)
   }
 
-  override def receive: Receive = initial
+  override def receive: Receive = initial(false)
 
-  private def initial: Receive = {
+  private def initial(startSoon: Boolean): Receive = {
+    case Event.WorkerRequested if !startSoon =>
+      jobLogger.info("Waiting worker connection")
+      context become initial(true)
+    case Event.WorkerRequested =>
+
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
     case Event.ContextBroken(e) => completeFailure(new RuntimeException("Context is broken", e), None)
     case Event.Timeout => cancelNotStarted(s"start timeout was exceeded: ${req.startTimeout}", None)
@@ -125,6 +132,7 @@ class JobActor(
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val time = System.currentTimeMillis()
+    jobLogger.warn(err.getMessage)
     promise.failure(err)
     report.reportWithFlushCallback(CanceledEvent(req.id, time)).onComplete(t => {
       val response = t match {
@@ -199,6 +207,7 @@ object JobActor {
 
   sealed trait Event
   object Event {
+    case object WorkerRequested extends Event
     case object Cancel extends Event
     case class ContextBroken(e: Throwable) extends Event
     case object Timeout extends Event
@@ -212,8 +221,9 @@ object JobActor {
     callback: ActorRef,
     req: RunJobRequest,
     promise: Promise[JsData],
-    reporter: StatusReporter
-  ): Props = Props(classOf[JobActor], callback, req, promise, reporter)
+    reporter: StatusReporter,
+    jobLogger: JobLogger
+  ): Props = Props(classOf[JobActor], callback, req, promise, reporter, jobLogger)
 
 }
 
