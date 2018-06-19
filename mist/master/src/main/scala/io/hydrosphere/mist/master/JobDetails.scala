@@ -6,7 +6,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages._
 import mist.api.data.JsData
 
 object JobDetails {
-  
+
   sealed trait Status{
     val isFinished: Boolean
   }
@@ -20,38 +20,60 @@ object JobDetails {
   }
 
   object Status {
+    object Keys {
+      val initialized = "initialized"
+      val queued = "queued"
+      val started = "started"
+      val jobFileDownloading = "job-file-downloading"
+      val cancelling = "cancelling"
+      val finished = "finished"
+      val cancelled = "cancelled"
+      val failed = "failed"
+    }
 
     def apply(string: String): Status = string match {
-      case "initialized" => Initialized
-      case "queued" => Queued
-      case "started" => Started
-      case "finished" => Finished
-      case "canceled" => Canceled
-      case "failed" => Failed
-      case "job-file-downloading" => FileDownloading
+      case Keys.initialized => Initialized
+      case Keys.queued => Queued
+      case Keys.started => Started
+      case Keys.jobFileDownloading => FileDownloading
+      case Keys.cancelling => Cancelling
+      case Keys.finished => Finished
+      case Keys.cancelled => Canceled
+      case Keys.failed => Failed
       case x => throw new IllegalArgumentException(s"Unknown status $x")
     }
 
+    val inProgress = Seq(
+      Initialized,
+      Queued,
+      Started,
+      FileDownloading,
+      Cancelling
+    )
+
     case object Initialized extends Status with InProgress {
-      override def toString: String = "initialized"
+      override def toString: String = Keys.initialized
     }
     case object Queued extends Status with InProgress {
-      override def toString: String = "queued"
+      override def toString: String = Keys.queued
     }
     case object Started extends Status with InProgress {
-      override def toString: String = "started"
-    }
-    case object Finished extends Status with Done {
-      override def toString: String = "finished"
-    }
-    case object Canceled extends Status with Done {
-      override def toString: String = "canceled"
-    }
-    case object Failed extends Status with Done {
-      override def toString: String = "failed"
+      override def toString: String = Keys.started
     }
     case object FileDownloading extends Status with InProgress {
-      override def toString: String = "job-file-downloading"
+      override def toString: String = Keys.jobFileDownloading
+    }
+    case object Cancelling extends Status with InProgress {
+      override def toString: String = Keys.cancelling
+    }
+    case object Finished extends Status with Done {
+      override def toString: String = Keys.finished
+    }
+    case object Canceled extends Status with Done {
+      override def toString: String = Keys.cancelled
+    }
+    case object Failed extends Status with Done {
+      override def toString: String = Keys.failed
     }
 
   }

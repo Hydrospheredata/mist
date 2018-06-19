@@ -239,7 +239,8 @@ trait JsonCodecs extends SprayJsonSupport
     implicit val iniF = jsonFormat3(InitializedEvent)
     implicit val queueF = jsonFormat1(QueuedEvent)
     implicit val startedF = jsonFormat2(StartedEvent)
-    implicit val canceledF = jsonFormat2(CanceledEvent)
+    implicit val cancellingF = jsonFormat2(CancellingEvent)
+    implicit val canceledF = jsonFormat2(CancelledEvent)
     implicit val finishedF = jsonFormat3(FinishedEvent)
     implicit val failedF = jsonFormat3(FailedEvent)
 
@@ -247,18 +248,33 @@ trait JsonCodecs extends SprayJsonSupport
     implicit val fileDownloadingF = jsonFormat2(JobFileDownloadingEvent)
     implicit val workerAssigned = jsonFormat2(WorkerAssigned)
 
+    object Keys {
+      val initialized = "initialized"
+      val queued = "queued"
+      val started = "started"
+      val jobFileDownloading = "job-file-downloading"
+      val cancelling = "cancelling"
+      val finished = "finished"
+      val cancelled = "cancelled"
+      val failed = "failed"
+      val logs = "logs"
+      val workerAssigned = "worker-assigned"
+      val keepAlive = "keep-alive"
+    }
+
     override def write(obj: SystemEvent): JsValue = {
       val (name, initial) = obj match {
-        case x: InitializedEvent => "initialized" -> x.toJson
-        case x: QueuedEvent => "queued" -> x.toJson
-        case x: StartedEvent => "started" -> x.toJson
-        case x: CanceledEvent => "canceled" -> x.toJson
-        case x: FinishedEvent => "finished" -> x.toJson
-        case x: FailedEvent => "failed" -> x.toJson
-        case x: ReceivedLogs => "logs" -> x.toJson
-        case x: JobFileDownloadingEvent => "job-file-downloading" -> x.toJson
-        case x: WorkerAssigned => "worker-assigned" -> x.toJson
-        case KeepAliveEvent => "keep-alive" -> JsObject(Map.empty[String, JsValue])
+        case x: InitializedEvent =>  Keys.initialized -> x.toJson
+        case x: QueuedEvent => Keys.queued -> x.toJson
+        case x: StartedEvent => Keys.started -> x.toJson
+        case x: CancellingEvent => Keys.cancelling -> x.toJson
+        case x: CancelledEvent => Keys.cancelled -> x.toJson
+        case x: FinishedEvent => Keys.finished -> x.toJson
+        case x: FailedEvent => Keys.failed -> x.toJson
+        case x: ReceivedLogs => Keys.logs -> x.toJson
+        case x: JobFileDownloadingEvent => Keys.jobFileDownloading -> x.toJson
+        case x: WorkerAssigned => Keys.workerAssigned -> x.toJson
+        case KeepAliveEvent => Keys.keepAlive -> JsObject(Map.empty[String, JsValue])
       }
 
       val merged = initial.asJsObject.fields + ("event" -> JsString(name))
@@ -266,17 +282,25 @@ trait JsonCodecs extends SprayJsonSupport
     }
 
     override def read(json: JsValue): SystemEvent = {
-      val obj = json.asJsObject
-      val name = obj.fields.getOrElse("event", JsString(""))
-      name match {
-        case JsString("initialized") => obj.convertTo[InitializedEvent]
-        case JsString("queued") => obj.convertTo[QueuedEvent]
-        case JsString("started") => obj.convertTo[StartedEvent]
-        case JsString("finished") => obj.convertTo[FinishedEvent]
-        case JsString("failed") => obj.convertTo[FailedEvent]
-        case JsString("logs") => obj.convertTo[ReceivedLogs]
-        case JsString("job-file-downloading") => obj.convertTo[JobFileDownloadingEvent]
+      def fromName(obj: JsObject, v: String): SystemEvent = v match {
+        case Keys.initialized => obj.convertTo[InitializedEvent]
+        case Keys.queued => obj.convertTo[QueuedEvent]
+        case Keys.started => obj.convertTo[StartedEvent]
+        case Keys.cancelling => obj.convertTo[CancellingEvent]
+        case Keys.cancelled => obj.convertTo[CancelledEvent]
+        case Keys.finished => obj.convertTo[FinishedEvent]
+        case Keys.failed => obj.convertTo[FailedEvent]
+        case Keys.logs => obj.convertTo[ReceivedLogs]
+        case Keys.workerAssigned => obj.convertTo[WorkerAssigned]
+        case Keys.keepAlive => KeepAliveEvent
         case x => throw new IllegalArgumentException(s"Unknown event type $x")
+      }
+
+      val obj = json.asJsObject
+      val name = obj.fields.getOrElse("event", JsNull)
+      name match {
+        case JsString(v) => fromName(obj, v)
+        case _ => throw new IllegalArgumentException(s"Invalid event format $obj")
       }
     }
   }

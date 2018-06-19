@@ -7,8 +7,6 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait JobRepository {
 
-  val activeStatuses = List(Status.Queued, Status.Started, Status.Initialized)
-
   def remove(jobId: String): Future[Unit]
 
   def get(jobId: String): Future[Option[JobDetails]]
@@ -29,7 +27,7 @@ trait JobRepository {
 
   def clear(): Future[Unit]
 
-  def running(): Future[Seq[JobDetails]] = filteredByStatuses(activeStatuses)
+  def running(): Future[Seq[JobDetails]] = filteredByStatuses(JobDetails.Status.inProgress)
 
   def path(jobId: String)(f: JobDetails => JobDetails)(implicit ec: ExecutionContext): Future[Unit] = {
     get(jobId).flatMap {
