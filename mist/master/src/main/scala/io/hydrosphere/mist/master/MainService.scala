@@ -128,7 +128,8 @@ class MainService(
         parameters = req.parameters,
         source = source,
         externalId = req.externalId,
-        action = action
+        action = action,
+        timeouts = req.timeouts
       )
       executionInfo <- OptionT.liftF(execution.startJob(jobStartReq))
     } yield executionInfo

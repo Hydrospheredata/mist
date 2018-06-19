@@ -60,8 +60,8 @@ class WorkerActor(
     jobFuture: JobFuture,
     cleanUp: CleanUp
   ): Receive = {
-    case RunJobRequest(id, _, _) =>
-      sender() ! WorkerIsBusy(id)
+    case req: RunJobRequest =>
+      sender() ! WorkerIsBusy(req.id)
 
     case data: JsData =>
       log.info(s"Job execution done. Returning result $data and become awaiting new request")

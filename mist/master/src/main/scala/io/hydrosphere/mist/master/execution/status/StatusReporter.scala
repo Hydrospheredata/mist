@@ -17,7 +17,6 @@ trait StatusReporter {
     report(ev)
     ev.callback.future
   }
-
 }
 
 object StatusReporter {

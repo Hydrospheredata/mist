@@ -10,7 +10,7 @@ import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerCon
 import mist.api.data.JsData
 
 import scala.concurrent.Promise
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
 sealed trait ExecStatus
@@ -31,13 +31,17 @@ class JobActor(
 
   override def supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
+  val startTimeoutKey = s"job-start-${req.id}"
+  val performTimeoutKey = s"job-perform-${req.id}"
+
+  private def startTimeoutTimer(key: String, v: Duration): Unit = v match {
+    case f: FiniteDuration => timers.startSingleTimer(startTimeoutKey, Event.Timeout, f)
+    case _ =>
+  }
+
   override def preStart(): Unit = {
     report.reportPlain(QueuedEvent(req.id))
-    req.timeout match {
-      case f: FiniteDuration =>
-        timers.startSingleTimer(s"job-${req.id}", Event.Timeout, f)
-      case _ =>
-    }
+    startTimeoutTimer(startTimeoutKey, req.startTimeout)
   }
 
   override def receive: Receive = initial
@@ -45,11 +49,13 @@ class JobActor(
   private def initial: Receive = {
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
     case Event.ContextBroken(e) => completeFailure(new RuntimeException("Context is broken", e), None)
-    case Event.Timeout => cancelNotStarted("timeout", None)
+    case Event.Timeout => cancelNotStarted(s"start timeout was exceeded: ${req.startTimeout}", None)
 
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
+      timers.cancel(startTimeoutKey)
+      startTimeoutTimer(performTimeoutKey, req.timeout)
       report.reportPlain(WorkerAssigned(req.id, connection.id))
       connection.run(req, self)
 
