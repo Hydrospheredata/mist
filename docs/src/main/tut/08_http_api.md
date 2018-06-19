@@ -66,9 +66,10 @@ position: 8
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
           <li>status - optional, repeated (values: started, finished ... )</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
         </ul>
       </td>
-      <td>List of jobs that was run with given function</td>
+      <td>List of jobs that was ran with given function</td>
     </tr>
 
   </tbody>
@@ -93,9 +94,10 @@ position: 8
           <li>limit - optional (default 25)</li>
           <li>offset - optional (default 0)</li>
           <li>status - optional, repeated (values: started, finished ... )</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
         </ul>
       </td>
-      <td>List of all jobs that was runned on all functions</td>
+      <td>List of all jobs that was ran on all functions</td>
     </tr>
     <tr>
       <td>GET</td>
@@ -146,6 +148,19 @@ position: 8
       <td>/v2/api/workers/{id}</td>
       <td>None</td>
       <td>Get detailed worker info(context config, jobs, etc..)</td>
+    </tr>
+    <tr>
+      <td>GET</td>
+      <td>/v2/api/workers/{id}/jobs</td>
+      <td>Query params:
+        <ul>
+          <li>limit - optional (default 25)</li>
+          <li>offset - optional (default 0)</li>
+          <li>status - optional, repeated (values: started, finished ... )</li>
+          <li>paginate - boolean (default false) - response with struct `{"jobs": [array of jobs], "total": int}`</li>
+        </ul>
+      </td>
+      <td>List of all jobs that was ran on worker</td>
     </tr>
   </tbody>
 </table>

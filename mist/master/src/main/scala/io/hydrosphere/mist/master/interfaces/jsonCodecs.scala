@@ -6,10 +6,10 @@ import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
 import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.execution.{WorkerFullInfo, WorkerLink}
+import io.hydrosphere.mist.master.execution.WorkerLink
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.models._
-import io.hydrosphere.mist.master.{JobDetails, JobResult}
+import io.hydrosphere.mist.master.{JobDetails, JobDetailsResponse, JobResult}
 import mist.api.{data => mdata}
 import spray.json._
 
@@ -227,12 +227,10 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
 
-  implicit val jobDetailsLinkF = jsonFormat8(JobDetailsLink)
-  implicit val workerFullInfoF = jsonFormat5(WorkerFullInfo)
-
   implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
 
   implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
+  implicit val jobDetailsResponseF = jsonFormat2(JobDetailsResponse.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 
