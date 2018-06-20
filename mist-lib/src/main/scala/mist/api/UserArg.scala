@@ -1,6 +1,6 @@
 package mist.api
 
-import mist.api.data.JsMap
+import mist.api.data.{JsMap, JsNull}
 import mist.api.encoding.JsExtractor
 
 trait UserArg[A] extends ArgDef[A] { self =>
@@ -28,12 +28,18 @@ class NamedUserArg[A](name: String)(implicit ext: JsExtractor[A]) extends UserAr
   override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, ext.`type`))
   override def extract(ctx: FnContext): Extraction[A] =
     ext.transformFailure(f => Failed.InvalidField(name, f))(ctx.params.fieldValue(name))
+
+  override def toString: String = s"${getClass.getSimpleName}($name)"
 }
 
 class NamedUserArgWithDefault[A](name: String, default: A)(implicit ext: JsExtractor[A]) extends UserArg[A] {
-  private val optExt = ext.orElse(default)
   override def describe(): Seq[ArgInfo] = Seq(UserInputArgument(name, MOption(ext.`type`)))
-  override def extract(ctx: FnContext): Extraction[A] =
-    optExt.transformFailure(f => Failed.InvalidField(name, f))(ctx.params.fieldValue(name))
+  override def extract(ctx: FnContext): Extraction[A] = {
+    ctx.params.fieldValue(name) match {
+      case JsNull => Extracted(default)
+      case x => ext.transformFailure(f => Failed.InvalidField(name, f))(x)
+    }
+  }
+  override def toString: String = s"${getClass.getSimpleName}($name, $default)"
 }
 
