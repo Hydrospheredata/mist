@@ -25,7 +25,7 @@ class RemoteAppender(sourceId: String, logsWriter: LogsWriter) extends AppenderS
     logsWriter.write(evt)
   }
 
-  override def close(): Unit = logsWriter.close()
+  override def close(): Unit = ()
 
   override def requiresLayout(): Boolean = true
 }
