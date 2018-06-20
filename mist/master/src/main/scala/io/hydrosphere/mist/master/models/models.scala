@@ -7,6 +7,8 @@ import io.hydrosphere.mist.core.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
 import mist.api.data.{JsData, JsMap}
 
+import scala.concurrent.duration.Duration
+
 
 case class RunSettings(
   /** Context name that overrides endpoint context */
@@ -19,6 +21,11 @@ object RunSettings {
 
 }
 
+case class Timeouts(start: Duration, perform: Duration)
+object Timeouts {
+  val Infinity = Timeouts(Duration.Inf, Duration.Inf)
+}
+
 /**
   * Request for starting job by name
   * New version api
@@ -28,7 +35,8 @@ case class FunctionStartRequest(
   parameters: JsMap,
   externalId: Option[String] = None,
   runSettings: RunSettings = RunSettings.Default,
-  id: String = UUID.randomUUID().toString
+  id: String = UUID.randomUUID().toString,
+  timeouts: Timeouts = Timeouts.Infinity
 )
 
 case class JobStartRequest(
@@ -38,7 +46,8 @@ case class JobStartRequest(
   parameters: JsMap,
   source: JobDetails.Source,
   externalId: Option[String],
-  action: Action = Action.Execute
+  action: Action = Action.Execute,
+  timeouts: Timeouts = Timeouts.Infinity
 )
 
 case class JobStartResponse(id: String)

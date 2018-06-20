@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.execution.status
 
 import akka.actor.ActorSystem
+import io.hydrosphere.mist.core.logging.LogEvent
 import io.hydrosphere.mist.master.{EventsStreamer, JobDetails}
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.logging.LogService
@@ -17,7 +18,6 @@ trait StatusReporter {
     report(ev)
     ev.callback.future
   }
-
 }
 
 object StatusReporter {

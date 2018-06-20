@@ -7,6 +7,7 @@ import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
+import io.hydrosphere.mist.master.logging.JobLogger
 import io.hydrosphere.mist.master.{ActorSpec, JobDetails, TestData, TestUtils}
 import mist.api.data.{JsData, JsNumber}
 import org.scalatest.Matchers
@@ -33,7 +34,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       callback = callback.ref,
       req = mkRunReq("id"),
       promise = promise,
-      reporter = reporter
+      reporter = reporter,
+      jobLogger = JobLogger.NOOP
     ))
 
     val probe = TestProbe()
@@ -74,7 +76,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       callback = callback.ref,
       req = mkRunReq("id"),
       promise = promise,
-      reporter = reporter
+      reporter = reporter,
+      jobLogger = JobLogger.NOOP
     ))
 
     val probe = TestProbe()
@@ -119,7 +122,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       callback = callback.ref,
       req = mkRunReq("id"),
       promise = promise,
-      reporter = reporter
+      reporter = reporter,
+      jobLogger = JobLogger.NOOP
     ))
 
     val probe = TestProbe()
@@ -152,7 +156,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       callback = callback.ref,
       req = mkRunReq("id"),
       promise = promise,
-      reporter = reporter
+      reporter = reporter,
+      jobLogger = JobLogger.NOOP
     ))
 
     val probe = TestProbe()
@@ -203,7 +208,8 @@ class JobActorSpec extends ActorSpec("worker-conn")
       callback = callback.ref,
       req = mkRunReq("id"),
       promise = promise,
-      reporter = reporter
+      reporter = reporter,
+      jobLogger = JobLogger.NOOP
     ))
 
     val probe = TestProbe()

@@ -19,6 +19,7 @@ import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.{Files, Paths}
 
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import io.hydrosphere.mist.BuildInfo
 import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.utils.Logger
@@ -26,12 +27,15 @@ import mist.api.data.JsMap
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.util._
 
 case class JobRunQueryParams(
   force: Boolean,
   externalId: Option[String],
-  context: Option[String]
+  context: Option[String],
+  startTimeout: Duration,
+  performTimeout: Duration
 ) {
 
   def buildRunSettings(): RunSettings = {
@@ -61,12 +65,19 @@ object HttpV2Base {
 
   val root = "v2" / "api"
 
-  val postJobQuery =
-    parameters(
+  val postJobQuery: Directive1[JobRunQueryParams] = {
+    def mkDuration(s: Symbol): Directive1[Duration] = parameter(s ?).map {
+      case Some(s) => Duration.create(s)
+      case None => Duration.Inf
+    }
+    val all = parameters(
       'force ? (false),
       'externalId ?,
       'context ?
-    ).as(JobRunQueryParams)
+    ) & mkDuration('startTimeout) & mkDuration('performTimeout)
+
+    all.as(JobRunQueryParams)
+  }
 
   val paginationQuery = {
     parameters(
@@ -129,7 +140,10 @@ object HttpV2Base {
     parameters: JsMap
   ): FunctionStartRequest = {
     val runSettings = queryParams.buildRunSettings()
-    FunctionStartRequest(routeId, parameters, queryParams.externalId, runSettings)
+    FunctionStartRequest(
+      routeId, parameters, queryParams.externalId, runSettings,
+      timeouts = Timeouts(queryParams.startTimeout, queryParams.performTimeout)
+    )
   }
 }
 

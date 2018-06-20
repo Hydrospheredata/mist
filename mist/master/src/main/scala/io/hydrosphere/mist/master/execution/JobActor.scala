@@ -7,10 +7,11 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
+import io.hydrosphere.mist.master.logging.JobLogger
 import mist.api.data.JsData
 
 import scala.concurrent.Promise
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.util.{Failure, Success}
 
 sealed trait ExecStatus
@@ -24,32 +25,44 @@ class JobActor(
   callback: ActorRef,
   req: RunJobRequest,
   promise: Promise[JsData],
-  report: StatusReporter
+  report: StatusReporter,
+  jobLogger: JobLogger
 ) extends Actor with ActorLogging with Timers {
 
   import JobActor._
 
   override def supervisorStrategy: SupervisorStrategy = SupervisorStrategy.stoppingStrategy
 
-  override def preStart(): Unit = {
-    report.reportPlain(QueuedEvent(req.id))
-    req.timeout match {
-      case f: FiniteDuration =>
-        timers.startSingleTimer(s"job-${req.id}", Event.Timeout, f)
-      case _ =>
-    }
+  val startTimeoutKey = s"job-start-${req.id}"
+  val performTimeoutKey = s"job-perform-${req.id}"
+
+  private def startTimeoutTimer(key: String, v: Duration): Unit = v match {
+    case f: FiniteDuration => timers.startSingleTimer(startTimeoutKey, Event.Timeout, f)
+    case _ =>
   }
 
-  override def receive: Receive = initial
+  override def preStart(): Unit = {
+    report.reportPlain(QueuedEvent(req.id))
+    startTimeoutTimer(startTimeoutKey, req.startTimeout)
+  }
 
-  private def initial: Receive = {
+  override def receive: Receive = initial(false)
+
+  private def initial(startSoon: Boolean): Receive = {
+    case Event.WorkerRequested if !startSoon =>
+      jobLogger.info("Waiting worker connection")
+      context become initial(true)
+    case Event.WorkerRequested =>
+
     case Event.Cancel => cancelNotStarted("user request", Some(sender()))
     case Event.ContextBroken(e) => completeFailure(new RuntimeException("Context is broken", e), None)
-    case Event.Timeout => cancelNotStarted("timeout", None)
+    case Event.Timeout => cancelNotStarted(s"start timeout was exceeded: ${req.startTimeout}", None)
 
     case Event.GetStatus => sender() ! ExecStatus.Queued
 
     case Event.Perform(connection) =>
+      timers.cancel(startTimeoutKey)
+      startTimeoutTimer(performTimeoutKey, req.timeout)
       report.reportPlain(WorkerAssigned(req.id, connection.id))
       connection.run(req, self)
 
@@ -119,6 +132,7 @@ class JobActor(
     import scala.concurrent.ExecutionContext.Implicits.global
 
     val time = System.currentTimeMillis()
+    jobLogger.warn(err.getMessage)
     promise.failure(err)
     report.reportPlain(CancellingEvent(req.id, time))
     report.reportWithFlushCallback(CancelledEvent(req.id, time)).onComplete(t => {
@@ -194,6 +208,7 @@ object JobActor {
 
   sealed trait Event
   object Event {
+    case object WorkerRequested extends Event
     case object Cancel extends Event
     case class ContextBroken(e: Throwable) extends Event
     case object Timeout extends Event
@@ -207,8 +222,9 @@ object JobActor {
     callback: ActorRef,
     req: RunJobRequest,
     promise: Promise[JsData],
-    reporter: StatusReporter
-  ): Props = Props(classOf[JobActor], callback, req, promise, reporter)
+    reporter: StatusReporter,
+    jobLogger: JobLogger
+  ): Props = Props(classOf[JobActor], callback, req, promise, reporter, jobLogger)
 
 }
 

@@ -74,12 +74,14 @@ class ExecutionService(
 
     val internalRequest = RunJobRequest(
       id = id,
-      JobParams(
+      params = JobParams(
         filePath = function.path,
         className = function.className,
         arguments = parameters,
         action = action
-      )
+      ),
+      startTimeout = req.timeouts.start,
+      timeout = req.timeouts.perform
     )
 
     val startCmd = ContextEvent.RunJobCommand(context, internalRequest)
@@ -133,7 +135,7 @@ object ExecutionService {
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
 
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, hub.start)
+      val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref

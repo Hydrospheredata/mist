@@ -51,8 +51,9 @@ position: 8
         <p>Post body: function (MistFn) arguments </p>
         <p>Query params:
           <ul>
-            <li>context - Not required, specify contextId/namespace/spark conf </li>
-            <li>workerId - Not required</li>
+            <li>context - optional, specify contextId/namespace/spark conf </li>
+            <li>startTimeout - optional (default Inf) - max time for staying in queue (e.g: 10s, 10ms, 10minute)</li>
+            <li>performTimeout - optional (default Inf) - max time for invocation (e.g: 10s, 10ms, 10minute)</li>
           </ul>
         </p>
       </td>

@@ -27,6 +27,7 @@ class FrontendState[K, V](
   def inProgressSize: Int = working.size
 
   def nextOption: Option[(K, V)] = waiting.headOption
+  def takeNext(n: Int): Seq[V] = waiting.take(n).values.toSeq
 
   def toWorking(k: K): FrontendState[K, V] = {
     waiting.get(k) match {

@@ -49,6 +49,7 @@ object CommonData {
   case class RunJobRequest(
     id: String,
     params: JobParams,
+    startTimeout: Duration = Duration.Inf,
     timeout: Duration = Duration.Inf
   )
 

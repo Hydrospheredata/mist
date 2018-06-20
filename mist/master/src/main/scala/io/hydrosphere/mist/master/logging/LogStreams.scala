@@ -121,14 +121,18 @@ trait LogStreams extends Logger {
 
 }
 
+trait JobLoggersFactory {
+  def getJobLogger(id: String): JobLogger
+}
+
 /**
   * Wrapper around local input and tcp server binding
   */
 class LogService(
   storeInput: ActorRef,
   serverBinding: Tcp.ServerBinding
-) {
-  def getJobLogger(id: String): JobLogger = JobLogger.fromActorRef(id, storeInput)
+) extends JobLoggersFactory {
+  override def getJobLogger(id: String): JobLogger = JobLogger.fromActorRef(id, storeInput)
   def close(): Future[Unit] = serverBinding.unbind()
 
 }
