@@ -48,6 +48,7 @@ class UserArgsSpec extends FunSpec with Matchers {
       (arg[Boolean]("b"),        JsMap("b" -> true.js),  Extracted(true)),
       (arg[Boolean]("b", false), JsMap.empty,            Extracted(false)),
       (arg[Boolean]("b", true),  JsMap("b" -> false.js), Extracted(false)),
+      (arg[Boolean]("c", true),  JsMap("c" -> "2".js),   failed),
       (arg[Boolean]("b"),        JsMap.empty,            failed),
       (arg[Option[Boolean]]("b"),JsMap("b" -> true.js),  Extracted(Some(true))),
       (arg[Option[Boolean]]("b"),JsMap.empty,            Extracted(None)),
