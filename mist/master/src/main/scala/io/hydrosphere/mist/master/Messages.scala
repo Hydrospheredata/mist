@@ -23,7 +23,7 @@ object Messages {
       val id: String
     }
 
-    final case class InitializedEvent(id: String, params: JobParams, externalId: Option[String]) extends UpdateStatusEvent
+    final case class InitializedEvent(id: String, params: JobParams, externalId: Option[String], function: String, context: String) extends UpdateStatusEvent
     final case class QueuedEvent(id: String) extends UpdateStatusEvent
     final case class WorkerAssigned(id: String, workerId: String) extends UpdateStatusEvent
     final case class StartedEvent(id: String, time: Long) extends UpdateStatusEvent

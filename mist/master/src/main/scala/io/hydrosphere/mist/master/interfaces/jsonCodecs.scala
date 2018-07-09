@@ -235,7 +235,7 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {
 
-    implicit val iniF = jsonFormat3(InitializedEvent)
+    implicit val iniF = jsonFormat5(InitializedEvent)
     implicit val queueF = jsonFormat1(QueuedEvent)
     implicit val startedF = jsonFormat2(StartedEvent)
     implicit val cancellingF = jsonFormat2(CancellingEvent)

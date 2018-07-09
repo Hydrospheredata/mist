@@ -94,7 +94,7 @@ class ExecutionService(
       externalId, source)
     for {
       _ <- repo.update(details)
-      _ = statusReporter.reportPlain(InitializedEvent(internalRequest.id, internalRequest.params, req.externalId))
+      _ = statusReporter.reportPlain(InitializedEvent(internalRequest.id, internalRequest.params, req.externalId, function.name, context.name))
       info <- contextsMaster.ask(startCmd).mapTo[ExecutionInfo]
     } yield info
   }
