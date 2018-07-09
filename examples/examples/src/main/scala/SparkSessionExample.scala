@@ -11,6 +11,10 @@ object SparkSessionExample extends MistFn {
       arg[Int]("multiplier", 2)
     ).withMistExtras
       .onSparkSession((nums: Seq[Int], mult: Int, extras: MistExtras, spark: SparkSession) => {
+
+        val x = spark.readStream.load()
+        x.writeStream.start()
+
         spark.sparkContext.parallelize(nums).map(_ * mult).collect()
       })
 

@@ -18,6 +18,8 @@ object ConfigUtils {
 
     def getOptString(path: String): Option[String] = getOpt(path, _.getString(path))
     def getOptInt(path: String): Option[Int] = getOpt(path, _.getInt(path))
+    def getOptConfig(path: String): Option[Config] = getOpt(path, _.getConfig(path))
+    def getOptDuration(path: String): Option[Duration] = getOpt(path, _.getScalaDuration(path))
 
     def getOpt[A](path: String, f: Config => A): Option[A] =
       if (c.hasPath(path)) Option(f(c)) else None

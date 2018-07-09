@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig, RunMode}
+import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.ConfigUtils._
 
 import scala.concurrent.duration._
@@ -51,6 +51,38 @@ object ConfigRepr {
     }
   }
 
+  val ClusterConfigRepr: ConfigRepr[ClusterConfig] = new ConfigRepr[ClusterConfig] {
+    override def fromConfig(config: Config): ClusterConfig = {
+      config.getString("type") match {
+        case "no-cluster" => ClusterConfig.NoCluster
+        case "aws-emr" => ClusterConfig.AwsEmr(
+          releaseLabel = config.getString("release-label"),
+          masterInstanceType = config.getString("master-instance-type"),
+          slaveInstanceType = config.getString("slave-instance-type"),
+          instanceCount = config.getInt("instance-count")
+        )
+        case x => throw new IllegalArgumentException(s"Unknown cluster type $x")
+      }
+    }
+
+    override def toConfig(cfg: ClusterConfig): Config = {
+      import ConfigValueFactory._
+
+      val (t, other: Map[String, ConfigValue]) = cfg match {
+        case ClusterConfig.NoCluster => "no-cluster" -> Map.empty
+        case awsEmr :ClusterConfig.AwsEmr =>
+          "aws-emr" -> Map(
+            "release-label" -> fromAnyRef(awsEmr.releaseLabel),
+            "master-instance-type" -> fromAnyRef(awsEmr.masterInstanceType),
+            "slave-instance-type" -> fromAnyRef(awsEmr.slaveInstanceType),
+            "instance-count" -> fromAnyRef(awsEmr.instanceCount)
+          )
+      }
+      val appendType = other + ("type" -> fromAnyRef(t))
+      fromMap(appendType.asJava).toConfig
+    }
+  }
+
   implicit val ContextConfigRepr: ConfigRepr[ContextConfig] = new ConfigRepr[ContextConfig] {
 
     val allowedTypes = Set(
@@ -79,7 +111,11 @@ object ConfigRepr {
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration")),
-        maxConnFailures = config.getOptInt("max-conn-failures").getOrElse(5)
+        maxConnFailures = config.getOptInt("max-conn-failures").getOrElse(5),
+        clusterConfig =
+          config.getOptConfig("cluster-config")
+            .map(ClusterConfigRepr.fromConfig)
+            .getOrElse(ClusterConfig.NoCluster)
       )
     }
 
@@ -100,7 +136,8 @@ object ConfigRepr {
         "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration),
-        "max-conn-failures" -> fromAnyRef(a.maxConnFailures)
+        "max-conn-failures" -> fromAnyRef(a.maxConnFailures),
+        "cluster-config" -> ClusterConfigRepr.toConfig(a.clusterConfig).root()
       )
       fromMap(map.asJava).toConfig
     }

@@ -50,7 +50,6 @@ object WorkerConnector {
 
     override def warmUp(): Unit = underlying ! WorkerConnector.Event.WarmUp
 
-
   }
 
   def actorBased(

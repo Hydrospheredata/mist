@@ -30,6 +30,15 @@ trait NamedConfig {
   val name: String
 }
 
+sealed trait ClusterConfig
+case object NoCluster extends ClusterConfig
+case class AwsEMRConfig(
+  releaseLabel: String,
+  masterInstanceType: String,
+  slaveInstanceType: String,
+  instanceCount: Int
+) extends ClusterConfig
+
 case class ContextConfig(
   name: String,
   sparkConf: Map[String, String],
@@ -39,7 +48,8 @@ case class ContextConfig(
   runOptions: String,
   workerMode: RunMode,
   streamingDuration: Duration,
-  maxConnFailures: Int
+  maxConnFailures: Int,
+  clusterConfig: ClusterConfig
 ) extends NamedConfig {
 
   def maxJobsOnNode: Int = workerMode match {

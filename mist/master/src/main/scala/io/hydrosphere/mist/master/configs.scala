@@ -250,6 +250,47 @@ object SecurityConfig {
 
 }
 
+sealed trait ClusterProvisionerConfig
+final case class EMRProvisionerConfig(
+  keyPair: String,
+  accessKey: String,
+  secretKey: String,
+  subnetId: String,
+  region: String,
+  initTimeout: Duration
+) extends ClusterProvisionerConfig
+
+object EMRProvisionerConfig {
+
+  def apply(c: Config): EMRProvisionerConfig = {
+    EMRProvisionerConfig(
+      keyPair = c.getString("key-pair"),
+      accessKey = c.getString("access-key"),
+      secretKey = c.getString("secret-key"),
+      subnetId = c.getString("subnet-id"),
+      region = c.getString("region"),
+      initTimeout = c.getOptDuration("init-timeout").getOrElse(Duration.Inf)
+    )
+  }
+}
+
+object ClusterProvisionerConfig {
+
+  def apply(c: Config): Map[String, ClusterProvisionerConfig] = {
+    c.root().entrySet().filter(entry => {
+      entry.getValue.valueType() == ConfigValueType.OBJECT
+    }).map(entry => {
+      val name = entry.getKey
+      val cfg = c.getConfig(name)
+      val parsed = cfg.getString("type") match {
+        case "emr" => EMRProvisionerConfig.apply(cfg)
+        case x => throw new IllegalArgumentException(s"Unknown provisioner type: $x")
+      }
+      name -> parsed
+    }).toMap
+  }
+}
+
 case class MasterConfig(
   cluster: HostPortConfig,
   http: HttpConfig,
@@ -266,6 +307,7 @@ case class MasterConfig(
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
+  clusterProvisioners: Map[String, ClusterProvisionerConfig],
   raw: Config
 )
 
@@ -306,6 +348,7 @@ object MasterConfig extends Logger {
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
       jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
+      clusterProvisioners = ClusterProvisionerConfig.apply(mist.getConfig("cluster-provisioners")),
       raw = config
     )
   }
