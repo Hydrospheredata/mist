@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import java.util.UUID
 
+import akka.pattern.pipe
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
@@ -14,7 +15,7 @@ import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsData
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -43,7 +44,7 @@ class ContextFrontend(
   name: String,
   reporter: StatusReporter,
   loggersFactory: JobLoggersFactory,
-  connectorStarter: (String, ContextConfig) => WorkerConnector,
+  connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
   jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
@@ -70,8 +71,9 @@ class ContextFrontend(
     case req: RunJobRequest =>
       timers.cancel(timerKey)
       val next = mkJob(req, State.empty, sender())
-      val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, next, ConnectorState.initial(id, connector))
+      startConnector(ctx, next)((id, st, conn) => {
+        becomeWithConnector(ctx, next, ConnectorState.initial(id, conn))
+      })
 
     case Event.Downtime =>
       log.info(s"Context $name was inactive")
@@ -81,8 +83,9 @@ class ContextFrontend(
   // handle UpdateContext for awaitRequest/initial
   private def becomeAwaitOrConnected(ctx: ContextConfig, state: State): Unit = {
     if (ctx.precreated && ctx.workerMode == RunMode.Shared) {
-      val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, state, ConnectorState.initial(id, connector))
+      startConnector(ctx, state)((id, st, conn) => {
+        becomeWithConnector(ctx, state, ConnectorState.initial(id, conn))
+      })
     } else {
       val timerKey = s"$name-await-timeout"
       timers.startSingleTimer(timerKey, Event.Downtime, defaultInactiveTimeout)
@@ -155,9 +158,10 @@ class ContextFrontend(
     {
       case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
-        connectorState.connector.shutdown(false)
-        val (newId, newConn) = startConnector(updCtx)
-        becomeWithConnector(updCtx, currentState, ConnectorState.initial(newId, newConn))
+        log.info("NOT IMPLEMENTED")
+//        connectorState.connector.shutdown(false)
+//        val (newId, newConn) = startConnector(updCtx)
+//        becomeWithConnector(updCtx, currentState, ConnectorState.initial(newId, newConn))
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
       case CancelJobRequest(id) =>
@@ -197,17 +201,20 @@ class ContextFrontend(
       case Event.ConnectorCrushed(id, e) if id == connectorState.id =>
         log.error(e, "Context {} - connector {} was crushed", name, id)
         val next = connectorState.connectorFailed
-        if (next.failedTimes >= ctx.maxConnFailures) {
-          becomeSleeping(currentState, next, ctx, e)
-        } else {
-          val (newId, newConn) = startConnector(ctx)
-          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(failedTimes = next.failedTimes))
-        }
+        becomeSleeping(currentState, next, ctx, e)
+        log.info("NOT IMPLEMENTED")
+//        if (next.failedTimes >= ctx.maxConnFailures) {
+//          becomeSleeping(currentState, next, ctx, e)
+//        } else {
+//          val (newId, newConn) = startConnector(ctx)
+//          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(failedTimes = next.failedTimes))
+//        }
 
       case Event.ConnectorStopped(id) if id == connectorState.id =>
-        log.info("Context {} - connector {} was stopped", name, id)
-        val (newId, newConn) = startConnector(ctx)
-        becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn))
+        log.info("NOT IMPLEMENTED")
+//        log.info("Context {} - connector {} was stopped", name, id)
+//        val (newId, newConn) = startConnector(ctx)
+//        becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn))
     }
   }
 
@@ -219,9 +226,10 @@ class ContextFrontend(
   ): Receive = {
     case Event.Status => sender() ! mkStatus(State.empty[String, ActorRef], connectorState)
     case ContextEvent.UpdateContext(updCtx) =>
-      connectorState.connector.shutdown(false)
-      val (newId, newConn) = startConnector(updCtx)
-      context become emptyWithConnector(updCtx, ConnectorState.initial(newId, newConn), timerKey)
+      log.info("NOT IMPLEMENTED")
+//      connectorState.connector.shutdown(false)
+//      val (newId, newConn) = startConnector(updCtx)
+//      context become emptyWithConnector(updCtx, ConnectorState.initial(newId, newConn), timerKey)
 
     case req: RunJobRequest =>
       timers.cancel(timerKey)
@@ -270,17 +278,66 @@ class ContextFrontend(
       context become sleepingTilUpdate(next, conns, brokenCtx, error)
   }
 
-  private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
+  private def startConnector(ctx: ContextConfig, state: State)
+    (nextBecome: (String, State, WorkerConnector) => Unit): Unit = {
+
     val id = ctx.name + "_" + UUID.randomUUID().toString
     log.info(s"Starting executor $id for $name")
-    val connector = connectorStarter(id, ctx)
-    if (ctx.precreated) connector.warmUp()
-    connector.whenTerminated().onComplete({
-      case Success(_) => self ! Event.ConnectorStopped(id)
-      case Failure(e) => self ! Event.ConnectorCrushed(id, e)
-    })
-    id -> connector
+    connectorStarter(id, ctx).map(c => Event.ConnectorStarted(id, c)) pipeTo self
+    context become awaitProvision(ctx, state, id, nextBecome)
   }
+
+  private def awaitProvision(
+    ctx: ContextConfig,
+    state: State,
+    connId: String,
+    nextBecome: (String, State, WorkerConnector) => Unit
+  ): Receive = {
+    case Event.ConnectorStarted(id, c) =>
+      log.info(s"Connector for $id was started")
+      nextBecome(connId, state, c)
+
+    case akka.actor.Status.Failure(e) =>
+      log.info(s"Connector $connId starting has benn failed")
+      val err = new RuntimeException("Provision failed")
+      state.queued.foreach({case (_, ref) => ref ! JobActor.Event.ContextBroken(err)})
+      val todoConnector = new WorkerConnector {
+        override def whenTerminated(): Future[Unit] = ???
+        override def askConnection(): Future[PerJobConnection] = ???
+        override def warmUp(): Unit = ???
+        override def shutdown(force: Boolean): Future[Unit] = ???
+      }
+      context become sleepingTilUpdate(state, ConnectorState.initial(connId, todoConnector), ctx, err)
+
+
+    case Event.Status => sender() ! mkStatus(state)
+    case ContextEvent.UpdateContext(updCtx) =>
+      log.error("CONTEXT UPDATION NOt IMPLEMENTED for provision")
+
+    case req: RunJobRequest =>
+      val next = mkJob(req, State.empty, sender())
+      context become awaitProvision(ctx, next, connId, nextBecome)
+
+    case CancelJobRequest(id) =>
+      cancelJob(id, state, sender())
+  }
+
+//  private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
+//    val id = ctx.name + "_" + UUID.randomUUID().toString
+//    log.info(s"Starting executor $id for $name")
+//
+//    val future = connectorStarter(id, ctx)
+//
+//    future.map(c => Event.ConnectorStarted(id, c)) pipeTo self
+//
+//
+//    if (ctx.precreated) connector.warmUp()
+//    connector.whenTerminated().onComplete({
+//      case Success(_) => self ! Event.ConnectorStopped(id)
+//      case Failure(e) => self ! Event.ConnectorCrushed(id, e)
+//    })
+//    id -> connector
+//  }
 
   private def cancelJob(id: String, state: State, respond: ActorRef): Unit = state.get(id) match {
     case Some(ref) =>
@@ -321,6 +378,7 @@ object ContextFrontend {
 
   sealed trait Event
   object Event {
+    final case class ConnectorStarted(id: String, connector: WorkerConnector) extends Event
     final case class ConnectorCrushed(id: String, err: Throwable) extends Event
     final case class ConnectorStopped(id: String) extends Event
 
@@ -367,7 +425,7 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector,
+    connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
     jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
     defaultInactiveTimeout: FiniteDuration
   ): Props = Props(classOf[ContextFrontend], name, status, loggersFactory, connectorStarter, jobFactory, defaultInactiveTimeout)
@@ -377,6 +435,6 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector
+    connectorStarter: (String, ContextConfig) => Future[WorkerConnector]
   ): Props = props(name, status, loggersFactory, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
 }

@@ -14,7 +14,9 @@ import io.hydrosphere.mist.utils.jFutureSyntax._
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 
-case class StartClusterSettings(
+import scala.concurrent.ExecutionContext.Implicits.global
+
+case class EMRRunSettings(
   name: String,
   keyPair: String,
   releaseLabel: String,
@@ -24,16 +26,28 @@ case class StartClusterSettings(
   subnetId: String
 )
 
-case class ClusterFuture(
-  id: String,
-  await: Future[Unit]
-)
+sealed trait EMRStatus
+object EMRStatus {
+
+  case object Starting extends EMRStatus
+  case object Started extends EMRStatus
+  case object Terminated extends EMRStatus
+  case object Terminating extends EMRStatus
+
+  def fromClusterState(state: ClusterState): EMRStatus = state match {
+    case ClusterState.STARTING | ClusterState.BOOTSTRAPPING => Starting
+    case ClusterState.WAITING | ClusterState.RUNNING => Started
+    case ClusterState.TERMINATED | ClusterState.TERMINATED_WITH_ERRORS => Terminated
+    case ClusterState.TERMINATING => Terminating
+    case ClusterState.UNKNOWN_TO_SDK_VERSION => throw new RuntimeException("Used amazon sdk version is incompatible with aws")
+  }
+}
 
 trait AwsEMRClient {
 
-  def start(settings: StartClusterSettings): Future[String]
+  def start(settings: EMRRunSettings): Future[String]
 
-  def status(id: String): Future[Unit]
+  def status(id: String): Future[EMRStatus]
 
   def stop(id: String): Future[Unit]
 
@@ -41,14 +55,9 @@ trait AwsEMRClient {
 
 object AwsEMRClient {
 
-  private val scheduling = Scheduling.stpBased(2)
+  class Wrapper(orig: EMRAsyncClient) extends AwsEMRClient {
 
-  class Wrapper(
-    orig: EMRAsyncClient,
-    scheduling: Scheduling
-  ) extends AwsEMRClient {
-
-    override def start(settings: StartClusterSettings): Future[String] = {
+    override def start(settings: EMRRunSettings): Future[String] = {
       import settings._
 
       val sparkApp = Application.builder().name("Spark").build()
@@ -76,31 +85,14 @@ object AwsEMRClient {
       orig.terminateJobFlows(req).toFuture.map(_ => ())
     }
 
-    override def status(id: String): Future[ClusterStatus] = {
+    override def status(id: String): Future[EMRStatus] = {
       val req = DescribeClusterRequest.builder().clusterId(id).build()
-      orig.describeCluster(req).toFuture.map(resp => resp.cluster().status())
+      for {
+        resp <- orig.describeCluster(req).toFuture
+        status = EMRStatus.fromClusterState(resp.cluster().status().state())
+      } yield status
     }
 
-    def awaitStarted(id: String, tick: FiniteDuration, atMost: FiniteDuration): Future[Unit] = {
-
-      def loop(id: String, await: FiniteDuration, tries: Int): Future[Unit] = {
-        status(id).flatMap(s => s.state() match {
-          case ClusterState.WAITING => Future.successful(())
-          case ClusterState.STARTING | ClusterState.BOOTSTRAPPING =>
-            if ( tries == 0 ) {
-              Future.failed(new RuntimeException(s"Cluster $id wasn't started for $atMost"))
-            } else {
-              scheduling.delay(await).flatMap(_ => loop(id, await, tries - 1))
-            }
-          case ClusterState.TERMINATED | ClusterState.TERMINATED_WITH_ERRORS | ClusterState.TERMINATING =>
-            Future.failed(new RuntimeException(s"Cluster $id is terminated"))
-          case ClusterState.RUNNING => Future.failed(new RuntimeException(s"Cluster ${id} in running state"))
-        })
-      }
-
-      val maxTimes = (atMost / tick).floor.toInt
-      loop(id, tick, maxTimes)
-    }
   }
 
   def create(
@@ -108,7 +100,8 @@ object AwsEMRClient {
     secretKey: String,
     region: String
   ): AwsEMRClient = {
-    val provider = StaticCredentialsProvider.create(new AwsCredentials(accessKey, secretKey))
+    val credentials = AwsCredentials.create(accessKey, secretKey)
+    val provider = StaticCredentialsProvider.create(credentials)
     val client = EMRAsyncClient.builder()
       .credentialsProvider(provider)
       .region(Region.of(region))

@@ -87,7 +87,8 @@ lazy val master = project.in(file("mist/master"))
 
       Library.dockerJava,
       "com.decodified" %% "scala-ssh" % "0.9.0",
-      "software.amazon.awssdk" % "aws-sdk-java" % "2.0.0-preview-10",
+      "software.amazon.awssdk" % "ec2" % "2.0.0-preview-10",
+      "software.amazon.awssdk" % "emr" % "2.0.0-preview-10",
 
       Library.commonsCodec, Library.scalajHttp,
       Library.jsr305 % "provided",

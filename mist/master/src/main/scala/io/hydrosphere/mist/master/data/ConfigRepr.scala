@@ -6,7 +6,15 @@ import io.hydrosphere.mist.utils.ConfigUtils._
 
 import scala.concurrent.duration._
 
-trait ConfigRepr[A <: NamedConfig] {
+
+trait LowConfigRepr[A] {
+
+  def toConfig(a: A): Config
+
+  def fromConfig(config: Config): A
+}
+
+trait ConfigRepr[A <: NamedConfig] extends LowConfigRepr[A] {
 
   def toConfig(a: A): Config
 
@@ -51,11 +59,12 @@ object ConfigRepr {
     }
   }
 
-  val ClusterConfigRepr: ConfigRepr[ClusterConfig] = new ConfigRepr[ClusterConfig] {
+  val ClusterConfigRepr: LowConfigRepr[ClusterConfig] = new LowConfigRepr[ClusterConfig] {
     override def fromConfig(config: Config): ClusterConfig = {
       config.getString("type") match {
-        case "no-cluster" => ClusterConfig.NoCluster
-        case "aws-emr" => ClusterConfig.AwsEmr(
+        case "no-cluster" => NoCluster
+        case "aws-emr" => AwsEMRConfig(
+          provisionerId = config.getString("provisioner-id"),
           releaseLabel = config.getString("release-label"),
           masterInstanceType = config.getString("master-instance-type"),
           slaveInstanceType = config.getString("slave-instance-type"),
@@ -68,17 +77,18 @@ object ConfigRepr {
     override def toConfig(cfg: ClusterConfig): Config = {
       import ConfigValueFactory._
 
-      val (t, other: Map[String, ConfigValue]) = cfg match {
-        case ClusterConfig.NoCluster => "no-cluster" -> Map.empty
-        case awsEmr :ClusterConfig.AwsEmr =>
+      val out = cfg match {
+        case NoCluster => "no-cluster" -> Map.empty[String, ConfigValue]
+        case awsEmr: AwsEMRConfig =>
           "aws-emr" -> Map(
+            "provisioner-id" -> fromAnyRef(awsEmr.provisionerId),
             "release-label" -> fromAnyRef(awsEmr.releaseLabel),
             "master-instance-type" -> fromAnyRef(awsEmr.masterInstanceType),
             "slave-instance-type" -> fromAnyRef(awsEmr.slaveInstanceType),
             "instance-count" -> fromAnyRef(awsEmr.instanceCount)
           )
       }
-      val appendType = other + ("type" -> fromAnyRef(t))
+      val appendType = out._2 + ("type" -> fromAnyRef(out._1))
       fromMap(appendType.asJava).toConfig
     }
   }
@@ -115,7 +125,7 @@ object ConfigRepr {
         clusterConfig =
           config.getOptConfig("cluster-config")
             .map(ClusterConfigRepr.fromConfig)
-            .getOrElse(ClusterConfig.NoCluster)
+            .getOrElse(NoCluster)
       )
     }
 

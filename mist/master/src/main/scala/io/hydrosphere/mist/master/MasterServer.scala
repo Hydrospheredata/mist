@@ -110,7 +110,8 @@ object MasterServer extends Logger {
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
-      ExecutionService(spawnSettings, system, streamer, store, logService)
+      val emrOnly = config.clusterProvisioners.collect({case (k, v: EMRProvisionerConfig) => k -> v})
+      ExecutionService(spawnSettings, emrOnly, system, streamer, store, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(

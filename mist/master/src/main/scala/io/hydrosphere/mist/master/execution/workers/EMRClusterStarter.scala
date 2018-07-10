@@ -1,88 +1,60 @@
 package io.hydrosphere.mist.master.execution.workers
 
-import akka.pattern.pipe
-import akka.actor.{Actor, ActorLogging, ActorRef}
 import io.hydrosphere.mist.master.{ClusterProvisionerConfig, EMRProvisionerConfig}
-import io.hydrosphere.mist.master.execution.workers.EMRClusterStarter._
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.AskConnection
-import io.hydrosphere.mist.master.execution.workers.emr.{AwsEMRClient, StartClusterSettings}
-import io.hydrosphere.mist.master.models.{AwsEMRConfig, ClusterConfig, ContextConfig}
-import io.hydrosphere.mist.utils.Scheduling
+import io.hydrosphere.mist.master.execution.workers.emr.{AwsEMRClient, EMRRunSettings, EMRStatus}
+import io.hydrosphere.mist.master.models.{AwsEMRConfig, ClusterConfig, ContextConfig, NoCluster}
+import io.hydrosphere.mist.utils.{Logger, Scheduling}
 
 import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
-class EMRClusterProvision(
-  id: String,
-  settings: StartClusterSettings,
-  emrClient: AwsEMRClient,
-  underlying: ActorRef
-) extends Actor with ActorLogging {
+import scala.concurrent.ExecutionContext.Implicits.global
 
-  import context._
-
-  def startCluster(): Future[]
-
-  private def init: Receive = {
-    def gotoAwaitStartResponse(asks: Vector[Event.AskConnection]): Unit = {
-      log.info(s"Starting emr instance for $id")
-      emrClient.start(settings).map(id => EmrStarting(id)) pipeTo self
-      context become starting(asks)
-    }
-
-    def startCluster(): Unit = gotoAwaitStartResponse(Vector.empty)
-    def startClusterWithAsk(ask: Event.AskConnection): Unit = gotoAwaitStartResponse(Vector(ask))
-
-    {
-      case Event.GetStatus => sender() ! SharedConnector.AwaitingRequest
-      case ask :Event.AskConnection => startClusterWithAsk(ask)
-      case Event.WarmUp => startCluster()
-    }
-  }
-
-  private def
-
-  private def starting(asks: Vector[AskConnection], id: String): Receive = {
-    case ask: Event.AskConnection => context become starting(asks :+ ask)
-    case EmrStarted(clusterId) =>
-      log.info(s"Emr instance has been started: $clusterId")
-      asks.foreach(a => underlying ! a)
-      context become running(clusterId)
-
-    case Event.Shutdown(force) =>
-      log.warning("Non implemented normally")
-      emrClient.stop()
-
-
-
-  }
-
-  private def running(clusterId: String): Receive = {
-
-  }
-
-  override def receive: Receive = init
-
-
+trait Provisioner {
+  def provision(name: String, ctx: ContextConfig): Future[WorkerConnector]
 }
 
-object EMRClusterStarter {
+class EMRProvisioner(
+  config: EMRProvisionerConfig,
+  client: AwsEMRClient
+) extends Logger {
 
-  sealed trait EmrState
-  case class EmrStarting(id: String) extends EmrState
-  case class EmrStarted(id: String) extends EmrState
-  case class EmrTerminated(e: Option[Throwable]) extends EmrState
+  private val scheduling = Scheduling.stpBased(2)
 
+  private def awaitStarted(id: String, tick: FiniteDuration, tries: Int): Future[Unit] = {
 
-  def mkStartSettings(
+    def processStatus(id: String, tick: FiniteDuration, tries: Int)(s: EMRStatus): Future[Unit] = s match {
+      case EMRStatus.Starting =>
+        if (tries <= 0) {
+          client.stop(id).onComplete {
+            case Success(_) => logger.info(s"Cluster $id was stopped")
+            case Failure(e) => logger.warn(s"Cluster $id stopping was failed", e)
+          }
+          Future.failed(new RuntimeException("Starting cluster timeout exceeded"))
+        } else {
+          awaitStarted(id, tick, tries -1)
+        }
+      case EMRStatus.Started => Future.successful(())
+      case EMRStatus.Terminated | EMRStatus.Terminating =>
+        Future.failed(new RuntimeException(s"Cluster $id was terminated"))
+    }
+
+    scheduling.delay(tick)
+      .flatMap(_ => client.status(id))
+      .flatMap(s => processStatus(id, tick, tries)(s))
+  }
+
+  private def mkStartSettings(
     name: String,
     provConfig: EMRProvisionerConfig,
     emrConfig: AwsEMRConfig
-  ): StartClusterSettings = {
-    import provConfig._
-    import emrConfig._
+  ): EMRRunSettings = {
 
-    StartClusterSettings(
+    import emrConfig._
+    import provConfig._
+
+    EMRRunSettings(
       name = name,
       keyPair = keyPair,
       releaseLabel = releaseLabel,
@@ -92,5 +64,58 @@ object EMRClusterStarter {
       subnetId = subnetId
     )
   }
+
+  def provision(name: String, emrSetup: AwsEMRConfig): Future[String] = {
+    val startSettings = mkStartSettings(name, config, emrSetup)
+    client.start(startSettings)
+      .flatMap(id => awaitStarted(id, 5 seconds, 60).map(_ => id))
+  }
 }
 
+object EMRProvisioner {
+
+  def apply(cfg: EMRProvisionerConfig): EMRProvisioner = {
+    val client = AwsEMRClient.create(cfg.accessKey, cfg.secretKey, cfg.region)
+    new EMRProvisioner(cfg, client)
+  }
+}
+
+
+object Provisioner {
+
+  class DefaultProvisioner(
+    emrs: Map[String, EMRProvisioner],
+    default: (String, ContextConfig) => WorkerConnector
+  ) extends Provisioner with Logger {
+
+    override def provision(name: String, ctx: ContextConfig): Future[WorkerConnector] = {
+      ctx.clusterConfig match {
+        case NoCluster => Future.successful(default(name, ctx))
+        case emrConfig: AwsEMRConfig =>
+          emrs.get(emrConfig.provisionerId) match {
+            case None => Future.failed(new IllegalArgumentException(s"Unknown provisioner: ${emrConfig.provisionerId}"))
+            case Some(prov) =>
+              prov.provision(name, emrConfig).map(id => {
+                logger.info(s"Cluster for $name ctx has been started")
+                throw new NotImplementedError("hehehe")
+              })
+          }
+      }
+    }
+  }
+
+  def create(
+    settings: Seq[(String, ClusterProvisionerConfig)],
+    default: (String, ContextConfig) => WorkerConnector
+  ): Provisioner = {
+
+    val emrs = settings.map({case (name, conf) =>
+      val prov = conf match {
+        case emrCfg: EMRProvisionerConfig => EMRProvisioner(emrCfg)
+      }
+      name -> prov
+    }).toMap
+
+    new DefaultProvisioner(emrs, default)
+  }
+}

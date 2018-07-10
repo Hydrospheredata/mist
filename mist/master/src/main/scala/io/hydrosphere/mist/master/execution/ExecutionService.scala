@@ -8,11 +8,11 @@ import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.InitializedEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.WorkerHub
+import io.hydrosphere.mist.master.execution.workers.{Provisioner, WorkerHub}
 import io.hydrosphere.mist.master.logging.LogService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
-import io.hydrosphere.mist.master.{EventsStreamer, JobDetails, JobDetailsRequest, JobDetailsResponse}
+import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.utils.akka.ActorF
 
 import scala.concurrent.Future
@@ -126,6 +126,7 @@ object ExecutionService {
 
   def apply(
     spawn: SpawnSettings,
+    emrProv: Map[String, EMRProvisionerConfig],
     system: ActorSystem,
     streamer: EventsStreamer,
     repo: JobRepository,
@@ -133,9 +134,10 @@ object ExecutionService {
   ): ExecutionService = {
     val hub = WorkerHub(spawn, system)
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
+    val provisiner = Provisioner.create(emrProv.toSeq, hub.start)
 
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
+      val props = ContextFrontend.props(ctx.name, reporter, logService, provisiner.provision)
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref

@@ -33,6 +33,7 @@ trait NamedConfig {
 sealed trait ClusterConfig
 case object NoCluster extends ClusterConfig
 case class AwsEMRConfig(
+  provisionerId: String,
   releaseLabel: String,
   masterInstanceType: String,
   slaveInstanceType: String,

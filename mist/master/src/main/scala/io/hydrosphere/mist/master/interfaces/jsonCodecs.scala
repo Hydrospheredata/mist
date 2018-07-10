@@ -228,9 +228,30 @@ trait JsonCodecs extends SprayJsonSupport
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
 
-  implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
+  implicit val clusterConfigF = new JsonFormat[ClusterConfig] {
+    val awsEmrF = jsonFormat5(AwsEMRConfig.apply)
+    override def write(obj: ClusterConfig): JsValue = {
+      obj match {
+        case NoCluster => JsObject("type" -> JsString("no-cluster"))
+        case x: AwsEMRConfig =>
+          val fields = awsEmrF.write(x).asJsObject.fields + ("type" -> JsString("aws-emr"))
+          JsObject(fields)
+      }
+    }
+    override def read(json: JsValue): ClusterConfig = {
+      val t = json.asJsObject.fields.getOrElse("type", JsNull)
+      t match {
+        case JsNull => NoCluster
+        case JsString("no-clister") => NoCluster
+        case JsString("aws-emr") => awsEmrF.read(json)
+        case x => throw new IllegalArgumentException(s"Unknown cluster config type $x")
+      }
+    }
+  }
+  
+  implicit val contextConfigF = jsonFormat10(ContextConfig.apply)
 
-  implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
+  implicit val contextCreateRequestF = jsonFormat10(ContextCreateRequest.apply)
   implicit val jobDetailsResponseF = jsonFormat2(JobDetailsResponse.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {

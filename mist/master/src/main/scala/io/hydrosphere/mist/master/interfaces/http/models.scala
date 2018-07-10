@@ -4,7 +4,7 @@ import java.lang.management._
 import java.time.LocalDateTime
 
 import io.hydrosphere.mist.core.FunctionInfoData
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.models.{ClusterConfig, ContextConfig, RunMode}
 import mist.api._
 
 import scala.concurrent.duration.Duration
@@ -122,7 +122,8 @@ case class ContextCreateRequest(
   workerMode: Option[RunMode] = None,
   runOptions: Option[String] = None,
   streamingDuration: Option[Duration] = None,
-  maxConnFailures: Option[Int] = None
+  maxConnFailures: Option[Int] = None,
+  clusterConfig: Option[ClusterConfig]
 ) {
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =
@@ -135,7 +136,8 @@ case class ContextCreateRequest(
       runOptions.getOrElse(other.runOptions),
       workerMode.getOrElse(other.workerMode),
       streamingDuration.getOrElse(other.streamingDuration),
-      maxConnFailures.getOrElse(other.maxConnFailures)
+      maxConnFailures.getOrElse(other.maxConnFailures),
+      clusterConfig.getOrElse(other.clusterConfig)
     )
 }
 
