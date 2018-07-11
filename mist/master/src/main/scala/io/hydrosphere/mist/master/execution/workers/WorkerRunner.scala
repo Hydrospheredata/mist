@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import akka.actor.{ActorRef, ActorRefFactory}
 import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.execution.SpawnSettings
-import io.hydrosphere.mist.master.execution.workers.starter.WorkerProcess
+import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -18,6 +18,7 @@ object WorkerRunner {
 
   class DefaultRunner(
     spawn: SpawnSettings,
+    starter: WorkerStarter,
     regHub: ActorRegHub,
     connect: (String, WorkerInitInfo, FiniteDuration, ActorRef, StopAction) => Future[WorkerConnection]
   ) extends WorkerRunner {
@@ -30,7 +31,7 @@ object WorkerRunner {
       def continueSetup(ps: WorkerProcess.StartedProcess): Future[WorkerConnection] ={
         val regFuture = for {
           ref <- regHub.waitRef(id, timeout)
-          connection <- connect(id, initInfo, readyTimeout, ref, runnerCmd.stopAction)
+          connection <- connect(id, initInfo, readyTimeout, ref, starter.stopAction)
         } yield connection
 
         val promise = Promise[WorkerConnection]
@@ -40,7 +41,7 @@ object WorkerRunner {
           case WorkerProcess.NonLocal =>
         }
 
-        runnerCmd.stopAction match {
+        starter.stopAction match {
           case StopAction.CustomFn(f) => regFuture.onFailure({case _ => f(id)})
           case StopAction.Remote =>
         }
@@ -50,7 +51,7 @@ object WorkerRunner {
       }
 
 
-      runnerCmd.onStart(id, initInfo) match {
+      starter.onStart(id, initInfo) match {
         case ps: WorkerProcess.StartedProcess => continueSetup(ps)
         case WorkerProcess.Failed(e) => Future.failed(new RuntimeException("Starting worker failed", e))
       }
@@ -58,11 +59,11 @@ object WorkerRunner {
 
   }
 
-  def default(spawn: SpawnSettings, regHub: ActorRegHub, af: ActorRefFactory): WorkerRunner = {
+  def default(spawn: SpawnSettings, starter: WorkerStarter, regHub: ActorRegHub, af: ActorRefFactory): WorkerRunner = {
     val connect = (id: String, info: WorkerInitInfo, ready: FiniteDuration, remote: ActorRef, stopAction: StopAction) => {
       WorkerBridge.connect(id, info, ready, remote, stopAction)(af)
     }
-    new DefaultRunner(spawn, regHub, connect)
+    new DefaultRunner(spawn, starter, regHub, connect)
   }
 
 }

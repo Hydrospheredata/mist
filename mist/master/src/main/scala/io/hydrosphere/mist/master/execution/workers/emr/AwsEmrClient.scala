@@ -1,20 +1,13 @@
 package io.hydrosphere.mist.master.execution.workers.emr
 
-import java.util.function.BiConsumer
-
-import io.hydrosphere.mist.utils.Scheduling
+import io.hydrosphere.mist.utils.jFutureSyntax._
 import software.amazon.awssdk.auth.credentials.{AwsCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.emr.EMRAsyncClient
-import software.amazon.awssdk.services.emr.model.{Application, ClusterState, ClusterStatus, DescribeClusterRequest, DescribeStepRequest, JobFlowInstancesConfig, RunJobFlowRequest, RunJobFlowResponse, TerminateJobFlowsRequest}
-
-import scala.concurrent.{Future, Promise}
-import io.hydrosphere.mist.utils.jFutureSyntax._
-
-import scala.annotation.tailrec
-import scala.concurrent.duration.FiniteDuration
+import software.amazon.awssdk.services.emr.model.{Application, Cluster, ClusterState, DescribeClusterRequest, JobFlowInstancesConfig, RunJobFlowRequest, TerminateJobFlowsRequest}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 case class EMRRunSettings(
   name: String,
@@ -30,13 +23,13 @@ sealed trait EMRStatus
 object EMRStatus {
 
   case object Starting extends EMRStatus
-  case object Started extends EMRStatus
+  case class Started(masterDnsName: String) extends EMRStatus
   case object Terminated extends EMRStatus
   case object Terminating extends EMRStatus
 
-  def fromClusterState(state: ClusterState): EMRStatus = state match {
+  def fromCluster(cluster: Cluster): EMRStatus =  cluster.status().state() match {
     case ClusterState.STARTING | ClusterState.BOOTSTRAPPING => Starting
-    case ClusterState.WAITING | ClusterState.RUNNING => Started
+    case ClusterState.WAITING | ClusterState.RUNNING => Started(cluster.masterPublicDnsName())
     case ClusterState.TERMINATED | ClusterState.TERMINATED_WITH_ERRORS => Terminated
     case ClusterState.TERMINATING => Terminating
     case ClusterState.UNKNOWN_TO_SDK_VERSION => throw new RuntimeException("Used amazon sdk version is incompatible with aws")
@@ -89,7 +82,7 @@ object AwsEMRClient {
       val req = DescribeClusterRequest.builder().clusterId(id).build()
       for {
         resp <- orig.describeCluster(req).toFuture
-        status = EMRStatus.fromClusterState(resp.cluster().status().state())
+        status = EMRStatus.fromCluster(resp.cluster())
       } yield status
     }
 

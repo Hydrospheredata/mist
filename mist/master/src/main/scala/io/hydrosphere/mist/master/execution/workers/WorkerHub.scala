@@ -13,26 +13,32 @@ import scala.util.{Failure, Success}
   * Mix connections mirror and connector starter
   */
 class WorkerHub(
-  runner: WorkerRunner,
-  mkConnector: (String, ContextConfig, WorkerRunner) => WorkerConnector
+//  runner: WorkerRunner
+//  mkConnector: (String, ContextConfig, WorkerRunner) => WorkerConnector
 ) extends ConnectionsMirror  {
 
-  private val wrappedRunner = new WorkerRunner {
-    override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
-      val pr = Promise[WorkerConnection]
-      runner(id, ctx).onComplete {
-        case Success(conn) =>
-          add(conn)
-          conn.whenTerminated.onComplete({_ => remove(conn.id)})
-          pr.success(conn)
-        case Failure(e) => pr.failure(e)
-      }
-      pr.future
-    }
+//  private val wrappedRunner = new WorkerRunner {
+//    override def apply(id: String, ctx: ContextConfig): Future[WorkerConnection] = {
+//      val pr = Promise[WorkerConnection]
+//      runner(id, ctx).onComplete {
+//        case Success(conn) =>
+//          add(conn)
+//          conn.whenTerminated.onComplete({_ => remove(conn.id)})
+//          pr.success(conn)
+//        case Failure(e) => pr.failure(e)
+//      }
+//      pr.future
+//    }
+//
+//  }
 
+//  def start(id: String, ctx: ContextConfig): WorkerConnector = mkConnector(id, ctx, wrappedRunner)
+
+  //TODO!
+  def register(conn: WorkerConnection): Unit = {
+    add(conn)
+    conn.whenTerminated.onComplete({_ => remove(conn.id)})
   }
-
-  def start(id: String, ctx: ContextConfig): WorkerConnector = mkConnector(id, ctx, wrappedRunner)
 
   // stopping connection return failed future
   // because it stops worker forcibly
@@ -52,13 +58,15 @@ class WorkerHub(
 
 object WorkerHub {
 
+  //TODO
   def apply(spawn: SpawnSettings, system: ActorSystem): WorkerHub = {
-    val regHub = ActorRegHub("regHub", system)
-    val runner =  WorkerRunner.default(spawn, regHub, system)
-    val mkConnector = (id: String, ctx: ContextConfig, runner: WorkerRunner) => {
-      WorkerConnector.actorBased(id,ctx, runner, system)
-    }
-    new WorkerHub(runner, mkConnector)
+//    val regHub = ActorRegHub("regHub", system)
+//    val runner =  WorkerRunner.default(spawn, regHub, system)
+
+//    val mkConnector = (id: String, ctx: ContextConfig, runner: WorkerRunner) => {
+//      WorkerConnector.actorBased(id,ctx, runner, system)
+//    }
+    new WorkerHub()
   }
 }
 

@@ -248,7 +248,7 @@ trait JsonCodecs extends SprayJsonSupport
       }
     }
   }
-  
+
   implicit val contextConfigF = jsonFormat10(ContextConfig.apply)
 
   implicit val contextCreateRequestF = jsonFormat10(ContextCreateRequest.apply)

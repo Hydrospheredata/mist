@@ -253,6 +253,7 @@ object SecurityConfig {
 sealed trait ClusterProvisionerConfig
 final case class EMRProvisionerConfig(
   keyPair: String,
+  localKeyPath: String,
   accessKey: String,
   secretKey: String,
   subnetId: String,
@@ -266,6 +267,7 @@ object EMRProvisionerConfig {
     EMRProvisionerConfig(
       keyPair = c.getString("key-pair"),
       accessKey = c.getString("access-key"),
+      localKeyPath = c.getString("local-key-path"),
       secretKey = c.getString("secret-key"),
       subnetId = c.getString("subnet-id"),
       region = c.getString("region"),
@@ -283,6 +285,7 @@ object ClusterProvisionerConfig {
       val name = entry.getKey
       val cfg = c.getConfig(name)
       val parsed = cfg.getString("type") match {
+          //TODO - > aws-emr
         case "emr" => EMRProvisionerConfig.apply(cfg)
         case x => throw new IllegalArgumentException(s"Unknown provisioner type: $x")
       }

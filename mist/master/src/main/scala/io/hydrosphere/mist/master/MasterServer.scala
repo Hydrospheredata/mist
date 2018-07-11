@@ -14,7 +14,8 @@ import io.hydrosphere.mist.core.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
-import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
+import io.hydrosphere.mist.master.execution.workers.StopAction
+import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
@@ -100,9 +101,12 @@ object MasterServer extends Logger {
 
     def runExecutionService(logService: LogService): ExecutionService = {
       val logsDir = Paths.get(config.logs.dumpDirectory)
-      val workerRunner = WorkerStarter.create(config.workers, logsDir)
+
+      val emrOnly = config.clusterProvisioners.collect({case (k, v: EMRProvisionerConfig) => k -> v})
+      val workerStarter = WorkerStarter.create(config.workers, logsDir)
+
       val spawnSettings = SpawnSettings(
-        runnerCmd = workerRunner,
+        runnerCmd = workerStarter,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
         akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
@@ -110,7 +114,6 @@ object MasterServer extends Logger {
         httpAddress = s"${config.http.host}:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
-      val emrOnly = config.clusterProvisioners.collect({case (k, v: EMRProvisionerConfig) => k -> v})
       ExecutionService(spawnSettings, emrOnly, system, streamer, store, logService)
     }
 

@@ -13,7 +13,7 @@ import io.hydrosphere.mist.master.logging.LogService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master._
-import io.hydrosphere.mist.utils.akka.ActorF
+import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
 
 import scala.concurrent.Future
 
@@ -132,9 +132,11 @@ object ExecutionService {
     repo: JobRepository,
     logService: LogService
   ): ExecutionService = {
+
     val hub = WorkerHub(spawn, system)
+    val regHub = ActorRegHub("regHub", system)
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
-    val provisiner = Provisioner.create(emrProv.toSeq, hub.start)
+    val provisiner = Provisioner.create(emrProv.toSeq, spawn, regHub, hub, system)
 
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
       val props = ContextFrontend.props(ctx.name, reporter, logService, provisiner.provision)

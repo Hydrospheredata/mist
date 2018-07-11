@@ -298,8 +298,8 @@ class ContextFrontend(
       nextBecome(connId, state, c)
 
     case akka.actor.Status.Failure(e) =>
-      log.info(s"Connector $connId starting has benn failed")
-      val err = new RuntimeException("Provision failed")
+      log.error(e, s"Connector $connId starting has benn failed")
+      val err = new RuntimeException("Provision failed", e)
       state.queued.foreach({case (_, ref) => ref ! JobActor.Event.ContextBroken(err)})
       val todoConnector = new WorkerConnector {
         override def whenTerminated(): Future[Unit] = ???

@@ -106,6 +106,8 @@ object DockerStarter {
     }
 
     new DockerStarter(
+      //TODO - `create` fails if it can't spark distributive on local filesystem - this doesn't work
+      //TODO - for Docker/SSH runners
       new SparkSubmitBuilder(mistHome, sparkHome),
       client,
       network,
