@@ -3,6 +3,8 @@ package io.hydrosphere.mist.master.execution.workers.emr
 import io.hydrosphere.mist.utils.jFutureSyntax._
 import software.amazon.awssdk.auth.credentials.{AwsCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.ec2.EC2AsyncClient
+import software.amazon.awssdk.services.ec2.model.AuthorizeSecurityGroupIngressRequest
 import software.amazon.awssdk.services.emr.EMRAsyncClient
 import software.amazon.awssdk.services.emr.model.{Application, Cluster, ClusterState, DescribeClusterRequest, JobFlowInstancesConfig, RunJobFlowRequest, TerminateJobFlowsRequest}
 
@@ -23,13 +25,14 @@ sealed trait EMRStatus
 object EMRStatus {
 
   case object Starting extends EMRStatus
-  case class Started(masterDnsName: String) extends EMRStatus
+  case class Started(masterDnsName: String, secGroup: String) extends EMRStatus
   case object Terminated extends EMRStatus
   case object Terminating extends EMRStatus
 
   def fromCluster(cluster: Cluster): EMRStatus =  cluster.status().state() match {
     case ClusterState.STARTING | ClusterState.BOOTSTRAPPING => Starting
-    case ClusterState.WAITING | ClusterState.RUNNING => Started(cluster.masterPublicDnsName())
+    case ClusterState.WAITING | ClusterState.RUNNING =>
+      Started(cluster.masterPublicDnsName(), cluster.ec2InstanceAttributes().emrManagedMasterSecurityGroup())
     case ClusterState.TERMINATED | ClusterState.TERMINATED_WITH_ERRORS => Terminated
     case ClusterState.TERMINATING => Terminating
     case ClusterState.UNKNOWN_TO_SDK_VERSION => throw new RuntimeException("Used amazon sdk version is incompatible with aws")
@@ -44,11 +47,15 @@ trait AwsEMRClient {
 
   def stop(id: String): Future[Unit]
 
+  def allowIngress(cidr: String, secGroup: String): Future[Unit]
 }
 
 object AwsEMRClient {
 
-  class Wrapper(orig: EMRAsyncClient) extends AwsEMRClient {
+  class Wrapper(
+    origEc2: EC2AsyncClient,
+    origEmr: EMRAsyncClient
+  ) extends AwsEMRClient {
 
     override def start(settings: EMRRunSettings): Future[String] = {
       import settings._
@@ -70,20 +77,32 @@ object AwsEMRClient {
           .build()
         ).build()
 
-      orig.runJobFlow(request).toFuture.map(_.jobFlowId())
+      origEmr.runJobFlow(request).toFuture.map(_.jobFlowId())
     }
 
     override def stop(id: String): Future[Unit] = {
       val req = TerminateJobFlowsRequest.builder().jobFlowIds(id).build()
-      orig.terminateJobFlows(req).toFuture.map(_ => ())
+      origEmr.terminateJobFlows(req).toFuture.map(_ => ())
     }
 
     override def status(id: String): Future[EMRStatus] = {
       val req = DescribeClusterRequest.builder().clusterId(id).build()
       for {
-        resp <- orig.describeCluster(req).toFuture
+        resp <- origEmr.describeCluster(req).toFuture
         status = EMRStatus.fromCluster(resp.cluster())
       } yield status
+    }
+
+    override def allowIngress(cidr: String, secGroup: String): Future[Unit] = {
+      val auth = AuthorizeSecurityGroupIngressRequest.builder()
+        .fromPort(0)
+        .toPort(65535)
+        .groupId(secGroup)
+        .cidrIp(cidr)
+        .ipProtocol("TCP")
+        .build()
+
+      origEc2.authorizeSecurityGroupIngress(auth).toFuture.map(_ => ())
     }
 
   }
@@ -95,12 +114,18 @@ object AwsEMRClient {
   ): AwsEMRClient = {
     val credentials = AwsCredentials.create(accessKey, secretKey)
     val provider = StaticCredentialsProvider.create(credentials)
-    val client = EMRAsyncClient.builder()
+    val reg = Region.of(region)
+    val emrClient = EMRAsyncClient.builder()
       .credentialsProvider(provider)
-      .region(Region.of(region))
+      .region(reg)
       .build()
 
-    new Wrapper(client)
+    val ec2Client = EC2AsyncClient.builder()
+      .credentialsProvider(provider)
+      .region(reg)
+      .build()
+
+    new Wrapper(ec2Client, emrClient)
   }
 }
 

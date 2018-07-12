@@ -22,7 +22,8 @@ trait Provisioner {
 }
 
 case class EMRClusterInfo(
-  publicDns: String
+  publicDns: String,
+  secGroup: String
 )
 
 class EMRProvisioner(
@@ -46,7 +47,7 @@ class EMRProvisioner(
           logger.info(s"Waiting cluster $id, tires left $tries")
           awaitStarted(id, tick, tries -1)
         }
-      case EMRStatus.Started(addr) => Future.successful(EMRClusterInfo(addr))
+      case EMRStatus.Started(addr, secGroup) => Future.successful(EMRClusterInfo(addr, secGroup))
       case EMRStatus.Terminated | EMRStatus.Terminating =>
         Future.failed(new RuntimeException(s"Cluster $id was terminated"))
     }
@@ -54,6 +55,7 @@ class EMRProvisioner(
     scheduling.delay(tick)
       .flatMap(_ => client.status(id))
       .flatMap(s => processStatus(id, tick, tries)(s))
+      .flatMap(i => client.allowIngress(config.privateIp + "/32", i.secGroup).map(_ => i))
   }
 
   private def mkStartSettings(

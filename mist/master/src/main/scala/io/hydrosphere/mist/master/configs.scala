@@ -252,6 +252,7 @@ object SecurityConfig {
 
 sealed trait ClusterProvisionerConfig
 final case class EMRProvisionerConfig(
+  privateIp: String,
   keyPair: String,
   localKeyPath: String,
   accessKey: String,
@@ -265,6 +266,7 @@ object EMRProvisionerConfig {
 
   def apply(c: Config): EMRProvisionerConfig = {
     EMRProvisionerConfig(
+      privateIp = c.getString("private-ip"),
       keyPair = c.getString("key-pair"),
       accessKey = c.getString("access-key"),
       localKeyPath = c.getString("local-key-path"),
