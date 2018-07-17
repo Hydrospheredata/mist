@@ -22,12 +22,12 @@ class SSHRunner(
     port = 22,
     hostKeyVerifier = HostKeyVerifiers.DontVerify
   )
-  val sparkSubmit = new SparkSubmit.HttpJarUrl("/usr/lib/spark")
+  val sparkSubmit = new SparkSubmit.HttpJarUrl("/usr/lib/spark/bin/spark-submit")
 
   override def onStart(name: String, initInfo: CommonData.WorkerInitInfo): WorkerProcess = {
     val f = Future({
       val r = SSH(host, cfgProvider) { client =>
-        client.exec(Command(sparkSubmit.command(name, initInfo).mkString(" ") + " &"))
+        client.exec(Command(sparkSubmit.command(name, initInfo).mkString(" ")))
       }
       r.get
     })(ctx)

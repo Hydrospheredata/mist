@@ -18,7 +18,10 @@ case class EMRRunSettings(
   masterInstanceType: String,
   slaveInstanceType: String,
   instanceCount: Int,
-  subnetId: String
+  subnetId: String,
+  additionalGroup: String,
+  emrRole: String,
+  emrEc2Role: String
 )
 
 sealed trait EMRStatus
@@ -65,8 +68,8 @@ object AwsEMRClient {
         .name(s"mist-$name")
         .releaseLabel(releaseLabel)
         .applications(sparkApp)
-        .jobFlowRole("EMR_EC2_DefaultRole")
-        .serviceRole("EMR_DefaultRole")
+        .jobFlowRole(emrEc2Role)
+        .serviceRole(emrRole)
         .instances(JobFlowInstancesConfig.builder()
           .keepJobFlowAliveWhenNoSteps(true)
           .ec2KeyName(keyPair)
@@ -74,6 +77,8 @@ object AwsEMRClient {
           .masterInstanceType(masterInstanceType)
           .slaveInstanceType(slaveInstanceType)
           .ec2SubnetId(subnetId)
+          .additionalMasterSecurityGroups(additionalGroup)
+          .additionalSlaveSecurityGroups(additionalGroup)
           .build()
         ).build()
 

@@ -252,13 +252,16 @@ object SecurityConfig {
 
 sealed trait ClusterProvisionerConfig
 final case class EMRProvisionerConfig(
-  privateIp: String,
   keyPair: String,
   localKeyPath: String,
   accessKey: String,
   secretKey: String,
   subnetId: String,
   region: String,
+  //addutuinal sec group
+  additionalGroup: String,
+  emrRole: String,
+  emrEc2Role: String,
   initTimeout: Duration
 ) extends ClusterProvisionerConfig
 
@@ -266,13 +269,15 @@ object EMRProvisionerConfig {
 
   def apply(c: Config): EMRProvisionerConfig = {
     EMRProvisionerConfig(
-      privateIp = c.getString("private-ip"),
       keyPair = c.getString("key-pair"),
       accessKey = c.getString("access-key"),
       localKeyPath = c.getString("local-key-path"),
       secretKey = c.getString("secret-key"),
       subnetId = c.getString("subnet-id"),
       region = c.getString("region"),
+      additionalGroup = c.getString("additional-group"),
+      emrRole = c.getString("emr-role"),
+      emrEc2Role = c.getString("emr-ec2-role"),
       initTimeout = c.getOptDuration("init-timeout").getOrElse(Duration.Inf)
     )
   }

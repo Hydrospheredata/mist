@@ -55,7 +55,6 @@ class EMRProvisioner(
     scheduling.delay(tick)
       .flatMap(_ => client.status(id))
       .flatMap(s => processStatus(id, tick, tries)(s))
-      .flatMap(i => client.allowIngress(config.privateIp + "/32", i.secGroup).map(_ => i))
   }
 
   private def mkStartSettings(
@@ -74,7 +73,10 @@ class EMRProvisioner(
       masterInstanceType = masterInstanceType,
       slaveInstanceType = slaveInstanceType,
       instanceCount = instanceCount,
-      subnetId = subnetId
+      subnetId = subnetId,
+      additionalGroup = additionalGroup,
+      emrRole = emrRole,
+      emrEc2Role = emrEc2Role
     )
   }
 

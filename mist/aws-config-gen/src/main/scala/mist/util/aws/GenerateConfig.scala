@@ -33,7 +33,6 @@ class AwsClient(
   }
 
   def checkSecGroup(secGroupName: String): Future[Option[SecurityGroup]] = {
-    println("chec sec group")
     val req = DescribeSecurityGroupsRequest.builder().groupNames(secGroupName).build()
     ec2Client.describeSecurityGroups(req).toFuture
       .map(_.securityGroups().asScala.headOption)
@@ -72,6 +71,19 @@ class AwsClient(
     ec2Client.authorizeSecurityGroupIngress(req).toFuture.map(_ => ())
   }
 
+  def authorizeSecGroupEgress(groupId: String, cidr: String): Future[Unit] = {
+    println("utohirize")
+    val req = AuthorizeSecurityGroupEgressRequest.builder()
+      .fromPort(0)
+      .toPort(65535)
+      .groupId(groupId)
+      .cidrIp(cidr)
+      .ipProtocol("TCP")
+      .build()
+
+    ec2Client.authorizeSecurityGroupEgress(req).toFuture.map(_ => ())
+  }
+
   def createGroupFully(
     secGroupName: String,
     description: String,
@@ -105,6 +117,7 @@ class AwsClient(
     name: String,
     trustPolicyJson: String,
     permissionsPolicyJson: String,
+    permisstionsArn: String,
     description: String
   ): Future[Role] = {
     println("create role")
@@ -114,21 +127,27 @@ class AwsClient(
       .description(description)
       .build()
 
-    val putPerms = PutRolePolicyRequest.builder().roleName(name)
-      .policyDocument(permissionsPolicyJson)
-      .policyName(name + "_policy")
+//    val putPerms = PutRolePolicyRequest.builder().roleName(name)
+//      .policyDocument(permissionsPolicyJson)
+//      .policyName(name + "_policy")
+//      .build()
+
+
+    val attachReq = AttachRolePolicyRequest.builder()
+      .policyArn(permisstionsArn)
+      .roleName(name)
       .build()
 
     for {
       createResp <- iamClient.createRole(createRole).toFuture
       role = createResp.role()
-      _ <- iamClient.putRolePolicy(putPerms).toFuture
+   //   _ <- iamClient.putRolePolicy(putPerms).toFuture
+      _ <- iamClient.attachRolePolicy(attachReq).toFuture
     } yield role
   }
 
   def checkRole(name: String): Future[Option[Role]] = {
     println("check role")
-
     val req = GetRoleRequest.builder().roleName(name).build()
     iamClient.getRole(req).toFuture
       .map(resp => Option(resp.role()))
@@ -141,13 +160,14 @@ class AwsClient(
     name: String,
     trustPolicyJson: String,
     permPolicyJson: String,
+    permPolicyArn: String,
     description: String): Future[Role] = {
     println("get or create role")
     for {
       maybe <- checkRole(name)
       out <- maybe match {
         case Some(role) => Future.successful(role)
-        case None => createRole(name, trustPolicyJson, permPolicyJson, description)
+        case None => createRole(name, trustPolicyJson, permPolicyJson, permPolicyArn, description)
       }
     } yield out
   }
@@ -193,7 +213,7 @@ class MistAwsSetup(client: AwsClient, reportF: String => Unit ) {
 
   val emrPermsPolicy =
     """
-      |
+      |{
       |    "Version": "2012-10-17",
       |    "Statement": [
       |        {
@@ -281,7 +301,7 @@ class MistAwsSetup(client: AwsClient, reportF: String => Unit ) {
 
   val emrec2TrustPolicy =
     """
-      | {
+      |{
       |  "Version": "2008-10-17",
       |  "Statement": [
       |    {
@@ -371,8 +391,8 @@ class MistAwsSetup(client: AwsClient, reportF: String => Unit ) {
     for {
       inst <- reported(getInstance(instanceId))(s"Getting instance $instanceId")
       _ = println(inst)
-      _ <- reported(getOrCreateRole(emrSlaveRoleName, emrTrustPolicy.trim.replace("\n", ""), emrPermsPolicy.trim.replace("\n", ""), emrSlaveRoleDescription))(s"Check or create $emrSlaveRoleName role")
-      _ <- reported(getOrCreateRole(emrMasterRoleName, emrec2TrustPolicy.trim.replace("\n", ""), emrec2PermsPolicy.trim.replace("\n", ""), emrMasterRoleDescription))(s"Check or create $emrMasterRoleName role")
+      _ <- reported(getOrCreateRole(emrSlaveRoleName, emrTrustPolicy.trim.replace("\n", ""), emrPermsPolicy.trim.replace("\n", ""), emrSlavePolicyArn, emrSlaveRoleDescription))(s"Check or create $emrSlaveRoleName role")
+      _ <- reported(getOrCreateRole(emrMasterRoleName, emrec2TrustPolicy.trim.replace("\n", ""), emrec2PermsPolicy.trim.replace("\n", ""), emrMasterPolicyArn, emrMasterRoleDescription))(s"Check or create $emrMasterRoleName role")
       secGroupId <- {
         val cidr = inst.privateIpAddress() + "/32"
         reported(getOrCreateSecGroup(secGroupName, secGroupDescription, cidr, inst.vpcId()))(s"Check or create security group $secGroupName for cird: $cidr")

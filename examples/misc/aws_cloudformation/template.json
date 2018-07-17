@@ -1,0 +1,52 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Hydrosphere mist - dynamic emr",
+
+  "Parameters" : {
+    "EcsClusterName": {
+      "Type": "String",
+      "Description": "Specifies the ECS Cluster Name with which the resources would be associated.",
+      "MinLength": 1
+    },
+    "EcsInstanceType": {
+      "Type": "String",
+      "Description": "ECS instance type",
+      "Default": "t2.small",
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "PrivateAccessKey": {
+      "Type": "String",
+      "Description": "ECS instance type"
+    },
+    "AccessKey": {
+      "Type": "String",
+      "Description": "Access key",
+      "MinLength": 1
+    },
+    "SecretKey": {
+      "Type": "String",
+      "Description": "Secret key",
+      "MinLength": 1
+    },
+  },
+
+  "Mappings" : {
+    set of mappings
+  },
+
+  "Conditions" : {
+    set of conditions
+  },
+
+  "Transform" : {
+    set of transforms
+  },
+
+  "Resources" : {
+    set of resources
+  },
+
+  "Outputs" : {
+    set of outputs
+  }
+}
