@@ -321,6 +321,19 @@ class HttpApiV2Spec extends FunSpec
       }
 
     }
+    it("should cancel job") {
+      val execution = mock[ExecutionService]
+      val master = mock[MainService]
+      when(master.execution).thenReturn(execution)
+      when(execution.stopJob(any[String])).thenSuccess(Some(jobDetails))
+
+      val route = HttpV2Routes.jobsRoutes(master)
+      Delete(s"/v2/api/jobs/id") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        val rsp = responseAs[Option[JobDetails]]
+        rsp.isDefined shouldBe true
+      }
+    }
 
   }
 

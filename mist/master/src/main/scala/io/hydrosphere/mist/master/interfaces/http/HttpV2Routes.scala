@@ -354,7 +354,7 @@ object HttpV2Routes extends Logger {
           completeOpt(master.execution.jobStatusById(jobId))
         }
       } ~
-      path( root / "jobs" / Segment ) { jobId =>
+      path( Segment ) { jobId =>
         delete { completeOpt {
           master.execution.stopJob(jobId)
         }}
