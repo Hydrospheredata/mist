@@ -29,6 +29,7 @@ trait defaultEncoders {
   implicit val stringEnc: JsEncoder[String] = JsEncoder(s => JsString(s))
 
   implicit def seqEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Seq[A]] = JsEncoder(seq => JsList(seq.map(v => enc(v))))
+  implicit def listEnc[A](implicit enc: JsEncoder[A]): JsEncoder[List[A]] = JsEncoder(list => JsList(list.map(v => enc(v))))
   implicit def arrEnc[A](implicit enc: JsEncoder[Seq[A]]): JsEncoder[Array[A]] = JsEncoder(arr => enc(arr.toSeq))
   implicit def optEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Option[A]] = JsEncoder {
     case Some(a) => enc(a)
