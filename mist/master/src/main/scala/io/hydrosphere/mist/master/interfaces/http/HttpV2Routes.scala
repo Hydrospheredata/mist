@@ -236,7 +236,15 @@ object HttpV2Routes extends Logger {
         master.functionInfoService
           .getFunctionInfo(functionId)
           .map(_.map(HttpFunctionInfoV2.convert))
-      }}
+      }} ~
+      delete {
+        completeOpt {
+          for {
+            fullInfo <- master.functionInfoService.delete(functionId)
+            functionInfo = fullInfo.map(HttpFunctionInfoV2.convert)
+          } yield functionInfo
+        }
+      }
     } ~
     path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
@@ -278,6 +286,16 @@ object HttpV2Routes extends Logger {
       get {
         artifactRepo.get(filename) match {
           case Some(file) => getFromFile(file)
+          case None => complete {
+            HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
+          }
+        }
+      }
+    } ~
+    path(root / "artifacts" / Segment) { filename =>
+      delete {
+        artifactRepo.delete(filename) match {
+          case Some(_) => complete(HttpResponse(StatusCodes.OK, entity = filename))
           case None => complete {
             HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
           }
@@ -381,6 +399,9 @@ object HttpV2Routes extends Logger {
     } ~
     path ( root / "contexts" / Segment ) { id =>
       get { completeOpt(ctxCrud.get(id)) }
+    } ~
+    path (root / "context" / Segment) { id =>
+      delete { completeOpt(ctxCrud.delete(id)) }
     } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextCreateRequest]) { req =>

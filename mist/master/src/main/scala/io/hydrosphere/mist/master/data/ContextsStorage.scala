@@ -29,6 +29,10 @@ class ContextsStorage(
     })
   }
 
+  def delete(name: String): Future[Option[ContextConfig]] = {
+    Future { fsStorage.delete(name) }
+  }
+
   def getOrDefault(name: String): Future[ContextConfig] =
     get(name).map(_.getOrElse(defaultSettings.default.copy(name = name)))
 

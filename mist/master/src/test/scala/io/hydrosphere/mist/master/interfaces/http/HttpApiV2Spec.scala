@@ -158,6 +158,26 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
+    it("should delete function") {
+      val functions = mock[FunctionInfoService]
+
+      val mainService = new MainService(
+        mock[ExecutionService],
+        functions,
+        mock[ContextsStorage],
+        mock[LogStoragePaths],
+        functionInfoService
+      )
+      when(functions.delete(any[String]))
+        .thenSuccess(None)
+
+      val route = HttpV2Routes.functionRoutes(master)
+
+      Delete(s"/v2/api/functions/x") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+      }
+    }
+
   }
 
   describe("function creation") {

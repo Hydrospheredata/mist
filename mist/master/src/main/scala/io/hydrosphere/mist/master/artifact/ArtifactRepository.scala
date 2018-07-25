@@ -16,6 +16,8 @@ trait ArtifactRepository {
   def get(filename: String): Option[File]
 
   def store(src: File, fileName: String): Future[File]
+
+  def delete(filename: String): Option[String]
 }
 
 class FsArtifactRepository(
@@ -40,6 +42,12 @@ class FsArtifactRepository(
     }
   }
 
+  override def delete(filename: String): Option[String] =
+    get(filename).map(f => {
+      f.delete()
+      filename
+    })
+
   override def store(src: File, fileName: String): Future[File] = {
     Future {
       val dst = Paths.get(rootDir, fileName)
@@ -63,6 +71,8 @@ class DefaultArtifactRepository(val default: Map[String, File])(implicit val ec:
 
   override def store(src: File, fileName: String): Future[File] =
     Future.failed(new UnsupportedOperationException("do not implement this"))
+
+  override def delete(filename: String): Option[String] = None
 }
 
 class SimpleArtifactRepository(
@@ -81,6 +91,8 @@ class SimpleArtifactRepository(
   override def store(src: File, fileName: String): Future[File] = {
     mainRepo.store(src, fileName)
   }
+
+  override def delete(filename: String): Option[String] = mainRepo.delete(filename)
 }
 
 object ArtifactRepository {

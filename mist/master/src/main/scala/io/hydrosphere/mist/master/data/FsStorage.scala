@@ -41,6 +41,15 @@ class FsStorage[A <: NamedConfig](
     }
   }
 
+  def delete(name: String): Option[A] = {
+    entry(name).map(e => {
+      withWriteLock { Files.delete(filePath(name)) }
+      e
+    })
+  }
+
+  private def filePath(name: String): Path = dir.resolve(s"$name.conf")
+
   private def parseFile(f: File): Try[A] = {
     val name = f.getName.replace(".conf", "")
     Try(ConfigFactory.parseFile(f)).map(c => repr.fromConfig(name, c))
@@ -51,10 +60,8 @@ class FsStorage[A <: NamedConfig](
 
     val data = config.root().render(renderOptions)
 
-    val filePath = dir.resolve(s"$name.conf")
-
     withWriteLock {
-      Files.write(filePath, data.getBytes)
+      Files.write(filePath(name), data.getBytes)
       entry
     }
   }

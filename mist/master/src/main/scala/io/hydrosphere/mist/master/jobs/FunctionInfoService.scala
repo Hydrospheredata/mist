@@ -7,7 +7,7 @@ import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{GetAllFunctions, GetFunctionInfo, EnvInfo, ValidateFunctionParameters}
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}
@@ -25,6 +25,7 @@ class FunctionInfoService(
   ctxStorage: Contexts,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) extends Logger {
+
   val timeoutDuration = 5 seconds
   implicit val commonTimeout = Timeout(timeoutDuration)
 
@@ -105,6 +106,15 @@ class FunctionInfoService(
         functionsMap.get(d.name).map { ep => createJobInfoData(ep, d)}
       })
     }
+  }
+
+  def delete(id: String): Future[Option[FunctionInfoData]] = {
+    val out = for {
+      fn <- OptionT(functionStorage.delete(id))
+      data <- OptionT(askInfoProvider[Option[ExtractedFunctionData]](DeleteFunctionInfo(id)))
+    } yield createJobInfoData(fn, data)
+
+    out.value
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any, t: Timeout): Future[T] =
