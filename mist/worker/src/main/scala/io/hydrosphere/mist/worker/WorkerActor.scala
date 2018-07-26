@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.worker
 
+import java.io.{PrintWriter, StringWriter}
+
 import akka.actor._
 import akka.pattern.pipe
 import io.hydrosphere.mist.core.CommonData._
@@ -106,9 +108,10 @@ class WorkerActor(
     JobFailure(req.id, ex)
 
   protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
-    val msg = Option(e.getMessage).getOrElse("")
-    val trace = e.getStackTrace.map(e => e.toString).mkString("; ")
-    s"Error running job with $params. Type: ${e.getClass.getCanonicalName}, message: $msg, trace $trace"
+    val wrap = new RuntimeException(s"Error running job with $params", e)
+    val writer = new StringWriter()
+    wrap.printStackTrace(new PrintWriter(writer))
+    writer.toString
   }
 }
 
