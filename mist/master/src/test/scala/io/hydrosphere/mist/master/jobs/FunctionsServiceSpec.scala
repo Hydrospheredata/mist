@@ -21,7 +21,7 @@ import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.Implicits._
 
-class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
+class FunctionsServiceSpec extends TestKit(ActorSystem("test"))
   with FunSpecLike
   with MockitoSugar
   with Matchers
@@ -54,7 +54,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -83,7 +83,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), JsMap.empty)
@@ -102,7 +102,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -120,7 +120,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
 
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
@@ -140,7 +140,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfoByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ))
@@ -159,7 +159,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParamsByConfig(FunctionConfig(
         "test", jobPath, "Test", "foo"
       ), JsMap.empty)
@@ -187,7 +187,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       probe.expectMsgType[GetFunctionInfo]
@@ -221,7 +221,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       probe.expectMsgType[ValidateFunctionParameters]
@@ -244,7 +244,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
@@ -266,7 +266,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
 
       val result = Await.result(f, Duration.Inf)
@@ -286,7 +286,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
@@ -307,7 +307,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(None)
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
 
       val result = Await.result(f, Duration.Inf)
@@ -328,7 +328,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.getFunctionInfo("test")
       probe.expectMsgType[GetFunctionInfo]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -350,7 +350,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.validateFunctionParams("test", JsMap.empty)
       probe.expectMsgType[ValidateFunctionParameters]
       probe.reply(Status.Failure(new IllegalArgumentException("invalid")))
@@ -376,7 +376,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
       when(artifactRepo.get(any[String]))
         .thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.allFunctions
       probe.expectMsgType[GetAllFunctions]
       probe.reply(Seq(ExtractedFunctionData(name="test")))
@@ -394,7 +394,7 @@ class FunctionInfoServiceSpec extends TestKit(ActorSystem("test"))
 
       when(artifactRepo.get(any[String])).thenReturn(Some(new File(jobPath)))
 
-      val functionInfoService = new FunctionInfoService(probe.ref, functions, testContexts, artifactRepo)
+      val functionInfoService = new FunctionsService(probe.ref, functions, testContexts, artifactRepo)
       val f = functionInfoService.allFunctions
 
       val response = Await.result(f, Duration.Inf)

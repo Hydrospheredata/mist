@@ -15,7 +15,7 @@ import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerLink}
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
-import io.hydrosphere.mist.master.jobs.FunctionInfoService
+import io.hydrosphere.mist.master.jobs.FunctionsService
 import io.hydrosphere.mist.master.models._
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
@@ -125,7 +125,7 @@ class HttpApiV2Spec extends FunSpec
       when(master.runJob(any[FunctionStartRequest], any[Source]))
         .thenSuccess(Some(JobStartResponse("1")))
 
-      val route = HttpV2Routes.functionRoutes(master)
+      val route = HttpV2Routes.functionsJobs(master)
 
       Post(s"/v2/api/functions/x/jobs", JsMap("1" -> "Hello".js)) ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -144,7 +144,7 @@ class HttpApiV2Spec extends FunSpec
         ), 1
       ))
 
-      val route = HttpV2Routes.functionRoutes(master)
+      val route = HttpV2Routes.functionsJobs(master)
 
       Get("/v2/api/functions/id/jobs?status=started") ~> route ~> check {
         status shouldBe StatusCodes.OK
@@ -158,52 +158,27 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
-    it("should delete function") {
-      val functions = mock[FunctionInfoService]
-
-      val mainService = new MainService(
-        mock[ExecutionService],
-        functions,
-        mock[ContextsStorage],
-        mock[LogStoragePaths],
-        functionInfoService
-      )
-      when(functions.delete(any[String]))
-        .thenSuccess(None)
-
-      val route = HttpV2Routes.functionRoutes(master)
-
-      Delete(s"/v2/api/functions/x") ~> route ~> check {
-        status shouldBe StatusCodes.OK
-      }
-    }
 
   }
 
   describe("function creation") {
 
+    val functionData = FunctionInfoData(
+      name="test",
+      lang="scala",
+      path= "path",
+      className="Test",
+      defaultContext = "foo"
+    )
+
     it("should update function on create if function created") {
 
-      val functions = mock[FunctionConfigStorage]
-      val functionInfoService = mock[FunctionInfoService]
-
-      val mainService = new MainService(
-        mock[ExecutionService],
-        functions,
-        mock[ContextsStorage],
-        mock[LogStoragePaths],
-        functionInfoService
-      )
+      val functions = mock[FunctionsService]
 
       val test = FunctionConfig("test", "test", "test", "default")
 
-      when(functions.get(any[String]))
-        .thenSuccess(None)
-
+      when(functions.hasFunction(any[String])).thenSuccess(false)
       when(functions.update(any[FunctionConfig]))
-        .thenSuccess(test)
-
-      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
         .thenSuccess(FunctionInfoData(
           lang = "python",
           path = "test",
@@ -212,57 +187,56 @@ class HttpApiV2Spec extends FunSpec
           name = "test"
         ))
 
-      val route = HttpV2Routes.functionRoutes(mainService)
+      val route = HttpV2Routes.functionsCrud(functions)
 
       Post("/v2/api/functions", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(functions, times(1)).update(any[FunctionConfig])
       }
     }
 
     it("should return different entity when forcibly update") {
-      val functions = mock[FunctionConfigStorage]
-      val master = new MainService(
-        mock[ExecutionService],
-        functions,
-        mock[ContextsStorage],
-        mock[LogStoragePaths],
-        mock[FunctionInfoService]
-      )
-      val test = FunctionConfig("test", "test", "test", "default")
-      when(functions.update(any[FunctionConfig]))
-        .thenSuccess(test)
+      val functions = mock[FunctionsService]
 
-      val route = HttpV2Routes.functionRoutes(master)
+      val test = FunctionConfig("test", "test", "test", "default")
+      when(functions.updateConfig(any[FunctionConfig])).thenSuccess(test)
+
+      val route = HttpV2Routes.functionsCrud(functions)
 
       Post("/v2/api/functions?force=true", test.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.OK
-        verify(functions, times(1)).update(any[FunctionConfig])
         responseAs[FunctionConfig] shouldBe test
       }
     }
 
     it("should fail with invalid data for function") {
-      val functionsStorage = mock[FunctionConfigStorage]
-      val master = mock[MainService]
-      val functionInfoService = mock[FunctionInfoService]
-      when(master.functions).thenReturn(functionsStorage)
-      when(master.functionInfoService).thenReturn(functionInfoService)
+      val functions = mock[FunctionsService]
 
       val functionConfig = FunctionConfig("name", "path", "className", "context")
+      when(functions.hasFunction(any[String])).thenReturn(Future.successful(false))
+      when(functions.update(any[FunctionConfig])).thenReturn(Future.failed(new Exception("test failure")))
 
-      when(functionsStorage.get(any[String])).thenReturn(Future.successful(None))
-      when(functionsStorage.update(any[FunctionConfig]))
-        .thenReturn(Future.successful(functionConfig))
-      when(functionInfoService.getFunctionInfoByConfig(any[FunctionConfig]))
-        .thenFailure(new Exception("test failure"))
-
-      val route = HttpV2Routes.functionRoutes(master)
+      val route = HttpV2Routes.functionsCrud(functions)
 
       Post("/v2/api/functions", functionConfig.toEntity) ~> route ~> check {
         status shouldBe StatusCodes.BadRequest
       }
 
+    }
+
+    it("should delete function") {
+      val functions = mock[FunctionsService]
+      when(functions.delete(any[String])).thenSuccess(Some(FunctionInfoData(
+        name="test",
+        lang="scala",
+        path= "path",
+        className="Test",
+        defaultContext = "foo"
+      )))
+      val route = HttpV2Routes.functionsCrud(functions)
+
+      Delete(s"/v2/api/functions/x") ~> route ~> check {
+        status shouldBe StatusCodes.OK
+      }
     }
   }
 
@@ -359,17 +333,33 @@ class HttpApiV2Spec extends FunSpec
 
   describe("contexts") {
 
+    class TestCrud extends ContextsCRUDLike {
+      def create(req: ContextCreateRequest): Future[ContextConfig] = ???
+      def getAll(): Future[Seq[ContextConfig]] = ???
+      def update(a: ContextConfig): Future[ContextConfig] = ???
+      def get(id: String): Future[Option[ContextConfig]] = ???
+      def delete(id: String): Future[Option[ContextConfig]] = ???
+    }
+
     it("should create context") {
-      val crud = new ContextsCRUDLike {
-        def create(req: ContextCreateRequest): Future[ContextConfig] = Future.successful(FooContext)
-        def getAll(): Future[Seq[ContextConfig]] = ???
-        def update(a: ContextConfig): Future[ContextConfig] = ???
-        def get(id: String): Future[Option[ContextConfig]] = ???
+      val crud = new TestCrud {
+        override def create(req: ContextCreateRequest): Future[ContextConfig] = Future.successful(FooContext)
       }
 
       val route = HttpV2Routes.contextsRoutes(crud)
       val req = ContextCreateRequest("yoyo", workerMode = Some(RunMode.ExclusiveContext))
       Post(s"/v2/api/contexts", req.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+      }
+    }
+
+    it("should delete context") {
+      val crud = new TestCrud {
+        override def delete(id: String): Future[Option[ContextConfig]] = Future.successful(Some(FooContext))
+      }
+
+      val route = HttpV2Routes.contextsRoutes(crud)
+      Delete(s"/v2/api/contexts/foo") ~> route ~> check {
         status shouldBe StatusCodes.OK
       }
     }

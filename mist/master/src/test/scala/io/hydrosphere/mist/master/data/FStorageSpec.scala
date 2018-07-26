@@ -46,7 +46,7 @@ class FStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     )
 
     storage.delete("one")
-    storage.entries should contain allOf(TestEntry("two", 2))
+    storage.entries should contain allElementsOf(Seq(TestEntry("two", 2)))
   }
 
 }

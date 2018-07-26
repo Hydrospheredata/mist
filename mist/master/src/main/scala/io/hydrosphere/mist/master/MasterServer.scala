@@ -18,7 +18,7 @@ import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
 import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionInfoService}
+import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionsService}
 import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
@@ -130,7 +130,7 @@ object MasterServer extends Logger {
     for {
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("FunctionInfoProvider", jobExtractorRunner.run())
-      jobInfoProviderService =  new FunctionInfoService(
+      functionInfoService =  new FunctionsService(
                                       jobInfoProvider,
                                       functionsStorage,
                                       contextsStorage,
@@ -139,10 +139,9 @@ object MasterServer extends Logger {
       executionService       =  runExecutionService(logService)
       masterService          <- start("Main service", MainService.start(
                                                         executionService,
-                                                        functionsStorage,
                                                         contextsStorage,
                                                         logsPaths,
-                                                        jobInfoProviderService
+                                                        functionInfoService
                                                      )
                              )
       httpBinding            <- start("Http interface", bootstrapHttp(streamer, masterService, artifactRepository, config.http))
