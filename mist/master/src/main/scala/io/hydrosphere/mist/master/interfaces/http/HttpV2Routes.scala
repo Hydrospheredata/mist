@@ -22,6 +22,7 @@ import java.nio.file.{Files, Paths}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import io.hydrosphere.mist.BuildInfo
 import io.hydrosphere.mist.master.execution.ExecutionService
+import io.hydrosphere.mist.master.jobs.FunctionsService
 import io.hydrosphere.mist.utils.Logger
 import mist.api.data.JsMap
 
@@ -184,29 +185,23 @@ object HttpV2Routes extends Logger {
     }}
   }
 
-  def functionRoutes(master: MainService): Route = {
+  def functionsCrud(functions: FunctionsService): Route = {
     path( root / "functions" ) {
       get { complete {
-        master.functionInfoService.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
+        functions.allFunctions.map(_.map(HttpFunctionInfoV2.convert))
       }}
     } ~
     path( root / "functions" ) {
       post(parameter('force? false) { force =>
         entity(as[FunctionConfig]) { req =>
           if (force) {
-            completeF(master.functions.update(req), StatusCodes.BadRequest)
+            completeF(functions.updateConfig(req), StatusCodes.BadRequest)
           } else {
-            val rsp = master.functions.get(req.name).flatMap({
-              case Some(ep) =>
-                val e = new IllegalStateException(s"Endpoint ${ep.name} already exists")
-                Future.failed(e)
-              case None =>
-                for {
-                  fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(req)
-                  updated      <- master.functions.update(req)
-                  functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
-                } yield functionInfo
-            })
+            val rsp =
+              functions.hasFunction(req.name).ifM[HttpFunctionInfoV2](
+                Future.failed(new IllegalStateException(s"Endpoint ${req.name} already exists")),
+                functions.update(req).map(HttpFunctionInfoV2.convert)
+              )
 
             completeF(rsp, StatusCodes.BadRequest)
           }
@@ -215,36 +210,33 @@ object HttpV2Routes extends Logger {
     } ~
     path( root / "functions" ) {
       put { entity(as[FunctionConfig]) { req =>
-
-        onSuccess(master.functions.get(req.name)) {
-          case None =>
-            val resp = HttpResponse(StatusCodes.Conflict, entity = s"Endpoint with name ${req.name} not found")
-            complete(resp)
-          case Some(_) =>
-            val res = for {
-              updated      <- master.functions.update(req)
-              fullInfo     <- master.functionInfoService.getFunctionInfoByConfig(updated)
-              functionInfo =  HttpFunctionInfoV2.convert(fullInfo)
-            } yield functionInfo
-
-            completeF(res, StatusCodes.BadRequest)
-        }
+        val rsp = functions.hasFunction(req.name).ifM(
+          Future.failed(new IllegalStateException(s"Endpoint ${req.name} already exists")),
+          functions.update(req).map(HttpFunctionInfoV2.convert)
+        )
+        completeF(rsp, StatusCodes.BadRequest)
       }}
     } ~
     path( root / "functions" / Segment ) { functionId =>
       get { completeOpt {
-        master.functionInfoService
-          .getFunctionInfo(functionId)
-          .map(_.map(HttpFunctionInfoV2.convert))
-      }}
-    } ~
+        functions.getFunctionInfo(functionId).map(_.map(HttpFunctionInfoV2.convert))
+      }} ~
+        delete {
+          completeOpt {
+            functions.delete(functionId).map(_.map(HttpFunctionInfoV2.convert))
+          }
+        }
+    }
+  }
+
+  def functionsJobs(main: MainService): Route = {
     path( root / "functions" / Segment / "jobs" ) { functionId =>
       get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
         val req = JobDetailsRequest(pagination.limit, pagination.offset)
           .withFilter(FilterClause.ByStatuses(statuses))
           .withFilter(FilterClause.ByFunctionId(functionId))
 
-        onSuccess(master.execution.getHistory(req))(rsp => {
+        onSuccess(main.execution.getHistory(req))(rsp => {
           if (pagination.paginate)
             complete(rsp)
           else
@@ -257,13 +249,17 @@ object HttpV2Routes extends Logger {
         entity(as[JsMap]) { params =>
           val jobReq = buildStartRequest(functionId, query, params)
           if (query.force) {
-            completeOpt { master.forceJobRun(jobReq, JobDetails.Source.Http) }
+            completeOpt { main.forceJobRun(jobReq, JobDetails.Source.Http) }
           } else {
-            completeOpt { master.runJob(jobReq, JobDetails.Source.Http) }
+            completeOpt { main.runJob(jobReq, JobDetails.Source.Http) }
           }
         }
       })
     }
+  }
+
+  def functionAllRoutes(main: MainService): Route = {
+    functionsCrud(main.functionInfoService) ~ functionsJobs(main)
   }
 
   def artifactRoutes(artifactRepo: ArtifactRepository): Route = {
@@ -278,6 +274,16 @@ object HttpV2Routes extends Logger {
       get {
         artifactRepo.get(filename) match {
           case Some(file) => getFromFile(file)
+          case None => complete {
+            HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
+          }
+        }
+      }
+    } ~
+    path(root / "artifacts" / Segment) { filename =>
+      delete {
+        artifactRepo.delete(filename) match {
+          case Some(_) => complete(HttpResponse(StatusCodes.OK, entity = filename))
           case None => complete {
             HttpResponse(StatusCodes.NotFound, entity = s"No file found by name $filename")
           }
@@ -382,6 +388,9 @@ object HttpV2Routes extends Logger {
     path ( root / "contexts" / Segment ) { id =>
       get { completeOpt(ctxCrud.get(id)) }
     } ~
+    path (root / "contexts" / Segment) { id =>
+      delete { completeOpt(ctxCrud.delete(id)) }
+    } ~
     path ( root / "contexts" ) {
       post { entity(as[ContextCreateRequest]) { req =>
         complete(ctxCrud.create(req))
@@ -422,7 +431,7 @@ object HttpV2Routes extends Logger {
     }
   }
 
-  def apiRoutes(masterService: MainService, artifacts: ArtifactRepository, mistHome: String): Route = {
+  def apiRoutes(main: MainService, artifacts: ArtifactRepository, mistHome: String): Route = {
     val exceptionHandler =
       ExceptionHandler {
         case ex @ (_: IllegalArgumentException  | _: IllegalStateException) =>
@@ -431,10 +440,10 @@ object HttpV2Routes extends Logger {
           complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
       }
     handleExceptions(exceptionHandler) {
-      functionRoutes(masterService) ~
-      jobsRoutes(masterService) ~
-      workerRoutes(masterService.execution) ~
-      contextsRoutes(masterService) ~
+      functionAllRoutes(main) ~
+      jobsRoutes(main) ~
+      workerRoutes(main.execution) ~
+      contextsRoutes(main) ~
       internalArtifacts(mistHome) ~
       artifactRoutes(artifacts) ~
       statusApi ~

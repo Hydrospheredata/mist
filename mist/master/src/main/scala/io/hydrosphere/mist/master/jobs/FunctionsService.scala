@@ -7,7 +7,7 @@ import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{GetAllFunctions, GetFunctionInfo, EnvInfo, ValidateFunctionParameters}
+import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}
@@ -19,12 +19,13 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
-class FunctionInfoService(
+class FunctionsService(
   functionInfoActor: ActorRef,
   functionStorage: FunctionConfigStorage,
   ctxStorage: Contexts,
   artifactRepository: ArtifactRepository
 )(implicit ec: ExecutionContext) extends Logger {
+
   val timeoutDuration = 5 seconds
   implicit val commonTimeout = Timeout(timeoutDuration)
 
@@ -35,10 +36,30 @@ class FunctionInfoService(
     } yield (f, ctx)
   }
 
+  private def artifactForFunction(fn: FunctionConfig): Option[File] = {
+    val out = artifactRepository.get(fn.path)
+    if (out.isEmpty) {
+      logger.warn(s"Function ${fn.name} wasn't created/removed properly. File ${fn.path} doesn't exists")
+    }
+    out
+  }
+
+  def hasFunction(id: String): Future[Boolean] = functionStorage.get(id).map(_.isDefined)
+
+  def updateConfig(cfg: FunctionConfig): Future[FunctionConfig] = functionStorage.update(cfg)
+
+  def update(cfg: FunctionConfig): Future[FunctionInfoData] = {
+    for {
+      fullInfo <- getFunctionInfoByConfig(cfg)
+      _ <- updateConfig(cfg)
+    } yield fullInfo
+  }
+
+
   def getFunctionInfo(id: String): Future[Option[FunctionInfoData]] = {
     val f = for {
       (function, ctx) <- funcWithCtx(id)
-      file     <- OptionT.fromOption[Future](artifactRepository.get(function.path))
+      file     <- OptionT.fromOption[Future](artifactForFunction(function))
       data     <- OptionT.liftF(askInfoProvider[ExtractedFunctionData](createGetInfoMsg(function, ctx, file)))
       info     =  createJobInfoData(function, data)
     } yield info
@@ -46,7 +67,7 @@ class FunctionInfoService(
   }
 
   def getFunctionInfoByConfig(function: FunctionConfig): Future[FunctionInfoData] = {
-    artifactRepository.get(function.path) match {
+    artifactForFunction(function) match {
       case Some(file) =>
         for {
           ctx <- ctxStorage.getOrDefault(function.defaultContext)
@@ -62,7 +83,7 @@ class FunctionInfoService(
   ): Future[Option[Unit]] = {
     val f = for {
       (function, ctx) <- funcWithCtx(id)
-      file            <- OptionT.fromOption[Future](artifactRepository.get(function.path))
+      file            <- OptionT.fromOption[Future](artifactForFunction(function))
       _ <- OptionT.liftF(askInfoProvider[Unit](createValidateParamsMsg(function, ctx, file, params)))
     } yield ()
 
@@ -70,7 +91,7 @@ class FunctionInfoService(
   }
 
   def validateFunctionParamsByConfig(function: FunctionConfig, params: JsMap): Future[Unit] = {
-    artifactRepository.get(function.path) match {
+    artifactForFunction(function) match {
       case Some(file) =>
         for {
           ctx <- ctxStorage.getOrDefault(function.defaultContext)
@@ -83,7 +104,7 @@ class FunctionInfoService(
   def allFunctions: Future[Seq[FunctionInfoData]] = {
     // TODO here we lose info about invalid configuration
     def toFunctionInfoRequest(f: FunctionConfig, ctx: ContextConfig): Option[GetFunctionInfo] = {
-      artifactRepository.get(f.path).map(file => createGetInfoMsg(f, ctx, file))
+      artifactForFunction(f).map(file => createGetInfoMsg(f, ctx, file))
     }
 
     for {
@@ -105,6 +126,15 @@ class FunctionInfoService(
         functionsMap.get(d.name).map { ep => createJobInfoData(ep, d)}
       })
     }
+  }
+
+  def delete(id: String): Future[Option[FunctionInfoData]] = {
+    val out = for {
+      fn <- OptionT(functionStorage.delete(id))
+      data <- OptionT(askInfoProvider[Option[ExtractedFunctionData]](DeleteFunctionInfo(id)))
+    } yield createJobInfoData(fn, data)
+
+    out.value
   }
 
   private def askInfoProvider[T: ClassTag](msg: Any, t: Timeout): Future[T] =

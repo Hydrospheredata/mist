@@ -7,10 +7,9 @@ import cats.data._
 import cats.implicits._
 import io.hydrosphere.mist.core.CommonData.Action
 import io.hydrosphere.mist.master.JobDetails.Source.Async
-import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}
-import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest
-import io.hydrosphere.mist.master.jobs.FunctionInfoService
+import io.hydrosphere.mist.master.jobs.FunctionsService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.Logger
 
@@ -21,10 +20,9 @@ import scala.util.{Failure, Success}
 
 class MainService(
   val execution: ExecutionService,
-  val functions: FunctionConfigStorage,
   val contextsStorage: ContextsStorage,
   val logsPaths: LogStoragePaths,
-  val functionInfoService: FunctionInfoService
+  val functionInfoService: FunctionsService
 ) extends Logger with ContextsCRUDMixin {
 
   implicit val timeout: Timeout = Timeout(5 seconds)
@@ -148,12 +146,11 @@ object MainService extends Logger {
 
   def start(
     execution: ExecutionService,
-    functions: FunctionConfigStorage,
     contexts: ContextsStorage,
     logsPaths: LogStoragePaths,
-    functionInfoService: FunctionInfoService
+    functionInfoService: FunctionsService
   ): Future[MainService] = {
-    val service = new MainService(execution, functions, contexts, logsPaths, functionInfoService)
+    val service = new MainService(execution, contexts, logsPaths, functionInfoService)
     for {
       precreated <- contexts.precreated
       _ = precreated.foreach(ctx => {

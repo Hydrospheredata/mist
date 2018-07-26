@@ -30,6 +30,12 @@ position: 8
       <td>Get function by id</td>
     </tr>
     <tr>
+      <td>DELETE</td>
+      <td>/v2/api/functions/{id}</td>
+      <td>None</td>
+      <td>Delete function by id</td>
+    </tr>
+    <tr>
       <td>POST</td>
       <td>/v2/api/functions</td>
       <td>
@@ -190,6 +196,12 @@ position: 8
       <td>Get context by id</td>
     </tr>
     <tr>
+      <td>DELETE</td>
+      <td>/v2/api/contexts/{id}</td>
+      <td>None</td>
+      <td>Delete context by id</td>
+    </tr>
+    <tr>
       <td>POST</td>
       <td>/v2/api/contexts</td>
       <td>Json body:
@@ -251,6 +263,12 @@ position: 8
       <td>/v2/api/artifacts/{id}</td>
       <td>None</td>
       <td>artifact info</td>
+    </tr>
+    <tr>
+      <td>DELETE</td>
+      <td>/v2/api/artifacts/{id}</td>
+      <td>None</td>
+      <td>Delete artifact</td>
     </tr>
      <tr>
       <td>POST</td>

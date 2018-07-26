@@ -12,6 +12,7 @@ trait CRUDLike[A] {
   def update(a: A): Future[A]
   def getAll(): Future[Seq[A]]
   def get(id: String): Future[Option[A]]
+  def delete(id: String): Future[Option[A]]
 }
 
 trait ContextsCRUDLike extends CRUDLike[ContextConfig] {
@@ -27,8 +28,10 @@ trait ContextsCRUDMixin extends ContextsCRUDLike {
     _ = execution.updateContext(upd)
   } yield upd
 
+
   def getAll(): Future[Seq[ContextConfig]] = contextsStorage.all
   def get(id: String): Future[Option[ContextConfig]] = contextsStorage.get(id)
+  def delete(id: String): Future[Option[ContextConfig]] = contextsStorage.delete(id)
   def create(req: ContextCreateRequest): Future[ContextConfig] = {
     val ctx = req.toContextWithFallback(contextsStorage.defaultConfig)
     update(ctx)

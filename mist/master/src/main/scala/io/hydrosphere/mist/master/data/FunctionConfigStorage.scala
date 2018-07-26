@@ -32,6 +32,10 @@ class FunctionConfigStorage(
     }
   }
 
+  def delete(name: String): Future[Option[FunctionConfig]] = {
+    Future { fsStorage.delete(name) }
+  }
+
   def update(ec: FunctionConfig): Future[FunctionConfig] =
     Future { fsStorage.write(ec.name, ec) }
 

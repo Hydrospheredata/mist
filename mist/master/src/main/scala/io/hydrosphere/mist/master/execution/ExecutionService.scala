@@ -40,24 +40,9 @@ class ExecutionService(
 
   def jobStatusById(id: String): Future[Option[JobDetails]] = repo.get(id)
 
-//  def functionJobHistory(id: String, limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-//    repo.getByFunctionId(id, limit, offset, statuses)
-//
-//  def getHistory(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Future[Seq[JobDetails]] =
-//    repo.getAll(limit, offset, statuses)
-
   def getHistory(req: JobDetailsRequest): Future[JobDetailsResponse] = repo.getJobs(req)
 
   def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
-
-//  def workerByJobId(jobId: String): Future[Option[WorkerLink]] = {
-//    val res = for {
-//      job      <- OptionT(jobStatusById(jobId))
-//      workerId <- OptionT.fromOption[Future](job.workerId)
-//      conn     <- OptionT.fromOption[Future](workersHub.workerConnection(workerId))
-//    } yield conn.data
-//    res.value
-//  }
 
   def getWorkerLink(workerId: String): Option[WorkerLink] = {
     workersHub.workerConnection(workerId).map(_.data)
