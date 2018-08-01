@@ -10,9 +10,9 @@ Mist creates and orchestrates Apache Spark contexts automatically. Every job is 
 In fact context describes a named Spark context and Mist settings for this Spark context.
 Mist context settings:
 - `spark-conf` - settings for a [spark](https://spark.apache.org/docs/latest/configuration.html)
-- `max-paralle-jobs` - amount of jobs that can be executed in parallel on the same context
+- `max-parallel-jobs` - amount of jobs that can be executed in parallel on the same context
 - `run-options` - additional option with command line arguments that will be used during worker creationa using spark-submit.
-   by default it empty. [spark docs](https://spark.apache.org/docs/latest/submitting-applications.html)
+   by default it's empty. [spark docs](https://spark.apache.org/docs/latest/submitting-applications.html)
 - `streaming-duration` - spark streaming duration 
 - `worker-mode`:
     There are two types of modes:
