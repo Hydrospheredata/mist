@@ -62,6 +62,26 @@ class FunctionInfoProviderActorSpec extends TestKit(ActorSystem("WorkerSpec"))
       ))
     }
 
+    it("should delete fn from cache") {
+      val functionInfoExtractor = mock[FunctionInfoExtractor]
+      when(functionInfoExtractor.extractInfo(any[File], any[String], any[EnvInfo]))
+        .thenReturn(Succ(FunctionInfo(
+          data = ExtractedFunctionData(
+            lang = "scala",
+            execute = Seq(UserInputArgument("test", MInt))
+          )
+        )))
+      val testProbe = TestProbe()
+      val fnInfoProvider = TestActorRef[Actor](FunctionInfoProviderActor.props(functionInfoExtractor))
+      testProbe.send(fnInfoProvider, GetFunctionInfo("Test", fnPath, "test", envInfo))
+      testProbe.expectMsg(ExtractedFunctionData(
+        lang = "scala",
+        execute = Seq(UserInputArgument("test", MInt)),
+        name="test"
+      ))
+
+    }
+
     it("should fail get fn info when file not found") {
       val fnInfoExtractor = mock[FunctionInfoExtractor]
       val testProbe = TestProbe()

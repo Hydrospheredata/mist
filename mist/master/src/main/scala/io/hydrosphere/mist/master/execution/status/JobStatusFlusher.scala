@@ -92,7 +92,7 @@ class JobStatusFlusher(
       s"JobFileDownloadingEvent"
     case _: QueuedEvent =>
       s"QueuedEvent"
-    case InitializedEvent(_, _, extId) =>
+    case InitializedEvent(_, _, extId, function, context) =>
       s"InitializedEvent(externalId=$extId)"
     case FailedEvent(_, _, err) =>
       s"FailedEvent with Error: \n $err"
@@ -115,7 +115,7 @@ object JobStatusFlusher {
 
   def applyStatusEvent(d: JobDetails, event: UpdateStatusEvent): JobDetails = {
     event match {
-      case InitializedEvent(_, _, _) => d
+      case InitializedEvent(_, _, _, _, _) => d
       case QueuedEvent(_) => d.withStatus(Status.Queued)
       case StartedEvent(_, time) => d.withStartTime(time).withStatus(Status.Started)
       case WorkerAssigned(_, workerId) => d.copy(workerId = Some(workerId))

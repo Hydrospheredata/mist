@@ -32,6 +32,8 @@ trait Cache[K, V] {
 
   def -(k: K): Cache[K, V] = self.removeItem(k)
 
+  def keys: Seq[K]
+
   protected def now: Long = System.currentTimeMillis()
 
 }
@@ -80,6 +82,8 @@ case class TTLCache[K, V](
     }
     this.copy(cache = newCache)
   }
+
+  override def keys: Seq[K] = cache.keys.toSeq
 }
 
 
@@ -108,6 +112,21 @@ class FunctionInfoProviderActor(
   }
 
   def cached(cache: StateCache): Receive = {
+    case d: DeleteFunctionInfo =>
+      val key = cache.keys.find(k => k.name == d.name)
+      val value = key.flatMap(k => cache.get(k))
+
+      val next = key match {
+        case Some(k) => cache - k
+        case None => cache
+      }
+      val rsp = value.flatMap({
+        case Succ(info) => Some(info.data)
+        case Err(e) => None
+      })
+      context become cached(next)
+      sender() ! rsp
+
     case r: GetFunctionInfo =>
       val (next, v) = usingCache(cache, r)
       val rsp = v match {

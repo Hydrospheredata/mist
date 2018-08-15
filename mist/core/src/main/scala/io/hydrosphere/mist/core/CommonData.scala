@@ -123,14 +123,16 @@ object CommonData {
     val name: String
     val envInfo: EnvInfo
   }
-  case class GetFunctionInfo(
+  final case class GetFunctionInfo(
     className: String,
     jobPath: String,
     name: String,
     envInfo: EnvInfo
   ) extends InfoRequest
 
-  case class ValidateFunctionParameters(
+  final case class DeleteFunctionInfo(name: String) extends JobInfoMessage
+
+  final case class ValidateFunctionParameters(
     className: String,
     jobPath: String,
     name: String,
@@ -138,11 +140,9 @@ object CommonData {
     envInfo: EnvInfo
   ) extends InfoRequest
 
-  case class GetAllFunctions(
-    requests: List[GetFunctionInfo]
-  ) extends JobInfoMessage
+  final case class GetAllFunctions(requests: List[GetFunctionInfo]) extends JobInfoMessage
 
-  case object EvictCache extends JobInfoMessage
-  case object GetCacheSize extends JobInfoMessage
+  final case object EvictCache extends JobInfoMessage
+  final case object GetCacheSize extends JobInfoMessage
 
 }
