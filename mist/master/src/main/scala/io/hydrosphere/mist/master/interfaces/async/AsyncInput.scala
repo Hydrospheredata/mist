@@ -46,6 +46,7 @@ object AsyncInput {
 
         val opt = new MqttConnectOptions
         opt.setCleanSession(true)
+        opt.setAutomaticReconnect(true)
         client.connect(opt).waitForCompletion()
         client
       }
