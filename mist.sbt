@@ -279,9 +279,6 @@ lazy val root = project.in(file("."))
 
         copy(localSpark, "/usr/share/spark")
 
-        copyRaw("--from=quay.io/vektorcloud/mesos /usr/local/lib/libmesos-1.4.1.so", "/usr/local/lib/libmesos.so")
-        runRaw("""echo "export MESOS_NATIVE_JAVA_LIBRARY=/usr/local/lib/libmesos.so" > $SPARK_HOME/conf/spark-env.sh""")
-
         copy(distr, mistHome)
 
         copy(file("docker-entrypoint.sh"), "/")
