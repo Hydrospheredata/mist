@@ -4,23 +4,80 @@ title: "Contexts"
 permalink: contexts.html
 position: 11
 ---
-## Contexts 
+### Contexts
 
 Mist creates and orchestrates Apache Spark contexts automatically. Every job is run in a context.
 In fact context describes a named Spark context and Mist settings for this Spark context.
-Mist context settings:
-- `spark-conf` - settings for a [spark](https://spark.apache.org/docs/latest/configuration.html)
-- `max-parallel-jobs` - amount of jobs that can be executed in parallel on the same context
-- `run-options` - additional option with command line arguments that will be used during worker creationa using spark-submit.
-   by default it's empty. [spark docs](https://spark.apache.org/docs/latest/submitting-applications.html)
-- `streaming-duration` - spark streaming duration 
-- `worker-mode`:
-    There are two types of modes:
-    - `shared`:
-        By default when you request a job to run the first time, Mist creates a worker node with new Spark context.
-        The second request will use the created namespace so the context will be alive while Mist is running.
-        settings:
-        - `downtime`(durarion) - idle-timeout for `shared` worker
-        - `precreated`(boolean) - start context at mist startup time
-  
-    - `exclusive` - spawn new driver application for every job invocation.
+
+Contexts may be created using [mist-cli](/mist-docs/mist-cli.html) or [http-api](/mist-docs/http_api.html).
+Also, there is special `default` context. It may be configured only using mist-configuration file.
+It's goal to setup default values for all context, so for creating a new context it isn't required to define values for all its fields.
+
+Settings:
+<table>
+  <thead>
+    <tr>
+       <td>Key</td>
+       <td>Default</td>
+       <td>Meaning</td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+       <td>sparkConf</td>
+       <td>empty</td>
+       <td>settings for a [spark](https://spark.apache.org/docs/latest/configuration.html)</td>
+    </tr>
+    <tr>
+       <td>maxJobs</td>
+       <td>1</td>
+       <td>amount of jobs executed in parallel</td>
+    </tr>
+    <tr>
+       <td>workerMode</td>
+       <td>exclusive</td>
+       <td>
+         <ul>
+           <li>exclusive - starts new worker for every job invocation</li>
+           <li>shared - reuses worker between several jobs</li>
+         </ul>
+       </td>
+    </tr>
+    <tr>
+       <td>maxConnFailures</td>
+       <td>5</td>
+       <td>
+         allowed amount of worker crushes before context will be switched into `broken` state
+         (it fails all incoming requests until context settings is updated).
+       </td>
+    </tr>
+    <tr>
+       <td>runOptions</td>
+       <td>""</td>
+       <td>
+         additional command line arguments for building spark-submit command to start worker, e.x: pass `--jars`
+       </td>
+    </tr>
+    <tr>
+       <td>streamingDuration</td>
+       <td>1s</td>
+       <td>
+         spark streaming duration
+       </td>
+    </tr>
+    <tr>
+       <td>precreated</td>
+       <td>false</td>
+       <td>
+         if true starts worker immediately,
+         if false await first job start requests before starting worker
+         *NOTE*: works only with `shared` workerMode
+       </td>
+    </tr>
+    <tr>
+       <td>downtime</td>
+       <td>false</td>
+       <td>idle-timeout for `shared` worker</td>
+    </tr>
+  </tbody>
+</table>
