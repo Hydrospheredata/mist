@@ -13,7 +13,7 @@ position: 13
 Mist-cli provides an command line interface to mist-server to manage contexts/functions.
 Actually under the hood it uses [http api](/mist_docs/http_api.html).
 
-Instanciation of a new endpoint on mist requres following steps:
+Instanciation of a new endpoint on mist requires following steps:
 - upload an articat with function
 - create context for it's invocation
 - create function

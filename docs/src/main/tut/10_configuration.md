@@ -100,3 +100,9 @@ mist {
   }
 }
 ```
+
+### Default context
+
+To override settings for `default` context use prefix `mist.context-defaults` - (master.conf)[https://github.com/Hydrospheredata/mist/blob/master/mist/master/src/main/resources/master.conf#L73].
+
+

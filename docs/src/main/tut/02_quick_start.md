@@ -69,7 +69,6 @@ Demo:
  <source src="/mist-docs/img/quick-start-ui.webm" type='video/webm; codecs="vp8, vorbis"'>
 </video>
 
-
 ### Build your own function
 
 Mist provides typeful library for writing functions in scala/java and special dsl for python.
@@ -316,7 +315,6 @@ def hello_mist(sc, n):
     return {'result': pi}
 ```
 
-
 ### Connect to your existing Apache Spark cluster
 
 **Note** For this section it's recommended to use mist from binary distributive. Using mist from docker 
@@ -345,7 +343,7 @@ Configuring a particular function to be executed on a different Spark Cluster is
   ```
 
 Yarn, Mesos and Kubernetes cluster settings are managed the same way.
-Please, follow to offical guides:
+Please, follow to official guides:
 - [Yarn](https://spark.apache.org/docs/latest/running-on-yarn.html)
 - [Mesos](https://spark.apache.org/docs/latest/running-on-mesos.html)
 - [Kubernetes](https://spark.apache.org/docs/latest/running-on-kubernetes.html)
@@ -354,5 +352,11 @@ Please, follow to offical guides:
 
 **Note** It may be required to correctly configure `host` values to make mist visible from outside - see [configuration page](/mist-docs/configuration.html)
 
-Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set it up before launching Mist Worker.
+Mist uses `spark-submit` under the hood, if you need to provide environment variables for it, just set it up before launching Mist Master.
+
+### Next
+
+To get a more information about how mist works and how to configure contexts check following pages:
+- [Invocation details](/mist-docs/invocation.html)
+- [Context configuration](/mist-docs/contexts.html)
 
