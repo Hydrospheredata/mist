@@ -37,6 +37,8 @@ class ContextsSpec extends FunSpec with Matchers with TestSparkContext {
   }
 
   it("session with hive") {
+    System.setSecurityManager(null)
+    
     val spJob = onSparkSessionWithHive((spark: SparkSession) => {
       val df = spark.read.json(pathToResource("hive_job_data.json"))
       df.createOrReplaceTempView("temp")
