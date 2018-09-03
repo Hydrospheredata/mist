@@ -279,7 +279,7 @@ object MasterConfig extends Logger {
 
   def load(filePath: String): MasterConfig = {
     val cfg = loadConfig(filePath)
-    autoConfigure(parse(filePath, cfg))
+    parse(filePath, cfg)
   }
 
   def loadConfig(filePath: String): Config = {
@@ -294,7 +294,9 @@ object MasterConfig extends Logger {
   }
 
 
-  def parse(filePath: String, config: Config): MasterConfig = {
+  def parse(filePath: String, config: Config): MasterConfig = autoConfigure(parseOnly(filePath, config))
+
+  def parseOnly(filePath: String, config: Config): MasterConfig = {
     val mist = config.getConfig("mist")
     MasterConfig(
       cluster = HostPortConfig(mist.getConfig("cluster")),

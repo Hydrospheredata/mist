@@ -58,9 +58,7 @@ class MistConfigSpec extends FunSpec with Matchers {
         |mist.log-service.public-host = "5.5.5.5"
       """.stripMargin
     val cfg = ConfigFactory.parseString(cfgS)
-    val masterConfig = MasterConfig.parse("", MasterConfig.resolveUserConf(ConfigFactory.empty()))
-    println(masterConfig)
-//    val masterConfig = MasterConfig.parse("", MasterConfig.resolveUserConf(cfg))
+    val masterConfig = MasterConfig.parseOnly("", MasterConfig.resolveUserConf(cfg))
 
     val auto = MasterConfig.autoConfigure(masterConfig, Now("1.1.1.1"))
 
