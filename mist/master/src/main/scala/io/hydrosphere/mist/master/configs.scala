@@ -8,6 +8,7 @@ import io.hydrosphere.mist.utils.ConfigUtils._
 import io.hydrosphere.mist.master.data.ConfigRepr
 import io.hydrosphere.mist.master.models.ContextConfig
 import cats._
+import cats.data.Reader
 import cats.syntax._
 import cats.implicits._
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
@@ -24,20 +25,22 @@ case class AsyncInterfaceConfig(
 
 case class HostPortConfig(
   host: String,
-  port: Int
+  port: Int,
+  publicHost: String
 )
 
 object HostPortConfig {
 
   def apply(config: Config): HostPortConfig =
-    HostPortConfig(config.getString("host"), config.getInt("port"))
+    HostPortConfig(config.getString("host"), config.getInt("port"), config.getString("public-host"))
 }
 
 case class HttpConfig(
   host: String,
   port: Int,
   uiPath: String,
-  keepAliveTick: FiniteDuration
+  keepAliveTick: FiniteDuration,
+  publicHost: String
 )
 
 object HttpConfig {
@@ -47,7 +50,8 @@ object HttpConfig {
       config.getString("host"),
       config.getInt("port"),
       config.getString("ui"),
-      config.getFiniteDuration("ws-keepalive-tick")
+      config.getFiniteDuration("ws-keepalive-tick"),
+      config.getString("public-host")
     )
 }
 
@@ -55,7 +59,8 @@ object HttpConfig {
 case class LogServiceConfig(
   host: String,
   port: Int,
-  dumpDirectory: String
+  dumpDirectory: String,
+  publicHost: String
 )
 
 object LogServiceConfig {
@@ -64,7 +69,8 @@ object LogServiceConfig {
     LogServiceConfig(
       host = config.getString("host"),
       port = config.getInt("port"),
-      dumpDirectory = config.getString("dump_directory")
+      dumpDirectory = config.getString("dump_directory"),
+      publicHost = config.getString("public-host")
     )
   }
 }
@@ -314,39 +320,37 @@ object MasterConfig extends Logger {
     autoConfigure(masterConfig, Eval.later(NetUtils.findLocalInetAddress().getHostAddress))
 
   def autoConfigure(masterConfig: MasterConfig, host: Eval[String]): MasterConfig = {
-    def isAuto(s: String): Boolean = s == "auto"
+    import shadedshapeless._
+    type HostLens = Lens[MasterConfig, String]
 
-    val forCluster = (cfg: MasterConfig) => {
-      import cfg._
-      if (isAuto(cluster.host)) {
-        logger.info(s"Automatically update cluster host to ${host.value}")
-        val upd = cluster.copy(host = host.value)
-        cfg.copy(cluster = upd).copy(raw = raw.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host.value)))
-      } else cfg
+    def updateAuto(s: String, name: String): String = {
+      if (s == "auto") {
+        logger.info(s"Automatically update $name to ${host.value}")
+        host.value
+      } else s
+    }
+    def modify(lens: HostLens, name: String)(c: MasterConfig): MasterConfig = {
+      lens.modify(c)(s => updateAuto(s, name))
     }
 
-    val forHttp = (cfg: MasterConfig) => {
-      import cfg._
+    val optic = lens[MasterConfig]
+    val fieldsUpd = Seq[(HostLens, String)](
+      optic.http.host -> "http.host",
+      optic.http.publicHost -> "http.publicHost",
+      optic.cluster.host -> "cluster.host",
+      optic.cluster.publicHost -> "cluster.publicHost",
+      optic.logs.host -> "logs.host",
+      optic.logs.publicHost -> "logs.publicHost"
+    ).map({case (l, n) => modify(l, n)(_)})
 
-      if (isAuto(http.host)) {
-        logger.info(s"Automatically update http host to ${host.value}")
-        val upd = http.copy(host = host.value)
-        cfg.copy(http = upd)
-      } else cfg
-    }
+    val akkaUpd = (c: MasterConfig) => optic.raw.modify(c)(r => {
+      r.withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(c.cluster.publicHost))
+       .withValue("akka.remote.netty.tcp.bind-hostname", ConfigValueFactory.fromAnyRef(c.cluster.host))
+    })
 
-    val forLogs = (cfg: MasterConfig) => {
-      import cfg._
+    val all = (fieldsUpd :+ akkaUpd).reduceLeft(_ >>> _)
 
-      if(isAuto(logs.host)) {
-        logger.info(s"Automatically update logs host to ${host.value}")
-        val upd = logs.copy(host = host.value)
-        cfg.copy(logs = upd)
-      } else cfg
-    }
-
-    val upd = forCluster >>> forHttp >>> forLogs
-    upd(masterConfig)
+    all(masterConfig)
   }
 
 }

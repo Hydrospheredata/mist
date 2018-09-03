@@ -106,9 +106,9 @@ object MasterServer extends Logger {
         runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
-        akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
-        logAddress = s"${config.logs.host}:${config.logs.port}",
-        httpAddress = s"${config.http.host}:${config.http.port}",
+        akkaAddress = s"${config.cluster.publicHost}:${config.cluster.port}",
+        logAddress = s"${config.logs.publicHost}:${config.logs.port}",
+        httpAddress = s"${config.http.publicHost  }:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
       ExecutionService(spawnSettings, system, streamer, store, logService)
@@ -126,7 +126,7 @@ object MasterServer extends Logger {
     def runFunctionInfoProvider(): Future[ActorRef] = {
       val runner = FunctionInfoProviderRunner.create(
         config.jobInfoProviderConfig,
-        config.cluster.host,
+        config.cluster.publicHost,
         config.cluster.port
       )
 
