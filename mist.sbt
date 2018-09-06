@@ -87,6 +87,7 @@ lazy val master = project.in(file("mist/master"))
 
       Library.dockerJava,
 
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
       Library.commonsCodec, Library.scalajHttp,
       Library.jsr305 % "provided",
 

@@ -79,7 +79,7 @@ object TestContainer {
       if (forward.nonEmpty) {
         val port = forward.head._1
         val ip = client.inspectContainerCmd(id).exec().getNetworkSettings.getIpAddress
-        awaitListening(ip, port, 15)
+        awaitListening(ip, port, 20)
       }
       println(s"Container $id started from $image")
       id
