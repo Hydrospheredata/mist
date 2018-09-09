@@ -71,6 +71,7 @@ object Worker extends App with Logger {
 
     val config = ConfigFactory.load("worker")
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(arguments.bindHost))
+      .withValue("akka.remote.netty.tcp.bind-hostname", ConfigValueFactory.fromAnyRef("0.0.0.0"))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(arguments.bindPort))
 
     val system = ActorSystem(s"mist-worker-$name", config)
