@@ -54,7 +54,6 @@ object MistScContext {
   def apply(id: String, sparkConf: Map[String, String], streamingDuration: Duration): MistScContext = {
     val conf = new SparkConf()
       .setAppName(id)
-      .setAll(sparkConf)
       .set("spark.streaming.stopSparkContextByDefault", "false")
     val sc = new SparkContext(conf)
     //TODO id is incorrect
