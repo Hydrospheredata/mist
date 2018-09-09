@@ -3,15 +3,16 @@ package io.hydrosphere.mist.worker
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import org.apache.spark.sql.hive.HiveContext
-import org.apache.spark.streaming.Duration
+import org.apache.spark.streaming.{Duration => SDuration}
 import org.apache.spark.{SparkConf, SparkContext, SparkSessionUtils}
 
 import scala.collection.mutable
+import scala.concurrent.duration.Duration
 
 class MistScContext(
   val sc: SparkContext,
   val namespace: String,
-  val streamingDuration: Duration = Duration(40 * 1000)
+  val streamingDuration: SDuration = SDuration(40 * 1000)
 ) {
 
   private val jars = mutable.Buffer.empty[String]
@@ -51,14 +52,17 @@ class MistScContext(
 
 object MistScContext {
 
-  def apply(id: String, sparkConf: Map[String, String], streamingDuration: Duration): MistScContext = {
-    val conf = new SparkConf()
+  def apply(id: String, streamingDuration: Duration, sparkConf: SparkConf): MistScContext = {
+    val upd = sparkConf.clone()
       .setAppName(id)
       .set("spark.streaming.stopSparkContextByDefault", "false")
-    val sc = new SparkContext(conf)
-    //TODO id is incorrect
-    new MistScContext(sc, id, streamingDuration)
+
+    val duration = SDuration(streamingDuration.toMillis)
+    val sc = new SparkContext(upd)
+    new MistScContext(sc, id, duration)
   }
+
+  def apply(id: String, streamingDuration: Duration): MistScContext = apply(id, streamingDuration, new SparkConf())
 
 }
 

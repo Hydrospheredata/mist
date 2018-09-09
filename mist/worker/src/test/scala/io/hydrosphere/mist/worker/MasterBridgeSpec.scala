@@ -6,6 +6,7 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.core.MockitoSugar
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
 import mist.api.data.JsMap
+import org.apache.spark.SparkConf
 import org.scalatest.{BeforeAndAfterAll, FunSpec, FunSpecLike, Matchers}
 
 import scala.concurrent.duration._
@@ -25,7 +26,7 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
       "spark.master" -> "local[*]",
       "spark.driver.allowMultipleContexts" -> "true"
     )
-    val namedContext = MasterBridge.createNamedContext("test")(mkInitInfo(sparkConf))
+    val namedContext = MistScContext("test", 1 second, new SparkConf().setAll(sparkConf))
     val propertyValue = namedContext.sc.getConf.getBoolean("spark.streaming.stopSparkContextByDefault", true)
     propertyValue shouldBe false
     namedContext.sc.stop()

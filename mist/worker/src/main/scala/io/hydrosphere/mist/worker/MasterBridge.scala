@@ -137,7 +137,9 @@ object MasterBridge {
     workerDir: Path,
     regHub: ActorRef
   ): Props = {
-    val mkContext = createNamedContext(id)(_)
+
+    val mkContext = (info: WorkerInitInfo) => MistScContext(id, info.streamingDuration)
+
     val workerF = ActorF[(WorkerInitInfo, MistScContext)]({ case ((init, ctx), af) =>
       val hostPort = init.masterHttpConf.split(":")
       val downloader = ArtifactDownloader.create(
@@ -152,8 +154,5 @@ object MasterBridge {
     props(id, regHub, mkContext, workerF)
   }
 
-  def createNamedContext(id: String)(init: WorkerInitInfo): MistScContext = {
-    MistScContext(id, init.sparkConf, org.apache.spark.streaming.Duration(init.streamingDuration.toMillis))
-  }
 }
 
