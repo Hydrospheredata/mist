@@ -11,11 +11,15 @@
       "Default" : "m4.large",
       "Description" : "Enter t2.micro, m1.small, m1.large ..."
     },
-    "KeyPairID": {
+    "KeyPairName": {
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Description": "KeyPair Name"
+    },
+    "AccessKeyID": {
       "Type" : "String",
       "Description" : "AWS access key ID"
     },
-    "KeyPairSecret": {
+    "AccessKeySecret": {
       "Type" : "String",
       "Description" : "AWS secret access key"
     },
@@ -25,15 +29,14 @@
     }
   },
   "Resources": {
-    "MasterEc2Instance": {
+    "MistEc2Instance": {
       "Type" : "AWS::EC2::Instance",
       "Metadata": {
         "AWS::CloudFormation::Init" : {
           "config" : {
             "commands" : {
               "test" : {
-                "command" : "echo \"$CFNTEST\" > test.txt",
-                "env" : { "CFNTEST" : "I come from config1." },
+                "command" : "curl http://repo.hydrosphere.io/hydrosphere/static/preview/install.sh | bash ",
                 "cwd" : "~"
               }
             }
@@ -44,8 +47,36 @@
          "AvailabilityZone" : { "Ref": "AZ" },
          "InstanceType": { "Ref": "InstanceTypeParameter" },
          "ImageId" : "ami-027583e616ca104df",
+         "KeyName": { "Ref": "KeyPairName" },
+         "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
          "Tags" : [ {"Key" : "Name", "Value" : "mist-server"} ]
       }
+    },
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "SSH + HTTP",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs" : {
+    "PublicIp" : {
+      "Value" : { "Fn::GetAtt" : [ "MistEc2Instance", "PublicIp" ]},
+      "Description" : "PublicIp Address"
     }
   }
 }
