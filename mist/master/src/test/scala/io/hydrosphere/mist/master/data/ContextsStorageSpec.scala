@@ -54,7 +54,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   it("should fallback to default") {
     val contexts = testStorage()
-    val expected = TestUtils.contextSettings.default.copy(name = "new")
+    val expected = contexts.defaultConfig.copy(name = "new")
     contexts.getOrDefault("new").await shouldBe expected
   }
 

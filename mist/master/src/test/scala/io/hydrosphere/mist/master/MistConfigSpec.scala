@@ -50,17 +50,22 @@ class MistConfigSpec extends FunSpec with Matchers {
 
   it("should auto configure host") {
     val cfgS =
-      """mist.cluster.host = "auto"
-        |mist.http.host = "auto"
+      """mist.cluster.host = "0.0.0.0"
+        |mist.cluster.public-host = "auto"
+        |mist.http.host = "0.0.0.0"
+        |mist.http.public-host = "auto"
         |mist.log-service.host = "auto"
+        |mist.log-service.public-host = "5.5.5.5"
       """.stripMargin
     val cfg = ConfigFactory.parseString(cfgS)
-    val masterConfig = MasterConfig.parse("", MasterConfig.resolveUserConf(cfg))
+    val masterConfig = MasterConfig.parseOnly("", MasterConfig.resolveUserConf(cfg))
 
     val auto = MasterConfig.autoConfigure(masterConfig, Now("1.1.1.1"))
 
-    auto.cluster.host shouldBe "1.1.1.1"
-    auto.http.host shouldBe "1.1.1.1"
-    auto.logs.host shouldBe "1.1.1.1"
+    auto.cluster.host shouldBe "0.0.0.0"
+    auto.cluster.publicHost shouldBe "1.1.1.1"
+    auto.http.publicHost shouldBe "1.1.1.1"
+    auto.http.host shouldBe "0.0.0.0"
+    auto.logs.publicHost shouldBe "5.5.5.5"
   }
 }

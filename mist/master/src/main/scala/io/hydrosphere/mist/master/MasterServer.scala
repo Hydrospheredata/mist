@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import java.nio.file.Paths
 
-import akka.actor.{Actor, ActorSystem, PoisonPill, Props}
+import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.server.Directives._
@@ -24,6 +24,7 @@ import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
+import io.hydrosphere.mist.utils.akka.RestartSupervisor
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
@@ -109,9 +110,9 @@ object MasterServer extends Logger {
         runnerCmd = workerStarter,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
-        akkaAddress = s"${config.cluster.host}:${config.cluster.port}",
-        logAddress = s"${config.logs.host}:${config.logs.port}",
-        httpAddress = s"${config.http.host}:${config.http.port}",
+        akkaAddress = s"${config.cluster.publicHost}:${config.cluster.port}",
+        logAddress = s"${config.logs.publicHost}:${config.logs.port}",
+        httpAddress = s"${config.http.publicHost  }:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
       ExecutionService(spawnSettings, emrOnly, system, streamer, store, logService)
@@ -125,15 +126,20 @@ object MasterServer extends Logger {
 
     val security = bootstrapSecurity(config)
 
-    val jobExtractorRunner = FunctionInfoProviderRunner.create(
-      config.jobInfoProviderConfig,
-      config.cluster.host,
-      config.cluster.port
-    )
+
+    def runFunctionInfoProvider(): Future[ActorRef] = {
+      val runner = FunctionInfoProviderRunner.create(
+        config.jobInfoProviderConfig,
+        config.cluster.publicHost,
+        config.cluster.port
+      )
+
+      RestartSupervisor.wrap("FunctionInfoProvider", () => runner.run()(system))
+    }
 
     for {
       logService             <- start("LogsSystem", runLogService())
-      jobInfoProvider        <- start("FunctionInfoProvider", jobExtractorRunner.run())
+      jobInfoProvider        <- start("FunctionInfoProvider", runFunctionInfoProvider())
       functionInfoService =  new FunctionsService(
                                       jobInfoProvider,
                                       functionsStorage,

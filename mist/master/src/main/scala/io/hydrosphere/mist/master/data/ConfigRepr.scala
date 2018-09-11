@@ -116,7 +116,7 @@ object ConfigRepr {
           .map(entry => cleanKey(entry.getKey) -> entry.getValue.unwrapped().toString)
           .toMap,
         downtime = Duration(config.getString("downtime")),
-        maxJobs = config.getInt("max-parallel-jobs"),
+        maxJobs = config.getOptInt("max-jobs").getOrElse(config.getInt("max-parallel-jobs")),
         precreated = config.getBoolean("precreated"),
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),

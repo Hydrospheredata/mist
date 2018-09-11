@@ -27,7 +27,7 @@ lazy val commonSettings = Seq(
   scalaVersion :=  "2.11.8",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
-  version := "1.0.0-RC16"
+  version := "1.0.0-RC17"
 )
 
 lazy val mistLib = project.in(file("mist-lib"))
@@ -90,6 +90,7 @@ lazy val master = project.in(file("mist/master"))
       "software.amazon.awssdk" % "ec2" % "2.0.0-preview-10",
       "software.amazon.awssdk" % "emr" % "2.0.0-preview-10",
 
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
       Library.commonsCodec, Library.scalajHttp,
       Library.jsr305 % "provided",
 
@@ -298,9 +299,6 @@ lazy val root = project.in(file("."))
         run("apk", "add", "python", "curl", "jq", "coreutils", "subversion-dev", "fts-dev")
 
         copy(localSpark, "/usr/share/spark")
-
-        copyRaw("--from=quay.io/vektorcloud/mesos /usr/local/lib/libmesos-1.4.1.so", "/usr/local/lib/libmesos.so")
-        runRaw("""echo "export MESOS_NATIVE_JAVA_LIBRARY=/usr/local/lib/libmesos.so" > $SPARK_HOME/conf/spark-env.sh""")
 
         copy(distr, mistHome)
 
