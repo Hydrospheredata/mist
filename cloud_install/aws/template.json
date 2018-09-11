@@ -1,0 +1,51 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Hydrosphere/mist setup template",
+  "Metadata" : {
+    "Instances" : {"Description" : "Information about the instances"},
+    "Databases" : {"Description" : "Information about the databases"}
+  },
+  "Parameters" : {
+    "InstanceTypeParameter" : {
+      "Type" : "String",
+      "Default" : "m4.large",
+      "Description" : "Enter t2.micro, m1.small, m1.large ..."
+    },
+    "KeyPairID": {
+      "Type" : "String",
+      "Description" : "AWS access key ID"
+    },
+    "KeyPairSecret": {
+      "Type" : "String",
+      "Description" : "AWS secret access key"
+    },
+    "AZ": {
+       "Description": "Availability Zone of the Subnet",
+       "Type": "AWS::EC2::AvailabilityZone::Name"
+    }
+  },
+  "Resources": {
+    "MasterEc2Instance": {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata": {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "commands" : {
+              "test" : {
+                "command" : "echo \"$CFNTEST\" > test.txt",
+                "env" : { "CFNTEST" : "I come from config1." },
+                "cwd" : "~"
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+         "AvailabilityZone" : { "Ref": "AZ" },
+         "InstanceType": { "Ref": "InstanceTypeParameter" },
+         "ImageId" : "ami-027583e616ca104df",
+         "Tags" : [ {"Key" : "Name", "Value" : "mist-server"} ]
+      }
+    }
+  }
+}
