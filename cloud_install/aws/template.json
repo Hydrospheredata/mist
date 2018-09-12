@@ -31,25 +31,22 @@
   "Resources": {
     "MistEc2Instance": {
       "Type" : "AWS::EC2::Instance",
-      "Metadata": {
-        "AWS::CloudFormation::Init" : {
-          "config" : {
-            "commands" : {
-              "test" : {
-                "command" : "curl http://repo.hydrosphere.io/hydrosphere/static/preview/install.sh | bash ",
-                "cwd" : "~"
-              }
-            }
-          }
-        }
-      },
       "Properties" : {
          "AvailabilityZone" : { "Ref": "AZ" },
          "InstanceType": { "Ref": "InstanceTypeParameter" },
          "ImageId" : "ami-027583e616ca104df",
          "KeyName": { "Ref": "KeyPairName" },
          "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
-         "Tags" : [ {"Key" : "Name", "Value" : "mist-server"} ]
+         "Tags" : [ {"Key" : "Name", "Value" : "mist-server"} ],
+         "UserData": {
+           "Fn::Base64": { "Fn::Join": [ "\n", [
+              "#!/bin/bash -ex",
+              { "Fn::Join": ["", ["echo ACCESS_KEY_ID=", { "Ref": "AccessKeyID"},  " > ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo ACCESS_KEY_SECRET=", { "Ref": "AccessKeySecret"},  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo AWS_AZ=", { "Ref": "AZ"},  " >> ~/.aws_setup_data"]]},
+              "curl http://repo.hydrosphere.io/hydrosphere/static/preview/install.sh | bash"
+           ]]}
+         }
       }
     },
     "InstanceSecurityGroup" : {
