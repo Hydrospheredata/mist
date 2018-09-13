@@ -39,22 +39,22 @@ class RestartSupervisor(
     case akka.actor.Status.Failure(e) =>
       log.error(e, "Starting child for {} failed", name)
       timers.startSingleTimer("timeout", Event.Timeout, timeout)
-      context become restartTimeout(attempts)
+      context become restartTimeout(req, attempts)
   }
 
   private def proxy(ref: ActorRef): Receive = {
     case Terminated(_) =>
       log.error(s"Reference for {} was terminated. Restarting", name)
       timers.startSingleTimer("timeout", Event.Timeout, timeout)
-      context become restartTimeout(0)
+      context become restartTimeout(None, 0)
 
     case x => ref.forward(x)
   }
 
-  private def restartTimeout(attempts: Int): Receive = {
+  private def restartTimeout(req: Option[Promise[ActorRef]], attempts: Int): Receive = {
     case Event.Timeout =>
       start().map(Event.Started) pipeTo self
-      context become await(None, attempts + 1)
+      context become await(req, attempts + 1)
   }
 }
 
