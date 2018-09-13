@@ -26,6 +26,14 @@
     "AZ": {
        "Description": "Availability Zone of the Subnet",
        "Type": "AWS::EC2::AvailabilityZone::Name"
+    },
+    "MistLogin": {
+      "Type" : "String",
+      "Description" : "Basic auth login"
+    },
+    "MistPassword": {
+      "Type" : "String",
+      "Description" : "Basic auth password"
     }
   },
   "Resources": {
@@ -44,6 +52,8 @@
               { "Fn::Join": ["", ["echo ACCESS_KEY_ID=", { "Ref": "AccessKeyID"},  " > ~/.aws_setup_data"]]},
               { "Fn::Join": ["", ["echo ACCESS_KEY_SECRET=", { "Ref": "AccessKeySecret"},  " >> ~/.aws_setup_data"]]},
               { "Fn::Join": ["", ["echo AWS_AZ=", { "Ref": "AZ"},  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo MIST_LOGIN=", { "Ref": "MistLogin"},  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo MIST_PASSWORD=", { "Ref": "MistPassword"},  " >> ~/.aws_setup_data"]]},
               "curl http://repo.hydrosphere.io/hydrosphere/static/preview/install.sh | bash"
            ]]}
          }

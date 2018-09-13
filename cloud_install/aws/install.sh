@@ -3,7 +3,9 @@
 apt-get update
 apt-get install -y nginx openjdk-8-jdk apache2-utils
 
-echo "<p>Completing Mist intallation</p>" > /var/www/html/index.html
+source ~/.aws_setup_data
+
+echo "<p>Mist will start soon</p>" > /var/www/html/index.html
 cat << EOF > /etc/nginx/sites-enabled/default
 server {
 	listen 80 default_server;
@@ -33,7 +35,7 @@ sleep 30
 
 SPARK_HOME=/opt/spark /opt/mist/bin/mist-master start
 
-htpasswd -b -c /etc/nginx/.htpasswd admin password
+htpasswd -b -c /etc/nginx/.htpasswd $MIST_LOGIN $MIST_PASSWORD
 cat << EOF > /etc/nginx/sites-enabled/default
 server {
 	listen 80 default_server;
