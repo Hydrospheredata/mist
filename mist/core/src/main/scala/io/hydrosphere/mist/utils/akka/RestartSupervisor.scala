@@ -10,7 +10,8 @@ import scala.concurrent.duration._
 class RestartSupervisor(
   name: String,
   start: () => Future[ActorRef],
-  timeout: FiniteDuration
+  timeout: FiniteDuration,
+  maxRetry: Int
 ) extends Actor with ActorLogging with Timers {
 
   override def receive: Receive = init
@@ -21,35 +22,39 @@ class RestartSupervisor(
   private def init: Receive = {
     case Event.Start(req) =>
       start().map(Event.Started) pipeTo self
-      context become await(Some(req))
+      context become await(Some(req), 0)
   }
 
-  private def await(req: Option[Promise[ActorRef]]): Receive = {
+  private def await(req: Option[Promise[ActorRef]], attempts: Int): Receive = {
     case Event.Started(ref) =>
       req.foreach(_.success(self))
       context watch ref
       context become proxy(ref)
 
-    case akka.actor.Status.Failure(e) =>
+    case akka.actor.Status.Failure(e)  if maxRetry == attempts + 1 =>
       req.foreach(_.failure(e))
+      log.error(e, "Starting child for {} failed, maxRetry reached", name)
+      context stop self
+
+    case akka.actor.Status.Failure(e) =>
       log.error(e, "Starting child for {} failed", name)
       timers.startSingleTimer("timeout", Event.Timeout, timeout)
-      context become restartTimeout
+      context become restartTimeout(attempts)
   }
 
   private def proxy(ref: ActorRef): Receive = {
     case Terminated(_) =>
       log.error(s"Reference for {} was terminated. Restarting", name)
       timers.startSingleTimer("timeout", Event.Timeout, timeout)
-      context become restartTimeout
+      context become restartTimeout(0)
 
     case x => ref.forward(x)
   }
 
-  private def restartTimeout: Receive = {
+  private def restartTimeout(attempts: Int): Receive = {
     case Event.Timeout =>
       start().map(Event.Started) pipeTo self
-      context become await(None)
+      context become await(None, attempts + 1)
   }
 }
 
@@ -67,18 +72,20 @@ object RestartSupervisor {
   def props(
     name: String,
     start: () => Future[ActorRef],
-    timeout: FiniteDuration
+    timeout: FiniteDuration,
+    maxRetry: Int
   ): Props = {
-    Props(classOf[RestartSupervisor], name, start, timeout)
+    Props(classOf[RestartSupervisor], name, start, timeout, maxRetry)
   }
 
   def wrap(
     name: String,
     start: () => Future[ActorRef],
-    timeout: FiniteDuration
+    timeout: FiniteDuration,
+    maxRetry: Int
   )(implicit af: ActorRefFactory): Future[ActorRef] = {
 
-    val ref = af.actorOf(props(name, start, timeout))
+    val ref = af.actorOf(props(name, start, timeout, maxRetry))
     val promise = Promise[ActorRef]
     ref ! Event.Start(promise)
     promise.future
@@ -86,8 +93,9 @@ object RestartSupervisor {
 
   def wrap(
     name: String,
+    maxRetry: Int,
     start: () => Future[ActorRef]
-  )(implicit af: ActorRefFactory): Future[ActorRef] = wrap(name, start, 5 seconds)(af)
+  )(implicit af: ActorRefFactory): Future[ActorRef] = wrap(name, start, 5 seconds, maxRetry)(af)
 
 }
 
