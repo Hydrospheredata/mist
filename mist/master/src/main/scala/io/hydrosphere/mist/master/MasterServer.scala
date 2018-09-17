@@ -130,7 +130,11 @@ object MasterServer extends Logger {
         config.cluster.port
       )
 
-      RestartSupervisor.wrap("FunctionInfoProvider", () => runner.run()(system))
+      RestartSupervisor.wrap(
+        name = "FunctionInfoProvider",
+        maxRetry = 10,
+        start = () => runner.run()(system)
+      )
     }
 
     for {
