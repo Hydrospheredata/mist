@@ -27,8 +27,9 @@ final class CompletableFutureOps[A](val cf: CompletableFuture[A]) extends AnyVal
   }
 
   def toIO: IO[A] = IO.fromFuture(IO(toFuture))
+
 }
 
-object jFutureSyntax {
+object JFutureSyntax {
   implicit def cfSyntax[A](cf: CompletableFuture[A]): CompletableFutureOps[A] = new CompletableFutureOps(cf)
 }

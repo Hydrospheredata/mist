@@ -7,7 +7,7 @@ import software.amazon.awssdk.services.ec2.EC2AsyncClient
 import software.amazon.awssdk.services.ec2.model._
 
 import scala.collection.JavaConverters._
-import jFutureSyntax._
+import JFutureSyntax._
 
 case class SecGroupData(
   vpcId: String,

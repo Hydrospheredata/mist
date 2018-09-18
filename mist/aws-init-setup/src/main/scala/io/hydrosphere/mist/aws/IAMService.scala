@@ -10,7 +10,7 @@ import cats.effect._
 import software.amazon.awssdk.services.iam.IAMAsyncClient
 import software.amazon.awssdk.services.iam.model.{AttachRolePolicyRequest, CreateRoleRequest, GetRoleRequest, Role}
 
-import jFutureSyntax._
+import JFutureSyntax._
 
 import scala.io.Source
 

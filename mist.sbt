@@ -131,7 +131,7 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
-lazy val awsConfigGen = project.in(file("mist/aws-config-gen"))
+lazy val awsInitSetup = project.in(file("mist/aws-init-setup"))
   .dependsOn(core % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
@@ -166,6 +166,8 @@ lazy val root = project.in(file("."))
         CpFile("configs/logging").to("configs"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
+        MkDir("utils"),
+        CpFile(assembly.in(awsInitSetup, assembly).value).as("aws-init-setup.jar").to("utils"),
         CpFile(Ui.ui.value).as("ui")
       )
     },
