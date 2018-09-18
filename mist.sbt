@@ -131,6 +131,22 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
+lazy val awsConfigGen = project.in(file("mist/aws-config-gen"))
+  .dependsOn(core % "compile->compile;test->test")
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .settings(
+    name := "mist-aws-config-gen",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= Seq(
+      Library.slf4jLog4j, Library.typesafeConfig,
+      Library.cats, Library.catsEffect,
+      Library.awsSdkEC2, Library.awsSdkIAM,
+      Library.jsr305 % "provided",
+      Library.scalaTest % "test"
+    )
+  )
+
 lazy val root = project.in(file("."))
   .aggregate(mistLib, core, master, worker, examples)
   .dependsOn(master)
