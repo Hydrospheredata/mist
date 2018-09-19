@@ -4,8 +4,8 @@ import java.io.File
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.worker.runners.{ArtifactDownloader, JobRunner, RunnerSelector}
 import mist.api.data.{JsData, _}
 import mist.api.encoding.defaultEncoders._

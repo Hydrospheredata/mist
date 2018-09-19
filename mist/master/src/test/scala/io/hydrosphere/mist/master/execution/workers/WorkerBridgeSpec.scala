@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.testkit.TestProbe
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.common.CommonData._
 import io.hydrosphere.mist.master.execution.workers.WorkerBridge.Event.CompleteAndShutdown
 import io.hydrosphere.mist.master.{ActorSpec, TestData, TestUtils}
 import mist.api.data._

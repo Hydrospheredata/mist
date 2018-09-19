@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import io.hydrosphere.mist.core.CommonData
+import io.hydrosphere.mist.common.CommonData
 import io.hydrosphere.mist.master.TestData
 import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}

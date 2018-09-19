@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core
+package io.hydrosphere.mist.common
 
 case class PythonEntrySettings(
   driver: String,

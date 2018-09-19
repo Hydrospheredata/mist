@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.worker.logging
 
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.logging.LogEvent
 import org.apache.log4j.spi.LoggingEvent
 import org.apache.log4j.{AppenderSkeleton, Level, SimpleLayout}
 

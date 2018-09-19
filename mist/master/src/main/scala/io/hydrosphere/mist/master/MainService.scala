@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.common.CommonData.Action
 import io.hydrosphere.mist.master.JobDetails.Source.Async
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}

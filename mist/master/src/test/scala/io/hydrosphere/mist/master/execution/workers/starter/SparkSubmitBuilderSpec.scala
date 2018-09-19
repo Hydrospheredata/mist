@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers.starter
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.TestData
 import org.scalatest.{FunSpec, Matchers}
 import scala.concurrent.duration._

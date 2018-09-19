@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core
+package io.hydrosphere.mist.common
 
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.stubbing.{Answer, OngoingStubbing}

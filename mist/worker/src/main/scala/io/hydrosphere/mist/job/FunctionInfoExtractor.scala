@@ -3,10 +3,10 @@ package io.hydrosphere.mist.job
 import java.io.File
 import java.net.URLClassLoader
 
-import io.hydrosphere.mist.core
-import io.hydrosphere.mist.core.CommonData.{Action, EnvInfo}
-import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData}
-import io.hydrosphere.mist.core.ExtractedFunctionData
+import io.hydrosphere.mist.common
+import io.hydrosphere.mist.common.CommonData.{Action, EnvInfo}
+import io.hydrosphere.mist.common.{ExtractedFunctionData, FunctionInfoData}
+import io.hydrosphere.mist.common.ExtractedFunctionData
 import io.hydrosphere.mist.python.{FunctionInfoPythonExecutor, PythonCmd}
 import io.hydrosphere.mist.utils.{Err, Logger, Succ, TryLoad}
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
@@ -36,7 +36,7 @@ class JvmFunctionInfoExtractor(mkLoader: ClassLoader => FunctionInstanceLoader) 
       val executeFnInstance = loader.loadFnInstance(className, Action.Execute)
       executeFnInstance orElse loader.loadFnInstance(className, Action.Serve) map { instance =>
 
-        FunctionInfo(instance, core.ExtractedFunctionData(
+        FunctionInfo(instance, common.ExtractedFunctionData(
           lang = instance.lang,
           execute = instance.describe().collect { case x: UserInputArgument => x },
           isServe = !executeFnInstance.isSuccess,

@@ -7,8 +7,8 @@ import akka.pattern._
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.{ExtractedFunctionData, FunctionInfoData, PythonEntrySettings}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig}

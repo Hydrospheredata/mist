@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.status
 
 import akka.actor.ActorSystem
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.{EventsStreamer, JobDetails}
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.logging.LogService

@@ -7,8 +7,8 @@ import java.util.UUID
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.ByteString
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository

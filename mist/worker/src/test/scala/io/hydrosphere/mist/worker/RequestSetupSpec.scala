@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker
 
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.worker.logging.LogsWriter
 import mist.api.data.JsMap
 import org.apache.log4j.LogManager

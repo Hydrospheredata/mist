@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest

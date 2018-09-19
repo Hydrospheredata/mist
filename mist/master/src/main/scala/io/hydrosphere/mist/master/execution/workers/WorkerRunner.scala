@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.execution.SpawnSettings
 import io.hydrosphere.mist.master.execution.workers.starter.WorkerProcess
 import io.hydrosphere.mist.master.models.ContextConfig

@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
 import io.hydrosphere.mist.master.execution.workers.WorkerBridge.Event.CompleteAndShutdown
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}

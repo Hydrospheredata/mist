@@ -2,8 +2,8 @@ package io.hydrosphere.mist.worker
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
 import mist.api.data.JsMap
 import org.apache.spark.SparkConf

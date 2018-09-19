@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.execution
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.{ReportedEvent, StatusReporter}
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}

@@ -5,9 +5,9 @@ import java.nio.file.Paths
 
 import akka.actor.{ActorSystem, Status}
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData.{Action, GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
-import io.hydrosphere.mist.core.{ExtractedFunctionData, FunctionInfoData, MockitoSugar}
-import io.hydrosphere.mist.core.ExtractedFunctionData
+import io.hydrosphere.mist.common.CommonData.{Action, GetAllFunctions, GetFunctionInfo, ValidateFunctionParameters}
+import io.hydrosphere.mist.common.{ExtractedFunctionData, FunctionInfoData, MockitoSugar}
+import io.hydrosphere.mist.common.ExtractedFunctionData
 import io.hydrosphere.mist.master.TestData
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{Contexts, ContextsStorage, FunctionConfigStorage}

@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.models.ContextConfig
 

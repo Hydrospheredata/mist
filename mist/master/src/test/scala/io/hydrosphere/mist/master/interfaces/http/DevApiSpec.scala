@@ -4,9 +4,9 @@ import mist.api.data._
 import mist.api.encoding.JsSyntax._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import io.hydrosphere.mist.core.CommonData.{JobParams, RunJobRequest}
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.common.CommonData.{JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.MockitoSugar
+import io.hydrosphere.mist.common.CommonData.Action
 import io.hydrosphere.mist.master.JobDetails.{Source, Status}
 import io.hydrosphere.mist.master.execution.ExecutionInfo
 import io.hydrosphere.mist.master.MainService

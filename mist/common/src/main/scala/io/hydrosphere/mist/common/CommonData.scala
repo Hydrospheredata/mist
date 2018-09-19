@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core
+package io.hydrosphere.mist.common
 
 import akka.actor.ActorRef
 import mist.api.data.{JsData, JsMap}

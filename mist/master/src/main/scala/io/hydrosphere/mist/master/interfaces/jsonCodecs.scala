@@ -3,8 +3,8 @@ package io.hydrosphere.mist.master.interfaces
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, WorkerInitInfo}
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.WorkerLink
 import io.hydrosphere.mist.master.interfaces.http._

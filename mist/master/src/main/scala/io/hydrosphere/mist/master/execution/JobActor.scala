@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution
 import java.io.{PrintWriter, StringWriter}
 
 import akka.actor.{Actor, ActorLogging, ActorRef, OneForOneStrategy, PoisonPill, Props, SupervisorStrategy, Timers}
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.common.CommonData._
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}

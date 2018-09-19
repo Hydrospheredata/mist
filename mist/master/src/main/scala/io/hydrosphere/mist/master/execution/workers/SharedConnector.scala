@@ -4,8 +4,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.CancelJobRequest
+import io.hydrosphere.mist.common.CommonData
+import io.hydrosphere.mist.common.CommonData.CancelJobRequest
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
 import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.models.ContextConfig

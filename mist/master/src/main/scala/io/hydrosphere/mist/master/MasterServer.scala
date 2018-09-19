@@ -10,7 +10,7 @@ import akka.stream.ActorAttributes.supervisionStrategy
 import akka.stream.ActorMaterializer
 import akka.stream.Supervision.resumingDecider
 import akka.stream.scaladsl.{Keep, Sink}
-import io.hydrosphere.mist.core.CommonData
+import io.hydrosphere.mist.common.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}

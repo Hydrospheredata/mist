@@ -2,8 +2,8 @@ package io.hydrosphere.mist.job
 
 import java.io.File
 
-import io.hydrosphere.mist.core.CommonData.{Action, EnvInfo}
-import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
+import io.hydrosphere.mist.common.CommonData.{Action, EnvInfo}
+import io.hydrosphere.mist.common.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api.{InternalArgument, MInt, UserInputArgument}
 import org.mockito.Matchers.{endsWith => mockitoEndsWith, eq => mockitoEq}

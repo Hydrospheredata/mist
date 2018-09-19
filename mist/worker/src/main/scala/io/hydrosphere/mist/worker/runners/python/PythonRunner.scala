@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.worker.runners.python
 
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
 import io.hydrosphere.mist.python.PythonFunctionExecutor
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.runners.JobRunner

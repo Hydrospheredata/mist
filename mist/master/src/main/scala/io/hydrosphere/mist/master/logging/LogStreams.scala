@@ -8,7 +8,7 @@ import akka.stream.{ActorAttributes, ActorMaterializer, OverflowStrategy}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages.ReceivedLogs
 import io.hydrosphere.mist.master.{EventsStreamer, LogStoragePaths}
 import io.hydrosphere.mist.utils.Logger

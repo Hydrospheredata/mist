@@ -3,7 +3,7 @@ package io.hydrosphere.mist.master.execution
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}

@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core.logging
+package io.hydrosphere.mist.common.logging
 
 case class Level(value: Int, name: String)
 

@@ -4,7 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 
 import akka.actor._
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.common.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsData
 import org.apache.spark.streaming.StreamingContext

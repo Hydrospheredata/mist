@@ -3,8 +3,8 @@ package io.hydrosphere.mist.python
 import java.io.File
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.CommonData.{EnvInfo, RunJobRequest}
-import io.hydrosphere.mist.core.PythonEntrySettings
+import io.hydrosphere.mist.common.CommonData.{EnvInfo, RunJobRequest}
+import io.hydrosphere.mist.common.PythonEntrySettings
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.worker.MistScContext
 import io.hydrosphere.mist.worker.runners.python.wrappers.{ConfigurationWrapper, SparkStreamingWrapper}

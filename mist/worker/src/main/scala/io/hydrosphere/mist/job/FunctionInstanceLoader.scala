@@ -3,7 +3,7 @@ package io.hydrosphere.mist.job
 import java.io.File
 import java.net.URLClassLoader
 
-import io.hydrosphere.mist.core.CommonData.Action
+import io.hydrosphere.mist.common.CommonData.Action
 import io.hydrosphere.mist.job
 import io.hydrosphere.mist.utils.{Err, TryLoad}
 

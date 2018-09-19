@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core
+package io.hydrosphere.mist.common
 
 import org.scalatest.{FunSpec, Matchers}
 

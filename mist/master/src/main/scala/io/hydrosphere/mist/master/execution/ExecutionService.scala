@@ -5,7 +5,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.InitializedEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub

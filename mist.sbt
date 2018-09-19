@@ -50,13 +50,12 @@ lazy val mistLib = project.in(file("mist-lib"))
     test in Test := Def.sequential(test in Test, PyProject.pyTest in Test).value
   )
 
-lazy val core = project.in(file("mist/core"))
+lazy val common = project.in(file("mist/common"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    name := "mist-core",
+    name := "mist-common",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
       Library.Akka.actor,
       Library.slf4j,
@@ -67,7 +66,7 @@ lazy val core = project.in(file("mist/core"))
   )
 
 lazy val master = project.in(file("mist/master"))
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .enablePlugins(BuildInfoPlugin)
@@ -99,8 +98,25 @@ lazy val master = project.in(file("mist/master"))
     buildInfoPackage := "io.hydrosphere.mist"
   )
 
+lazy val clusterAgent = project.in(file("mist/cluster-agent"))
+  .dependsOn(common % "compile->compile;test->test")
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .settings(
+    name := "mist-cluster-agent",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= Library.Akka.base,
+    libraryDependencies ++= Seq(
+      Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,
+      Library.cats,
+      Library.jsr305 % "provided",
+      Library.scalaTest % "test",
+      Library.Akka.testKit % "test"
+    )
+  )
+
 lazy val worker = project.in(file("mist/worker"))
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(
@@ -132,11 +148,11 @@ lazy val worker = project.in(file("mist/worker"))
   )
 
 lazy val awsInitSetup = project.in(file("mist/aws-init-setup"))
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(
-    name := "mist-aws-config-gen",
+    name := "mist-aws-init-setup",
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Seq(
       Library.slf4jLog4j, Library.typesafeConfig,
@@ -148,7 +164,7 @@ lazy val awsInitSetup = project.in(file("mist/aws-init-setup"))
   )
 
 lazy val root = project.in(file("."))
-  .aggregate(mistLib, core, master, worker, examples)
+  .aggregate(mistLib, common, master, worker, examples)
   .dependsOn(master)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)

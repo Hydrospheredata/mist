@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.core.logging
+package io.hydrosphere.mist.common.logging
 
 import java.io.{PrintWriter, StringWriter}
 import java.time.format.DateTimeFormatter

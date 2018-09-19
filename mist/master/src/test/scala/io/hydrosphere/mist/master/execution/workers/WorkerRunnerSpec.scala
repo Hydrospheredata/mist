@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.execution.workers
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{SpawnSettings, workers}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}

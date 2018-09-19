@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.{CommonData, MockitoSugar}
+import io.hydrosphere.mist.common.{CommonData, MockitoSugar}
 import io.hydrosphere.mist.master.TestData
 import io.hydrosphere.mist.master.models.ContextConfig
 import org.scalatest.concurrent.Eventually

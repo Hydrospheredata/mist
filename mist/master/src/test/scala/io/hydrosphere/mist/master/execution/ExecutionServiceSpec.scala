@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestProbe}
-import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
+import io.hydrosphere.mist.common.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.WorkerHub

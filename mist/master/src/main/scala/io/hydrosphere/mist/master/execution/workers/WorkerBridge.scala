@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorRefFactory, Props, ReceiveTimeout, Terminated, Timers}
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.common.CommonData._
 import io.hydrosphere.mist.master.execution.WorkerLink
 
 import scala.concurrent.{Future, Promise}
