@@ -27,6 +27,19 @@ case class InstanceData(
 trait EC2Service[F[_]] {
 
   def getInstanceData(id: String): F[Option[InstanceData]]
+
+  def getKeyPair(name: String): F[Option[String]]
+  def createKeyPair(name: String, key: String): F[String]
+
+  def getOrCreateKeyPair(name: String, key: String)(implicit M: Monad[F]): F[String] = {
+    for {
+      curr <- getKeyPair(name)
+      out <- curr match {
+        case Some(_) => M.pure(name)
+        case None => createKeyPair(name, key)
+      }
+    } yield out
+  }
   
   def getSecGroup(name: String): F[Option[String]]
   def createSecGroup(name: String, descr: String, data: SecGroupData): F[String]
@@ -104,7 +117,23 @@ object EC2Service {
           data = extractData(resp)
         } yield data
       }
+
+      override def getKeyPair(name: String): IO[Option[String]] = {
+        val req = DescribeKeyPairsRequest.builder().keyNames(name).build()
+        ec2Client.describeKeyPairs(req).toIO
+          .map(resp => resp.keyPairs().asScala.headOption.map(i => i.keyName()))
+          .handleErrorWith(e => e match {
+            case _: software.amazon.awssdk.services.ec2.model.EC2Exception => IO.pure(None)
+            case _ => IO.raiseError(e)
+          })
+      }
+
+      override def createKeyPair(name: String, key: String): IO[String] = {
+        val req = ImportKeyPairRequest.builder().keyName(name).publicKeyMaterial(key).build()
+        ec2Client.importKeyPair(req).toIO.map(resp => resp.keyName())
+      }
     }
+
   }
 
 }

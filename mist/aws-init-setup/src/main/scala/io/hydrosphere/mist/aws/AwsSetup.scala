@@ -12,12 +12,13 @@ case class SetupData(
   subnetId: String,
   securityGroupId: String,
   emrRole: String,
-  ec2EmrRole: String
+  ec2EmrRole: String,
+  sshKeyPairName: String
 )
 
 trait AwsSetup[F[_]] {
 
-  def setup(instanceId: String): F[SetupData]
+  def setup(instanceId: String, sshKey: String): F[SetupData]
 
 }
 
@@ -28,10 +29,12 @@ object AwsSetup {
 
       val ec2EmrRole = AWSRole("mist-EMREC2", "default emr ec2 role", AWSRoleData.EC2EMR)
       val emrRole = AWSRole("mist-EMR", "default emr role", AWSRoleData.EMR)
-      val secGroupName = "mist-internal"
       val secGroupDecr = "Master-worker communications"
 
-      override def setup(instanceId: String): F[SetupData] = {
+      def secGroupName(id: String): String = s"mist-internal-$id"
+      def keyName(id: String): String = s"mist-$id"
+
+      override def setup(instanceId: String, sshKey: String): F[SetupData] = {
         for {
           maybeInst <- ec2.getInstanceData(instanceId)
           data <- maybeInst match {
@@ -42,8 +45,9 @@ object AwsSetup {
           emrRole <- iam.getOrCreate(emrRole)
 
           secGroupData = SecGroupData(data.vpcId, 0, 65535, data.cidrIp)
-          secGroupId <- ec2.getOrCreateSecGroup(secGroupName, secGroupDecr, secGroupData)
-        } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name)
+          secGroupId <- ec2.getOrCreateSecGroup(secGroupName(instanceId), secGroupDecr, secGroupData)
+          keyName <- ec2.getOrCreateKeyPair(keyName(instanceId), sshKey)
+        } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name, keyName)
       }
     }
   }

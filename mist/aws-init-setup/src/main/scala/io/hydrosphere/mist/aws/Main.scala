@@ -2,6 +2,8 @@ package io.hydrosphere.mist.aws
 
 import java.nio.file.Paths
 
+import scala.io.Source
+
 object Main {
 
   def main(args: Array[String]): Unit = {
@@ -11,14 +13,14 @@ object Main {
     val region = args(3)
     val configPath = args(4)
 
-    val sshKeyPair = args(5)
-    val sshKeyPath = args(6)
+    val sshKeyPath = args(5)
+    val sshKey = Source.fromFile(Paths.get(sshKeyPath).toFile).mkString
 
     val setup = AwsSetup.create(accessKey, accessSecret, region)
-    val out = setup.setup(instanceId).unsafeRunSync()
+    val out = setup.setup(instanceId, sshKey).unsafeRunSync()
 
     val provisionData = ProvisionData(
-      sshKeyPair = sshKeyPair,
+      sshKeyPair = out.sshKeyPairName,
       sshKeyPath = sshKeyPath,
       accessKey = accessKey,
       secretKey = accessSecret,

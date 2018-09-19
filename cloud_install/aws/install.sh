@@ -3,7 +3,12 @@
 apt-get update
 apt-get install -y nginx openjdk-8-jdk apache2-utils
 
+JAVA=$(which java)
+
 source ~/.aws_setup_data
+
+ssh-keygen -b 2048 -t rsa -f ~/.mist_key -q -N ""
+chmod 600 ~/.mist_key
 
 echo "<p>Mist will start soon</p>" > /var/www/html/index.html
 cat << EOF > /etc/nginx/sites-enabled/default
@@ -32,6 +37,9 @@ mv spark-2.3.0-bin-hadoop2.7 spark
 # By some reasons, there is some problems with running Mist right after intance was started
 # InfoProvider can't connect to master
 sleep 30
+
+INSTANCE_ID=$(ec2metadata --instance-id)
+$JAVA -cp /opt/mist/utils/aws-init-setup.jar io.hydrosphere.mist.aws.Main $INSTANCE_ID $ACCESS_KEY_ID $ACCESS_KEY_SECRET $AWS_REGION /opt/mist/configs/default.conf ~/.mist_key.pub
 
 SPARK_HOME=/opt/spark /opt/mist/bin/mist-master start
 
