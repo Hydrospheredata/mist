@@ -211,8 +211,8 @@ object HttpV2Routes extends Logger {
     path( root / "functions" ) {
       put { entity(as[FunctionConfig]) { req =>
         val rsp = functions.hasFunction(req.name).ifM(
-          Future.failed(new IllegalStateException(s"Endpoint ${req.name} already exists")),
-          functions.update(req).map(HttpFunctionInfoV2.convert)
+          functions.update(req).map(HttpFunctionInfoV2.convert),
+          Future.failed(new IllegalStateException(s"Endpoint ${req.name} already exists"))
         )
         completeF(rsp, StatusCodes.BadRequest)
       }}
