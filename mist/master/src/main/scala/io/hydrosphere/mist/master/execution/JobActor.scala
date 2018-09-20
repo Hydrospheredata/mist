@@ -27,7 +27,7 @@ class JobActor(
   promise: Promise[JsData],
   report: StatusReporter,
   jobLogger: JobLogger
-) extends Actor with ActorLogging with Timers {
+) extends Actor with ActorLogging with Timers with FutureSubscribe {
 
   import JobActor._
 
@@ -42,6 +42,7 @@ class JobActor(
   }
 
   override def preStart(): Unit = {
+    super.preStart()
     report.reportPlain(QueuedEvent(req.id))
     startTimeoutTimer(startTimeoutKey, req.startTimeout)
   }
@@ -66,7 +67,7 @@ class JobActor(
       report.reportPlain(WorkerAssigned(req.id, connection.id))
       connection.run(req, self)
 
-      connection.whenTerminated.onComplete(_ => self ! Event.ConnectionTerminated)(context.dispatcher)
+      subscribe0(connection.whenTerminated)(_ => Event.ConnectionTerminated, _ => Event.ConnectionTerminated)
       context become starting(connection)
   }
 
