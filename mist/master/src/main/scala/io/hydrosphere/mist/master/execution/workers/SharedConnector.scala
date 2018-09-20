@@ -37,7 +37,7 @@ class SharedConnector(
       context become process(Queue(req), Queue.empty, Map.empty, 1)
 
     case Event.WarmUp =>
-      (0 until ctx.maxJobsOnNode).foreach(_ => startConnection() pipeTo self)
+      (0 until ctx.maxJobs).foreach(_ => startConnection() pipeTo self)
       context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobsOnNode)
   }
 

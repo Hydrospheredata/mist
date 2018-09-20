@@ -52,14 +52,8 @@ case class ContextConfig(
   streamingDuration: Duration,
   maxConnFailures: Int,
   launchData: LaunchData
-) extends NamedConfig {
+) extends NamedConfig
 
-  def maxJobsOnNode: Int = workerMode match {
-    case RunMode.Shared => maxJobs
-    case RunMode.ExclusiveContext => 1
-  }
-
-}
 
 case class FunctionConfig(
   name: String,

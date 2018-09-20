@@ -2,6 +2,7 @@ package io.hydrosphere.mist.master.execution
 
 import java.util.UUID
 
+import akka.pattern.pipe
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
 import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
@@ -14,7 +15,7 @@ import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsData
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -43,7 +44,7 @@ class ContextFrontend(
   name: String,
   reporter: StatusReporter,
   loggersFactory: JobLoggersFactory,
-  connectorStarter: (String, ContextConfig) => WorkerConnector,
+  connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
   jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
@@ -270,16 +271,23 @@ class ContextFrontend(
       context become sleepingTilUpdate(next, conns, brokenCtx, error)
   }
 
-  private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
+  private def awaitConnector(ctx: ContextConfig, state: State, connId: String): Receive = {
+    case Event.Status => sender() ! mkStatus(State.empty[String, ActorRef])
+
+    case ContextEvent.UpdateContext(updCtx) =>
+
+    case Event.ConnectorStarted(id, conn) if id == connId =>
+    case Event.ConnectorStartFailed(id, e) if id == connId =>
+  }
+
+  private def startConnector(ctx: ContextConfig, state: State): Unit = {
     val id = ctx.name + "_" + UUID.randomUUID().toString
-    log.info(s"Starting executor $id for $name")
-    val connector = connectorStarter(id, ctx)
-    if (ctx.precreated) connector.warmUp()
-    connector.whenTerminated().onComplete({
-      case Success(_) => self ! Event.ConnectorStopped(id)
-      case Failure(e) => self ! Event.ConnectorCrushed(id, e)
-    })
-    id -> connector
+    log.info(s"Starting connector $id for $name")
+    connectorStarter(id, ctx).onComplete {
+      case Success(connector) => self ! Event.ConnectorStarted(id, connector)
+      case Failure(e) => self ! Event.ConnectorStartFailed(id, e)
+    }
+    context become awaitConnector(ctx, state, id)
   }
 
   private def cancelJob(id: String, state: State, respond: ActorRef): Unit = state.get(id) match {
@@ -321,6 +329,8 @@ object ContextFrontend {
 
   sealed trait Event
   object Event {
+    final case class ConnectorStarted(id: String, connector: WorkerConnector) extends Event
+    final case class ConnectorStartFailed(id: String, e: Throwable) extends Event
     final case class ConnectorCrushed(id: String, err: Throwable) extends Event
     final case class ConnectorStopped(id: String) extends Event
 

@@ -27,6 +27,7 @@ object CommonData {
    */
   case class WorkerInitInfo(
     sparkConf: Map[String, String],
+    // TODO drop this field
     maxJobs: Int,
     downtime: Duration,
     streamingDuration: Duration,

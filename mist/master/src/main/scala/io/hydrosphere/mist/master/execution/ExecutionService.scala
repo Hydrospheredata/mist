@@ -117,8 +117,8 @@ object ExecutionService {
     logService: LogService
   ): ExecutionService = {
     val hub = WorkerHub(spawn, system)
-    val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
 
+    val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
       val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
       val ref = af.actorOf(props)
