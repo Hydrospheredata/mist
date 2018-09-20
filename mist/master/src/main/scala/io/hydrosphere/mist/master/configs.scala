@@ -256,6 +256,54 @@ object SecurityConfig {
 
 }
 
+sealed trait LauncherSettings
+
+case class AWSEMRLaunchSettings(
+  sshKeyPair: String,
+  sshKeyPath: String,
+  accessKey: String,
+  secretKey: String,
+  subnetId: String,
+  region: String,
+  additionalGroup: String,
+  emrRole: String,
+  emrEc2Role: String
+) extends LauncherSettings
+
+object AWSEMRLaunchSettings {
+
+  def apply(c: Config): AWSEMRLaunchSettings = {
+    AWSEMRLaunchSettings(
+      sshKeyPair = c.getString("sshKeyPair"),
+      sshKeyPath = c.getString("sshKeyPath"),
+      accessKey = c.getString("accessKey"),
+      secretKey = c.getString("secretKey"),
+      subnetId = c.getString("subnetId"),
+      region = c.getString("region"),
+      additionalGroup = c.getString("additionalGroup"),
+      emrRole = c.getString("emrRole"),
+      emrEc2Role = c.getString("emrEc2Role")
+    )
+  }
+}
+
+object LauncherSettings {
+
+  def apply(c: Config): LauncherSettings = {
+    c.getString("type") match {
+      case "aws_emr" => AWSEMRLaunchSettings(c)
+      case x => throw new IllegalArgumentException(s"Unknown launcher settings type: $x")
+    }
+  }
+
+  def extractAll(all: Seq[Config]): Map[String, LauncherSettings] = {
+    all.map(c => {
+      val name = c.getString("name")
+      name -> LauncherSettings(c)
+    }).toMap
+  }
+}
+
 case class MasterConfig(
   cluster: HostPortConfig,
   http: HttpConfig,
@@ -272,6 +320,7 @@ case class MasterConfig(
   srcConfigPath: String,
   jobsSavePath: String,
   artifactRepositoryPath: String,
+  launchersSettings: Map[String, LauncherSettings],
   raw: Config
 )
 
@@ -314,6 +363,7 @@ object MasterConfig extends Logger {
       security = SecurityConfig.ifEnabled(mist.getConfig("security")),
       jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
+      launchersSettings = LauncherSettings.extractAll(mist.getConfigList("launchers-settings")),
       raw = config
     )
   }

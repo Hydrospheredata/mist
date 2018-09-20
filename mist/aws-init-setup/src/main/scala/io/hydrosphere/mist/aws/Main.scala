@@ -19,7 +19,7 @@ object Main {
     val setup = AwsSetup.create(accessKey, accessSecret, region)
     val out = setup.setup(instanceId, sshKey).unsafeRunSync()
 
-    val provisionData = ProvisionData(
+    val launchData = LaunchData(
       sshKeyPair = out.sshKeyPairName,
       sshKeyPath = sshKeyPath,
       accessKey = accessKey,
@@ -31,7 +31,7 @@ object Main {
       emrEc2Role = out.ec2EmrRole
     )
 
-    ConfigPatcher.patchFile(Paths.get(configPath), provisionData)
+    ConfigPatcher.patchFile(Paths.get(configPath), launchData)
   }
 
 }

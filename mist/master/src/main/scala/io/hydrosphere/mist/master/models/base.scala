@@ -30,6 +30,17 @@ trait NamedConfig {
   val name: String
 }
 
+sealed trait LaunchData
+/** use default worker-runner **/
+case object ServerDefault extends LaunchData
+case class AWSEMRLaunchData(
+  launcherSettingsName: String,
+  releaseLabel: String,
+  masterInstanceType: String,
+  slaveInstanceType: String,
+  instanceCount: Int
+) extends LaunchData
+
 case class ContextConfig(
   name: String,
   sparkConf: Map[String, String],
@@ -39,7 +50,8 @@ case class ContextConfig(
   runOptions: String,
   workerMode: RunMode,
   streamingDuration: Duration,
-  maxConnFailures: Int
+  maxConnFailures: Int,
+  launchData: LaunchData
 ) extends NamedConfig {
 
   def maxJobsOnNode: Int = workerMode match {

@@ -1,12 +1,10 @@
 package io.hydrosphere.mist.aws
 
-import java.io.File
 import java.nio.file.{Files, Path}
 
 import com.typesafe.config.{Config, ConfigFactory, ConfigRenderOptions}
-import io.hydrosphere.mist.utils.ConfigUtils._
 
-case class ProvisionData(
+case class LaunchData(
   sshKeyPair: String,
   sshKeyPath: String,
   accessKey: String,
@@ -20,7 +18,7 @@ case class ProvisionData(
 
 object ConfigPatcher {
 
-  def patch(mistConfig: Config, data: ProvisionData): Config = {
+  def patch(mistConfig: Config, data: LaunchData): Config = {
     import com.typesafe.config.ConfigValueFactory._
     import scala.collection.JavaConverters._
 
@@ -43,10 +41,10 @@ object ConfigPatcher {
     val provisioner = fromMap(configKeys.asJava)
     val entries = fromIterable(Seq(provisioner).asJava)
 
-    mistConfig.withValue("mist.provision", entries)
+    mistConfig.withValue("mist.launchers-settings", entries)
   }
 
-  def patchFile(filePath: Path, data: ProvisionData): Unit = {
+  def patchFile(filePath: Path, data: LaunchData): Unit = {
     val orig = ConfigFactory.parseFile(filePath.toFile)
     val patched = patch(orig, data)
 
