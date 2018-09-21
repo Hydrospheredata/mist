@@ -82,12 +82,16 @@ class ContextFrontend(
   // handle UpdateContext for awaitRequest/initial
   private def becomeAwaitOrConnected(ctx: ContextConfig, state: State): Unit = {
     if (ctx.precreated && ctx.workerMode == RunMode.Shared) {
-      gotoStartingConnector(ctx, state)
+      gotoStartingConnector(ctx, state, 0)
     } else {
       val timerKey = s"$name-await-timeout"
       timers.startSingleTimer(timerKey, Event.Downtime, defaultInactiveTimeout)
       context become awaitRequest(ctx, timerKey)
     }
+  }
+
+  private def shouldGoToEmptyWithTimeout(state: State, ctx: ContextConfig): Boolean = {
+    state.isEmpty && !ctx.precreated && ctx.downtime.isFinite()
   }
 
   // handle currentState changes, starting new jobs if it's possible
@@ -105,19 +109,8 @@ class ContextFrontend(
       }
     }
 
-    def shouldGoToEmptyWithTimeout(): Boolean = {
-      state.isEmpty && !ctx.precreated && ctx.downtime.isFinite()
-    }
-
-    if (shouldGoToEmptyWithTimeout()) {
-      val timerKey = s"$name-wait-downtime"
-      val timeout = ctx.downtime match {
-        case f: FiniteDuration => f
-        case _ => defaultInactiveTimeout
-      }
-      timers.startSingleTimer(timerKey, Event.Downtime, timeout)
-      log.info("Context {} - move to inactive state", name)
-      context become emptyWithConnector(ctx, connectorState, timerKey)
+    if (shouldGoToEmptyWithTimeout(state, ctx)) {
+      gotoEmptyWithConnector(ctx, connectorState)
     } else {
       val available = ctx.maxJobs - connectorState.all
       val need = math.min(state.queued.size - connectorState.asked, available)
@@ -152,7 +145,7 @@ class ContextFrontend(
       case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
         connectorState.connector.shutdown(false)
-        gotoStartingConnector(updCtx, currentState)
+        gotoStartingConnector(updCtx, currentState, 0)
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
       case CancelJobRequest(id) =>
@@ -207,6 +200,20 @@ class ContextFrontend(
     }
   }
 
+  private def gotoEmptyWithConnector(
+    ctx: ContextConfig,
+    connectorState: ConnectorState
+  ): Unit = {
+    val timerKey = s"$name-wait-downtime"
+    val timeout = ctx.downtime match {
+      case f: FiniteDuration => f
+      case _ => defaultInactiveTimeout
+    }
+    timers.startSingleTimer(timerKey, Event.Downtime, timeout)
+    log.info("Context {} - move to inactive state", name)
+    context become emptyWithConnector(ctx, connectorState, timerKey)
+  }
+
   // optional state - use it if ctx isn't precreated
   private def emptyWithConnector(
     ctx: ContextConfig,
@@ -216,8 +223,7 @@ class ContextFrontend(
     case Event.Status => sender() ! mkStatus(State.empty[String, ActorRef], connectorState)
     case ContextEvent.UpdateContext(updCtx) =>
       connectorState.connector.shutdown(false)
-      val (newId, newConn) = startConnector(updCtx)
-      context become emptyWithConnector(updCtx, ConnectorState.initial(newId, newConn), timerKey)
+      gotoStartingConnector(updCtx, State.empty, 0)
 
     case req: RunJobRequest =>
       timers.cancel(timerKey)
@@ -309,12 +315,22 @@ class ContextFrontend(
     case Event.ConnectorStarted(id, conn) if id == connId =>
       log.info("Connector started {} id: {}", name, id)
       val connState = ConnectorState.initial(id, conn).copy(failedTimes = failedTimes)
-      becomeWithConnector(ctx, state, connState)
+
+      if (shouldGoToEmptyWithTimeout(state, ctx)) {
+        gotoEmptyWithConnector(ctx, connState)
+      } else {
+        becomeWithConnector(ctx, state, connState)
+      }
+
 
     case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
     case Event.ConnectorStartFailed(id, e) if id == connId =>
       log.error(e, "Starting connector {} id: {} failed", name, id)
-      becomeSleeping(state, ctx, e)
+      if (failedTimes > ctx.maxConnFailures) {
+        becomeSleeping(state, ctx, e)
+      } else {
+        gotoStartingConnector(ctx, state, failedTimes + 1)
+      }
   }
 
   private def gotoStartingConnector(ctx: ContextConfig, state: State, failedTimes: Int): Unit = {
