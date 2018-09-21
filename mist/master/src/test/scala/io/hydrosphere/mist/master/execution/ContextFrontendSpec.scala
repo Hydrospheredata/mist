@@ -238,6 +238,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
         }
     }
   }
+
   it("should wake up after context update") {
     val connector = failedConnection()
     val job = mkJobProbe()
@@ -262,6 +263,44 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     status.jobs shouldBe Map()
   }
 
+  it("should cancel correctly") {
+    val connectionP = Promise[PerJobConnection]
+    val connector = oneTimeConnector(connectionP.future)
+
+    val job = mkJobProbe()
+    val props = ContextFrontend.props(
+      name = "name",
+      status = StatusReporter.NOOP,
+      loggersFactory = NOOPLoggerFactory,
+      connectorStarter = (_, _) => connector,
+      jobFactory = ActorF.static(job.ref),
+      defaultInactiveTimeout = 5 minutes
+    )
+    val frontend = TestActorRef[ContextFrontend](props)
+    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext)
+
+    val probe = TestProbe()
+
+    probe.send(frontend, ContextFrontend.Event.Status)
+    val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
+    status.executorId shouldBe None
+    status.jobs.isEmpty shouldBe true
+
+    probe.send(frontend, RunJobRequest("id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
+
+    probe.expectMsgPF(){
+      case info: ExecutionInfo =>
+        info.request.id shouldBe "id"
+        info.promise.future
+    }
+
+    probe.send(frontend, CancelJobRequest("id"))
+    job.expectMsgType[JobActor.Event.Cancel.type]
+    connectionP.success(NotImplConnection)
+    job.expectNoMessage(2 seconds)
+    job.send(frontend, JobActor.Event.Completed("id"))
+  }
+
   def mkJobProbe(): TestProbe = {
     val p = TestProbe()
     p.ignoreMsg {
@@ -271,16 +310,18 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     p
   }
 
+  object NotImplConnection extends PerJobConnection {
+    override def id: String = "id"
+    override def whenTerminated: Future[Unit] = Promise[Unit].future
+    override def run(req: RunJobRequest, respond: ActorRef): Unit = ()
+    override def cancel(id: String, respond: ActorRef): Unit = ()
+    override def release(): Unit = ()
+  }
+
   def successfulConnector(): WorkerConnector = {
     new WorkerConnector {
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
-      override def askConnection(): Future[PerJobConnection] = Future.successful(new PerJobConnection {
-        override def cancel(id: String, respond: ActorRef): Unit = ???
-        override def release(): Unit = ???
-        override def run(req: RunJobRequest, respond: ActorRef): Unit = ???
-        override def id: String = ???
-        override def whenTerminated: Future[Unit] = ???
-      })
+      override def askConnection(): Future[PerJobConnection] = Future.successful(NotImplConnection)
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
       override def warmUp(): Unit = ()
     }
