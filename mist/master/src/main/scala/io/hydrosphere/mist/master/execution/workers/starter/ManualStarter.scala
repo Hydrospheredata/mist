@@ -22,7 +22,8 @@ case class ManualStarter(
       "MIST_MASTER_ADDRESS" -> initInfo.masterAddress,
       "MIST_WORKER_NAME" -> name,
       "MIST_WORKER_RUN_OPTIONS" -> initInfo.runOptions,
-      "MIST_WORKER_SPARK_CONF" -> initInfo.sparkConf.map({case (k, v) => s"$k=$v"}).mkString("|+|")
+      "MIST_WORKER_SPARK_CONF" -> initInfo.sparkConf.map({case (k, v) => s"$k=$v"}).mkString("|+|"),
+      "MIST_WORKER_SPARK_CONF_PREPARED" -> initInfo.sparkConf.map({case (k, v) => s"--conf $k=$v"}).mkString(" ")
     )
     val out = outDirectory.resolve(s"manual-worker-$name.log")
     WrappedProcess.run(start, env, out) match {
