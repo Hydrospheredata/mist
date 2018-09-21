@@ -102,15 +102,11 @@ class WorkerActor(
   }
 
   private def mkFailure(req: RunJobRequest, ex: Throwable): JobResponse =
-    JobFailure(req.id, buildErrorMessage(req.params, ex))
+    JobFailure(req.id, buildErrorMessage(ex))
 
-  private def mkFailure(req: RunJobRequest, ex: String): JobResponse =
-    JobFailure(req.id, ex)
-
-  protected def buildErrorMessage(params: JobParams, e: Throwable): String = {
-    val wrap = new RuntimeException(s"Error running job with $params", e)
+  protected def buildErrorMessage(e: Throwable): String = {
     val writer = new StringWriter()
-    wrap.printStackTrace(new PrintWriter(writer))
+    e.printStackTrace(new PrintWriter(writer))
     writer.toString
   }
 }
