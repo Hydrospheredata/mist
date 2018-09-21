@@ -160,8 +160,7 @@ class ContextFrontend(
         becomeWithConnector(updCtx, currentState, ConnectorState.initial(newId, newConn))
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
-      case CancelJobRequest(id) =>
-        cancelJob(id, currentState, sender())
+      case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
 
       case Event.Connection(connId, connection) if connId == connectorState.id =>
         log.info("Context {} received new connection", name)
@@ -257,7 +256,8 @@ class ContextFrontend(
     case req: RunJobRequest => respondWithError(brokenCtx, req, sender(), error)
 
     case CancelJobRequest(id) =>
-      cancelJob(id, state, sender())
+      val next = cancelJob(id, state, sender())
+      context become sleepingTilUpdate(next, conn, brokenCtx, error)
 
     case Event.Connection(_, connection) => connection.release()
 
@@ -282,11 +282,18 @@ class ContextFrontend(
     id -> connector
   }
 
-  private def cancelJob(id: String, state: State, respond: ActorRef): Unit = state.get(id) match {
-    case Some(ref) =>
-      ref.tell(JobActor.Event.Cancel, respond)
-    case None =>
-      respond ! akka.actor.Status.Failure(new IllegalArgumentException(s"Unknown job: $id"))
+  private def cancelJob(id: String, state: State, respond: ActorRef): State = {
+    state.getWithState(id) match {
+      case Some((ref, status)) =>
+        ref.tell(JobActor.Event.Cancel, respond)
+        status match {
+          case Waiting => state.done(id)
+          case Working => state
+        }
+      case None =>
+        respond ! akka.actor.Status.Failure(new IllegalArgumentException(s"Unknown job: $id"))
+        state
+    }
   }
 
   private def mkJob(req: RunJobRequest, st: State, respond: ActorRef): State = {
