@@ -1,5 +1,7 @@
 package io.hydrosphere.mist.master.execution
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest, _}
@@ -7,6 +9,7 @@ import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.execution.status.StatusReporter
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection, WorkerConnector}
 import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory}
+import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData, TestUtils}
 import io.hydrosphere.mist.utils.akka.ActorF
 import mist.api.data.JsMap
@@ -35,7 +38,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
@@ -62,7 +65,8 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     probe.send(frontend, ContextFrontend.Event.Status)
     val status2 = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status2.executorId.isDefined shouldBe true
-    status2.jobs should contain only("id" -> ExecStatus.Started)
+    status2.jobs.size shouldBe 1
+    status2.jobs.head shouldBe "id" -> ExecStatus.Started
 
     job.send(frontend, JobActor.Event.Completed("id"))
 
@@ -81,7 +85,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
@@ -101,7 +105,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 1 second
     )
@@ -119,7 +123,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 1 second
     )
@@ -148,7 +152,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
@@ -175,13 +179,19 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   }
 
   it("should restart connector 'til max start times and then sleep") {
+    val callCounter = new AtomicInteger(0)
     val connector = crushedConnector()
+    val starter = (id: String, ctx: ContextConfig) => {
+      callCounter.incrementAndGet()
+      Future.successful(connector)
+    }
+
     val job = mkJobProbe()
     val props = ContextFrontend.props(
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = starter,
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
@@ -192,11 +202,13 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     probe.send(frontend, RunJobRequest(s"id", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgType[ExecutionInfo]
 
+    job.expectMsgType[JobActor.Event.ContextBroken]
+
     probe.send(frontend, ContextFrontend.Event.Status)
     val status = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status.failures shouldBe TestUtils.FooContext.maxConnFailures
+    callCounter.get() shouldBe TestUtils.FooContext.maxConnFailures
 
-    job.expectMsgType[JobActor.Event.ContextBroken]
 
     probe.send(frontend, RunJobRequest(s"last", JobParams("path", "MyClass", JsMap.empty, Action.Execute)))
     probe.expectMsgPF() {
@@ -214,7 +226,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
@@ -245,7 +257,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )

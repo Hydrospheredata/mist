@@ -19,7 +19,6 @@ case class SpawnSettings(
   def toWorkerInitInfo(ctx: ContextConfig): WorkerInitInfo =
     WorkerInitInfo(
       sparkConf = ctx.sparkConf,
-      maxJobs = 1,
       downtime = ctx.downtime,
       streamingDuration = ctx.streamingDuration,
       logService = this.logAddress,

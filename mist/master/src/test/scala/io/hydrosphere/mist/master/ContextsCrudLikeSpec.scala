@@ -4,7 +4,7 @@ import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.data.ContextsStorage
 import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.master.interfaces.http.ContextCreateRequest
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode, ServerDefault}
 import org.scalatest.{FunSpec, Matchers}
 import org.mockito.Mockito._
 
@@ -17,7 +17,7 @@ class ContextsCrudLikeSpec extends FunSpec with Matchers with TestData with Mock
     val storage = mock[ContextsStorage]
     val executionS = mock[ExecutionService]
 
-    val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.Shared, 1 seconds, 5)
+    val defaultValue = ContextConfig("default", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.Shared, 1 seconds, 5, ServerDefault)
     val req = ContextCreateRequest("yoyo", workerMode = Some(RunMode.ExclusiveContext))
 
     when(storage.defaultConfig).thenReturn(defaultValue)
@@ -29,7 +29,7 @@ class ContextsCrudLikeSpec extends FunSpec with Matchers with TestData with Mock
     }
 
     val result = Await.result(crud.create(req), Duration.Inf)
-    result shouldBe ContextConfig("yoyo", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.ExclusiveContext, 1 seconds, 5)
+    result shouldBe ContextConfig("yoyo", Map.empty, Duration.Inf, 20, precreated = false, "", RunMode.ExclusiveContext, 1 seconds, 5, ServerDefault)
 
     verify(executionS).updateContext(any[ContextConfig])
   }

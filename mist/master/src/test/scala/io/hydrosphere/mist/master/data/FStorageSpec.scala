@@ -14,7 +14,7 @@ class FStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
     value: Int
   ) extends NamedConfig
 
-  val testEntryConfigRepr = new ConfigRepr[TestEntry] {
+  val testEntryConfigRepr = new NamedConfigRepr[TestEntry] {
     import scala.collection.JavaConverters._
 
     override def fromConfig(config: Config): TestEntry = {

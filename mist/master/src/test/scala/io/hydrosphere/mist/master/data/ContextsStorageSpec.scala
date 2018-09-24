@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import io.hydrosphere.mist.master
 import io.hydrosphere.mist.master.TestUtils
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode, ServerDefault}
 import org.apache.commons.io.FileUtils
 import org.scalatest.{BeforeAndAfter, FunSpec, Matchers}
 
@@ -38,7 +38,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should update") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", RunMode.Shared, 10 second, 5)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", RunMode.Shared, 10 second, 5, ServerDefault)
     contexts.update(ctx).await
     contexts.get("new").await.isDefined shouldBe true
   }
@@ -46,7 +46,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should return defaults") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", RunMode.Shared, 10 second, 5)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, false, "weq", RunMode.Shared, 10 second, 5, ServerDefault)
     contexts.update(ctx).await
 
     contexts.all.await.map(_.name) should contain allOf ("default", "foo", "new")
@@ -60,7 +60,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
 
   it("should return precreated") {
     val contexts = testStorage()
-    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, true, "weq", RunMode.Shared, 10 second, 5)
+    val ctx = ContextConfig("new", Map.empty, Duration.Inf, 50, true, "weq", RunMode.Shared, 10 second, 5, ServerDefault)
 
     contexts.update(ctx).await
     contexts.precreated.await should contain only(ctx)
@@ -74,7 +74,7 @@ class ContextsStorageSpec extends FunSpec with Matchers with BeforeAndAfter {
   it("should override settings") {
     val contexts = testStorage()
 
-    val ctx = ContextConfig("foo", Map.empty, Duration.Inf, 50, true, "FOOOOPT", RunMode.Shared, 10 second, 5)
+    val ctx = ContextConfig("foo", Map.empty, Duration.Inf, 50, true, "FOOOOPT", RunMode.Shared, 10 second, 5, ServerDefault)
     contexts.get("foo").await.get.runOptions shouldNot be (ctx.runOptions)
 
     contexts.update(ctx).await

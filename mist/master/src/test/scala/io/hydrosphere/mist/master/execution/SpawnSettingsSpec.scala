@@ -29,15 +29,10 @@ class SpawnSettingsSpec extends FunSpec with Matchers with TestData {
     val ctx = FooContext.copy(workerMode = RunMode.Shared)
     val initInfo = spawnSettings.toWorkerInitInfo(ctx)
     initInfo.sparkConf.toSeq should contain allElementsOf ctx.sparkConf.toSeq
-    initInfo.maxJobs shouldBe ctx.maxJobs
     initInfo.downtime shouldBe ctx.downtime
     initInfo.streamingDuration shouldBe  ctx.streamingDuration
     initInfo.logService shouldBe spawnSettings.logAddress
     initInfo.masterHttpConf shouldBe spawnSettings.httpAddress
     initInfo.maxArtifactSize shouldBe spawnSettings.maxArtifactSize
-
-    val excl = ctx.copy(workerMode = RunMode.ExclusiveContext)
-    val initFoExclusive = spawnSettings.toWorkerInitInfo(excl)
-    initFoExclusive.maxJobs shouldBe 1
   }
 }

@@ -70,7 +70,6 @@ trait TestData {
 
   val workerInitData = WorkerInitInfo(
     sparkConf = FooContext.sparkConf,
-    maxJobs = FooContext.maxJobs,
     downtime = FooContext.downtime,
     streamingDuration = FooContext.streamingDuration,
     logService = "localhost:2005",

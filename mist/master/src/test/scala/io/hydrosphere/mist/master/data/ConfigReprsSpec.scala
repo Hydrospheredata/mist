@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.data
 
 import com.typesafe.config.{ConfigFactory, ConfigObject, ConfigParseOptions, ConfigRenderOptions}
-import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, RunMode}
+import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, RunMode, ServerDefault}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -20,13 +20,13 @@ class ConfigReprsSpec extends FunSpec with Matchers {
          |  namespace = "namespace"
       """.stripMargin)
 
-      val parsed = cfg.to[FunctionConfig]("name")
+      val parsed = ConfigRepr.EndpointsRepr.fromConfig("name", cfg)
       parsed shouldBe FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
     }
 
     it("should render to raw") {
       val e = FunctionConfig("name", "jar_path.jar", "MyJob1", "namespace")
-      val raw = e.toConfig
+      val raw = ConfigRepr.EndpointsRepr.toConfig(e)
 
       raw.getString("path") shouldBe "jar_path.jar"
       raw.getString("className") shouldBe "MyJob1"
@@ -51,12 +51,11 @@ class ConfigReprsSpec extends FunSpec with Matchers {
           |  streaming-duration = 30 seconds
           |  worker-mode = "shared"
           |  max-conn-failures = 10
-          |
           |}
         """.stripMargin
       , ConfigParseOptions.defaults())
 
-      val context = cfg.to[ContextConfig]("test")
+      val context = ConfigRepr.ContextConfigRepr.fromConfig("test", cfg)
       context.sparkConf shouldBe Map("x.y" -> "z", "a" -> "1")
       context.downtime shouldBe Duration.Inf
       context.maxJobs shouldBe 100
@@ -86,7 +85,7 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         """.stripMargin
         , ConfigParseOptions.defaults())
 
-      val context = cfg.to[ContextConfig]("test")
+      val context = ConfigRepr.ContextConfigRepr.fromConfig("test", cfg)
       context.maxConnFailures shouldBe 5
     }
 
@@ -107,7 +106,8 @@ class ConfigReprsSpec extends FunSpec with Matchers {
         runOptions = "",
         workerMode = RunMode.Shared,
         streamingDuration = 1.minutes,
-        maxConnFailures = 5
+        maxConnFailures = 5,
+        launchData = ServerDefault
       )
       val raw = ConfigRepr.ContextConfigRepr.toConfig(e)
       Duration(raw.getString("downtime")) shouldBe 10.minutes

@@ -116,11 +116,12 @@ object ExecutionService {
     repo: JobRepository,
     logService: LogService
   ): ExecutionService = {
+    // TODO
     val hub = WorkerHub(spawn, system)
 
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
+      val props = ContextFrontend.props(ctx.name, reporter, logService, (id, ctx) => Future.successful(hub.start(id, ctx)))
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref

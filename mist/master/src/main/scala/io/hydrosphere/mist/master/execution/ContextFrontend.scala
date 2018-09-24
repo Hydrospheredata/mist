@@ -2,7 +2,6 @@ package io.hydrosphere.mist.master.execution
 
 import java.util.UUID
 
-import akka.pattern.pipe
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
 import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
@@ -24,20 +23,16 @@ trait FrontendBasics {
   type State = FrontendState[String, ActorRef]
   val State = FrontendState
 
-  def mkStatus(state: State, conn: Option[ConnectorState]): FrontendStatus = {
+  def mkStatus(state: State, failures: Int, execId: Option[String]): FrontendStatus = {
     val jobs =
       state.queued.map({case (k, _) => k -> ExecStatus.Queued}) ++
       state.active.map({case (k, _) => k -> ExecStatus.Started})
 
-    FrontendStatus(
-      jobs = jobs,
-      conn.map(_.id),
-      conn.map(_.failedTimes).getOrElse(0)
-    )
+    FrontendStatus(jobs, failures, execId)
   }
 
-  def mkStatus(state: State): FrontendStatus = mkStatus(state, None)
-  def mkStatus(state: State, conn: ConnectorState): FrontendStatus = mkStatus(state, Some(conn))
+  def mkStatus(state: State): FrontendStatus = mkStatus(state, 0, None)
+  def mkStatus(state: State, conn: ConnectorState): FrontendStatus = mkStatus(state, conn.failedTimes, Option(conn.id))
 }
 
 
@@ -72,7 +67,7 @@ class ContextFrontend(
     case req: RunJobRequest =>
       timers.cancel(timerKey)
       val next = mkJob(req, State.empty, sender())
-      gotoStartingConnector(ctx, next)
+      gotoStartingConnector(ctx, next, 0)
 
     case Event.Downtime =>
       log.info(s"Context $name was inactive")
@@ -169,7 +164,7 @@ class ContextFrontend(
         val newConnState = connectorState.askFailure
         if (newConnState.failedTimes >= ctx.maxConnFailures) {
           connectorState.connector.shutdown(false)
-          becomeSleeping(currentState, ctx, e)
+          becomeSleeping(currentState, ctx, e, newConnState.failedTimes)
         } else {
           becomeNextConn(newConnState)
         }
@@ -186,7 +181,7 @@ class ContextFrontend(
         log.error(e, "Context {} - connector {} was crushed", name, id)
         val next = connectorState.connectorFailed
         if (next.failedTimes >= ctx.maxConnFailures) {
-          becomeSleeping(currentState, ctx, e)
+          becomeSleeping(currentState, ctx, e, next.failedTimes)
         } else {
           gotoStartingConnector(ctx, currentState, next.failedTimes)
         }
@@ -257,14 +252,20 @@ class ContextFrontend(
   def becomeSleeping(
     state: State,
     brokenCtx: ContextConfig,
-    error: Throwable
+    error: Throwable,
+    failedTimes: Int
   ): Unit = {
     state.queued.foreach({case (_, ref) => ref ! JobActor.Event.ContextBroken(error)})
-    context become sleepingTilUpdate(state, brokenCtx, error)
+    context become sleepingTilUpdate(state, brokenCtx, error, failedTimes)
   }
 
-  private def sleepingTilUpdate(state: State, brokenCtx: ContextConfig, error: Throwable): Receive = {
-    case Event.Status => sender() ! mkStatus(state)
+  private def sleepingTilUpdate(
+    state: State,
+    brokenCtx: ContextConfig,
+    error: Throwable,
+    failedTimes: Int
+  ): Receive = {
+    case Event.Status => sender() ! mkStatus(state, failedTimes, None)
     case ContextEvent.UpdateContext(updCtx) => becomeAwaitOrConnected(updCtx, FrontendState.empty)
 
     case req: RunJobRequest => respondWithError(brokenCtx, req, sender(), error)
@@ -279,7 +280,7 @@ class ContextFrontend(
         case Some(_) => state.done(id)
         case None => state
       }
-      context become sleepingTilUpdate(next, brokenCtx, error)
+      context become sleepingTilUpdate(next, brokenCtx, error, failedTimes)
 
     case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
   }
@@ -314,7 +315,12 @@ class ContextFrontend(
 
     case Event.ConnectorStarted(id, conn) if id == connId =>
       log.info("Connector started {} id: {}", name, id)
+      if (ctx.precreated && ctx.workerMode == RunMode.Shared) conn.warmUp()
       val connState = ConnectorState.initial(id, conn).copy(failedTimes = failedTimes)
+      conn.whenTerminated().onComplete({
+        case Success(_) => self ! Event.ConnectorStopped(id)
+        case Failure(e) => self ! Event.ConnectorCrushed(id, e)
+      })
 
       if (shouldGoToEmptyWithTimeout(state, ctx)) {
         gotoEmptyWithConnector(ctx, connState)
@@ -327,7 +333,7 @@ class ContextFrontend(
     case Event.ConnectorStartFailed(id, e) if id == connId =>
       log.error(e, "Starting connector {} id: {} failed", name, id)
       if (failedTimes > ctx.maxConnFailures) {
-        becomeSleeping(state, ctx, e)
+        becomeSleeping(state, ctx, e, failedTimes)
       } else {
         gotoStartingConnector(ctx, state, failedTimes + 1)
       }
@@ -400,11 +406,11 @@ object ContextFrontend {
 
   case class FrontendStatus(
     jobs: Map[String, ExecStatus],
-    executorId: Option[String],
-    failures: Int
+    failures: Int,
+    executorId: Option[String]
   )
   object FrontendStatus {
-    val empty: FrontendStatus = FrontendStatus(Map.empty, None, 0)
+    val empty: FrontendStatus = FrontendStatus(Map.empty, 0, None)
   }
 
   case class ConnectorState(
@@ -431,7 +437,7 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector,
+    connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
     jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
     defaultInactiveTimeout: FiniteDuration
   ): Props = Props(classOf[ContextFrontend], name, status, loggersFactory, connectorStarter, jobFactory, defaultInactiveTimeout)
@@ -441,6 +447,6 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector
+    connectorStarter: (String, ContextConfig) => Future[WorkerConnector]
   ): Props = props(name, status, loggersFactory, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
 }

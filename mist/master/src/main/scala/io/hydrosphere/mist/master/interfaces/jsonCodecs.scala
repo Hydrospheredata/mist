@@ -16,6 +16,7 @@ import spray.json._
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.util.Try
+import scala.util.parsing.json.JSONObject
 
 trait AnyJsonFormat extends DefaultJsonProtocol {
 
@@ -167,7 +168,7 @@ trait JsonCodecs extends SprayJsonSupport
 
 
   implicit val workerInitInfoF = rootFormat(lazyFormat(jsonFormat(WorkerInitInfo.apply,
-    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterAddress","masterHttpConf", "maxArtifactSize", "runOptions")))
+    "sparkConf", "downtime", "streamingDuration", "logService", "masterAddress","masterHttpConf", "maxArtifactSize", "runOptions")))
 
 
   implicit val workerLinkF = rootFormat(lazyFormat(jsonFormat(WorkerLink.apply,
@@ -227,10 +228,35 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
+  implicit val launchDataF = new JsonFormat[LaunchData] {
 
-  implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
+    val ServerDefaultKey = "server-default"
+    val AWSEMRKey = "aws-emr"
 
-  implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
+    val awsEmrLaunchDataF = jsonFormat5(AWSEMRLaunchData.apply)
+
+    override def write(in: LaunchData): JsValue = in match {
+      case ServerDefault => JsObject("type" -> JsString(ServerDefaultKey))
+      case aws: AWSEMRLaunchData =>
+        val data = awsEmrLaunchDataF.write(aws).asJsObject.fields
+        JsObject(data + ("type" -> JsString(AWSEMRKey)))
+    }
+
+    override def read(json: JsValue): LaunchData = {
+      def fromType(t: String, obj: JsValue): LaunchData = t match {
+        case ServerDefaultKey => ServerDefault
+        case AWSEMRKey => awsEmrLaunchDataF.read(obj)
+      }
+      val t = json.asJsObject.fields.getOrElse("type", JsNull)
+      t match {
+        case JsString(v) => fromType(v, json)
+        case x => throw new IllegalArgumentException(s"Invalid launch data format $x")
+      }
+    }
+  }
+  implicit val contextConfigF = jsonFormat10(ContextConfig.apply)
+
+  implicit val contextCreateRequestF = jsonFormat10(ContextCreateRequest.apply)
   implicit val jobDetailsResponseF = jsonFormat2(JobDetailsResponse.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {

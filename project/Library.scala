@@ -4,6 +4,8 @@ object Library {
 
   val slf4j = "org.slf4j" % "slf4j-api" % "1.7.5"
   val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.5"
+  val log4j = "log4j" % "log4j" % "1.2.17"
+  val log4jExtras = "log4j" % "apache-log4j-extras" % "1.2.17"
   val scopt = "com.github.scopt" %% "scopt" % "3.6.0"
   val typesafeConfig = "com.typesafe" % "config" % "1.3.1"
 

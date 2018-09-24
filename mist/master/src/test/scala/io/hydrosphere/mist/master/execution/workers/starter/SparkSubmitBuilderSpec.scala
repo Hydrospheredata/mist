@@ -11,7 +11,6 @@ class SparkSubmitBuilderSpec extends FunSpec with Matchers {
 
   val testInfo = WorkerInitInfo(
     sparkConf = Map("spark.master" -> "spark://localhost:4433", "a.b.c" -> "xyz"),
-    maxJobs = 10,
     downtime = 1 second,
     streamingDuration = 1 second,
     logService = "localhost:2005",

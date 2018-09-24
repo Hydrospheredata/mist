@@ -79,7 +79,7 @@ class HttpApiV2Spec extends FunSpec
       when(execution.getWorkerLink(any[String]))
         .thenReturn(Some(WorkerLink(
           "id", "test", None,
-          WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0", "localhost:0", 262144000, ""))))
+          WorkerInitInfo(Map(), Duration.Inf, Duration.Inf, "test", "localhost:0", "localhost:0", 262144000, ""))))
 
       val route = HttpV2Routes.workerRoutes(execution)
 
@@ -87,7 +87,7 @@ class HttpApiV2Spec extends FunSpec
         status shouldBe StatusCodes.OK
         val resp = responseAs[WorkerLink]
         resp.name shouldBe "id"
-        resp.initInfo shouldBe WorkerInitInfo(Map(), 20, Duration.Inf, Duration.Inf, "test", "localhost:0","localhost:0", 262144000, "")
+        resp.initInfo shouldBe WorkerInitInfo(Map(), Duration.Inf, Duration.Inf, "test", "localhost:0","localhost:0", 262144000, "")
         resp.sparkUi should not be defined
         resp.address shouldBe "test"
       }

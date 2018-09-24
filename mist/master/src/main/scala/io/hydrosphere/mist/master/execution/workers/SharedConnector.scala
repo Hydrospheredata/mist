@@ -38,7 +38,7 @@ class SharedConnector(
 
     case Event.WarmUp =>
       (0 until ctx.maxJobs).foreach(_ => startConnection() pipeTo self)
-      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobsOnNode)
+      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobs)
   }
 
   private def process(
@@ -85,7 +85,7 @@ class SharedConnector(
           context become process(requests, pool, inUse, startingConnections - 1)
       }
 
-    case Event.AskConnection(req) if pool.isEmpty && inUse.size + startingConnections < ctx.maxJobsOnNode =>
+    case Event.AskConnection(req) if pool.isEmpty && inUse.size + startingConnections < ctx.maxJobs =>
       log.info(s"Pool is empty and we are able to start new one connection: inUse size :${inUse.size}")
       startConnection() pipeTo self
       context become process(requests :+ req, pool, inUse, startingConnections + 1)
