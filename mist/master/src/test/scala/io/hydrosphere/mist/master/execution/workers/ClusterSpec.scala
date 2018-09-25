@@ -6,7 +6,7 @@ import io.hydrosphere.mist.master.execution.workers.WorkerConnector.ActorBasedWo
 
 import scala.concurrent.Promise
 
-class WorkerConnectorSpec extends ActorSpec("actor-based-connector") {
+class ClusterSpec extends ActorSpec("actor-based-connector") {
 
   it("should proxy call to actor") {
     val target = TestProbe()

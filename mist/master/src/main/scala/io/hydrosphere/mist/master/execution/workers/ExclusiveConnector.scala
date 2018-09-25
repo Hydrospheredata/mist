@@ -4,8 +4,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import io.hydrosphere.mist.common.CommonData
 import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
 import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.master.execution.Cluster
 
 import scala.collection.immutable.Queue
 import scala.concurrent.{Future, Promise}
@@ -17,7 +17,7 @@ class ExclusiveConnector(
   startConnection: (String, ContextConfig) => Future[WorkerConnection]
 ) extends Actor with ActorLogging {
 
-  import WorkerConnector._
+  import Cluster._
   import context.dispatcher
 
   type Conns = Map[String, WorkerConnection]
@@ -105,7 +105,7 @@ object ExclusiveConnector {
       ref.tell(WorkerBridge.Event.CompleteAndShutdown, ActorRef.noSender)
     }
     def cancel(id: String, respond: ActorRef): Unit = ref.tell(CancelJobRequest(id), respond)
-    def release(): Unit = connector ! Released(direct)
+    def release(): Unit = connector ! Cluster.Event.Released(direct)
   }
 
   def wrappedConnection(connector: ActorRef, conn: WorkerConnection): PerJobConnection =

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorSystem
-import io.hydrosphere.mist.master.execution.SpawnSettings
+import io.hydrosphere.mist.master.execution.{SpawnSettings, Cluster}
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -14,7 +14,7 @@ import scala.util.{Failure, Success}
   */
 class WorkerHub(
   runner: WorkerRunner,
-  mkConnector: (String, ContextConfig, WorkerRunner) => WorkerConnector
+  mkConnector: (String, ContextConfig, WorkerRunner) => Cluster
 ) extends ConnectionsMirror  {
 
   private val wrappedRunner = new WorkerRunner {
@@ -32,7 +32,7 @@ class WorkerHub(
 
   }
 
-  def start(id: String, ctx: ContextConfig): WorkerConnector = mkConnector(id, ctx, wrappedRunner)
+  def start(id: String, ctx: ContextConfig): Cluster = mkConnector(id, ctx, wrappedRunner)
 
   // stopping connection return failed future
   // because it stops worker forcibly
@@ -56,7 +56,7 @@ object WorkerHub {
     val regHub = ActorRegHub("regHub", system)
     val runner =  WorkerRunner.default(spawn, regHub, system)
     val mkConnector = (id: String, ctx: ContextConfig, runner: WorkerRunner) => {
-      WorkerConnector.actorBased(id,ctx, runner, system)
+      Cluster.actorBased(id,ctx, runner, system)
     }
     new WorkerHub(runner, mkConnector)
   }

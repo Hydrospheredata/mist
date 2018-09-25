@@ -14,8 +14,9 @@ import io.hydrosphere.mist.common.CommonData
 import io.hydrosphere.mist.master.Messages.StatusMessages.SystemEvent
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
+import io.hydrosphere.mist.master.execution.workers.WorkerRunner
 import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
-import io.hydrosphere.mist.master.execution.{ExecutionService, SpawnSettings}
+import io.hydrosphere.mist.master.execution.{ClusterRunner, ClustersService, ExecutionService, SpawnSettings}
 import io.hydrosphere.mist.master.interfaces.async._
 import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionsService}
@@ -23,7 +24,7 @@ import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
 import io.hydrosphere.mist.master.store.H2JobsRepository
 import io.hydrosphere.mist.utils.Logger
-import io.hydrosphere.mist.utils.akka.RestartSupervisor
+import io.hydrosphere.mist.utils.akka.{ActorRegHub, RestartSupervisor}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
@@ -99,11 +100,11 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runExecutionService(logService: LogService): ExecutionService = {
+    def runClustersService(): ClustersService = {
       val logsDir = Paths.get(config.logs.dumpDirectory)
-      val workerRunner = WorkerStarter.create(config.workers, logsDir)
+
+      val regHub = ActorRegHub("regHub", system)
       val spawnSettings = SpawnSettings(
-        runnerCmd = workerRunner,
         timeout = config.workers.runnerInitTimeout,
         readyTimeout = config.workers.readyTimeout,
         akkaAddress = s"${config.cluster.publicHost}:${config.cluster.port}",
@@ -111,7 +112,16 @@ object MasterServer extends Logger {
         httpAddress = s"${config.http.publicHost  }:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
-      ExecutionService(spawnSettings, system, streamer, store, logService)
+      val defaultRunner = {
+        val starter = WorkerStarter.create(config.workers, logsDir)
+        ClusterRunner.legacy(spawnSettings, regHub, starter, system)
+      }
+
+      ClustersService.create(config.mistHome, spawnSettings, config.launchersSettings, defaultRunner, system)
+    }
+
+    def runExecutionService(clustersService: ClustersService, logService: LogService): ExecutionService = {
+      ExecutionService(clustersService, system, streamer, store, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(
@@ -146,7 +156,8 @@ object MasterServer extends Logger {
                                       contextsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      executionService       =  runExecutionService(logService)
+      clustersService        =  runClustersService()
+      executionService       =  runExecutionService(clustersService, logService)
       masterService          <- start("Main service", MainService.start(
                                                         executionService,
                                                         contextsStorage,

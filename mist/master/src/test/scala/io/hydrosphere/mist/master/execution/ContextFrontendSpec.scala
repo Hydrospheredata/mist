@@ -7,7 +7,7 @@ import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest, _}
 import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection, WorkerConnector}
+import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnection}
 import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory}
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData, TestUtils}
@@ -77,7 +77,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
   }
 
   it("should warmup precreated") {
-    val connector = mock[WorkerConnector]
+    val connector = mock[Cluster]
     when(connector.whenTerminated).thenReturn(Promise[Unit].future)
 
     val job = mkJobProbe()
@@ -283,8 +283,8 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     p
   }
 
-  def successfulConnector(): WorkerConnector = {
-    new WorkerConnector {
+  def successfulConnector(): Cluster = {
+    new Cluster {
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
       override def askConnection(): Future[PerJobConnection] = Future.successful(new PerJobConnection {
         override def cancel(id: String, respond: ActorRef): Unit = ???
@@ -298,8 +298,8 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     }
   }
 
-  def failedConnection():WorkerConnector = {
-    new WorkerConnector {
+  def failedConnection():Cluster = {
+    new Cluster {
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
       override def askConnection(): Future[PerJobConnection] = Future.failed(FilteredException())
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
@@ -307,8 +307,8 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     }
   }
 
-  def crushedConnector(): WorkerConnector = {
-    new WorkerConnector {
+  def crushedConnector(): Cluster = {
+    new Cluster {
       override def whenTerminated(): Future[Unit] = Promise[Unit].failure(FilteredException()).future
       override def askConnection(): Future[PerJobConnection] = Promise[PerJobConnection].future
       override def warmUp(): Unit = ()
@@ -316,8 +316,8 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     }
   }
 
-  def oneTimeConnector(future: Future[PerJobConnection]): WorkerConnector = {
-    new WorkerConnector {
+  def oneTimeConnector(future: Future[PerJobConnection]): Cluster = {
+    new Cluster {
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
       override def askConnection(): Future[PerJobConnection] = future
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future

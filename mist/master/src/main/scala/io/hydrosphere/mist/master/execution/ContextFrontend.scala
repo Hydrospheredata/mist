@@ -8,7 +8,7 @@ import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnector}
+import io.hydrosphere.mist.master.execution.workers.PerJobConnection
 import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory, LogService}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
@@ -40,7 +40,7 @@ class ContextFrontend(
   name: String,
   reporter: StatusReporter,
   loggersFactory: JobLoggersFactory,
-  connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
+  connectorStarter: (String, ContextConfig) => Future[Cluster],
   jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
@@ -389,7 +389,7 @@ object ContextFrontend {
 
   sealed trait Event
   object Event {
-    final case class ConnectorStarted(id: String, connector: WorkerConnector) extends Event
+    final case class ConnectorStarted(id: String, connector: Cluster) extends Event
     final case class ConnectorStartFailed(id: String, e: Throwable) extends Event
     final case class ConnectorCrushed(id: String, err: Throwable) extends Event
     final case class ConnectorStopped(id: String) extends Event
@@ -415,7 +415,7 @@ object ContextFrontend {
 
   case class ConnectorState(
     id: String,
-    connector: WorkerConnector,
+    connector: Cluster,
     used: Int,
     asked: Int,
     failedTimes: Int
@@ -429,7 +429,7 @@ object ContextFrontend {
   }
 
   object ConnectorState {
-    def initial(id: String, connector: WorkerConnector): ConnectorState =
+    def initial(id: String, connector: Cluster): ConnectorState =
       ConnectorState(id, connector, 0, 0, 0)
   }
 
@@ -437,7 +437,7 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => Future[WorkerConnector],
+    connectorStarter: (String, ContextConfig) => Future[Cluster],
     jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
     defaultInactiveTimeout: FiniteDuration
   ): Props = Props(classOf[ContextFrontend], name, status, loggersFactory, connectorStarter, jobFactory, defaultInactiveTimeout)
@@ -447,6 +447,6 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => Future[WorkerConnector]
+    connectorStarter: (String, ContextConfig) => Future[Cluster]
   ): Props = props(name, status, loggersFactory, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
 }

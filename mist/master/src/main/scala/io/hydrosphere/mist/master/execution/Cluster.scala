@@ -1,12 +1,13 @@
-package io.hydrosphere.mist.master.execution.workers
+package io.hydrosphere.mist.master.execution
 
 import akka.actor.{ActorRef, ActorRefFactory}
+import io.hydrosphere.mist.master.execution.workers._
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.WhenTerminated
 
 import scala.concurrent.{Future, Promise}
 
-trait WorkerConnector {
+trait Cluster {
 
   def askConnection(): Future[PerJobConnection]
 
@@ -18,7 +19,7 @@ trait WorkerConnector {
 
 }
 
-object WorkerConnector {
+object Cluster {
 
   sealed trait Event
   object Event {
@@ -33,11 +34,11 @@ object WorkerConnector {
   class ActorBasedWorkerConnector(
     underlying: ActorRef,
     termination: Future[Unit]
-  ) extends WorkerConnector {
+  ) extends Cluster {
 
     override def askConnection(): Future[PerJobConnection] = {
       val promise = Promise[PerJobConnection]
-      underlying ! WorkerConnector.Event.AskConnection(promise)
+      underlying ! Cluster.Event.AskConnection(promise)
       promise.future
     }
 
@@ -48,7 +49,7 @@ object WorkerConnector {
 
     override def whenTerminated(): Future[Unit] = termination
 
-    override def warmUp(): Unit = underlying ! WorkerConnector.Event.WarmUp
+    override def warmUp(): Unit = underlying ! Cluster.Event.WarmUp
 
 
   }
@@ -58,7 +59,7 @@ object WorkerConnector {
     ctx: ContextConfig,
     runner: WorkerRunner,
     af: ActorRefFactory
-  ): WorkerConnector = {
+  ): Cluster = {
     val props = ctx.workerMode match {
       case RunMode.Shared => SharedConnector.props(id, ctx, runner)
       case RunMode.ExclusiveContext => ExclusiveConnector.props(id, ctx, runner)

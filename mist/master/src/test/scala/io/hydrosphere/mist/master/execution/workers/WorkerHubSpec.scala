@@ -3,6 +3,7 @@ package io.hydrosphere.mist.master.execution.workers
 import akka.actor.ActorRef
 import io.hydrosphere.mist.common.{CommonData, MockitoSugar}
 import io.hydrosphere.mist.master.TestData
+import io.hydrosphere.mist.master.execution.Cluster
 import io.hydrosphere.mist.master.models.ContextConfig
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
@@ -39,7 +40,7 @@ class WorkerHubSpec extends FunSpec with Matchers with TestData with Eventually 
   case class TestConnector(
     id: String,
     ctx: ContextConfig,
-    runner: WorkerRunner) extends WorkerConnector {
+    runner: WorkerRunner) extends Cluster {
 
     import scala.concurrent.ExecutionContext.Implicits.global
 

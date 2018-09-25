@@ -157,33 +157,33 @@ object HttpV2Routes extends Logger {
 
   import HttpV2Base._
 
-  def workerRoutes(jobService: ExecutionService): Route = {
-    path( root / "workers" ) {
-      get { complete(jobService.workers()) }
-    } ~
-    path( root / "workers" / Segment ) { workerId =>
-      delete {
-        completeU(jobService.stopWorker(workerId))
-      } ~
-      get {
-        completeOpt { jobService.getWorkerLink(workerId) }
-      }
-    } ~
-    path( root / "workers"/ Segment / "jobs") { workerId =>
-      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
-        val req = JobDetailsRequest(pagination.limit, pagination.offset)
-          .withFilter(FilterClause.ByStatuses(statuses))
-          .withFilter(FilterClause.ByWorkerId(workerId))
-
-        onSuccess(jobService.getHistory(req))(rsp => {
-          if (pagination.paginate)
-            complete(rsp)
-          else
-            complete(rsp.jobs)
-        })
-      }
-    }}
-  }
+//  def workerRoutes(jobService: ExecutionService): Route = {
+//    path( root / "workers" ) {
+//      get { complete(jobService.workers()) }
+//    } ~
+//    path( root / "workers" / Segment ) { workerId =>
+//      delete {
+//        completeU(jobService.stopWorker(workerId))
+//      } ~
+//      get {
+//        completeOpt { jobService.getWorkerLink(workerId) }
+//      }
+//    } ~
+//    path( root / "workers"/ Segment / "jobs") { workerId =>
+//      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+//        val req = JobDetailsRequest(pagination.limit, pagination.offset)
+//          .withFilter(FilterClause.ByStatuses(statuses))
+//          .withFilter(FilterClause.ByWorkerId(workerId))
+//
+//        onSuccess(jobService.getHistory(req))(rsp => {
+//          if (pagination.paginate)
+//            complete(rsp)
+//          else
+//            complete(rsp.jobs)
+//        })
+//      }
+//    }}
+//  }
 
   def functionsCrud(functions: FunctionsService): Route = {
     path( root / "functions" ) {
@@ -442,7 +442,7 @@ object HttpV2Routes extends Logger {
     handleExceptions(exceptionHandler) {
       functionAllRoutes(main) ~
       jobsRoutes(main) ~
-      workerRoutes(main.execution) ~
+//      workerRoutes(main.execution) ~
       contextsRoutes(main) ~
       internalArtifacts(mistHome) ~
       artifactRoutes(artifacts) ~

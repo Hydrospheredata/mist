@@ -29,6 +29,7 @@ object ConfigPatcher {
       "type" -> "aws_emr",
       "sshKeyPair" -> sshKeyPair,
       "sshKeyPath" -> sshKeyPath,
+      "sshUser" -> "hadoop",
       "accessKey"-> accessKey,
       "secretKey" -> secretKey,
       "subnetId" -> subnetId,

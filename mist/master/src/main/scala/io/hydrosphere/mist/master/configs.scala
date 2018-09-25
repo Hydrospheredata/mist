@@ -261,6 +261,7 @@ sealed trait LauncherSettings
 case class AWSEMRLaunchSettings(
   sshKeyPair: String,
   sshKeyPath: String,
+  sshUser: String,
   accessKey: String,
   secretKey: String,
   subnetId: String,
@@ -276,6 +277,7 @@ object AWSEMRLaunchSettings {
     AWSEMRLaunchSettings(
       sshKeyPair = c.getString("sshKeyPair"),
       sshKeyPath = c.getString("sshKeyPath"),
+      sshUser = c.getString("sshUser"),
       accessKey = c.getString("accessKey"),
       secretKey = c.getString("secretKey"),
       subnetId = c.getString("subnetId"),
@@ -321,6 +323,7 @@ case class MasterConfig(
   jobsSavePath: String,
   artifactRepositoryPath: String,
   launchersSettings: Map[String, LauncherSettings],
+  mistHome: String,
   raw: Config
 )
 
@@ -364,6 +367,7 @@ object MasterConfig extends Logger {
       jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       launchersSettings = LauncherSettings.extractAll(mist.getConfigList("launchers-settings")),
+      mistHome = config.getString("work-directory"),
       raw = config
     )
   }

@@ -22,7 +22,7 @@ import scala.concurrent.Future
   */
 class ExecutionService(
   contextsMaster: ActorRef,
-  workersHub: WorkerHub,
+  //workersHub: WorkerHub,
   statusReporter: StatusReporter,
   repo: JobRepository
 ) {
@@ -42,16 +42,16 @@ class ExecutionService(
 
   def getHistory(req: JobDetailsRequest): Future[JobDetailsResponse] = repo.getJobs(req)
 
-  def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
+//  def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
 
-  def getWorkerLink(workerId: String): Option[WorkerLink] = {
-    workersHub.workerConnection(workerId).map(_.data)
-  }
+//  def getWorkerLink(workerId: String): Option[WorkerLink] = {
+//    workersHub.workerConnection(workerId).map(_.data)
+//  }
 
 
-  def stopAllWorkers(): Future[Unit] = workersHub.shutdownAllWorkers()
-
-  def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
+//  def stopAllWorkers(): Future[Unit] = workersHub.shutdownAllWorkers()
+//
+//  def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
 
 
   def startJob(req: JobStartRequest): Future[ExecutionInfo] = {
@@ -110,24 +110,25 @@ class ExecutionService(
 object ExecutionService {
 
   def apply(
-    spawn: SpawnSettings,
+//    spawn: SpawnSettings,
+    clustersService: ClustersService,
     system: ActorSystem,
     streamer: EventsStreamer,
     repo: JobRepository,
     logService: LogService
   ): ExecutionService = {
     // TODO
-    val hub = WorkerHub(spawn, system)
+//    val hub = WorkerHub(spawn, system)
 
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, logService, (id, ctx) => Future.successful(hub.start(id, ctx)))
+      val props = ContextFrontend.props(ctx.name, reporter, logService, clustersService.start)
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref
     })
     val contextsMaster = system.actorOf(ContextsMaster.props(mkContext))
-    new ExecutionService(contextsMaster, hub, reporter, repo)
+    new ExecutionService(contextsMaster, reporter, repo)
   }
 
 }

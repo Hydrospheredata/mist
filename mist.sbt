@@ -83,9 +83,11 @@ lazy val master = project.in(file("mist/master"))
 
       Library.Akka.testKit % "test",
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
-      Library.cats,
+      Library.cats, Library.catsEffect,
 
       Library.dockerJava,
+
+      Library.awsSdkEC2, Library.awsSdkEMR, Library.scalaSsh,
 
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
       Library.commonsCodec, Library.scalajHttp,
@@ -97,23 +99,6 @@ lazy val master = project.in(file("mist/master"))
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
     buildInfoPackage := "io.hydrosphere.mist"
-  )
-
-lazy val clusterAgent = project.in(file("mist/cluster-agent"))
-  .dependsOn(common % "compile->compile;test->test")
-  .settings(commonSettings: _*)
-  .settings(commonAssemblySettings: _*)
-  .settings(
-    name := "mist-cluster-agent",
-    scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.Akka.base,
-    libraryDependencies ++= Seq(
-      Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,
-      Library.cats,
-      Library.jsr305 % "provided",
-      Library.scalaTest % "test",
-      Library.Akka.testKit % "test"
-    )
   )
 
 lazy val worker = project.in(file("mist/worker"))
