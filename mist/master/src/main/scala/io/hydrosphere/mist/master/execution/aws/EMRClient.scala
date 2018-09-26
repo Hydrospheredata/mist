@@ -45,6 +45,7 @@ object EMRClient {
     override def start(settings: EMRRunSettings): IO[EmrInfo] = {
       import settings._
 
+      //TODO: configuration!
       val sparkApp = Application.builder().name("Spark").build()
       val request = RunJobFlowRequest.builder()
         .name(s"mist-$name")

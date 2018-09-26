@@ -41,11 +41,13 @@ object AwsSetup {
             case Some(d) => ME.pure(d)
             case None => ME.raiseError[InstanceData](new RuntimeException(s"Unknown instance: $instanceId"))
           }
-          ec2EmrRole <- iam.getOrCreate(ec2EmrRole)
-          emrRole <- iam.getOrCreate(emrRole)
+          ec2EmrRole <- iam.getOrCreateRole(ec2EmrRole)
+          ec2EMrInstaceProfile <- iam.getOrCreateInstanceProfile(ec2EmrRole.name, ec2EmrRole.name)
+          emrRole <- iam.getOrCreateRole(emrRole)
 
-          secGroupData = SecGroupData(data.vpcId, 0, 65535, data.cidrIp)
-          secGroupId <- ec2.getOrCreateSecGroup(secGroupName(instanceId), secGroupDecr, secGroupData)
+          secGroupData = IngressData(0, 65535, data.cidrIp, "TCP")
+          secGroupId <- ec2.getOrCreateSecGroup(secGroupName(instanceId), secGroupDecr, data.vpcId, secGroupData)
+          _ <- ec2.addIngressRule(data.secGroupIds.head, IngressData(0, 65535, data.cidrIp, "TCP"))
           keyName <- ec2.getOrCreateKeyPair(keyName(instanceId), sshKey)
         } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name, keyName)
       }

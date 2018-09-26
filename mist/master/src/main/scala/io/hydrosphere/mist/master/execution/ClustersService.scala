@@ -6,6 +6,7 @@ import akka.actor.ActorSystem
 import io.hydrosphere.mist.master.execution.aws.AWSEMRClusterRunner
 import io.hydrosphere.mist.master.{AWSEMRLaunchSettings, LauncherSettings}
 import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig, ServerDefault}
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.Future
@@ -16,17 +17,17 @@ trait ClustersService {
 
 }
 
-object ClustersService {
+object ClustersService extends Logger{
 
   def create(
     mistHome: String,
     spawn: SpawnSettings,
+    regHub: ActorRegHub,
     launchSettings: Map[String, LauncherSettings],
     serverDefault: ClusterRunner,
     system: ActorSystem
   ): ClustersService = {
 
-    val regHub = ActorRegHub("regHub", system)
     val runners = launchSettings.map({case (name, settings) => {
       val runner = settings match {
         case aws: AWSEMRLaunchSettings =>
@@ -41,6 +42,7 @@ object ClustersService {
         ctx.launchData match {
           case ServerDefault => serverDefault.run(id, ctx)
           case aws: AWSEMRLaunchData =>
+            logger.info(s"IN:${aws.launcherSettingsName} keys: ${runners.keys.toList}")
             runners.get(aws.launcherSettingsName) match {
               case Some(runner) => runner.run(id, ctx)
               case None => Future.failed(new RuntimeException(s"Unknown settings name ${aws.launcherSettingsName} for ctx ${ctx.name}"))

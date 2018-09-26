@@ -39,7 +39,7 @@ mv spark-2.3.0-bin-hadoop2.7 spark
 sleep 30
 
 INSTANCE_ID=$(ec2metadata --instance-id)
-$JAVA -cp /opt/mist/utils/aws-init-setup.jar io.hydrosphere.mist.aws.Main $INSTANCE_ID $ACCESS_KEY_ID $ACCESS_KEY_SECRET $AWS_REGION /opt/mist/configs/default.conf ~/.mist_key.pub
+$JAVA -cp /opt/mist/utils/aws-init-setup.jar io.hydrosphere.mist.aws.Main $INSTANCE_ID $ACCESS_KEY_ID $ACCESS_KEY_SECRET $AWS_REGION /opt/mist/configs/default.conf ~/.mist_key.pub ~/.mist_key
 
 SPARK_HOME=/opt/spark /opt/mist/bin/mist-master start
 

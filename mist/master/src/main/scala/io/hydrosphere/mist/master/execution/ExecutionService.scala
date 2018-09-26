@@ -8,7 +8,6 @@ import cats.implicits._
 import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.InitializedEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.logging.LogService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
@@ -22,7 +21,6 @@ import scala.concurrent.Future
   */
 class ExecutionService(
   contextsMaster: ActorRef,
-  //workersHub: WorkerHub,
   statusReporter: StatusReporter,
   repo: JobRepository
 ) {
@@ -110,16 +108,12 @@ class ExecutionService(
 object ExecutionService {
 
   def apply(
-//    spawn: SpawnSettings,
     clustersService: ClustersService,
     system: ActorSystem,
     streamer: EventsStreamer,
     repo: JobRepository,
     logService: LogService
   ): ExecutionService = {
-    // TODO
-//    val hub = WorkerHub(spawn, system)
-
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
       val props = ContextFrontend.props(ctx.name, reporter, logService, clustersService.start)

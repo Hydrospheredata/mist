@@ -367,7 +367,7 @@ object MasterConfig extends Logger {
       jobInfoProviderConfig = FunctionInfoProviderConfig(mist.getConfig("job-extractor")),
       srcConfigPath = filePath,
       launchersSettings = LauncherSettings.extractAll(mist.getConfigList("launchers-settings")),
-      mistHome = config.getString("work-directory"),
+      mistHome = mist.getString("work-directory"),
       raw = config
     )
   }

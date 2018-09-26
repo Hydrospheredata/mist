@@ -117,7 +117,7 @@ object MasterServer extends Logger {
         ClusterRunner.legacy(spawnSettings, regHub, starter, system)
       }
 
-      ClustersService.create(config.mistHome, spawnSettings, config.launchersSettings, defaultRunner, system)
+      ClustersService.create(config.mistHome, spawnSettings, regHub, config.launchersSettings, defaultRunner, system)
     }
 
     def runExecutionService(clustersService: ClustersService, logService: LogService): ExecutionService = {

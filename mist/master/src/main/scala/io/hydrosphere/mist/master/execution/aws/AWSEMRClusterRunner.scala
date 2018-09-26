@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution.aws
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 import java.util.concurrent.Executors
 
 import akka.actor.ActorSystem
@@ -12,35 +12,15 @@ import io.hydrosphere.mist.master.execution.workers.{StopAction, WorkerConnectio
 import io.hydrosphere.mist.master.execution.workers.starter.{SparkSubmitBuilder, WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{Cluster, ClusterRunner, SpawnSettings}
 import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig}
+import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Failure
 
-object AWSEMRClusterRunner {
-
-  def mkInstallCommands(
-    agentJarPath: String,
-    workerJarPath: String,
-    agentId: String,
-    masterAddr: String,
-    accessKey: String,
-    secretKey: String,
-    region: String,
-    awsId: String
-  ): Seq[SSHCmd] = {
-    Seq(
-      SSHCmd.Exec(Seq("mkdir", "~/mist-agent")),
-      SSHCmd.CopyFile(agentJarPath, "~/mist-agent/mist-agent.jar"),
-      SSHCmd.CopyFile(workerJarPath, "~/mist-agent/mist-worker.jar"),
-      SSHCmd.Exec(Seq(
-        "java", "-cp", "~/mist-agent/mist-master.jar", "io.hydrosphere.mist.master.execution.aws.ClusterAgent",
-        masterAddr, agentId, accessKey, secretKey, region, awsId,
-        "1>~/mist-agent/out.log", "2>~/mist-agent/out.log", "&"
-      ))
-    )
-  }
+object AWSEMRClusterRunner extends Logger {
 
   class EMRClusterRunner(
     spawn: SpawnSettings,
@@ -108,7 +88,7 @@ object AWSEMRClusterRunner {
     }
 
     private def mkRunner(launch: AWSEMRLaunchSettings, host: String): WorkerRunner = {
-      val starter = new WorkerStarter {
+      val starter: WorkerStarter = new WorkerStarter {
         val builder = new SparkSubmitBuilder("~/mist-agent", "/usr/lib/spark")
         override def onStart(name: String, initInfo: CommonData.WorkerInitInfo): WorkerProcess = {
           val submitCmd = builder.submitWorker(name, initInfo) :+ "&"
@@ -120,8 +100,8 @@ object AWSEMRClusterRunner {
 
         override def stopAction: StopAction = StopAction.Remote
       }
-      val hackSettings = spawn.copy(runnerCmd = starter)
-      WorkerRunner.default(hackSettings, regHub, system)
+
+      WorkerRunner.default(spawn, starter, regHub, system)
     }
 
     override def run(id: String, ctx: ContextConfig): Future[Cluster] = {
@@ -151,10 +131,18 @@ object AWSEMRClusterRunner {
     val client = EMRClient.create(accessKey, secretKey, region)
 
     val installAgent = (host: String, agentId: String, awsId: String) => {
-      val cmds = mkInstallCommands(
-        jarsDir.resolve("mist-master.jar").toString, jarsDir.resolve("mist-worker.jar").toString,
-        agentId: String, spawn.akkaAddress, accessKey, secretKey, region, awsId)
+      val realDir = jarsDir.toAbsolutePath.toRealPath()
+      val transfer = TransferParams(
+        realDir.resolve("mist-master.jar").toString,
+        realDir.resolve("mist-worker.jar").toString,
+        s"/home/$sshUser/mist-agent"
+      )
+      val agentRunParams = AgentRunParams(
+        agentId, spawn.akkaAddress, accessKey, secretKey, region, awsId
+      )
+      val cmds = AgentInstall.sshCommands(transfer, agentRunParams)
       new SSHClient(host, sshUser, sshKeyPath).install(cmds)
+      ()
     }
 
     new EMRClusterRunner(
@@ -167,3 +155,4 @@ object AWSEMRClusterRunner {
     )
   }
 }
+

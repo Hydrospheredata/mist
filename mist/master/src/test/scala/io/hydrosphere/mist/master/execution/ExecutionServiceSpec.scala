@@ -5,7 +5,6 @@ import akka.testkit.{TestKit, TestProbe}
 import io.hydrosphere.mist.common.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.Messages.StatusMessages.UpdateStatusEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.models.JobStartRequest
 import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.master.{JobDetails, TestData, TestUtils}
@@ -29,11 +28,10 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
     it("should start job") {
       val execution = TestProbe()
       val repo = mock[JobRepository]
-      val hub = mock[WorkerHub]
       val reporter = mock[StatusReporter]
       when(repo.update(any[JobDetails])).thenSuccess(())
 
-      val service = new ExecutionService(execution.ref, hub, reporter, repo)
+      val service = new ExecutionService(execution.ref, reporter, repo)
 
       val future = service.startJob(
         JobStartRequest(
@@ -62,14 +60,13 @@ class ExecutionServiceSpec extends TestKit(ActorSystem("testMasterService"))
       //TODO
       val contextsMaster = TestProbe()
       val repo = mock[JobRepository]
-      val hub = mock[WorkerHub]
       val reporter = mock[StatusReporter]
 
       when(repo.get(any[String]))
         .thenSuccess(Some(mkDetails(JobDetails.Status.Started)))
         .thenSuccess(Some(mkDetails(JobDetails.Status.Canceled)))
 
-      val service = new ExecutionService(contextsMaster.ref, hub, reporter, repo)
+      val service = new ExecutionService(contextsMaster.ref, reporter, repo)
 
       val future = service.stopJob("id")
 

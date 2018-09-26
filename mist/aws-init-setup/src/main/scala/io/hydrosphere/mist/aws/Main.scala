@@ -13,15 +13,16 @@ object Main {
     val region = args(3)
     val configPath = args(4)
 
-    val sshKeyPath = args(5)
-    val sshKey = Source.fromFile(Paths.get(sshKeyPath).toFile).mkString
+    val sshKeyPathPub = args(5)
+    val sshKeyPath = args(6)
+    val sshKeyPub = Source.fromFile(Paths.get(sshKeyPathPub).toFile).mkString
 
     val setup = AwsSetup.create(accessKey, accessSecret, region)
-    val out = setup.setup(instanceId, sshKey).unsafeRunSync()
+    val out = setup.setup(instanceId, sshKeyPub).unsafeRunSync()
 
     val launchData = LaunchData(
       sshKeyPair = out.sshKeyPairName,
-      sshKeyPath = sshKeyPath,
+      sshKeyPath = sshKeyPathPub,
       accessKey = accessKey,
       secretKey = accessSecret,
       subnetId = out.subnetId,

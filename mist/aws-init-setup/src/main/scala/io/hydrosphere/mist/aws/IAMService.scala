@@ -8,8 +8,7 @@ import cats.implicits._
 import cats.Monad
 import cats.effect._
 import software.amazon.awssdk.services.iam.IAMAsyncClient
-import software.amazon.awssdk.services.iam.model.{AttachRolePolicyRequest, CreateRoleRequest, GetRoleRequest, Role}
-
+import software.amazon.awssdk.services.iam.model._
 import JFutureSyntax._
 
 import scala.io.Source
@@ -49,7 +48,7 @@ trait IAMService[F[_]] {
   def createRole(role: AWSRole): F[AWSRole]
   def getRole(name: String): F[Option[String]]
 
-  def getOrCreate(role: AWSRole)(implicit m: Monad[F]): F[AWSRole] = {
+  def getOrCreateRole(role: AWSRole)(implicit m: Monad[F]): F[AWSRole] = {
     for {
       out <- getRole(role.name)
       role <- out match {
@@ -58,6 +57,19 @@ trait IAMService[F[_]] {
       }
     } yield role
   }
+
+  def createInstanceProfile(name: String, role: String): F[String]
+  def getInstanceProfile(name: String): F[Option[String]]
+  def getOrCreateInstanceProfile(name: String, role: String)(implicit M: Monad[F]): F[String] = {
+    for {
+      out <- getInstanceProfile(name)
+      role <- out match {
+        case Some(_) => M.pure(role)
+        case None => createInstanceProfile(name, role)
+      }
+    } yield role
+  }
+
 }
 
 object IAMService {
@@ -93,5 +105,30 @@ object IAMService {
           _ <- iamClient.attachRolePolicy(attachReq).toIO
         } yield role
       }
-  }
+
+      override def createInstanceProfile(name: String, role: String): IO[String] = {
+        val createReq = CreateInstanceProfileRequest.builder()
+          .instanceProfileName(name)
+          .build()
+
+        val addReq = AddRoleToInstanceProfileRequest.builder()
+          .instanceProfileName(name)
+          .roleName(role)
+          .build()
+        for {
+          _ <- iamClient.createInstanceProfile(createReq).toIO
+          _ <- iamClient.addRoleToInstanceProfile(addReq).toIO
+        } yield name
+      }
+
+      override def getInstanceProfile(name: String): IO[Option[String]] = {
+        val req = GetInstanceProfileRequest.builder().instanceProfileName(name).build()
+        iamClient.getInstanceProfile(req).toIO
+          .map(resp => Option(resp.instanceProfile().instanceProfileName()))
+          .handleErrorWith({
+            case _: NoSuchEntityException => IO.pure(None)
+            case e => IO.raiseError(e)
+          })
+      }
+    }
 }
