@@ -332,10 +332,11 @@ class ContextFrontend(
     case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
     case Event.ConnectorStartFailed(id, e) if id == connId =>
       log.error(e, "Starting connector {} id: {} failed", name, id)
-      if (failedTimes > ctx.maxConnFailures) {
-        becomeSleeping(state, ctx, e, failedTimes)
+      val nextFailed = failedTimes + 1
+      if (nextFailed > ctx.maxConnFailures) {
+        becomeSleeping(state, ctx, e, nextFailed)
       } else {
-        gotoStartingConnector(ctx, state, failedTimes + 1)
+        gotoStartingConnector(ctx, state, nextFailed)
       }
   }
 
