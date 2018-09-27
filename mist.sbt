@@ -133,6 +133,27 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
+lazy val agent = project.in(file("mist/agent"))
+  .dependsOn(common % "compile->compile;test->test")
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    name := "mist-agent",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= Library.Akka.base,
+    libraryDependencies ++= Seq(
+      Library.slf4jLog4j, Library.log4j, Library.log4jExtras,
+      Library.Akka.testKit % "test",
+
+      Library.awsSdkEMR,
+      Library.scalaTest % "test"
+    )
+  ).settings(
+  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
+  buildInfoPackage := "io.hydrosphere.mist"
+)
+
 lazy val awsInitSetup = project.in(file("mist/aws-init-setup"))
   .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
@@ -168,6 +189,7 @@ lazy val root = project.in(file("."))
         CpFile("configs/logging").to("configs"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
+        CpFile(assembly.in(agent,  assembly).value).as("mist-agent.jar"),
         MkDir("utils"),
         CpFile(assembly.in(awsInitSetup, assembly).value).as("aws-init-setup.jar").to("utils"),
         CpFile(Ui.ui.value).as("ui")

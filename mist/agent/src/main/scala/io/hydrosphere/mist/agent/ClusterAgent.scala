@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.execution.aws
+package io.hydrosphere.mist.agent
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
@@ -7,7 +7,6 @@ import io.hydrosphere.mist.utils.NetUtils
 import io.hydrosphere.mist.utils.akka.{ActorRegHub, WhenTerminated}
 
 import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 object ClusterAgent {
@@ -20,14 +19,14 @@ object ClusterAgent {
     val region = args(4)
     val awsId = args(5)
 
-    val emrClient = EMRClient.create(accessKey, secretKey, region)
+    val termination = EMRTermination.create(accessKey, secretKey, region)
 
-    val hostname = NetUtils.findLocalInetAddress()
+    val hostname = NetUtils.findLocalInetAddress().getHostAddress
 
     val config = ConfigFactory.load("agent")
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(hostname))
 
-    implicit val system = ActorSystem("mist-info-provider", config)
+    implicit val system = ActorSystem("mist-agent", config)
 
     def resolveRemote(path: String): ActorRef = {
       val ref = system.actorSelection(path).resolveOne(10 seconds)
@@ -51,7 +50,7 @@ object ClusterAgent {
 
     WhenTerminated(heathRef, {
       println("Remote system was terminated, shutdown cluster")
-      emrClient.stop(awsId).unsafeRunSync()
+      Await.result(termination.terminate(awsId), Duration.Inf)
       system.terminate()
     })
 

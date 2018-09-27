@@ -22,7 +22,7 @@ object Main {
 
     val launchData = LaunchData(
       sshKeyPair = out.sshKeyPairName,
-      sshKeyPath = sshKeyPathPub,
+      sshKeyPath = sshKeyPath,
       accessKey = accessKey,
       secretKey = accessSecret,
       subnetId = out.subnetId,

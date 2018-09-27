@@ -133,7 +133,7 @@ object AWSEMRClusterRunner extends Logger {
     val installAgent = (host: String, agentId: String, awsId: String) => {
       val realDir = jarsDir.toAbsolutePath.toRealPath()
       val transfer = TransferParams(
-        realDir.resolve("mist-master.jar").toString,
+        realDir.resolve("mist-agent.jar").toString,
         realDir.resolve("mist-worker.jar").toString,
         s"/home/$sshUser/mist-agent"
       )
