@@ -83,9 +83,10 @@
     }
   },
   "Outputs" : {
-    "PublicIp" : {
-      "Value" : { "Fn::GetAtt" : [ "MistEc2Instance", "PublicIp" ]},
-      "Description" : "PublicIp Address"
+    "PublicDns" : {
+      "Value" : { "Fn::GetAtt" : [ "MistEc2Instance", "PublicDnsName" ]},
+      "Description" : "Public Dns name"
     }
+
   }
 }

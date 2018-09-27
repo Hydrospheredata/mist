@@ -45,9 +45,13 @@ object AwsSetup {
           ec2EMrInstaceProfile <- iam.getOrCreateInstanceProfile(ec2EmrRole.name, ec2EmrRole.name)
           emrRole <- iam.getOrCreateRole(emrRole)
 
-          secGroupData = IngressData(0, 65535, data.cidrIp, "TCP")
-          secGroupId <- ec2.getOrCreateSecGroup(secGroupName(instanceId), secGroupDecr, data.vpcId, secGroupData)
-          _ <- ec2.addIngressRule(data.secGroupIds.head, IngressData(0, 65535, data.cidrIp, "TCP"))
+          secGroupData = IngressData(0, 65535, IngressAddr.CidrIP(data.cidrIp), "TCP")
+          scGroupName = secGroupName(instanceId)
+
+          internalSecGroup <- ec2.getOrCreateSecGroup(scGroupName, secGroupDecr, data.vpcId, secGroupData)
+          secGroupId  = internalSecGroup.id
+          _ <- ec2.addIngressRule(data.secGroupIds.head, IngressData(0, 65535, IngressAddr.Group(internalSecGroup), "TCP"))
+
           keyName <- ec2.getOrCreateKeyPair(keyName(instanceId), sshKey)
         } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name, keyName)
       }
@@ -73,4 +77,3 @@ object AwsSetup {
     default(iam, ec2)
   }
 }
-
