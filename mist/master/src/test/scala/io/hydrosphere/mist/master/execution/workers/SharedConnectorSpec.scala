@@ -6,6 +6,7 @@ import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
 import io.hydrosphere.mist.common.CommonData.RunJobRequest
 import io.hydrosphere.mist.master.execution.Cluster
+import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.master.{ActorSpec, TestData}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
@@ -57,7 +58,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val remote = TestProbe()
     val connector = TestActorRef[SharedConnector](SharedConnector.props(
       id = "id",
-      ctx = FooContext,
+      ctx = FooContext.copy(workerMode = RunMode.Shared, precreated = true),
       startConnection = (id, ctx) => {
         val x = callCounter.incrementAndGet()
         val conn = WorkerConnection(x.toString, remote.ref, workerLinkData, Promise[Unit].future)
@@ -66,7 +67,6 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     ))
 
     val probe = TestProbe()
-    probe.send(connector, Cluster.Event.WarmUp)
     callCounter.get() shouldBe 2
     probe.send(connector, Cluster.Event.GetStatus)
     val status = probe.expectMsgType[SharedConnector.ProcessStatus]

@@ -6,7 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import io.hydrosphere.mist.common.CommonData
 import io.hydrosphere.mist.common.CommonData.CancelJobRequest
-import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.master.execution.Cluster
 
 import scala.collection.immutable.Queue
@@ -27,6 +27,13 @@ class SharedConnector(
     connectionStarter(connectionId)
   }
 
+  override def preStart(): Unit = {
+    if (ctx.precreated) {
+      (0 until ctx.maxJobs).foreach(_ => startConnection() pipeTo self)
+      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobs)
+    }
+  }
+
   override def receive: Receive = noConnection
 
   private def noConnection: Receive = {
@@ -35,10 +42,6 @@ class SharedConnector(
     case Event.AskConnection(req) =>
       startConnection() pipeTo self
       context become process(Queue(req), Queue.empty, Map.empty, 1)
-
-    case Event.WarmUp =>
-      (0 until ctx.maxJobs).foreach(_ => startConnection() pipeTo self)
-      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobs)
   }
 
   private def process(

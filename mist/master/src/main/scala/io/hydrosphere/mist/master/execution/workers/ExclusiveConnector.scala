@@ -52,9 +52,6 @@ class ExclusiveConnector(
       req.failure(e)
       context become process(other, working, startingConnections - 1)
 
-    case Event.WarmUp =>
-      log.warning("Exclusive connector {}: {} received warmup event", id, ctx.name)
-
     case Event.Released(conn) =>
       conn.shutdown(true)
       context become process(requests, working - conn.id, startingConnections)

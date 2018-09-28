@@ -1,4 +1,4 @@
-package io.hydrosphere.mist.master.execution
+package io.hydrosphere.mist.master.models
 
 import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 
@@ -9,3 +9,8 @@ case class WorkerLink(
   initInfo: WorkerInitInfo
 )
 
+case class ClusterLink(
+  name: String,
+  info: String,
+  workers: Seq[WorkerLink]
+)

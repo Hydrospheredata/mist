@@ -315,7 +315,6 @@ class ContextFrontend(
 
     case Event.ConnectorStarted(id, conn) if id == connId =>
       log.info("Connector started {} id: {}", name, id)
-      if (ctx.precreated && ctx.workerMode == RunMode.Shared) conn.warmUp()
       val connState = ConnectorState.initial(id, conn).copy(failedTimes = failedTimes)
       conn.whenTerminated().onComplete({
         case Success(_) => self ! Event.ConnectorStopped(id)

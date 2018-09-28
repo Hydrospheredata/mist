@@ -1,7 +1,6 @@
 package io.hydrosphere.mist.master.execution.aws
 
 import com.decodified.scalassh._
-import cats._
 import cats.implicits._
 
 import scala.util.Try
@@ -23,10 +22,10 @@ class SSHClient(host: String, user: String, keyPath: String) {
 
   def install(cmds: Seq[SSHCmd]): Try[Unit] = {
     SSH(host, cfgProvider) { client =>
-     cmds.map {
-       case SSHCmd.CopyFile(from, to) => client.upload(from, to)
-       case SSHCmd.Exec(cmd) => client.exec(Command(cmd.mkString(" "))).map(_ => ())
-     }.toList.sequence
+      cmds.toList.map {
+        case SSHCmd.CopyFile(from, to) => client.upload(from, to)
+        case SSHCmd.Exec(cmd) => client.exec(Command(cmd.mkString(" "))).map(_ => ())
+      }.combineAll
     }.map(_ => ())
   }
 }

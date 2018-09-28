@@ -1,6 +1,7 @@
 package io.hydrosphere.mist.master.execution.aws
 
 import software.amazon.awssdk.services.emr.{model => emodel }
+
 sealed trait EMRStatus
 
 object EMRStatus {

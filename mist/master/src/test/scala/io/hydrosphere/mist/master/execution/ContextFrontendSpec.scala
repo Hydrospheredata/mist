@@ -76,27 +76,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     status3.jobs.isEmpty shouldBe true
   }
 
-  it("should warmup precreated") {
-    val connector = mock[Cluster]
-    when(connector.whenTerminated).thenReturn(Promise[Unit].future)
-
-    val job = mkJobProbe()
-    val props = ContextFrontend.props(
-      name = "name",
-      status = StatusReporter.NOOP,
-      loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => Future.successful(connector),
-      jobFactory = ActorF.static(job.ref),
-      defaultInactiveTimeout = 5 minutes
-    )
-    val frontend = TestActorRef[ContextFrontend](props)
-    frontend ! ContextEvent.UpdateContext(TestUtils.FooContext.copy(precreated = true))
-
-    eventually(timeout(Span(3, Seconds))) {
-      verify(connector).warmUp()
-    }
-  }
-
   it("should respect idle timeout - awaitRequest") {
     val connector = successfulConnector()
 
@@ -294,7 +273,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
         override def whenTerminated: Future[Unit] = ???
       })
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
-      override def warmUp(): Unit = ()
     }
   }
 
@@ -303,7 +281,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
       override def askConnection(): Future[PerJobConnection] = Future.failed(FilteredException())
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
-      override def warmUp(): Unit = ()
     }
   }
 
@@ -311,7 +288,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     new Cluster {
       override def whenTerminated(): Future[Unit] = Promise[Unit].failure(FilteredException()).future
       override def askConnection(): Future[PerJobConnection] = Promise[PerJobConnection].future
-      override def warmUp(): Unit = ()
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
     }
   }
@@ -321,7 +297,6 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       override def whenTerminated(): Future[Unit] = Promise[Unit].future
       override def askConnection(): Future[PerJobConnection] = future
       override def shutdown(force: Boolean): Future[Unit] = Promise[Unit].future
-      override def warmUp(): Unit = ()
     }
   }
 

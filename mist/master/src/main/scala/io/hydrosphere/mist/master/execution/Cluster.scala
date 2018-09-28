@@ -11,8 +11,6 @@ trait Cluster {
 
   def askConnection(): Future[PerJobConnection]
 
-  def warmUp(): Unit
-
   def shutdown(force: Boolean): Future[Unit]
 
   def whenTerminated(): Future[Unit]
@@ -26,7 +24,6 @@ object Cluster {
     final case class AskConnection(resolve: Promise[PerJobConnection]) extends Event
     final case class Released(conn: WorkerConnection) extends Event
     final case class Shutdown(force: Boolean) extends Event
-    case object WarmUp extends Event
     final case class ConnTerminated(connId: String) extends Event
     case object GetStatus
   }
@@ -48,10 +45,6 @@ object Cluster {
     }
 
     override def whenTerminated(): Future[Unit] = termination
-
-    override def warmUp(): Unit = underlying ! Cluster.Event.WarmUp
-
-
   }
 
   def actorBased(

@@ -16,9 +16,6 @@ class ClusterSpec extends ActorSpec("actor-based-connector") {
     connector.askConnection()
     target.expectMsgType[Cluster.Event.AskConnection]
 
-    connector.warmUp()
-    target.expectMsgType[Cluster.Event.WarmUp.type]
-
     connector.shutdown(true)
     target.expectMsgType[Cluster.Event.Shutdown]
   }

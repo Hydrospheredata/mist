@@ -12,7 +12,7 @@ import io.hydrosphere.mist.common.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
-import io.hydrosphere.mist.master.execution.{ExecutionService, WorkerLink}
+import io.hydrosphere.mist.master.execution.ExecutionService
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.interfaces.JsonCodecs
 import io.hydrosphere.mist.master.jobs.FunctionsService

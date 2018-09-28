@@ -18,7 +18,7 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
   with BeforeAndAfterAll {
 
   def mkInitInfo(sparkConf: Map[String, String]) =
-    WorkerInitInfo(sparkConf, 1, 20 seconds, 20 seconds, "localhost:2005", "localhost:2003", "localhost:2004", 202020, "")
+    WorkerInitInfo(sparkConf, 20 seconds, 20 seconds, "localhost:2005", "localhost:2003", "localhost:2004", 202020, "")
 
   it("should create named context with spark.streaming.stopSparkContextByDefault=false") {
     val sparkConf = Map(

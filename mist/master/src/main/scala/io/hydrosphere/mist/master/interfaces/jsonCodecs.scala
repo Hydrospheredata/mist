@@ -6,9 +6,8 @@ import java.time.format.{DateTimeFormatter, DateTimeParseException}
 import io.hydrosphere.mist.common.CommonData.{Action, JobParams, WorkerInitInfo}
 import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.execution.WorkerLink
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.models._
+import io.hydrosphere.mist.master.models.{WorkerLink, _}
 import io.hydrosphere.mist.master.{JobDetails, JobDetailsResponse, JobResult}
 import mist.api.{data => mdata}
 import spray.json._
