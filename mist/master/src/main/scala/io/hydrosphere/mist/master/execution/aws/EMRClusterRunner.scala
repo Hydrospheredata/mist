@@ -11,7 +11,7 @@ import io.hydrosphere.mist.master.AWSEMRLaunchSettings
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, StopAction, WorkerConnection, WorkerRunner}
 import io.hydrosphere.mist.master.execution.workers.starter.{SparkSubmitBuilder, WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{Cluster, ClusterRunner, SpawnSettings}
-import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig}
+import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig, EMRInstances}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -19,7 +19,6 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Failure
-
 import IOTimer.Default
 
 class EMRClusterRunner(
@@ -45,9 +44,6 @@ class EMRClusterRunner(
       name = name,
       keyPair = settings.sshKeyPair,
       releaseLabel = data.releaseLabel,
-      masterInstanceType = data.masterInstanceType,
-      slaveInstanceType = data.slaveInstanceType,
-      instanceCount = data.instanceCount,
       subnetId = settings.subnetId,
       additionalGroup = settings.additionalGroup,
       emrRole = settings.emrRole,
@@ -55,9 +51,9 @@ class EMRClusterRunner(
     )
   }
 
-  private def startFully(runSettings: EMRRunSettings, client: EMRClient[IO]): IO[EmrInfo] = {
+  private def startFully(runSettings: EMRRunSettings, instances: EMRInstances, client: EMRClient[IO]): IO[EmrInfo] = {
     for {
-      initial <- client.start(runSettings)
+      initial <- client.start(runSettings, instances)
       await <- client.awaitStatus(initial.id, EMRStatus.Started, 10 seconds, 40)
     } yield await
   }
@@ -83,7 +79,7 @@ class EMRClusterRunner(
     val io = for {
       data        <- extractData(ctx)
       runSettings =  mkRunSettings(id, data, launchSettings)
-      emrInfo     <- startFully(runSettings, client)
+      emrInfo     <- startFully(runSettings, data.instances, client)
       agentId     =  s"agent-${emrInfo.id}"
       _           <- IO[Unit](installAgent(emrInfo.masterPublicDnsName, agentId, emrInfo.id))
       _           <- IO.fromFuture(IO(regHub.waitRef(agentId, 1 minute)))

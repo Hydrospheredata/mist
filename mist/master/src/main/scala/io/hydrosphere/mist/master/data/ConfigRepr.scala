@@ -1,8 +1,10 @@
 package io.hydrosphere.mist.master.data
 
-import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
+import com.typesafe.config._
+import io.hydrosphere.mist.master.interfaces.{EMRInstanceFormat, JsonCodecs}
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.ConfigUtils._
+import spray.json.{JsonFormat, JsonParser, ParserInput}
 
 import scala.concurrent.duration._
 
@@ -18,6 +20,7 @@ trait NamedConfigRepr[A] extends ConfigRepr[A] {
 
 }
 
+//TODO it's the same as jsonCodecs!
 object ConfigRepr {
 
   import scala.collection.JavaConverters._
@@ -25,11 +28,6 @@ object ConfigRepr {
   implicit class ToConfigSyntax[A <: NamedConfig](a: A)(implicit repr: ConfigRepr[A]) {
     def toConfig: Config = repr.toConfig(a)
   }
-
-//  implicit class FromConfigSyntax(config: Config){
-//    def to[A <: NamedConfig](implicit repr: ConfigRepr[A]): A = repr.fromConfig(config)
-//    def to[A <: NamedConfig](name: String)(implicit repr: NamedConfigRepr[A]): A = repr.fromConfig(name, config)
-//  }
 
   val EndpointsRepr = new NamedConfigRepr[FunctionConfig] {
 
@@ -53,6 +51,20 @@ object ConfigRepr {
     }
   }
 
+  def fromJsonFormat[A](jsonFormat: JsonFormat[A]): ConfigRepr[A] = new ConfigRepr[A] {
+    override def toConfig(a: A): Config = {
+      val s = jsonFormat.write(a).prettyPrint
+      ConfigFactory.parseString(s)
+    }
+    override def fromConfig(config: Config): A = {
+      val jsonString = config.root().render(ConfigRenderOptions.defaults().setJson(true).setComments(false).setOriginComments(false))
+      val json = JsonParser(ParserInput(jsonString))
+      jsonFormat.read(json)
+    }
+  }
+
+  val EMRInstancesRepr: ConfigRepr[EMRInstances] = fromJsonFormat(EMRInstanceFormat)
+
   val LaunchDataConfigRepr: ConfigRepr[LaunchData] = new ConfigRepr[LaunchData] {
 
     override def toConfig(a: LaunchData): Config = {
@@ -61,12 +73,11 @@ object ConfigRepr {
       val (t, body) = a match {
         case ServerDefault => "server-default" -> Map.empty[String, ConfigValue]
         case awsEmr: AWSEMRLaunchData =>
+          val instances = EMRInstancesRepr.toConfig(awsEmr.instances)
           "aws-emr" -> Map(
             "launcher-settings-name" -> fromAnyRef(awsEmr.launcherSettingsName),
             "release-label" -> fromAnyRef(awsEmr.releaseLabel),
-            "master-instance-type" -> fromAnyRef(awsEmr.masterInstanceType),
-            "slave-instance-type" -> fromAnyRef(awsEmr.slaveInstanceType),
-            "instance-count" -> fromAnyRef(awsEmr.instanceCount)
+            "instances" -> instances.root()
           )
       }
       val full = body + ("type" -> t)
@@ -80,9 +91,7 @@ object ConfigRepr {
           AWSEMRLaunchData(
             launcherSettingsName = config.getString("launcher-settings-name"),
             releaseLabel = config.getString("release-label"),
-            masterInstanceType = config.getString("master-instance-type"),
-            slaveInstanceType = config.getString("slave-instance-type"),
-            instanceCount = config.getInt("instance-count")
+            instances = EMRInstancesRepr.fromConfig(config.getConfig("instances"))
           )
         case x => throw new IllegalArgumentException(s"Unknown launch data type $x")
       }

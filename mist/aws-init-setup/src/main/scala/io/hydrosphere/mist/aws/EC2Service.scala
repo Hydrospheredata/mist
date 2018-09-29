@@ -98,7 +98,6 @@ object EC2Service {
           .ipPermissions(withAddr.build())
           .build()
 
-        println(req)
         ec2Client.authorizeSecurityGroupIngress(req).toIO.map(r => {println(r)})
       }
 

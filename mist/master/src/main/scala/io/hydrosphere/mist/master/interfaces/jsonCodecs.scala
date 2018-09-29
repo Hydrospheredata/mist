@@ -125,6 +125,105 @@ trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with M
 
 }
 
+trait EMRInstanceFormat extends JsonFormat[EMRInstances] with DefaultJsonProtocol {
+  val fixedKey = "fixed"
+  val fleetsKey = "fleets"
+  //TODO - infer these things using shapeless!
+  implicit val instanceGroupTypeF = new JsonFormat[EMRInstances.InstanceGroupType] {
+    override def write(obj: EMRInstances.InstanceGroupType): JsValue = {
+      val name = obj match {
+        case EMRInstances.InstanceGroupType.Master => "master"
+        case EMRInstances.InstanceGroupType.Core => "core"
+        case EMRInstances.InstanceGroupType.Task =>  "task"
+      }
+      JsString(name)
+    }
+    override def read(json: JsValue): EMRInstances.InstanceGroupType = {
+      json match {
+        case JsString(v) => v.toLowerCase match {
+          case "master" => EMRInstances.InstanceGroupType.Master
+          case "core" => EMRInstances.InstanceGroupType.Core
+          case "task" => EMRInstances.InstanceGroupType.Task
+          case x => throw new IllegalArgumentException(s"Invalid instance group type $x")
+        }
+        case _ => throw new IllegalArgumentException(s"Invalid instance group type format")
+      }
+    }
+  }
+
+  implicit val marketTypeF = new JsonFormat[EMRInstances.Market] {
+    override def write(obj: EMRInstances.Market): JsValue = {
+      val name = obj match {
+        case EMRInstances.Market.OnDemand => "on-demand"
+        case EMRInstances.Market.Spot => "spot"
+      }
+      JsString(name)
+    }
+    override def read(json: JsValue): EMRInstances.Market = {
+      json match {
+        case JsString(v) => v.toLowerCase match {
+          case "on-demand" => EMRInstances.Market.OnDemand
+          case "spot" => EMRInstances.Market.Spot
+          case x => throw new IllegalArgumentException(s"Invalid market type $x")
+        }
+        case _ => throw new IllegalArgumentException(s"Invalid market type format")
+      }
+    }
+  }
+
+  implicit val volumeTypeF = new JsonFormat[EMRInstances.VolumeType] {
+    override def write(obj: EMRInstances.VolumeType): JsValue = {
+      val name = obj match {
+        case EMRInstances.VolumeType.IO1 => "io1"
+        case EMRInstances.VolumeType.GP2 => "gp2"
+        case EMRInstances.VolumeType.Standard => "standard"
+      }
+      JsString(name)
+    }
+    override def read(json: JsValue): EMRInstances.VolumeType = {
+      json match {
+        case JsString(v) => v.toLowerCase match {
+          case "io1" => EMRInstances.VolumeType.IO1
+          case "gp2" => EMRInstances.VolumeType.GP2
+          case "standard" => EMRInstances.VolumeType.Standard
+          case x => throw new IllegalArgumentException(s"Invalid volume type $x")
+        }
+        case _ => throw new IllegalArgumentException(s"Invalid volume type format")
+      }
+    }
+  }
+
+  implicit val ebsVolumeF = jsonFormat4(EMRInstances.EbsVolume.apply)
+  implicit val ebsF = jsonFormat2(EMRInstances.Ebs.apply)
+  implicit val autoScalingF = jsonFormat2(EMRInstances.AutoScaling.apply)
+  implicit val fleetInstanceF = jsonFormat8(EMRInstances.FleetInstance.apply)
+
+
+  implicit val fixedF = jsonFormat3(EMRInstances.Fixed.apply)
+  implicit val fleetsF = jsonFormat1(EMRInstances.Fleets.apply)
+
+  override def write(obj: EMRInstances): JsValue = {
+    val (name, body) = obj match {
+      case fixed: EMRInstances.Fixed => fixedKey -> fixed.toJson
+      case fleets: EMRInstances.Fleets => fleetsKey -> fleets.toJson
+    }
+    JsObject(body.asJsObject.fields + ("type" -> JsString(name)))
+  }
+
+  override def read(json: JsValue): EMRInstances = {
+    def fromType(t: String, obj: JsValue): EMRInstances = t match {
+      case `fixedKey` => fixedF.read(obj)
+      case `fleetsKey` => fleetsF.read(obj)
+    }
+    val t = json.asJsObject().fields.getOrElse("type", JsNull)
+    t match {
+      case JsString(v) => fromType(v, json)
+      case x => throw new IllegalArgumentException("Invalid emr instaces format")
+    }
+  }
+}
+
+object EMRInstanceFormat extends EMRInstanceFormat
 
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol
@@ -227,12 +326,14 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
+  implicit val emrInstancesF = EMRInstanceFormat
+
   implicit val launchDataF = new JsonFormat[LaunchData] {
 
     val ServerDefaultKey = "server-default"
     val AWSEMRKey = "aws-emr"
 
-    val awsEmrLaunchDataF = jsonFormat5(AWSEMRLaunchData.apply)
+    val awsEmrLaunchDataF = jsonFormat3(AWSEMRLaunchData.apply)
 
     override def write(in: LaunchData): JsValue = in match {
       case ServerDefault => JsObject("type" -> JsString(ServerDefaultKey))
@@ -243,8 +344,8 @@ trait JsonCodecs extends SprayJsonSupport
 
     override def read(json: JsValue): LaunchData = {
       def fromType(t: String, obj: JsValue): LaunchData = t match {
-        case ServerDefaultKey => ServerDefault
-        case AWSEMRKey => awsEmrLaunchDataF.read(obj)
+        case `ServerDefaultKey` => ServerDefault
+        case `AWSEMRKey` => awsEmrLaunchDataF.read(obj)
       }
       val t = json.asJsObject.fields.getOrElse("type", JsNull)
       t match {

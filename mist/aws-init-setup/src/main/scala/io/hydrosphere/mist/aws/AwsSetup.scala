@@ -41,14 +41,22 @@ object AwsSetup {
             case Some(d) => ME.pure(d)
             case None => ME.raiseError[InstanceData](new RuntimeException(s"Unknown instance: $instanceId"))
           }
+          // analog of `aws emr create-default-roles`
+          // for ec2 it's required to create InstanceProfile linked with Role
+          // for emr it's enough to have only role
           ec2EmrRole <- iam.getOrCreateRole(ec2EmrRole)
-          ec2EMrInstaceProfile <- iam.getOrCreateInstanceProfile(ec2EmrRole.name, ec2EmrRole.name)
+          ec2EmrInstanceProfile <- iam.getOrCreateInstanceProfile(ec2EmrRole.name, ec2EmrRole.name)
           emrRole <- iam.getOrCreateRole(emrRole)
 
+          // additional security group for emr
+          // allows ingress traffic from mist-master
           secGroupData = IngressData(0, 65535, IngressAddr.CidrIP(data.cidrIp), "TCP")
           scGroupName = secGroupName(instanceId)
-
           internalSecGroup <- ec2.getOrCreateSecGroup(scGroupName, secGroupDecr, data.vpcId, secGroupData)
+
+          // add ingress rule to mist-master node security group
+          // allows ingress traffic from emr cluster
+          // as source uses security group created above
           secGroupId  = internalSecGroup.id
           _ <- ec2.addIngressRule(data.secGroupIds.head, IngressData(0, 65535, IngressAddr.Group(internalSecGroup), "TCP"))
 

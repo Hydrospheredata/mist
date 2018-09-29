@@ -33,15 +33,73 @@ trait NamedConfig {
 sealed trait LaunchData
 /** use default worker-runner **/
 case object ServerDefault extends LaunchData
-case class AWSEMRLaunchData(
+
+sealed trait EMRInstances
+object EMRInstances {
+
+  final case class Fixed(
+    masterInstanceType: String,
+    slaveInstanceType: String,
+    instanceCount: Int
+  ) extends EMRInstances
+
+
+  sealed trait InstanceGroupType
+  object InstanceGroupType {
+    case object Master extends InstanceGroupType
+    case object Core extends InstanceGroupType
+    case object Task extends InstanceGroupType
+  }
+  sealed trait Market
+  object Market {
+    case object OnDemand extends Market
+    case object Spot extends Market
+  }
+
+  sealed trait VolumeType
+  object VolumeType {
+    case object Standard extends VolumeType
+    case object IO1 extends VolumeType
+    case object GP2 extends VolumeType
+  }
+  final case class EbsVolume(
+    volumeType: VolumeType,
+    sizeGB: Int,
+    iops: Int,
+    count: Option[Int]
+  )
+
+  final case class Ebs(
+    optimized: Option[Boolean],
+    volumes: Seq[EbsVolume]
+  )
+
+  final case class AutoScaling(
+    max: Int,
+    min: Int
+  )
+
+  final case class FleetInstance(
+    instanceType: String,
+    instanceGroupType: InstanceGroupType,
+    name: Option[String],
+    instanceCount: Int,
+    market: Market,
+    ebs: Option[Ebs],
+    bidPrice: Option[String],
+    autoScaling: Option[AutoScaling]
+  )
+
+  final case class Fleets(instances: Seq[FleetInstance]) extends EMRInstances
+}
+
+final case class AWSEMRLaunchData(
   launcherSettingsName: String,
   releaseLabel: String,
-  masterInstanceType: String,
-  slaveInstanceType: String,
-  instanceCount: Int
+  instances: EMRInstances
 ) extends LaunchData
 
-case class ContextConfig(
+final case class ContextConfig(
   name: String,
   sparkConf: Map[String, String],
   downtime: Duration,
@@ -55,7 +113,7 @@ case class ContextConfig(
 ) extends NamedConfig
 
 
-case class FunctionConfig(
+final case class FunctionConfig(
   name: String,
   path: String,
   className: String,
