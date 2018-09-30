@@ -15,7 +15,7 @@ object Ui {
 
   lazy val settings = Seq(
     uiUrl := { (s: String) => s"https://github.com/Hydrospheredata/mist-ui/releases/download/v$s/mist-ui-$s.tar.gz" },
-    uiVersion := "2.1.0",
+    uiVersion := "2.2.0",
     uiCheckoutDir := "ui_local",
     ui := {
       val local = baseDirectory.value / uiCheckoutDir.value
