@@ -33,8 +33,10 @@ All events have 2 required fields: `event`, `id`, and some of them provide more:
 
 - `initialized` - job has been assigned to invocation, also returns all job parameters
 - `queued` - job has been queued (wait before worker assign job)
+- `job-file-downloading` - worker is downloading job artifact
 - `started` - job has been sent to worker
-- `canceled` - job has been canceled by user
+- `cancelling` - user sent cancel request
+- `cancelled` - job has been canceled by user
 - `finished`- job has been finished successfully, also has `result` field
 - `failed` - job has been finished unsuccessfully, also has `error` field
 - `logs` - job produced some log messages

@@ -143,8 +143,7 @@ class ContextFrontend(
         gotoStartingConnector(updCtx, currentState, 0)
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
-      case CancelJobRequest(id) =>
-        cancelJob(id, currentState, sender())
+      case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
 
       case Event.Connection(connId, connection) if connId == connectorState.id =>
         log.info("Context {} received new connection", name)
@@ -271,7 +270,8 @@ class ContextFrontend(
     case req: RunJobRequest => respondWithError(brokenCtx, req, sender(), error)
 
     case CancelJobRequest(id) =>
-      cancelJob(id, state, sender())
+      val next = cancelJob(id, state, sender())
+      context become sleepingTilUpdate(next, brokenCtx, error, failedTimes)
 
     case Event.Connection(_, connection) => connection.release()
 
@@ -349,12 +349,18 @@ class ContextFrontend(
     context become startingConnector(ctx, state, id, failedTimes)
   }
 
-  //TODO bug - it's possible to cancel and then assign connection to job
-  private def cancelJob(id: String, state: State, respond: ActorRef): Unit = state.get(id) match {
-    case Some(ref) =>
-      ref.tell(JobActor.Event.Cancel, respond)
-    case None =>
-      respond ! akka.actor.Status.Failure(new IllegalArgumentException(s"Unknown job: $id"))
+  private def cancelJob(id: String, state: State, respond: ActorRef): State = {
+    state.getWithState(id) match {
+      case Some((ref, status)) =>
+        ref.tell(JobActor.Event.Cancel, respond)
+        status match {
+          case Waiting => state.done(id)
+          case Working => state
+        }
+      case None =>
+        respond ! akka.actor.Status.Failure(new IllegalArgumentException(s"Unknown job: $id"))
+        state
+    }
   }
 
   private def mkJob(req: RunJobRequest, st: State, respond: ActorRef): State = {

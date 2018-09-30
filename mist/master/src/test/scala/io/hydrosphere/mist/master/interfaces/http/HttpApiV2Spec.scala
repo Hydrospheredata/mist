@@ -208,6 +208,42 @@ class HttpApiV2Spec extends FunSpec
       }
     }
 
+    it("should update function if it exists") {
+      val functions = mock[FunctionsService]
+
+      val test = FunctionConfig("test", "test", "test", "default")
+      when(functions.hasFunction(any[String])).thenSuccess(true)
+      when(functions.update(any[FunctionConfig]))
+        .thenSuccess(FunctionInfoData(
+          lang = "python",
+          path = "test",
+          defaultContext = "default",
+          className = "test",
+          name = "test"
+        ))
+
+
+      val route = HttpV2Routes.functionsCrud(functions)
+
+      Put("/v2/api/functions", test.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.OK
+        responseAs[FunctionConfig] shouldBe test
+      }
+    }
+
+    it("should not update function if it do not exist") {
+      val functions = mock[FunctionsService]
+
+      val test = FunctionConfig("test", "test", "test", "default")
+      when(functions.hasFunction(any[String])).thenSuccess(false)
+
+      val route = HttpV2Routes.functionsCrud(functions)
+
+      Put("/v2/api/functions", test.toEntity) ~> route ~> check {
+        status shouldBe StatusCodes.BadRequest
+      }
+    }
+
     it("should fail with invalid data for function") {
       val functions = mock[FunctionsService]
 
