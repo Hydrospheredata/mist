@@ -11,7 +11,7 @@ import io.hydrosphere.mist.master.AWSEMRLaunchSettings
 import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, StopAction, WorkerConnection, WorkerRunner}
 import io.hydrosphere.mist.master.execution.workers.starter.{SparkSubmitBuilder, WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{Cluster, ClusterRunner, SpawnSettings}
-import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig, EMRInstances}
+import io.hydrosphere.mist.master.models.{AWSEMRLaunchData, ContextConfig, EMRInstance}
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -47,11 +47,12 @@ class EMRClusterRunner(
       subnetId = settings.subnetId,
       additionalGroup = settings.additionalGroup,
       emrRole = settings.emrRole,
-      emrEc2Role = settings.emrEc2Role
+      emrEc2Role = settings.emrEc2Role,
+      autoScalingRole = settings.autoScalingRole
     )
   }
 
-  private def startFully(runSettings: EMRRunSettings, instances: EMRInstances, client: EMRClient[IO]): IO[EmrInfo] = {
+  private def startFully(runSettings: EMRRunSettings, instances: Seq[EMRInstance.Instance], client: EMRClient[IO]): IO[EmrInfo] = {
     for {
       initial <- client.start(runSettings, instances)
       await <- client.awaitStatus(initial.id, EMRStatus.Started, 10 seconds, 40)

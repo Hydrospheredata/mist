@@ -63,7 +63,7 @@ object ConfigRepr {
     }
   }
 
-  val EMRInstancesRepr: ConfigRepr[EMRInstances] = fromJsonFormat(EMRInstanceFormat)
+  val EMRInstanceRepr: ConfigRepr[EMRInstance.Instance] = fromJsonFormat(EMRInstanceFormat.instanceF)
 
   val LaunchDataConfigRepr: ConfigRepr[LaunchData] = new ConfigRepr[LaunchData] {
 
@@ -73,11 +73,11 @@ object ConfigRepr {
       val (t, body) = a match {
         case ServerDefault => "server-default" -> Map.empty[String, ConfigValue]
         case awsEmr: AWSEMRLaunchData =>
-          val instances = EMRInstancesRepr.toConfig(awsEmr.instances)
+          val instances = awsEmr.instances.map(i => EMRInstanceRepr.toConfig(i).root())
           "aws-emr" -> Map(
             "launcher-settings-name" -> fromAnyRef(awsEmr.launcherSettingsName),
             "release-label" -> fromAnyRef(awsEmr.releaseLabel),
-            "instances" -> instances.root()
+            "instances" -> fromIterable(instances.asJava)
           )
       }
       val full = body + ("type" -> t)
@@ -88,10 +88,11 @@ object ConfigRepr {
       config.getString("type") match {
         case "server-default" => ServerDefault
         case "aws-emr" =>
+          val instances = config.getConfigList("instances").asScala.map(c => EMRInstanceRepr.fromConfig(c))
           AWSEMRLaunchData(
             launcherSettingsName = config.getString("launcher-settings-name"),
             releaseLabel = config.getString("release-label"),
-            instances = EMRInstancesRepr.fromConfig(config.getConfig("instances"))
+            instances = instances
           )
         case x => throw new IllegalArgumentException(s"Unknown launch data type $x")
       }

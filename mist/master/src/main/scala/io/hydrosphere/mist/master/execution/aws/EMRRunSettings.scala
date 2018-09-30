@@ -7,6 +7,7 @@ case class EMRRunSettings(
   subnetId: String,
   additionalGroup: String,
   emrRole: String,
-  emrEc2Role: String
+  emrEc2Role: String,
+  autoScalingRole: String
 )
 

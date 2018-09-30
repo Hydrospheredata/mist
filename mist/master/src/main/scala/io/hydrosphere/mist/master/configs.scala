@@ -268,7 +268,8 @@ case class AWSEMRLaunchSettings(
   region: String,
   additionalGroup: String,
   emrRole: String,
-  emrEc2Role: String
+  emrEc2Role: String,
+  autoScalingRole: String
 ) extends LauncherSettings
 
 object AWSEMRLaunchSettings {
@@ -284,7 +285,8 @@ object AWSEMRLaunchSettings {
       region = c.getString("region"),
       additionalGroup = c.getString("additionalGroup"),
       emrRole = c.getString("emrRole"),
-      emrEc2Role = c.getString("emrEc2Role")
+      emrEc2Role = c.getString("emrEc2Role"),
+      autoScalingRole = c.getString("autoScalingRole")
     )
   }
 }

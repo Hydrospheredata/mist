@@ -13,7 +13,8 @@ case class LaunchData(
   region: String,
   additionalGroup: String,
   emrRole: String,
-  emrEc2Role: String
+  emrEc2Role: String,
+  autoScalingRole: String
 )
 
 object ConfigPatcher {
@@ -36,7 +37,8 @@ object ConfigPatcher {
       "region" -> region,
       "additionalGroup" -> additionalGroup,
       "emrRole" -> emrRole,
-      "emrEc2Role" -> emrEc2Role
+      "emrEc2Role" -> emrEc2Role,
+      "autoScalingRole" -> autoScalingRole
     ).map({case (k, v) => k -> fromAnyRef(v)})
 
     val provisioner = fromMap(configKeys.asJava)

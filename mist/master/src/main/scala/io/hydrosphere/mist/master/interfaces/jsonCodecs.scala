@@ -125,102 +125,86 @@ trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with M
 
 }
 
-trait EMRInstanceFormat extends JsonFormat[EMRInstances] with DefaultJsonProtocol {
-  val fixedKey = "fixed"
-  val fleetsKey = "fleets"
-  //TODO - infer these things using shapeless!
-  implicit val instanceGroupTypeF = new JsonFormat[EMRInstances.InstanceGroupType] {
-    override def write(obj: EMRInstances.InstanceGroupType): JsValue = {
-      val name = obj match {
-        case EMRInstances.InstanceGroupType.Master => "master"
-        case EMRInstances.InstanceGroupType.Core => "core"
-        case EMRInstances.InstanceGroupType.Task =>  "task"
-      }
-      JsString(name)
+trait EMRInstanceFormat extends DefaultJsonProtocol {
+
+  def dummyAdtStringFormat[A](hint: String, pairs: Seq[(A, String)]): JsonFormat[A] = new JsonFormat[A] {
+
+    override def write(obj: A): JsValue = pairs.find(a => a._1 == obj) match {
+      case Some((_, v)) => JsString(v)
+      case None => throw new IllegalArgumentException(s"Undeclared object $obj in $hint format")
     }
-    override def read(json: JsValue): EMRInstances.InstanceGroupType = {
-      json match {
-        case JsString(v) => v.toLowerCase match {
-          case "master" => EMRInstances.InstanceGroupType.Master
-          case "core" => EMRInstances.InstanceGroupType.Core
-          case "task" => EMRInstances.InstanceGroupType.Task
-          case x => throw new IllegalArgumentException(s"Invalid instance group type $x")
-        }
-        case _ => throw new IllegalArgumentException(s"Invalid instance group type format")
+    override def read(json: JsValue): A = json match {
+      case JsString(v) => pairs.find(a => a._2 == v) match {
+        case Some(out) => out._1
+        case None => throw new IllegalArgumentException(s"Undeclared string value $v in $hint format")
       }
+      case _ => throw new IllegalArgumentException(s"Invalid input value for $hint format")
     }
   }
 
-  implicit val marketTypeF = new JsonFormat[EMRInstances.Market] {
-    override def write(obj: EMRInstances.Market): JsValue = {
-      val name = obj match {
-        case EMRInstances.Market.OnDemand => "on-demand"
-        case EMRInstances.Market.Spot => "spot"
-      }
-      JsString(name)
-    }
-    override def read(json: JsValue): EMRInstances.Market = {
-      json match {
-        case JsString(v) => v.toLowerCase match {
-          case "on-demand" => EMRInstances.Market.OnDemand
-          case "spot" => EMRInstances.Market.Spot
-          case x => throw new IllegalArgumentException(s"Invalid market type $x")
-        }
-        case _ => throw new IllegalArgumentException(s"Invalid market type format")
-      }
-    }
-  }
+  implicit val marketF = dummyAdtStringFormat[EMRInstance.Market](
+    hint = "Market",
+    pairs = Seq(
+      EMRInstance.Market.OnDemand -> "onDemand",
+      EMRInstance.Market.Spot -> "spot"
+    )
+  )
 
-  implicit val volumeTypeF = new JsonFormat[EMRInstances.VolumeType] {
-    override def write(obj: EMRInstances.VolumeType): JsValue = {
-      val name = obj match {
-        case EMRInstances.VolumeType.IO1 => "io1"
-        case EMRInstances.VolumeType.GP2 => "gp2"
-        case EMRInstances.VolumeType.Standard => "standard"
-      }
-      JsString(name)
-    }
-    override def read(json: JsValue): EMRInstances.VolumeType = {
-      json match {
-        case JsString(v) => v.toLowerCase match {
-          case "io1" => EMRInstances.VolumeType.IO1
-          case "gp2" => EMRInstances.VolumeType.GP2
-          case "standard" => EMRInstances.VolumeType.Standard
-          case x => throw new IllegalArgumentException(s"Invalid volume type $x")
-        }
-        case _ => throw new IllegalArgumentException(s"Invalid volume type format")
-      }
-    }
-  }
+  implicit val instanceGroupTYpeF = dummyAdtStringFormat[EMRInstance.InstanceGroupType](
+    hint = "InstanceGroupType",
+    pairs = Seq(
+      EMRInstance.InstanceGroupType.Master -> "master",
+      EMRInstance.InstanceGroupType.Core -> "core",
+      EMRInstance.InstanceGroupType.Task -> "task"
+    )
+  )
 
-  implicit val ebsVolumeF = jsonFormat4(EMRInstances.EbsVolume.apply)
-  implicit val ebsF = jsonFormat2(EMRInstances.Ebs.apply)
-  implicit val autoScalingF = jsonFormat2(EMRInstances.AutoScaling.apply)
-  implicit val fleetInstanceF = jsonFormat8(EMRInstances.FleetInstance.apply)
+  implicit val volumeTypeF = dummyAdtStringFormat[EMRInstance.VolumeType](
+    hint = "VolumeType",
+    pairs = Seq(
+      EMRInstance.VolumeType.IO1 -> "io1",
+      EMRInstance.VolumeType.GP2 -> "gp2",
+      EMRInstance.VolumeType.Standard -> "standard"
+    )
+  )
 
+  implicit val ebsVolumeF = jsonFormat4(EMRInstance.EbsVolume.apply)
+  implicit val ebsF = jsonFormat2(EMRInstance.Ebs.apply)
 
-  implicit val fixedF = jsonFormat3(EMRInstances.Fixed.apply)
-  implicit val fleetsF = jsonFormat1(EMRInstances.Fleets.apply)
+  implicit val adjustmentTypeF = dummyAdtStringFormat[EMRInstance.AdjustmentType](
+    hint = "AdjustmentType",
+    pairs = Seq(
+      EMRInstance.AdjustmentType.ChangeInCapacity -> "changeInCapacity",
+      EMRInstance.AdjustmentType.PercentChangeInCapacity -> "percentChangeInCapacity",
+      EMRInstance.AdjustmentType.ExactCapacity -> "exactCapacity"
+    )
+  )
+  implicit val cmpOperatorF = dummyAdtStringFormat[EMRInstance.ComparisonOperator](
+    hint = "ComparisonOperator",
+    pairs = Seq(
+      EMRInstance.ComparisonOperator.GreaterThanOrEqual -> "greaterThanOrEqual",
+      EMRInstance.ComparisonOperator.GreaterThan -> "greaterThan",
+      EMRInstance.ComparisonOperator.LessThan -> "lessThan",
+      EMRInstance.ComparisonOperator.LessThanOrEqual -> "lessThanOrEqual"
+    )
+  )
+  implicit val statisticF = dummyAdtStringFormat[EMRInstance.Statistic](
+    hint = "Statistic",
+    pairs = Seq(
+      EMRInstance.Statistic.SampleCount -> "sampleCount",
+      EMRInstance.Statistic.Average -> "average",
+      EMRInstance.Statistic.Sum -> "sum",
+      EMRInstance.Statistic.Minimum -> "minimum",
+      EMRInstance.Statistic.Maximum -> "maximum"
+    )
+  )
+  implicit val dimensionsF = jsonFormat2(EMRInstance.Dimension.apply)
+  implicit val triggerF = jsonFormat9(EMRInstance.Trigger.apply)
+  implicit val ruleF = jsonFormat6(EMRInstance.Rule.apply)
 
-  override def write(obj: EMRInstances): JsValue = {
-    val (name, body) = obj match {
-      case fixed: EMRInstances.Fixed => fixedKey -> fixed.toJson
-      case fleets: EMRInstances.Fleets => fleetsKey -> fleets.toJson
-    }
-    JsObject(body.asJsObject.fields + ("type" -> JsString(name)))
-  }
+  implicit val autoScalingF = jsonFormat3(EMRInstance.AutoScaling.apply)
+  implicit val instanceF = jsonFormat8(EMRInstance.Instance.apply)
 
-  override def read(json: JsValue): EMRInstances = {
-    def fromType(t: String, obj: JsValue): EMRInstances = t match {
-      case `fixedKey` => fixedF.read(obj)
-      case `fleetsKey` => fleetsF.read(obj)
-    }
-    val t = json.asJsObject().fields.getOrElse("type", JsNull)
-    t match {
-      case JsString(v) => fromType(v, json)
-      case x => throw new IllegalArgumentException("Invalid emr instaces format")
-    }
-  }
 }
 
 object EMRInstanceFormat extends EMRInstanceFormat
@@ -228,6 +212,7 @@ object EMRInstanceFormat extends EMRInstanceFormat
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol
   with AnyJsonFormat
+  with EMRInstanceFormat
   with JobDetailsJsonFormat {
 
   implicit val printer = CompactPrinter

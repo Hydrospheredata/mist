@@ -4,8 +4,8 @@ import cats._
 import cats.implicits._
 import cats.effect._
 import io.hydrosphere.mist.master.execution.aws.JFutureSyntax._
-import io.hydrosphere.mist.master.models.EMRInstances
-import io.hydrosphere.mist.master.models.EMRInstances.{AutoScaling, Ebs, VolumeType}
+import io.hydrosphere.mist.master.models.EMRInstance
+import io.hydrosphere.mist.master.models.EMRInstance.{AutoScaling, Ebs, VolumeType}
 import software.amazon.awssdk.auth.credentials.{AwsCredentials, StaticCredentialsProvider}
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.emr.EMRAsyncClient
@@ -16,7 +16,7 @@ import scala.concurrent.duration.FiniteDuration
 
 trait EMRClient[F[_]] {
 
-  def start(settings: EMRRunSettings, instances: EMRInstances): F[EmrInfo]
+  def start(settings: EMRRunSettings, instances: Seq[EMRInstance.Instance]): F[EmrInfo]
   def status(id: String): F[Option[EmrInfo]]
   def stop(id: String): F[Unit]
 
@@ -75,34 +75,89 @@ object EMRClient {
         .build()
     }
 
-//    private def mkAutoScaling(as: AutoScaling): AutoScalingPolicy = {
-//      SimpleScalingPolicyConfiguration.builder()
-//          .adjustmentType(AdjustmentType.)
-//          .scalingAdjustment()
-//
-//      ScalingRule.builder()
-//        .name()
-//        .trigger(ScalingTrigger.builder().cloudWatchAlarmDefinition(CloudWatchAlarmDefinition.builder().metricName()))
-//      val rules =
-//      AutoScalingPolicy.builder()
-//        .constraints(ScalingConstraints.builder().maxCapacity(as.max).minCapacity(as.min).build())
-//        .rules()
-//    }
+    private def mkAutoScaling(as: AutoScaling): AutoScalingPolicy = {
 
-    private def mkInstanceGroup(instance: EMRInstances.FleetInstance): InstanceGroupConfig = {
+      def mkRule(rule: EMRInstance.Rule): ScalingRule = {
+        val adjType = rule.adjustmentType match {
+          case EMRInstance.AdjustmentType.ChangeInCapacity => AdjustmentType.CHANGE_IN_CAPACITY
+          case EMRInstance.AdjustmentType.ExactCapacity => AdjustmentType.EXACT_CAPACITY
+          case EMRInstance.AdjustmentType.PercentChangeInCapacity => AdjustmentType.PERCENT_CHANGE_IN_CAPACITY
+        }
+
+        val scalingPolicy = SimpleScalingPolicyConfiguration.builder()
+          .adjustmentType(adjType)
+          .scalingAdjustment(rule.scalingAdjustment)
+          .coolDown(rule.coolDown)
+          .build()
+
+        val action = ScalingAction.builder()
+            .simpleScalingPolicyConfiguration(scalingPolicy)
+            .build()
+
+        val cmpOp = rule.trigger.comparisonOperator match {
+          case EMRInstance.ComparisonOperator.GreaterThanOrEqual => ComparisonOperator.GREATER_THAN_OR_EQUAL
+          case EMRInstance.ComparisonOperator.GreaterThan => ComparisonOperator.GREATER_THAN
+          case EMRInstance.ComparisonOperator.LessThan => ComparisonOperator.LESS_THAN
+          case EMRInstance.ComparisonOperator.LessThanOrEqual => ComparisonOperator.LESS_THAN_OR_EQUAL
+        }
+        val statistic = rule.trigger.statistic match {
+          case EMRInstance.Statistic.SampleCount => Statistic.SAMPLE_COUNT
+          case EMRInstance.Statistic.Average => Statistic.AVERAGE
+          case EMRInstance.Statistic.Sum => Statistic.SUM
+          case EMRInstance.Statistic.Minimum => Statistic.MINIMUM
+          case EMRInstance.Statistic.Maximum => Statistic.MAXIMUM
+        }
+
+        val dimensions= rule.trigger.dimensions.map(d =>
+          MetricDimension.builder().key(d.key).value(d.value).build()
+        )
+
+        val cloudWatchAlarmDefinition = CloudWatchAlarmDefinition.builder()
+          .comparisonOperator(cmpOp)
+          .evaluationPeriods(rule.trigger.evaluationPeriods)
+          .metricName(rule.trigger.metricName)
+          .namespace(rule.trigger.namespace)
+          .period(rule.trigger.period)
+          .threshold(rule.trigger.threshold)
+          .statistic(statistic)
+          .unit(rule.trigger.unit)
+          .dimensions(dimensions.asJavaCollection)
+          .build()
+
+
+        val trigger = ScalingTrigger.builder()
+            .cloudWatchAlarmDefinition(cloudWatchAlarmDefinition)
+            .build()
+
+        ScalingRule.builder()
+          .name(rule.name)
+          .description(rule.name)
+          .action(action)
+          .trigger(trigger)
+          .build()
+      }
+
+      AutoScalingPolicy.builder()
+        .constraints(ScalingConstraints.builder().maxCapacity(as.max).minCapacity(as.min).build())
+        .rules(as.rules.map(mkRule).asJavaCollection)
+        .build()
+    }
+
+    private def mkInstanceGroup(instance: EMRInstance.Instance): InstanceGroupConfig = {
       val roleType = instance.instanceGroupType match {
-        case EMRInstances.InstanceGroupType.Core => InstanceRoleType.CORE
-        case EMRInstances.InstanceGroupType.Master => InstanceRoleType.MASTER
-        case EMRInstances.InstanceGroupType.Task => InstanceRoleType.TASK
+        case EMRInstance.InstanceGroupType.Core => InstanceRoleType.CORE
+        case EMRInstance.InstanceGroupType.Master => InstanceRoleType.MASTER
+        case EMRInstance.InstanceGroupType.Task => InstanceRoleType.TASK
       }
-      val market = instance.market match {
-        case EMRInstances.Market.OnDemand => MarketType.ON_DEMAND
-        case EMRInstances.Market.Spot => MarketType.SPOT
-      }
+      val market = instance.market.fold(MarketType.ON_DEMAND)({
+        case EMRInstance.Market.OnDemand => MarketType.ON_DEMAND
+        case EMRInstance.Market.Spot => MarketType.SPOT
+      })
 
       val base = InstanceGroupConfig.builder()
         .name(instance.name.getOrElse(s"Mist${instance.instanceGroupType}"))
         .instanceRole(roleType)
+        .instanceType(instance.instanceType)
         .instanceCount(instance.instanceCount)
         .market(market)
 
@@ -116,23 +171,20 @@ object EMRClient {
         case None => withEbs
       }
 
-      withBidPrice.build()
-    }
-
-    private def mkInstancesConfig(builder: JFICBuilder, instances: EMRInstances): JFICBuilder = {
-      instances match {
-        case fixed: EMRInstances.Fixed =>
-          builder.instanceCount(fixed.instanceCount)
-            .masterInstanceType(fixed.masterInstanceType)
-            .slaveInstanceType(fixed.slaveInstanceType)
-
-        case fleets: EMRInstances.Fleets =>
-          val groups = fleets.instances.map(i => mkInstanceGroup(i))
-          builder.instanceGroups(groups.asJavaCollection)
+      val result = instance.autoScaling match {
+        case Some(as) => withBidPrice.autoScalingPolicy(mkAutoScaling(as))
+        case None => withBidPrice
       }
+
+      result.build()
     }
 
-    override def start(settings: EMRRunSettings, instances: EMRInstances): IO[EmrInfo] = {
+    private def mkInstancesConfig(builder: JFICBuilder, instances: Seq[EMRInstance.Instance]): JFICBuilder = {
+      val groups = instances.map(i => mkInstanceGroup(i))
+      builder.instanceGroups(groups.asJavaCollection)
+    }
+
+    override def start(settings: EMRRunSettings, instances: Seq[EMRInstance.Instance]): IO[EmrInfo] = {
       import settings._
 
       //TODO: configuration!
@@ -154,6 +206,7 @@ object EMRClient {
         .applications(sparkApp)
         .jobFlowRole(emrEc2Role)
         .serviceRole(emrRole)
+        .autoScalingRole(autoScalingRole)
         .instances(instancesConfig).build()
 
       for {

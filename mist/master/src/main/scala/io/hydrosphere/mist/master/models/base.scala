@@ -34,15 +34,7 @@ sealed trait LaunchData
 /** use default worker-runner **/
 case object ServerDefault extends LaunchData
 
-sealed trait EMRInstances
-object EMRInstances {
-
-  final case class Fixed(
-    masterInstanceType: String,
-    slaveInstanceType: String,
-    instanceCount: Int
-  ) extends EMRInstances
-
+object EMRInstance {
 
   sealed trait InstanceGroupType
   object InstanceGroupType {
@@ -50,6 +42,7 @@ object EMRInstances {
     case object Core extends InstanceGroupType
     case object Task extends InstanceGroupType
   }
+
   sealed trait Market
   object Market {
     case object OnDemand extends Market
@@ -74,29 +67,75 @@ object EMRInstances {
     volumes: Seq[EbsVolume]
   )
 
-  final case class AutoScaling(
-    max: Int,
-    min: Int
+  sealed trait AdjustmentType
+  object AdjustmentType {
+    case object ChangeInCapacity extends AdjustmentType
+    case object PercentChangeInCapacity extends AdjustmentType
+    case object ExactCapacity extends AdjustmentType
+  }
+
+  sealed trait ComparisonOperator
+  object ComparisonOperator {
+    case object GreaterThanOrEqual extends ComparisonOperator
+    case object GreaterThan extends ComparisonOperator
+    case object LessThan extends ComparisonOperator
+    case object LessThanOrEqual extends ComparisonOperator
+  }
+  sealed trait Statistic
+  object Statistic {
+    case object SampleCount extends Statistic
+    case object Average extends Statistic
+    case object Sum extends Statistic
+    case object Minimum extends Statistic
+    case object Maximum extends Statistic
+  }
+
+  final case class Dimension(key:String, value: String)
+
+  final case class Trigger(
+    comparisonOperator: ComparisonOperator,
+    evaluationPeriods: Int,
+    metricName: String,
+    namespace: String,
+    period: Int,
+    threshold: Double,
+    statistic: Statistic,
+    unit: String,
+    dimensions: Seq[Dimension]
   )
 
-  final case class FleetInstance(
+  final case class Rule(
+    name: String,
+    description: String,
+    adjustmentType: AdjustmentType,
+    scalingAdjustment: Int,
+    coolDown: Int,
+    trigger: Trigger
+  )
+
+  final case class AutoScaling(
+    max: Int,
+    min: Int,
+    rules: Seq[Rule]
+  )
+
+  final case class Instance(
     instanceType: String,
     instanceGroupType: InstanceGroupType,
     name: Option[String],
     instanceCount: Int,
-    market: Market,
+    market: Option[Market],
     ebs: Option[Ebs],
     bidPrice: Option[String],
     autoScaling: Option[AutoScaling]
   )
 
-  final case class Fleets(instances: Seq[FleetInstance]) extends EMRInstances
 }
 
 final case class AWSEMRLaunchData(
   launcherSettingsName: String,
   releaseLabel: String,
-  instances: EMRInstances
+  instances: Seq[EMRInstance.Instance]
 ) extends LaunchData
 
 final case class ContextConfig(

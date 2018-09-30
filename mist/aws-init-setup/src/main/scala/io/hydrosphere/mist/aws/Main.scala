@@ -29,7 +29,8 @@ object Main {
       region = region,
       additionalGroup = out.securityGroupId,
       emrRole = out.emrRole,
-      emrEc2Role = out.ec2EmrRole
+      emrEc2Role = out.ec2EmrRole,
+      autoScalingRole = out.autoScalingRole
     )
 
     ConfigPatcher.patchFile(Paths.get(configPath), launchData)

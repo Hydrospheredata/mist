@@ -13,6 +13,7 @@ case class SetupData(
   securityGroupId: String,
   emrRole: String,
   ec2EmrRole: String,
+  autoScalingRole: String,
   sshKeyPairName: String
 )
 
@@ -29,6 +30,7 @@ object AwsSetup {
 
       val ec2EmrRole = AWSRole("mist-EMREC2", "default emr ec2 role", AWSRoleData.EC2EMR)
       val emrRole = AWSRole("mist-EMR", "default emr role", AWSRoleData.EMR)
+      val autoScalingRole = AWSRole("mist-EMR-Autoscaling", "default autoscalaing role for emr", AWSRoleData.EMRAutoScaling)
       val secGroupDecr = "Master-worker communications"
 
       def secGroupName(id: String): String = s"mist-internal-$id"
@@ -47,6 +49,7 @@ object AwsSetup {
           ec2EmrRole <- iam.getOrCreateRole(ec2EmrRole)
           ec2EmrInstanceProfile <- iam.getOrCreateInstanceProfile(ec2EmrRole.name, ec2EmrRole.name)
           emrRole <- iam.getOrCreateRole(emrRole)
+          autoScalingRole <- iam.getOrCreateRole(autoScalingRole)
 
           // additional security group for emr
           // allows ingress traffic from mist-master
@@ -61,7 +64,7 @@ object AwsSetup {
           _ <- ec2.addIngressRule(data.secGroupIds.head, IngressData(0, 65535, IngressAddr.Group(internalSecGroup), "TCP"))
 
           keyName <- ec2.getOrCreateKeyPair(keyName(instanceId), sshKey)
-        } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name, keyName)
+        } yield SetupData(data.subnetId, secGroupId, emrRole.name, ec2EmrRole.name, autoScalingRole.name, keyName)
       }
     }
   }

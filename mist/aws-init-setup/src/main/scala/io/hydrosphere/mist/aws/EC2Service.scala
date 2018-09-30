@@ -73,7 +73,6 @@ object EC2Service {
     new EC2Service[IO] {
 
       override def addIngressRule(groupId: String, data: IngressData): IO[Unit] = {
-        println(s"HERE: $groupId $data")
         import data._
         val ipPremission = IpPermission.builder()
           .fromPort(fromPort)

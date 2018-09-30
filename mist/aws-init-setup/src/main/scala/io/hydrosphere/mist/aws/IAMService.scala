@@ -35,6 +35,10 @@ object AWSRoleData {
     permissionsArn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
   )
 
+  val EMRAutoScaling = AWSRoleData(
+    readResourceJson("/trustAutoScaling.json"),
+    permissionsArn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole"
+  )
 }
 
 case class AWSRole(
