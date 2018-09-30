@@ -26,9 +26,9 @@ service nginx restart
 
 cd /opt
 
-wget http://repo.hydrosphere.io/hydrosphere/static/preview/mist-1.0.0-RC17.tar.gz
-tar xvfz mist-1.0.0-RC17.tar.gz
-mv mist-1.0.0-RC17 mist
+wget http://repo.hydrosphere.io/hydrosphere/static/preview/mist-1.0.0-RC18.tar.gz
+tar xvfz mist-1.0.0-RC18.tar.gz
+mv mist-1.0.0-RC18 mist
 
 wget https://archive.apache.org/dist/spark/spark-2.3.0/spark-2.3.0-bin-hadoop2.7.tgz 
 tar xvfz spark-2.3.0-bin-hadoop2.7.tgz
