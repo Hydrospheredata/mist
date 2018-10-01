@@ -1,5 +1,4 @@
-<img src="https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png" width="100">
-#![](https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png)
+<img src="https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png" width="100"> <img src="https://hydrosphere.io/wp-content/uploads/2018/10/Partnerworks_logo_ISH_IHV_MDS.png" width="100"> <img src="https://hydrosphere.io/wp-content/uploads/2018/05/APN-Logo_Color_324x89.bf1425dd614dd4d3a8fabc983adcc40144cac14d.png" width="100">
 
 [![Build Status](https://ci.hydrosphere.io/buildStatus/icon?job=hydrosphere.io/mist/master)](https://ci.hydrosphere.io/job/hydrosphere.io/job/mist/job/master/)
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg?branch=master)](https://travis-ci.org/Hydrospheredata)
