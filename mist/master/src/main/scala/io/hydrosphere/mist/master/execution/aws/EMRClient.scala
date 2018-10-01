@@ -207,7 +207,9 @@ object EMRClient {
         .jobFlowRole(emrEc2Role)
         .serviceRole(emrRole)
         .autoScalingRole(autoScalingRole)
-        .instances(instancesConfig).build()
+        .instances(instancesConfig)
+        .visibleToAllUsers(true)
+        .build()
 
       for {
         resp <- orig.runJobFlow(request).toIO
