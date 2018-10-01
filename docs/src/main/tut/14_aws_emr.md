@@ -7,7 +7,7 @@ position: 14
 
 ## AWS EMR Integration
 
-*Note: this feature is available in a beta-mode.
+*Note: this feature is currently available as a Proof-of-Concept.
 API might be slightly changed in the future after including it into the release version.*
 
 One of the core features of Mist is that it provides a way to abstract from the direct job submission using `spark-submit`
