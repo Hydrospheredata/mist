@@ -1,4 +1,4 @@
-<img src="https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png">
+<img src="https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png" width="100">
 #![](https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png)
 
 [![Build Status](https://ci.hydrosphere.io/buildStatus/icon?job=hydrosphere.io/mist/master)](https://ci.hydrosphere.io/job/hydrosphere.io/job/mist/job/master/)
