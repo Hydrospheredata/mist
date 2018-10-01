@@ -1,3 +1,5 @@
+(https://hydrosphere.io/wp-content/uploads/2018/10/Certification_earned_badge-150x133.png=100x)
+
 [![Build Status](https://ci.hydrosphere.io/buildStatus/icon?job=hydrosphere.io/mist/master)](https://ci.hydrosphere.io/job/hydrosphere.io/job/mist/job/master/)
 [![Build Status](https://travis-ci.org/Hydrospheredata/mist.svg?branch=master)](https://travis-ci.org/Hydrospheredata)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist-lib_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.hydrosphere/mist-lib_2.11/)
