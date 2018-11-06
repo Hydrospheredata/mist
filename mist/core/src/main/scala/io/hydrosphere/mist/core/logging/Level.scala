@@ -1,6 +1,9 @@
 package io.hydrosphere.mist.core.logging
 
-case class Level(value: Int, name: String)
+sealed trait Level {
+  def value: Int
+  def name: String
+}
 
 object Level {
 
@@ -12,9 +15,9 @@ object Level {
     case x => throw new IllegalArgumentException(s"Unknown level $i")
   }
 
-  object Debug extends Level(1, "DEBUG")
-  object Info extends Level(2, "INFO")
-  object Warn extends Level(3, "WARN")
-  object Error extends Level(4, "ERROR")
+  object Debug extends Level { val value = 1; val name = "DEBUG" }
+  object Info  extends Level { val value = 2; val name = "INFO"  }
+  object Warn  extends Level { val value = 3; val name = "WARN"  }
+  object Error extends Level { val value = 4; val name = "ERROR" }
 }
 

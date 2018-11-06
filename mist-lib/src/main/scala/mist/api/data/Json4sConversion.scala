@@ -15,9 +15,11 @@ trait Json4sConversion {
       case JDouble(d) => JsNumber(d)
       case JDecimal(d) => JsNumber(d)
       case JInt(i) => JsNumber(i)
+      case JLong(l) => JsNumber(l)
       case JBool(v) => JsBoolean(v)
       case JObject(fields) => JsMap(fields.map({case (k, v) => k -> translateAst(v)}): _*)
       case JArray(elems) => JsList(elems.map(translateAst))
+      case JSet(elems) => JsList(elems.toList.map(translateAst))
     }
 
     Try(org.json4s.jackson.JsonMethods.parse(s, useBigDecimalForDouble = true)).map(json4sJs => translateAst(json4sJs))
