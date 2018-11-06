@@ -23,8 +23,8 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
-  scalaVersion :=  "2.11.8",
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
+  scalaVersion :=  "2.12.7",
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
   version := "1.0.0"
@@ -40,7 +40,7 @@ lazy val mistLib = project.in(file("mist-lib"))
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
-      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.3",
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
@@ -60,7 +60,6 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       Library.Akka.actor,
       Library.slf4j,
-      Library.reflect,
       Library.Akka.testKit % "test",
       Library.mockito % "test", Library.scalaTest % "test"
     )
@@ -87,7 +86,7 @@ lazy val master = project.in(file("mist/master"))
 
       Library.dockerJava,
 
-      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.3",
       Library.commonsCodec, Library.scalajHttp,
       Library.jsr305 % "provided",
 

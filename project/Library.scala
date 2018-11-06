@@ -9,7 +9,7 @@ object Library {
 
   val chill = "com.twitter" %% "chill" % "0.9.2"
 
-  val slick = "com.typesafe.slick" %% "slick" % "3.1.1"
+  val slick = "com.typesafe.slick" %% "slick" % "3.2.1"
   val h2 = "com.h2database" % "h2" % "1.4.194"
   val flyway = "org.flywaydb" % "flyway-core" % "4.1.1"
 
@@ -22,7 +22,6 @@ object Library {
   val junit = "junit" % "junit" % "4.12"
   val mockito ="org.mockito" % "mockito-all" % "1.10.19"
 
-  val reflect =  "org.scala-lang" % "scala-reflect" % "2.11.8"
   val dockerJava = "com.github.docker-java" % "docker-java" % "3.0.12"
 
   object Akka {
