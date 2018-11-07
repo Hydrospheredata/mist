@@ -25,6 +25,7 @@ lazy val commonSettings = Seq(
 
   sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
   scalaVersion :=  "2.12.7",
+  crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
   version := "1.0.0"
@@ -140,7 +141,11 @@ lazy val root = project.in(file("."))
   .settings(
     name := "mist",
 
-    stageDirectory := target.value / s"mist-${version.value}",
+    stageDirectory := {
+      val binVersion = scalaBinaryVersion.value
+      val `2.12_postfix` = if (binVersion == "2.12") "_scala-2.12" else ""
+      target.value / (s"mist-${version.value}" + `2.12_postfix`)
+    },
     stageActions := {
       Seq(
         CpFile("bin"),
@@ -214,16 +219,17 @@ lazy val root = project.in(file("."))
   ).settings(
     sparkLocal := {
       val log = streams.value.log
-      val version = sparkVersion.value
+      val sparkV= sparkVersion.value
+      val scalaBin = scalaBinaryVersion.value
 
       val local = file("spark_local")
       if (!local.exists())
         IO.createDirectory(local)
 
-      val sparkDir = local / SparkLocal.distrName(version)
+      val sparkDir = local / SparkLocal.distrName(sparkV, scalaBin)
       if (!sparkDir.exists()) {
         log.info(s"Downloading spark $version to $sparkDir")
-        SparkLocal.downloadSpark(version, local)
+        SparkLocal.downloadSpark(sparkV, scalaBin, local)
       }
       sparkDir
     },
@@ -253,9 +259,11 @@ lazy val root = project.in(file("."))
       ps.!<(StdOutLogger)
     }
   ).settings(
-    imageNames in docker := Seq(
-      ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
-    ),
+    imageNames in docker := {
+      val scalaBin = scalaBinaryVersion.value
+      val scalaPostfix = if (scalaBin == "2.12") "-scala-2.12" else ""
+      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}" + scalaPostfix)
+    },
     dockerfile in docker := {
       val localSpark = sparkLocal.value
       val mistHome = "/usr/share/mist"

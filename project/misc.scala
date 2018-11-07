@@ -14,6 +14,7 @@ object Tar {
   import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
   val CanExecuteMode = 493
+  val CanExecuteMode2 = 484
 
   def extractTarGz(from: File, to: File): Unit = {
     val gzipIn = new GzipCompressorInputStream(new FileInputStream(from))
@@ -23,8 +24,11 @@ object Tar {
     tarIn.close
   }
 
+
   @tailrec
   def extractTar(stream: TarArchiveInputStream, root: File): Unit = {
+
+    def isExecutable(mode: Int): Boolean = (mode.toOctalString.head.toInt & 0x001) == 1
 
     def write(entry: TarArchiveEntry) = {
       val file = root / entry.getName
@@ -34,7 +38,7 @@ object Tar {
         val out = new FileOutputStream(file)
         IO.transfer(stream, out)
         out.close
-        if (entry.getMode == CanExecuteMode) file.setExecutable(true)
+        if (isExecutable(entry.getMode)) file.setExecutable(true)
       }
     }
 
@@ -50,23 +54,32 @@ object Tar {
 
 object SparkLocal {
 
-  def downloadSpark(version: String, to: File): Unit = {
-    val link = downloadUrl(version)
-    val target = to / distrTar(version)
+  def downloadSpark(sparkVersion: String, scalaBinVersion: String, to: File): Unit = {
+    val link = downloadUrl(sparkVersion, scalaBinVersion)
+    val target = to / distrTar(sparkVersion, scalaBinVersion)
     Downloader.download(link, target)
 
     Tar.extractTarGz(target, to)
   }
 
-  def downloadUrl(v: String): String =
-    s"https://archive.apache.org/dist/spark/spark-$v/${distrTar(v)}"
-
-  def distrName(v: String): String = {
-    val hadoopVersion = if(v.startsWith("1.")) "2.6" else "2.7"
-    s"spark-$v-bin-hadoop$hadoopVersion"
+  def downloadUrl(sparkV: String, scalaBinV: String): String = {
+    val url = if (sparkV == "2.4.0") {
+      "http://repo.hydrosphere.io/hydrosphere/static/spark"
+    } else {
+      s"https://archive.apache.org/dist/spark/spark-$sparkV"
+    }
+    val x = s"$url/${distrTar(sparkV, scalaBinV)}"
+    println(x)
+    x
   }
 
-  def distrTar(v: String): String = s"${distrName(v)}.tgz"
+  def distrName(sparkV: String, scalaBinV: String): String = {
+    val hadoopVersion = "2.7"
+    val scalaPostfix = if (scalaBinV == "2.12") "-scala-2.12" else ""
+    s"spark-$sparkV-bin-hadoop$hadoopVersion" + scalaPostfix
+  }
+
+  def distrTar(sparkV: String, scalaBinV: String): String = s"${distrName(sparkV, scalaBinV)}.tgz"
 
 }
 
