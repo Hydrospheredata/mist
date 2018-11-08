@@ -88,7 +88,7 @@ def test_mist(slaveName, sparkVersion, scalaVersion) {
                 onRelease { v ->
                   stage('Publish in DockerHub') {
                       sh "${env.WORKSPACE}/sbt/sbt -DscalaVersion${scalaVersion} -DsparkVersion=${sparkVersion} docker"
-                      def scalaPostfix = scalaVersion.startsWith("2.12") "-scala-2.12" : ""
+                      def scalaPostfix = scalaVersion.startsWith("2.12") ? "-scala-2.12" : ""
                       def name = "hydrosphere/mist:${v}-${sparkVersion}${scalaPostfix}"
                       sh "docker push $name"
                   }
