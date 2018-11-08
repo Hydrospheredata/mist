@@ -32,7 +32,7 @@ Releases:
 
 ### Run docker image
 
-We have prebuilt Mist for `2.1.1`, `2.2.0`, `2.3.0` Spark versions.
+We have prebuilt Mist for `2.2.0`, `2.3.0`, `2.4.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
 For example the latest Mist release for Spark `2.3.0` version looks like this: `mist:{{ site.version }}-2.3.0`
 
