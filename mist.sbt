@@ -23,7 +23,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
   scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
   crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
@@ -171,11 +171,10 @@ lazy val root = project.in(file("."))
     },
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
     stageActions in dockerStage += {
+      val name = imageNames.in(docker).value.head.toString()
       val configData =
         IO.read(file("configs/docker.conf"))
-          .replaceAll("\\$\\{version\\}", version.value)
-          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
-
+          .replaceAll("\\$\\{imageName\\}", name)
       Write("configs/default.conf", configData)
     },
 
@@ -421,5 +420,6 @@ lazy val commonScalacOptions = Seq(
   "-language:postfixOps",
   "-unchecked",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen"
+  "-Ywarn-numeric-widen",
+  "-deprecation"
 )

@@ -77,7 +77,7 @@ def test_mist(slaveName, sparkVersion, scalaVersion) {
                 
                 stage('Build and test') {
                     //Clear derby databases
-                    sh "rm -rf metastore_db recovery.db derby.log"
+                    sh "rm -rf spark-warehouse metastore_db recovery.db derby.log"
                     echo 'Testing Mist with Spark version: ' + sparkVersion
                     try{
                         sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DscalaVersion=${scalaVersion} -DsparkVersion=${sparkVersion} clean test"
