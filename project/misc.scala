@@ -13,9 +13,6 @@ object Tar {
   import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
   import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
-  val CanExecuteMode = 493
-  val CanExecuteMode2 = 484
-
   def extractTarGz(from: File, to: File): Unit = {
     val gzipIn = new GzipCompressorInputStream(new FileInputStream(from))
     val tarIn = new TarArchiveInputStream(gzipIn)
