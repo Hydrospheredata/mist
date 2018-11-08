@@ -23,7 +23,7 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
   scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
   crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
@@ -39,6 +39,11 @@ lazy val mistLib = project.in(file("mist-lib"))
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
+    unmanagedSourceDirectories in Compile += {
+      val sparkV = sparkVersion.value
+      val sparkSpecific =  if (sparkV == "2.4.0") "spark-2.4.0" else "spark"
+      baseDirectory.value / "src" / "main" / sparkSpecific
+    },
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
       "io.hydrosphere" %% "shadedshapeless" % "2.3.3",
