@@ -1,14 +1,14 @@
-//Spark Version
-versions = [
-        "2.1.0",
-        "2.2.0",
-        "2.3.0"
+def versions = [
+  "2.2.0": "2.11.8",
+  "2.3.0": "2.11.8",
+  "2.4.0": "2.11.8",
+  "2.4.0": "2.12.7",
 ]
 
 def branches = [:]
-for (int i = 0; i < versions.size(); i++) { //TODO switch to each after JENKINS-26481
-    def ver = versions.get(i)
-    branches["Spark_${ver}"] = {
+
+versions.each{ k, v ->
+    branches["Spark_${v}_Scala${k}"] = {
         test_mist("JenkinsOnDemand", ver.toString())
     }
 }
@@ -51,7 +51,7 @@ node("JenkinsOnDemand") {
       }
 
       stage('Publish in Maven') {
-          sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' mistLib/publishSigned"
+          sh "${env.WORKSPACE}/sbt/sbt 'set pgpPassphrase := Some(Array())' '+ mistLib/publishSigned'"
           sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'sonatypeReleaseAll'"
           sh "${env.WORKSPACE}/sbt/sbt 'project mistLib' 'pyPublish'"
       }
@@ -59,7 +59,7 @@ node("JenkinsOnDemand") {
     }
 }
 
-def test_mist(slaveName, sparkVersion) {
+def test_mist(slaveName, sparkVersion, scalaVersion) {
     node(slaveName) {
         wrap([$class: 'AnsiColorBuildWrapper', 'colorMapName': 'XTerm']) {
             try {
@@ -78,8 +78,8 @@ def test_mist(slaveName, sparkVersion) {
                     sh "rm -rf metastore_db recovery.db derby.log"
                     echo 'Testing Mist with Spark version: ' + sparkVersion
                     try{
-                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} clean test"
-                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DsparkVersion=${sparkVersion} it:test"
+                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DscalaVersion=${scalaVersion} -DsparkVersion=${sparkVersion} clean test"
+                        sh "${env.WORKSPACE}/sbt/sbt -Dsbt.override.build.repos=true -Dsbt.repository.config=${env.WORKSPACE}/project/repositories -DscalaVersion=${scalaVersion} -DsparkVersion=${sparkVersion} it:test"
                     }finally{
                         junit testResults: '**/target/test-reports/io.hydrosphere*.xml', allowEmptyResults: true
                     }
@@ -87,8 +87,10 @@ def test_mist(slaveName, sparkVersion) {
 
                 onRelease { v ->
                   stage('Publish in DockerHub') {
-                      sh "${env.WORKSPACE}/sbt/sbt -DsparkVersion=${sparkVersion} docker"
-                      sh "docker push hydrosphere/mist:${v}-${sparkVersion}"
+                      sh "${env.WORKSPACE}/sbt/sbt -DscalaVersion${scalaVersion} -DsparkVersion=${sparkVersion} docker"
+                      def scalaPostfix = scalaVersion.startsWith("2.12") "-scala-2.12" : ""
+                      def name = "hydrosphere/mist:${v}-${sparkVersion}${scalaPostfix}"
+                      sh "docker push $name"
                   }
                 }
             }

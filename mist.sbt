@@ -24,7 +24,7 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
-  scalaVersion :=  "2.12.7",
+  scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
   crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -262,7 +262,7 @@ lazy val root = project.in(file("."))
     imageNames in docker := {
       val scalaBin = scalaBinaryVersion.value
       val scalaPostfix = if (scalaBin == "2.12") "-scala-2.12" else ""
-      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}" + scalaPostfix)
+      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}" + scalaPostfix))
     },
     dockerfile in docker := {
       val localSpark = sparkLocal.value
