@@ -44,9 +44,17 @@ node("JenkinsOnDemand") {
     }
 
     onRelease { v ->
-      stage("upload tar") {
+      stage("upload tar default") {
         sh "${env.WORKSPACE}/sbt/sbt packageTar"
         tar = "${env.WORKSPACE}/target/mist-${v}.tar.gz"
+        sshagent(['hydrosphere_static_key']) {
+          sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
+        }
+      }
+
+      stage("upload tar 2.12") {
+        sh "${env.WORKSPACE}/sbt/sbt -DscalaVersion=2.12.7 packageTar"
+        tar = "${env.WORKSPACE}/target/mist-${v}-scala2.12.tar.gz"
         sshagent(['hydrosphere_static_key']) {
           sh "scp -o StrictHostKeyChecking=no ${tar} hydrosphere@52.28.47.238:publish_dir"
         }

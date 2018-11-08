@@ -15,6 +15,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val scalaPostfix: SettingKey[String] = settingKey[String]("Scala version postfix")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
 
@@ -25,6 +26,7 @@ lazy val commonSettings = Seq(
 
   sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
   scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
+  scalaPostfix := { if (scalaBinaryVersion.value == "2.12") "-scala-2.12" else "" },
   crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
@@ -145,12 +147,7 @@ lazy val root = project.in(file("."))
   .settings(StageDist.settings: _*)
   .settings(
     name := "mist",
-
-    stageDirectory := {
-      val binVersion = scalaBinaryVersion.value
-      val `2.12_postfix` = if (binVersion == "2.12") "_scala-2.12" else ""
-      target.value / (s"mist-${version.value}" + `2.12_postfix`)
-    },
+    stageDirectory := target.value / (s"mist-${version.value}${scalaPostfix.value}"),
     stageActions := {
       Seq(
         CpFile("bin"),
@@ -163,10 +160,10 @@ lazy val root = project.in(file("."))
       )
     },
     stageActions in basicStage += {
+      val name = imageNames.in(docker).value.head.toString()
       val configData =
         IO.read(file("configs/default.conf"))
-          .replaceAll("\\$\\{version\\}", version.value)
-          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
+          .replaceAll("\\$\\{imageName\\}", name)
       Write("configs/default.conf", configData)
     },
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
@@ -178,7 +175,7 @@ lazy val root = project.in(file("."))
       Write("configs/default.conf", configData)
     },
 
-    stageDirectory in runStage := target.value / s"mist-run-${version.value}",
+    stageDirectory in runStage := target.value / s"mist-run-${version.value}${scalaPostfix.value}",
     stageActions in runStage ++= {
       val mkJfunctions = Seq(
         ("spark-ctx-example", "SparkContextExample$"),
@@ -264,9 +261,7 @@ lazy val root = project.in(file("."))
     }
   ).settings(
     imageNames in docker := {
-      val scalaBin = scalaBinaryVersion.value
-      val scalaPostfix = if (scalaBin == "2.12") "-scala-2.12" else ""
-      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}" + scalaPostfix))
+      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}${scalaPostfix.value}"))
     },
     dockerfile in docker := {
       val localSpark = sparkLocal.value
