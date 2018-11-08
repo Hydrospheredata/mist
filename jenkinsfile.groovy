@@ -8,8 +8,8 @@ def versions = [
 def branches = [:]
 
 versions.each{ k, v ->
-    branches["Spark_${v}_Scala${k}"] = {
-        test_mist("JenkinsOnDemand", ver.toString())
+    branches["Spark_${k}_Scala${v}"] = {
+        test_mist("JenkinsOnDemand", k, v)
     }
 }
 
