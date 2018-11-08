@@ -1,15 +1,17 @@
 def versions = [
-  "2.2.0": "2.11.8",
-  "2.3.0": "2.11.8",
-  "2.4.0": "2.11.8",
-  "2.4.0": "2.12.7",
+  ["2.2.0", "2.11.8"],
+  ["2.3.0", "2.11.8"],
+  ["2.4.0", "2.11.8"],
+  ["2.4.0", "2.12.7"],
 ]
 
 def branches = [:]
 
-versions.each{ k, v ->
-    branches["Spark_${k}_Scala${v}"] = {
-        test_mist("JenkinsOnDemand", k, v)
+versions.each{ v ->
+    def spark = v.get(0)
+    def scala = v.get(1)
+    branches["Spark_${spark}_Scala${scala}"] = {
+        test_mist("JenkinsOnDemand", spark, scala)
     }
 }
 
