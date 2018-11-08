@@ -88,7 +88,7 @@ object HttpV2Base {
     ).as(PaginationQuery)
   }
 
-  val completeOpt = rejectEmptyResponse & complete _
+  def completeOpt(m: => ToResponseMarshallable): Route = rejectEmptyResponse(complete(m))
 
   def completeTry[A : ToEntityMarshaller](f: => Try[A], errorCode: StatusCode): StandardRoute = {
     f match {

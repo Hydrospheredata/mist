@@ -15,6 +15,7 @@ resolvers ++= Seq(
 )
 
 lazy val sparkVersion: SettingKey[String] = settingKey[String]("Spark version")
+lazy val scalaPostfix: SettingKey[String] = settingKey[String]("Scala version postfix")
 lazy val sparkLocal: TaskKey[File] = taskKey[File]("Download spark distr")
 lazy val mistRun: InputKey[Unit] = inputKey[Unit]("Run mist locally")
 
@@ -23,8 +24,10 @@ lazy val versionRegex = "(\\d+)\\.(\\d+).*".r
 lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
-  sparkVersion := sys.props.getOrElse("sparkVersion", "2.3.0"),
-  scalaVersion :=  "2.11.8",
+  sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
+  scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
+  scalaPostfix := { if (scalaBinaryVersion.value == "2.12") "-scala-2.12" else "" },
+  crossScalaVersions := Seq("2.11.8", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
   version := "1.0.0"
@@ -38,9 +41,14 @@ lazy val mistLib = project.in(file("mist-lib"))
     scalacOptions ++= commonScalacOptions,
     name := "mist-lib",
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
+    unmanagedSourceDirectories in Compile += {
+      val sparkV = sparkVersion.value
+      val sparkSpecific =  if (sparkV == "2.4.0") "spark-2.4.0" else "spark"
+      baseDirectory.value / "src" / "main" / sparkSpecific
+    },
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
     libraryDependencies ++= Seq(
-      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.3",
       Library.slf4j % "test",
       Library.slf4jLog4j % "test",
       Library.scalaTest % "test"
@@ -60,7 +68,6 @@ lazy val core = project.in(file("mist/core"))
     libraryDependencies ++= Seq(
       Library.Akka.actor,
       Library.slf4j,
-      Library.reflect,
       Library.Akka.testKit % "test",
       Library.mockito % "test", Library.scalaTest % "test"
     )
@@ -87,7 +94,7 @@ lazy val master = project.in(file("mist/master"))
 
       Library.dockerJava,
 
-      "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
+      "io.hydrosphere" %% "shadedshapeless" % "2.3.3",
       Library.commonsCodec, Library.scalajHttp,
       Library.jsr305 % "provided",
 
@@ -140,8 +147,7 @@ lazy val root = project.in(file("."))
   .settings(StageDist.settings: _*)
   .settings(
     name := "mist",
-
-    stageDirectory := target.value / s"mist-${version.value}",
+    stageDirectory := target.value / (s"mist-${version.value}${scalaPostfix.value}"),
     stageActions := {
       Seq(
         CpFile("bin"),
@@ -154,23 +160,22 @@ lazy val root = project.in(file("."))
       )
     },
     stageActions in basicStage += {
+      val name = imageNames.in(docker).value.head.toString()
       val configData =
         IO.read(file("configs/default.conf"))
-          .replaceAll("\\$\\{version\\}", version.value)
-          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
+          .replaceAll("\\$\\{imageName\\}", name)
       Write("configs/default.conf", configData)
     },
     stageDirectory in dockerStage := target.value / s"mist-docker-${version.value}",
     stageActions in dockerStage += {
+      val name = imageNames.in(docker).value.head.toString()
       val configData =
         IO.read(file("configs/docker.conf"))
-          .replaceAll("\\$\\{version\\}", version.value)
-          .replaceAll("\\$\\{sparkVersion\\}", sparkVersion.value)
-
+          .replaceAll("\\$\\{imageName\\}", name)
       Write("configs/default.conf", configData)
     },
 
-    stageDirectory in runStage := target.value / s"mist-run-${version.value}",
+    stageDirectory in runStage := target.value / s"mist-run-${version.value}${scalaPostfix.value}",
     stageActions in runStage ++= {
       val mkJfunctions = Seq(
         ("spark-ctx-example", "SparkContextExample$"),
@@ -215,16 +220,17 @@ lazy val root = project.in(file("."))
   ).settings(
     sparkLocal := {
       val log = streams.value.log
-      val version = sparkVersion.value
+      val sparkV= sparkVersion.value
+      val scalaBin = scalaBinaryVersion.value
 
       val local = file("spark_local")
       if (!local.exists())
         IO.createDirectory(local)
 
-      val sparkDir = local / SparkLocal.distrName(version)
+      val sparkDir = local / SparkLocal.distrName(sparkV, scalaBin)
       if (!sparkDir.exists()) {
         log.info(s"Downloading spark $version to $sparkDir")
-        SparkLocal.downloadSpark(version, local)
+        SparkLocal.downloadSpark(sparkV, scalaBin, local)
       }
       sparkDir
     },
@@ -254,9 +260,9 @@ lazy val root = project.in(file("."))
       ps.!<(StdOutLogger)
     }
   ).settings(
-    imageNames in docker := Seq(
-      ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}")
-    ),
+    imageNames in docker := {
+      Seq(ImageName(s"hydrosphere/mist:${version.value}-${sparkVersion.value}${scalaPostfix.value}"))
+    },
     dockerfile in docker := {
       val localSpark = sparkLocal.value
       val mistHome = "/usr/share/mist"
@@ -409,5 +415,6 @@ lazy val commonScalacOptions = Seq(
   "-language:postfixOps",
   "-unchecked",
   "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen"
+  "-Ywarn-numeric-widen",
+  "-deprecation"
 )
