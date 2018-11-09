@@ -6,23 +6,17 @@ import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
 
 class SparkSubmitBuilder(mistHome: String, sparkHome: String) extends PsUtil {
 
-  private val localWorkerJar = Paths.get(mistHome, "mist-worker.jar").toString
   private val submitPath = Paths.get(sparkHome, "bin", "spark-submit").toString
-
-  private def workerJarUrl(addr: String): String =
-    "http://" + addr + "/v2/api/artifacts_internal/mist-worker.jar"
 
   def submitWorker(name: String, info: WorkerInitInfo): Seq[String] = {
     val conf = info.sparkConf.flatMap({case (k, v) => Seq("--conf", s"$k=$v")})
 
     val runOpts = parseArguments(info.runOptions)
-
-    val workerJar = if(info.isK8S) workerJarUrl(info.masterHttpConf) else localWorkerJar
-
+    val workerJar = WorkerJarPath.pathFor(info.sparkConf, mistHome, info.masterHttpConf)
 
     Seq(submitPath) ++ runOpts ++ conf ++ Seq(
       "--class", "io.hydrosphere.mist.worker.Worker",
-      workerJar,
+      workerJar.value,
       "--master", info.masterAddress,
       "--name", name
     )
