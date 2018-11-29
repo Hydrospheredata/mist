@@ -4,8 +4,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.ActorRef
 import akka.testkit.{TestActorRef, TestProbe}
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
+import io.hydrosphere.mist.master.execution.Cluster
+import io.hydrosphere.mist.master.models.RunMode
 import io.hydrosphere.mist.master.{ActorSpec, TestData}
 import org.scalatest.Matchers
 import org.scalatest.concurrent.Eventually
@@ -33,14 +34,14 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val probe = TestProbe()
 
     val resolve = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
+    probe.send(connector, Cluster.Event.AskConnection(resolve))
     val connection1 = Await.result(resolve.future, Duration.Inf)
 
     val resolve2 = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve2))
+    probe.send(connector, Cluster.Event.AskConnection(resolve2))
     val connection2 = Await.result(resolve2.future, Duration.Inf)
     val resolve3 = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve3))
+    probe.send(connector, Cluster.Event.AskConnection(resolve3))
 
     connection1.id shouldBe "1"
     connection2.id shouldBe "2"
@@ -57,7 +58,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val remote = TestProbe()
     val connector = TestActorRef[SharedConnector](SharedConnector.props(
       id = "id",
-      ctx = FooContext,
+      ctx = FooContext.copy(workerMode = RunMode.Shared, precreated = true),
       startConnection = (id, ctx) => {
         val x = callCounter.incrementAndGet()
         val conn = WorkerConnection(x.toString, remote.ref, workerLinkData, Promise[Unit].future)
@@ -66,9 +67,8 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     ))
 
     val probe = TestProbe()
-    probe.send(connector, WorkerConnector.Event.WarmUp)
     callCounter.get() shouldBe 2
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status = probe.expectMsgType[SharedConnector.ProcessStatus]
     status.poolSize shouldBe 2
     status.requestsSize shouldBe 0
@@ -93,11 +93,11 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val probe = TestProbe()
 
     val resolve = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
+    probe.send(connector, Cluster.Event.AskConnection(resolve))
     val connection1 = Await.result(resolve.future, Duration.Inf)
 
     val resolve2 = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve2))
+    probe.send(connector, Cluster.Event.AskConnection(resolve2))
     val connection2 = Await.result(resolve2.future, Duration.Inf)
 
     connection1.id shouldBe "1"
@@ -106,7 +106,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     connection1.release()
 
     val resolve3 = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve3))
+    probe.send(connector, Cluster.Event.AskConnection(resolve3))
 
     val conn3 = Await.result(resolve3.future, Duration.Inf)
     conn3.id shouldBe "1"
@@ -123,16 +123,16 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val probe = TestProbe()
 
     val resolve = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
+    probe.send(connector, Cluster.Event.AskConnection(resolve))
     val connection1 = Await.result(resolve.future, Duration.Inf)
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status = probe.expectMsgType[SharedConnector.ProcessStatus]
     status.inUseSize shouldBe 1
     status.poolSize shouldBe 0
 
     termination.success(())
     //ConnTerminated is fired
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status2 = probe.expectMsgType[SharedConnector.ProcessStatus]
     status2.inUseSize shouldBe 0
     status2.poolSize shouldBe 0
@@ -149,17 +149,17 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     val probe = TestProbe()
 
     val resolve = Promise[PerJobConnection]
-    probe.send(connector, WorkerConnector.Event.AskConnection(resolve))
+    probe.send(connector, Cluster.Event.AskConnection(resolve))
     val connection1 = Await.result(resolve.future, Duration.Inf)
 
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status = probe.expectMsgType[SharedConnector.ProcessStatus]
     status.inUseSize shouldBe 1
     status.poolSize shouldBe 0
 
     connection1.release()
 
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status1 = probe.expectMsgType[SharedConnector.ProcessStatus]
     status1.poolSize shouldBe 1
     status1.inUseSize shouldBe 0
@@ -167,7 +167,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
     termination.success(())
 
     //ConnTerminated is fired
-    probe.send(connector, WorkerConnector.Event.GetStatus)
+    probe.send(connector, Cluster.Event.GetStatus)
     val status2 = probe.expectMsgType[SharedConnector.ProcessStatus]
     status2.poolSize shouldBe 0
     status2.inUseSize shouldBe 0
@@ -187,7 +187,7 @@ class SharedConnectorSpec extends ActorSpec("shared-conn") with Matchers with Te
       val connector = TestProbe()
       val wrapped = SharedConnector.wrappedConnection(connector.ref, connection)
       wrapped.release()
-      connector.expectMsgType[Released]
+      connector.expectMsgType[Cluster.Event.Released]
       connRef.expectNoMessage(1 second)
 
       wrapped.run(mkRunReq("id"), ActorRef.noSender)

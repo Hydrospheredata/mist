@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
 
 import scala.concurrent.Future
 

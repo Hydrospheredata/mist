@@ -2,8 +2,8 @@ package io.hydrosphere.mist.job
 
 import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
+import io.hydrosphere.mist.common.CommonData
+import io.hydrosphere.mist.common.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.WhenTerminated
 

@@ -2,7 +2,7 @@ package io.hydrosphere.mist.job
 
 import com.esotericsoftware.reflectasm.shaded.org.objectweb.asm._
 import com.esotericsoftware.reflectasm.shaded.org.objectweb.asm.Opcodes._
-import io.hydrosphere.mist.core.FunctionInfoData
+import io.hydrosphere.mist.common.FunctionInfoData
 
 class CheckSource extends ClassVisitor(ASM5) {
 

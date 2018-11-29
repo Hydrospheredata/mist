@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.store
 
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.JobDetails.Source
 import mist.api.data.JsMap

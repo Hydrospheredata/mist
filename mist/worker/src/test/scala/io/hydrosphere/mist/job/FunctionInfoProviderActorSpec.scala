@@ -5,8 +5,8 @@ import java.nio.file.Paths
 
 import akka.actor.{Actor, ActorSystem, Status}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.{ExtractedFunctionData, MockitoSugar, PythonEntrySettings}
 import io.hydrosphere.mist.utils.{Err, Succ}
 import mist.api._
 import mist.api.data._

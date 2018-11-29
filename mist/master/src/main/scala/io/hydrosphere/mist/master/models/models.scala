@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.models
 
 import java.util.UUID
 
-import io.hydrosphere.mist.core.CommonData.Action
-import io.hydrosphere.mist.core.FunctionInfoData
+import io.hydrosphere.mist.common.CommonData.Action
+import io.hydrosphere.mist.common.FunctionInfoData
 import io.hydrosphere.mist.master.JobDetails
 import mist.api.data.{JsData, JsMap}
 

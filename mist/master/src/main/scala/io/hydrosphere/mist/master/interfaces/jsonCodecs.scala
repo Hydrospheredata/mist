@@ -3,12 +3,11 @@ package io.hydrosphere.mist.master.interfaces
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, WorkerInitInfo}
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, WorkerInitInfo}
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
-import io.hydrosphere.mist.master.execution.WorkerLink
 import io.hydrosphere.mist.master.interfaces.http._
-import io.hydrosphere.mist.master.models._
+import io.hydrosphere.mist.master.models.{WorkerLink, _}
 import io.hydrosphere.mist.master.{JobDetails, JobDetailsResponse, JobResult}
 import mist.api.{data => mdata}
 import spray.json._
@@ -16,6 +15,7 @@ import spray.json._
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.util.Try
+import scala.util.parsing.json.JSONObject
 
 trait AnyJsonFormat extends DefaultJsonProtocol {
 
@@ -125,10 +125,94 @@ trait JobDetailsJsonFormat extends DefaultJsonProtocol with AnyJsonFormat with M
 
 }
 
+trait EMRInstanceFormat extends DefaultJsonProtocol {
+
+  def dummyAdtStringFormat[A](hint: String, pairs: Seq[(A, String)]): JsonFormat[A] = new JsonFormat[A] {
+
+    override def write(obj: A): JsValue = pairs.find(a => a._1 == obj) match {
+      case Some((_, v)) => JsString(v)
+      case None => throw new IllegalArgumentException(s"Undeclared object $obj in $hint format")
+    }
+    override def read(json: JsValue): A = json match {
+      case JsString(v) => pairs.find(a => a._2 == v) match {
+        case Some(out) => out._1
+        case None => throw new IllegalArgumentException(s"Undeclared string value $v in $hint format")
+      }
+      case _ => throw new IllegalArgumentException(s"Invalid input value for $hint format")
+    }
+  }
+
+  implicit val marketF = dummyAdtStringFormat[EMRInstance.Market](
+    hint = "Market",
+    pairs = Seq(
+      EMRInstance.Market.OnDemand -> "onDemand",
+      EMRInstance.Market.Spot -> "spot"
+    )
+  )
+
+  implicit val instanceGroupTYpeF = dummyAdtStringFormat[EMRInstance.InstanceGroupType](
+    hint = "InstanceGroupType",
+    pairs = Seq(
+      EMRInstance.InstanceGroupType.Master -> "master",
+      EMRInstance.InstanceGroupType.Core -> "core",
+      EMRInstance.InstanceGroupType.Task -> "task"
+    )
+  )
+
+  implicit val volumeTypeF = dummyAdtStringFormat[EMRInstance.VolumeType](
+    hint = "VolumeType",
+    pairs = Seq(
+      EMRInstance.VolumeType.IO1 -> "io1",
+      EMRInstance.VolumeType.GP2 -> "gp2",
+      EMRInstance.VolumeType.Standard -> "standard"
+    )
+  )
+
+  implicit val ebsVolumeF = jsonFormat4(EMRInstance.EbsVolume.apply)
+  implicit val ebsF = jsonFormat2(EMRInstance.Ebs.apply)
+
+  implicit val adjustmentTypeF = dummyAdtStringFormat[EMRInstance.AdjustmentType](
+    hint = "AdjustmentType",
+    pairs = Seq(
+      EMRInstance.AdjustmentType.ChangeInCapacity -> "changeInCapacity",
+      EMRInstance.AdjustmentType.PercentChangeInCapacity -> "percentChangeInCapacity",
+      EMRInstance.AdjustmentType.ExactCapacity -> "exactCapacity"
+    )
+  )
+  implicit val cmpOperatorF = dummyAdtStringFormat[EMRInstance.ComparisonOperator](
+    hint = "ComparisonOperator",
+    pairs = Seq(
+      EMRInstance.ComparisonOperator.GreaterThanOrEqual -> "greaterThanOrEqual",
+      EMRInstance.ComparisonOperator.GreaterThan -> "greaterThan",
+      EMRInstance.ComparisonOperator.LessThan -> "lessThan",
+      EMRInstance.ComparisonOperator.LessThanOrEqual -> "lessThanOrEqual"
+    )
+  )
+  implicit val statisticF = dummyAdtStringFormat[EMRInstance.Statistic](
+    hint = "Statistic",
+    pairs = Seq(
+      EMRInstance.Statistic.SampleCount -> "sampleCount",
+      EMRInstance.Statistic.Average -> "average",
+      EMRInstance.Statistic.Sum -> "sum",
+      EMRInstance.Statistic.Minimum -> "minimum",
+      EMRInstance.Statistic.Maximum -> "maximum"
+    )
+  )
+  implicit val dimensionsF = jsonFormat2(EMRInstance.Dimension.apply)
+  implicit val triggerF = jsonFormat9(EMRInstance.Trigger.apply)
+  implicit val ruleF = jsonFormat6(EMRInstance.Rule.apply)
+
+  implicit val autoScalingF = jsonFormat3(EMRInstance.AutoScaling.apply)
+  implicit val instanceF = jsonFormat8(EMRInstance.Instance.apply)
+
+}
+
+object EMRInstanceFormat extends EMRInstanceFormat
 
 trait JsonCodecs extends SprayJsonSupport
   with DefaultJsonProtocol
   with AnyJsonFormat
+  with EMRInstanceFormat
   with JobDetailsJsonFormat {
 
   implicit val printer = CompactPrinter
@@ -167,7 +251,7 @@ trait JsonCodecs extends SprayJsonSupport
 
 
   implicit val workerInitInfoF = rootFormat(lazyFormat(jsonFormat(WorkerInitInfo.apply,
-    "sparkConf", "maxJobs", "downtime", "streamingDuration", "logService", "masterAddress","masterHttpConf", "maxArtifactSize", "runOptions")))
+    "sparkConf", "downtime", "streamingDuration", "logService", "masterAddress","masterHttpConf", "maxArtifactSize", "runOptions")))
 
 
   implicit val workerLinkF = rootFormat(lazyFormat(jsonFormat(WorkerLink.apply,
@@ -227,10 +311,37 @@ trait JsonCodecs extends SprayJsonSupport
 
   implicit val devJobStartReqModelF = jsonFormat7(DevJobStartRequestModel.apply)
 
+  implicit val emrInstancesF = EMRInstanceFormat
 
-  implicit val contextConfigF = jsonFormat9(ContextConfig.apply)
+  implicit val launchDataF = new JsonFormat[LaunchData] {
 
-  implicit val contextCreateRequestF = jsonFormat9(ContextCreateRequest.apply)
+    val ServerDefaultKey = "server-default"
+    val AWSEMRKey = "aws-emr"
+
+    val awsEmrLaunchDataF = jsonFormat3(AWSEMRLaunchData.apply)
+
+    override def write(in: LaunchData): JsValue = in match {
+      case ServerDefault => JsObject("type" -> JsString(ServerDefaultKey))
+      case aws: AWSEMRLaunchData =>
+        val data = awsEmrLaunchDataF.write(aws).asJsObject.fields
+        JsObject(data + ("type" -> JsString(AWSEMRKey)))
+    }
+
+    override def read(json: JsValue): LaunchData = {
+      def fromType(t: String, obj: JsValue): LaunchData = t match {
+        case `ServerDefaultKey` => ServerDefault
+        case `AWSEMRKey` => awsEmrLaunchDataF.read(obj)
+      }
+      val t = json.asJsObject.fields.getOrElse("type", JsNull)
+      t match {
+        case JsString(v) => fromType(v, json)
+        case x => throw new IllegalArgumentException(s"Invalid launch data format $x")
+      }
+    }
+  }
+  implicit val contextConfigF = jsonFormat10(ContextConfig.apply)
+
+  implicit val contextCreateRequestF = jsonFormat10(ContextCreateRequest.apply)
   implicit val jobDetailsResponseF = jsonFormat2(JobDetailsResponse.apply)
 
   implicit val updateEventF = new JsonFormat[SystemEvent] {

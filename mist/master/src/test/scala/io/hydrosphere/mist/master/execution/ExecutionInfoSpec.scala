@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.models.JobStartResponse
 import io.hydrosphere.mist.master.{JobDetails, JobResult, TestUtils}
 import mist.api.data._

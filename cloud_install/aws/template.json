@@ -1,0 +1,92 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Hydrosphere/mist setup template",
+  "Metadata" : {
+    "Instances" : {"Description" : "Information about the instances"},
+    "Databases" : {"Description" : "Information about the databases"}
+  },
+  "Parameters" : {
+    "InstanceTypeParameter" : {
+      "Type" : "String",
+      "Default" : "m4.large",
+      "Description" : "Enter t2.micro, m1.small, m1.large ..."
+    },
+    "KeyPairName": {
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "Description": "KeyPair Name"
+    },
+    "AccessKeyID": {
+      "Type" : "String",
+      "Description" : "AWS access key ID"
+    },
+    "AccessKeySecret": {
+      "Type" : "String",
+      "Description" : "AWS secret access key",
+      "NoEcho" : "true"
+    },
+    "AZ": {
+       "Description": "Availability Zone of the Subnet",
+       "Type": "AWS::EC2::AvailabilityZone::Name"
+    },
+    "MistLogin": {
+      "Type" : "String",
+      "Description" : "Basic auth login"
+    },
+    "MistPassword": {
+      "Type" : "String",
+      "Description" : "Basic auth password",
+      "NoEcho" : "true"
+    }
+  },
+  "Resources": {
+    "MistEc2Instance": {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+         "AvailabilityZone" : { "Ref": "AZ" },
+         "InstanceType": { "Ref": "InstanceTypeParameter" },
+         "ImageId" : "ami-027583e616ca104df",
+         "KeyName": { "Ref": "KeyPairName" },
+         "SecurityGroups": [ { "Ref": "InstanceSecurityGroup" } ],
+         "Tags" : [ {"Key" : "Name", "Value" : "mist-server"} ],
+         "UserData": {
+           "Fn::Base64": { "Fn::Join": [ "\n", [
+              "#!/bin/bash -ex",
+              { "Fn::Join": ["", ["echo ACCESS_KEY_ID=", { "Ref": "AccessKeyID"},  " > ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo ACCESS_KEY_SECRET=", { "Ref": "AccessKeySecret"},  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo AWS_REGION=", { "Ref" : "AWS::Region" },  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo MIST_LOGIN=", { "Ref": "MistLogin"},  " >> ~/.aws_setup_data"]]},
+              { "Fn::Join": ["", ["echo MIST_PASSWORD=", { "Ref": "MistPassword"},  " >> ~/.aws_setup_data"]]},
+              "curl http://repo.hydrosphere.io/hydrosphere/static/preview/install.sh | bash"
+           ]]}
+         }
+      }
+    },
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "SSH + HTTP",
+        "SecurityGroupIngress" : [
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "22",
+            "ToPort" : "22",
+            "CidrIp" : "0.0.0.0/0"
+          },
+          {
+            "IpProtocol" : "tcp",
+            "FromPort" : "80",
+            "ToPort" : "80",
+            "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs" : {
+    "PublicDns" : {
+      "Value" : { "Fn::GetAtt" : [ "MistEc2Instance", "PublicDnsName" ]},
+      "Description" : "Public Dns name"
+    }
+
+  }
+}

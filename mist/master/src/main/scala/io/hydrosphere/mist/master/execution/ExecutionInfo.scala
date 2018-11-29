@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
 import io.hydrosphere.mist.master.JobResult
 import io.hydrosphere.mist.master.models.JobStartResponse
 import mist.api.data.JsData

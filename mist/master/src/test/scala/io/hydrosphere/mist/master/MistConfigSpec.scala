@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master
 
 import cats.{Eval, Now}
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode, ServerDefault}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.concurrent.duration._
@@ -43,7 +43,8 @@ class MistConfigSpec extends FunSpec with Matchers {
       runOptions = "--opt",
       workerMode = RunMode.Shared,
       streamingDuration = 1.seconds,
-      maxConnFailures = 5
+      maxConnFailures = 5,
+      launchData = ServerDefault
     ))
 
   }

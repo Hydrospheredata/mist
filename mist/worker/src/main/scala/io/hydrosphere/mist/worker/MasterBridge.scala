@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker
 import java.nio.file.Path
 
 import akka.actor._
-import io.hydrosphere.mist.core.CommonData._
+import io.hydrosphere.mist.common.CommonData._
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax, ActorRegHub}
 import io.hydrosphere.mist.worker.MasterBridge.{AppShutdown, ReceiveInitTimeout}
 import io.hydrosphere.mist.worker.logging.RemoteLogsWriter

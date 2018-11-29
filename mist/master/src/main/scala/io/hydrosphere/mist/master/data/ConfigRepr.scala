@@ -1,21 +1,26 @@
 package io.hydrosphere.mist.master.data
 
-import com.typesafe.config.{Config, ConfigValue, ConfigValueFactory, ConfigValueType}
-import io.hydrosphere.mist.master.models.{ContextConfig, FunctionConfig, NamedConfig, RunMode}
+import com.typesafe.config._
+import io.hydrosphere.mist.master.interfaces.{EMRInstanceFormat, JsonCodecs}
+import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.utils.ConfigUtils._
+import spray.json.{JsonFormat, JsonParser, ParserInput}
 
 import scala.concurrent.duration._
 
-trait ConfigRepr[A <: NamedConfig] {
-
+trait ConfigRepr[A] {
   def toConfig(a: A): Config
-
   def fromConfig(config: Config): A
+}
+
+trait NamedConfigRepr[A] extends ConfigRepr[A] {
 
   def fromConfig(name: String, config: Config): A =
     fromConfig(config.withValue("name", ConfigValueFactory.fromAnyRef(name)))
+
 }
 
+//TODO it's the same as jsonCodecs!
 object ConfigRepr {
 
   import scala.collection.JavaConverters._
@@ -24,12 +29,7 @@ object ConfigRepr {
     def toConfig: Config = repr.toConfig(a)
   }
 
-  implicit class FromCongixSyntax(config: Config){
-    def to[A <: NamedConfig](implicit repr: ConfigRepr[A]): A = repr.fromConfig(config)
-    def to[A <: NamedConfig](name: String)(implicit repr: ConfigRepr[A]): A = repr.fromConfig(name, config)
-  }
-
-  implicit val EndpointsRepr = new ConfigRepr[FunctionConfig] {
+  val EndpointsRepr = new NamedConfigRepr[FunctionConfig] {
 
     override def toConfig(a: FunctionConfig): Config = {
       import ConfigValueFactory._
@@ -51,7 +51,55 @@ object ConfigRepr {
     }
   }
 
-  implicit val ContextConfigRepr: ConfigRepr[ContextConfig] = new ConfigRepr[ContextConfig] {
+  def fromJsonFormat[A](jsonFormat: JsonFormat[A]): ConfigRepr[A] = new ConfigRepr[A] {
+    override def toConfig(a: A): Config = {
+      val s = jsonFormat.write(a).prettyPrint
+      ConfigFactory.parseString(s)
+    }
+    override def fromConfig(config: Config): A = {
+      val jsonString = config.root().render(ConfigRenderOptions.defaults().setJson(true).setComments(false).setOriginComments(false))
+      val json = JsonParser(ParserInput(jsonString))
+      jsonFormat.read(json)
+    }
+  }
+
+  val EMRInstanceRepr: ConfigRepr[EMRInstance.Instance] = fromJsonFormat(EMRInstanceFormat.instanceF)
+
+  val LaunchDataConfigRepr: ConfigRepr[LaunchData] = new ConfigRepr[LaunchData] {
+
+    override def toConfig(a: LaunchData): Config = {
+      import ConfigValueFactory._
+
+      val (t, body) = a match {
+        case ServerDefault => "server-default" -> Map.empty[String, ConfigValue]
+        case awsEmr: AWSEMRLaunchData =>
+          val instances = awsEmr.instances.map(i => EMRInstanceRepr.toConfig(i).root())
+          "aws-emr" -> Map(
+            "launcher-settings-name" -> fromAnyRef(awsEmr.launcherSettingsName),
+            "release-label" -> fromAnyRef(awsEmr.releaseLabel),
+            "instances" -> fromIterable(instances.asJava)
+          )
+      }
+      val full = body + ("type" -> t)
+      fromMap(full.asJava).toConfig
+    }
+
+    override def fromConfig(config: Config): LaunchData = {
+      config.getString("type") match {
+        case "server-default" => ServerDefault
+        case "aws-emr" =>
+          val instances = config.getConfigList("instances").asScala.map(c => EMRInstanceRepr.fromConfig(c))
+          AWSEMRLaunchData(
+            launcherSettingsName = config.getString("launcher-settings-name"),
+            releaseLabel = config.getString("release-label"),
+            instances = instances
+          )
+        case x => throw new IllegalArgumentException(s"Unknown launch data type $x")
+      }
+    }
+  }
+
+  val ContextConfigRepr: NamedConfigRepr[ContextConfig] = new NamedConfigRepr[ContextConfig] {
 
     val allowedTypes = Set(
       ConfigValueType.STRING,
@@ -79,7 +127,8 @@ object ConfigRepr {
         workerMode = runMode(config.getString("worker-mode")) ,
         runOptions = config.getString("run-options"),
         streamingDuration = Duration(config.getString("streaming-duration")),
-        maxConnFailures = config.getOptInt("max-conn-failures").getOrElse(5)
+        maxConnFailures = config.getOptInt("max-conn-failures").getOrElse(5),
+        launchData = config.getOptConfig("launch-data").map(LaunchDataConfigRepr.fromConfig).getOrElse(ServerDefault)
       )
     }
 
@@ -100,7 +149,8 @@ object ConfigRepr {
         "worker-mode" -> fromAnyRef(a.workerMode.name),
         "run-options" -> fromAnyRef(a.runOptions),
         "streaming-duration" -> fromDuration(a.streamingDuration),
-        "max-conn-failures" -> fromAnyRef(a.maxConnFailures)
+        "max-conn-failures" -> fromAnyRef(a.maxConnFailures),
+        "launch-data" -> LaunchDataConfigRepr.toConfig(a.launchData).root()
       )
       fromMap(map.asJava).toConfig
     }

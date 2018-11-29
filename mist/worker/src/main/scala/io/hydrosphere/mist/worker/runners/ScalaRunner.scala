@@ -3,7 +3,7 @@ package io.hydrosphere.mist.worker.runners
 import java.io.File
 import java.net.URL
 
-import io.hydrosphere.mist.core.CommonData.RunJobRequest
+import io.hydrosphere.mist.common.CommonData.RunJobRequest
 import io.hydrosphere.mist.job.FunctionInstanceLoader
 import io.hydrosphere.mist.utils.EitherOps._
 import io.hydrosphere.mist.utils.{Err, Succ}

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.logging
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.logging.LogEvent
 
 trait JobLogger {
   protected val jobId: String

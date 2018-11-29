@@ -4,11 +4,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
-import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.CancelJobRequest
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event
-import io.hydrosphere.mist.master.execution.workers.WorkerConnector.Event.Released
-import io.hydrosphere.mist.master.models.ContextConfig
+import io.hydrosphere.mist.common.CommonData
+import io.hydrosphere.mist.common.CommonData.CancelJobRequest
+import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.master.execution.Cluster
 
 import scala.collection.immutable.Queue
 import scala.concurrent.{Future, Promise}
@@ -20,11 +19,19 @@ class SharedConnector(
   idGen: AtomicInteger = new AtomicInteger(1)
 ) extends Actor with ActorLogging {
 
+  import Cluster._
   import context.dispatcher
 
   private def startConnection(): Future[WorkerConnection] = {
     val connectionId = s"$id-pool-${idGen.getAndIncrement()}"
     connectionStarter(connectionId)
+  }
+
+  override def preStart(): Unit = {
+    if (ctx.precreated) {
+      (0 until ctx.maxJobs).foreach(_ => startConnection() pipeTo self)
+      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobs)
+    }
   }
 
   override def receive: Receive = noConnection
@@ -35,10 +42,6 @@ class SharedConnector(
     case Event.AskConnection(req) =>
       startConnection() pipeTo self
       context become process(Queue(req), Queue.empty, Map.empty, 1)
-
-    case Event.WarmUp =>
-      (0 until ctx.maxJobsOnNode).foreach(_ => startConnection() pipeTo self)
-      context become process(Queue.empty, Queue.empty, Map.empty, ctx.maxJobsOnNode)
   }
 
   private def process(
@@ -85,7 +88,7 @@ class SharedConnector(
           context become process(requests, pool, inUse, startingConnections - 1)
       }
 
-    case Event.AskConnection(req) if pool.isEmpty && inUse.size + startingConnections < ctx.maxJobsOnNode =>
+    case Event.AskConnection(req) if pool.isEmpty && inUse.size + startingConnections < ctx.maxJobs =>
       log.info(s"Pool is empty and we are able to start new one connection: inUse size :${inUse.size}")
       startConnection() pipeTo self
       context become process(requests :+ req, pool, inUse, startingConnections + 1)
@@ -176,7 +179,7 @@ object SharedConnector {
     import direct.ref
     def run(req: CommonData.RunJobRequest, respond: ActorRef): Unit = ref.tell(req, respond)
     def cancel(id: String, respond: ActorRef): Unit = ref.tell(CancelJobRequest(id), respond)
-    def release(): Unit = connector ! Released(direct)
+    def release(): Unit = connector ! Cluster.Event.Released(direct)
   }
 
   def wrappedConnection(connector: ActorRef, workerConn: WorkerConnection) =

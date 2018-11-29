@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{Keep, Sink, Source, Tcp}
 import akka.util.ByteString
 import com.twitter.chill.{KryoPool, ScalaKryoInstantiator}
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.core.logging.{Level, LogEvent}
+import io.hydrosphere.mist.common.logging.{Level, LogEvent}
 import io.hydrosphere.mist.worker.logging.RemoteLogsWriter.Key
 import org.slf4j.LoggerFactory
 

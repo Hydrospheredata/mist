@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.worker.logging
 
-import io.hydrosphere.mist.core.MockitoSugar
-import io.hydrosphere.mist.core.logging._
+import io.hydrosphere.mist.common.MockitoSugar
+import io.hydrosphere.mist.common.logging._
 import org.apache.log4j.spi.{LoggingEvent, NOPLogger, NOPLoggerRepository}
 import org.apache.log4j.{Category, Level => L4jLevel}
 import org.mockito.Matchers.{eq => mockitoEq}

@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.ActorRef
-import io.hydrosphere.mist.master.execution.WorkerLink
+import io.hydrosphere.mist.master.models.WorkerLink
 
 import scala.concurrent.Future
 

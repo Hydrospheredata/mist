@@ -3,8 +3,8 @@ package io.hydrosphere.mist.master.interfaces.http
 import java.lang.management._
 import java.time.LocalDateTime
 
-import io.hydrosphere.mist.core.FunctionInfoData
-import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
+import io.hydrosphere.mist.common.FunctionInfoData
+import io.hydrosphere.mist.master.models.{ContextConfig, LaunchData, RunMode}
 import mist.api._
 
 import scala.concurrent.duration.Duration
@@ -122,7 +122,8 @@ case class ContextCreateRequest(
   workerMode: Option[RunMode] = None,
   runOptions: Option[String] = None,
   streamingDuration: Option[Duration] = None,
-  maxConnFailures: Option[Int] = None
+  maxConnFailures: Option[Int] = None,
+  launchData: Option[LaunchData] = None
 ) {
 
   def toContextWithFallback(other: ContextConfig): ContextConfig =
@@ -135,7 +136,8 @@ case class ContextCreateRequest(
       runOptions.getOrElse(other.runOptions),
       workerMode.getOrElse(other.workerMode),
       streamingDuration.getOrElse(other.streamingDuration),
-      maxConnFailures.getOrElse(other.maxConnFailures)
+      maxConnFailures.getOrElse(other.maxConnFailures),
+      launchData.getOrElse(other.launchData)
     )
 }
 

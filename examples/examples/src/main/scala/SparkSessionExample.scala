@@ -11,6 +11,7 @@ object SparkSessionExample extends MistFn {
       arg[Int]("multiplier", 2)
     ).withMistExtras
       .onSparkSession((nums: Seq[Int], mult: Int, extras: MistExtras, spark: SparkSession) => {
+        spark.read.parquet("1", "2")
         spark.sparkContext.parallelize(nums).map(_ * mult).collect()
       })
 

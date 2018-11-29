@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest}
-import io.hydrosphere.mist.core.{FunctionInfoData, MockitoSugar}
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.{FunctionInfoData, MockitoSugar}
 import io.hydrosphere.mist.master.artifact.ArtifactRepository
 import io.hydrosphere.mist.master.data.{ContextsStorage, FunctionConfigStorage}
 import io.hydrosphere.mist.master.execution.{ExecutionInfo, ExecutionService}

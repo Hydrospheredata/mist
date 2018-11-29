@@ -4,6 +4,8 @@ object Library {
 
   val slf4j = "org.slf4j" % "slf4j-api" % "1.7.5"
   val slf4jLog4j = "org.slf4j" % "slf4j-log4j12" % "1.7.5"
+  val log4j = "log4j" % "log4j" % "1.2.17"
+  val log4jExtras = "log4j" % "apache-log4j-extras" % "1.2.17"
   val scopt = "com.github.scopt" %% "scopt" % "3.6.0"
   val typesafeConfig = "com.typesafe" % "config" % "1.3.1"
 
@@ -16,7 +18,8 @@ object Library {
   val pahoMqtt = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
   val kafka = "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12")
 
-  val cats = "org.typelevel" %% "cats" % "0.9.0"
+  val cats = "org.typelevel" %% "cats-core" % "1.3.1"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "1.0.0"
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1"
   val junit = "junit" % "junit" % "4.12"
@@ -53,9 +56,13 @@ object Library {
     "org.apache.spark" %% "spark-core" % v,
     "org.apache.spark" %% "spark-sql" % v,
     "org.apache.spark" %% "spark-hive" % v,
-    "org.apache.spark" %% "spark-streaming" % v,
+    "org.apache.spark" %% "spark-streaming" % v
   )
 
   val jsr305 = "com.google.code.findbugs" % "jsr305" % "1.3.9"
 
+  val scalaSsh = "com.decodified" %% "scala-ssh" % "0.9.0"
+  val awsSdkEC2 = "software.amazon.awssdk" % "ec2" % "2.0.0-preview-10"
+  val awsSdkEMR = "software.amazon.awssdk" % "emr" % "2.0.0-preview-10"
+  val awsSdkIAM = "software.amazon.awssdk" % "iam" % "2.0.0-preview-10"
 }

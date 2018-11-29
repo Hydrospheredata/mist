@@ -50,13 +50,12 @@ lazy val mistLib = project.in(file("mist-lib"))
     test in Test := Def.sequential(test in Test, PyProject.pyTest in Test).value
   )
 
-lazy val core = project.in(file("mist/core"))
+lazy val common = project.in(file("mist/common"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    name := "mist-core",
+    name := "mist-common",
     scalacOptions ++= commonScalacOptions,
-    libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "runtime"),
     libraryDependencies ++= Seq(
       Library.Akka.actor,
       Library.slf4j,
@@ -67,7 +66,7 @@ lazy val core = project.in(file("mist/core"))
   )
 
 lazy val master = project.in(file("mist/master"))
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .enablePlugins(BuildInfoPlugin)
@@ -76,16 +75,19 @@ lazy val master = project.in(file("mist/master"))
     scalacOptions ++= commonScalacOptions,
     libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
-      Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,
+      Library.slf4jLog4j, Library.log4j, Library.log4jExtras,
+      Library.typesafeConfig, Library.scopt,
       Library.slick, Library.h2, Library.flyway,
       Library.chill,
       Library.kafka, Library.pahoMqtt,
 
       Library.Akka.testKit % "test",
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
-      Library.cats,
+      Library.cats, Library.catsEffect,
 
       Library.dockerJava,
+
+      Library.awsSdkEC2, Library.awsSdkEMR, Library.scalaSsh,
 
       "io.hydrosphere" %% "shadedshapeless" % "2.3.0",
       Library.commonsCodec, Library.scalajHttp,
@@ -100,7 +102,7 @@ lazy val master = project.in(file("mist/master"))
   )
 
 lazy val worker = project.in(file("mist/worker"))
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(common % "compile->compile;test->test")
   .settings(commonSettings: _*)
   .settings(commonAssemblySettings: _*)
   .settings(
@@ -131,8 +133,45 @@ lazy val worker = project.in(file("mist/worker"))
     )
   )
 
+lazy val agent = project.in(file("mist/agent"))
+  .dependsOn(common % "compile->compile;test->test")
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    name := "mist-agent",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= Library.Akka.base,
+    libraryDependencies ++= Seq(
+      Library.slf4jLog4j, Library.log4j, Library.log4jExtras,
+      Library.Akka.testKit % "test",
+
+      Library.awsSdkEMR,
+      Library.scalaTest % "test"
+    )
+  ).settings(
+  buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
+  buildInfoPackage := "io.hydrosphere.mist"
+)
+
+lazy val awsInitSetup = project.in(file("mist/aws-init-setup"))
+  .dependsOn(common % "compile->compile;test->test")
+  .settings(commonSettings: _*)
+  .settings(commonAssemblySettings: _*)
+  .settings(
+    name := "mist-aws-init-setup",
+    scalacOptions ++= commonScalacOptions,
+    libraryDependencies ++= Seq(
+      Library.slf4jLog4j, Library.typesafeConfig,
+      Library.cats, Library.catsEffect,
+      Library.awsSdkEC2, Library.awsSdkIAM,
+      Library.jsr305 % "provided",
+      Library.scalaTest % "test"
+    )
+  )
+
 lazy val root = project.in(file("."))
-  .aggregate(mistLib, core, master, worker, examples)
+  .aggregate(mistLib, common, master, worker, examples)
   .dependsOn(master)
   .enablePlugins(DockerPlugin)
   .settings(commonSettings: _*)
@@ -150,6 +189,9 @@ lazy val root = project.in(file("."))
         CpFile("configs/logging").to("configs"),
         CpFile(assembly.in(master, assembly).value).as("mist-master.jar"),
         CpFile(assembly.in(worker, assembly).value).as("mist-worker.jar"),
+        CpFile(assembly.in(agent,  assembly).value).as("mist-agent.jar"),
+        MkDir("utils"),
+        CpFile(assembly.in(awsInitSetup, assembly).value).as("aws-init-setup.jar").to("utils"),
         CpFile(Ui.ui.value).as("ui")
       )
     },

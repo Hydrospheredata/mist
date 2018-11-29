@@ -1,9 +1,9 @@
 package io.hydrosphere.mist.master
 
 import com.typesafe.config.ConfigFactory
-import io.hydrosphere.mist.core.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
-import io.hydrosphere.mist.core.FunctionInfoData
-import io.hydrosphere.mist.master.execution.WorkerLink
+import io.hydrosphere.mist.common.CommonData.{Action, JobParams, RunJobRequest, WorkerInitInfo}
+import io.hydrosphere.mist.common.FunctionInfoData
+import io.hydrosphere.mist.master.models.WorkerLink
 import mist.api.ArgInfo
 import mist.api.data._
 import mist.api.encoding.defaultEncoders._
@@ -70,7 +70,6 @@ trait TestData {
 
   val workerInitData = WorkerInitInfo(
     sparkConf = FooContext.sparkConf,
-    maxJobs = FooContext.maxJobs,
     downtime = FooContext.downtime,
     streamingDuration = FooContext.streamingDuration,
     logService = "localhost:2005",

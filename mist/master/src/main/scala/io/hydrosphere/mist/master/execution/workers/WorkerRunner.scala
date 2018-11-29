@@ -1,9 +1,9 @@
 package io.hydrosphere.mist.master.execution.workers
 
 import akka.actor.{ActorRef, ActorRefFactory}
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.execution.SpawnSettings
-import io.hydrosphere.mist.master.execution.workers.starter.WorkerProcess
+import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.models.ContextConfig
 import io.hydrosphere.mist.utils.akka.ActorRegHub
 
@@ -18,6 +18,7 @@ object WorkerRunner {
 
   class DefaultRunner(
     spawn: SpawnSettings,
+    runnerCmd: WorkerStarter,
     regHub: ActorRegHub,
     connect: (String, WorkerInitInfo, FiniteDuration, ActorRef, StopAction) => Future[WorkerConnection]
   ) extends WorkerRunner {
@@ -58,11 +59,16 @@ object WorkerRunner {
 
   }
 
-  def default(spawn: SpawnSettings, regHub: ActorRegHub, af: ActorRefFactory): WorkerRunner = {
+  def default(
+    spawn: SpawnSettings,
+    runnerCmd: WorkerStarter,
+    regHub: ActorRegHub,
+    af: ActorRefFactory
+  ): WorkerRunner = {
     val connect = (id: String, info: WorkerInitInfo, ready: FiniteDuration, remote: ActorRef, stopAction: StopAction) => {
       WorkerBridge.connect(id, info, ready, remote, stopAction)(af)
     }
-    new DefaultRunner(spawn, regHub, connect)
+    new DefaultRunner(spawn, runnerCmd, regHub, connect)
   }
 
 }

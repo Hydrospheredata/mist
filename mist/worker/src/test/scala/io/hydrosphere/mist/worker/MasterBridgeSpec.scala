@@ -2,8 +2,8 @@ package io.hydrosphere.mist.worker
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorRegHub}
 import mist.api.data.JsMap
 import org.apache.spark.SparkConf
@@ -18,7 +18,7 @@ class MasterBridgeSpec extends TestKit(ActorSystem("WorkerBridgeSpec"))
   with BeforeAndAfterAll {
 
   def mkInitInfo(sparkConf: Map[String, String]) =
-    WorkerInitInfo(sparkConf, 1, 20 seconds, 20 seconds, "localhost:2005", "localhost:2003", "localhost:2004", 202020, "")
+    WorkerInitInfo(sparkConf, 20 seconds, 20 seconds, "localhost:2005", "localhost:2003", "localhost:2004", 202020, "")
 
   it("should create named context with spark.streaming.stopSparkContextByDefault=false") {
     val sparkConf = Map(

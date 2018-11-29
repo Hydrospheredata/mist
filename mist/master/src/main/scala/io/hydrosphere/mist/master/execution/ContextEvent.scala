@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution
 
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.models.ContextConfig
 

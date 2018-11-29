@@ -4,8 +4,8 @@ import java.io.File
 
 import akka.actor.SupervisorStrategy.Resume
 import akka.actor.{Status, _}
-import io.hydrosphere.mist.core.CommonData._
-import io.hydrosphere.mist.core.ExtractedFunctionData
+import io.hydrosphere.mist.common.CommonData._
+import io.hydrosphere.mist.common.ExtractedFunctionData
 import io.hydrosphere.mist.utils.{Err, Succ, TryLoad}
 import mist.api.{Extracted, Failed}
 import mist.api.data.JsMap

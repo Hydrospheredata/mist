@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution.workers.starter
 
 import java.nio.file.Paths
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 
 class SparkSubmitBuilder(mistHome: String, sparkHome: String) extends PsUtil {
 

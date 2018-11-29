@@ -6,7 +6,7 @@ import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.command.{CreateContainerCmd, InspectContainerResponse}
 import com.github.dockerjava.api.model.{ContainerNetwork, Link}
 import com.github.dockerjava.core.{DefaultDockerClientConfig, DockerClientBuilder}
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.execution.workers.StopAction
 import io.hydrosphere.mist.utils.Logger

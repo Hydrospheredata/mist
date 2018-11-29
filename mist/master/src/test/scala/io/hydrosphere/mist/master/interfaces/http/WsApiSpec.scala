@@ -4,7 +4,7 @@ import mist.api.data._
 import akka.http.scaladsl.testkit.{ScalatestRouteTest, WSProbe}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Source
-import io.hydrosphere.mist.core.logging.LogEvent
+import io.hydrosphere.mist.common.logging.LogEvent
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import io.hydrosphere.mist.master.EventsStreamer
 import org.mockito.Mockito._

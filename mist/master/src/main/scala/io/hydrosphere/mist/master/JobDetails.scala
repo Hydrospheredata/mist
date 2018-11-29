@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master
 
-import io.hydrosphere.mist.core.CommonData.JobParams
+import io.hydrosphere.mist.common.CommonData.JobParams
 import io.hydrosphere.mist.master.JobDetails.Status
 import io.hydrosphere.mist.master.Messages.StatusMessages._
 import mist.api.data.JsData

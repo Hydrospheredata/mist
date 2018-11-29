@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution.workers.starter
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.TestData
 import org.scalatest.{FunSpec, Matchers}
 import scala.concurrent.duration._
@@ -11,7 +11,6 @@ class SparkSubmitBuilderSpec extends FunSpec with Matchers {
 
   val testInfo = WorkerInitInfo(
     sparkConf = Map("spark.master" -> "spark://localhost:4433", "a.b.c" -> "xyz"),
-    maxJobs = 10,
     downtime = 1 second,
     streamingDuration = 1 second,
     logService = "localhost:2005",

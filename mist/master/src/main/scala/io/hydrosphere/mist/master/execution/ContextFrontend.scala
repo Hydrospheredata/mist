@@ -3,18 +3,18 @@ package io.hydrosphere.mist.master.execution
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Timers}
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.FailedEvent
 import io.hydrosphere.mist.master.execution.ContextFrontend.Event.JobDied
 import io.hydrosphere.mist.master.execution.ContextFrontend.{ConnectorState, FrontendStatus}
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.{PerJobConnection, WorkerConnector}
+import io.hydrosphere.mist.master.execution.workers.PerJobConnection
 import io.hydrosphere.mist.master.logging.{JobLogger, JobLoggersFactory, LogService}
 import io.hydrosphere.mist.master.models.{ContextConfig, RunMode}
 import io.hydrosphere.mist.utils.akka.{ActorF, ActorFSyntax}
 import mist.api.data.JsData
 
-import scala.concurrent.Promise
+import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
@@ -23,27 +23,24 @@ trait FrontendBasics {
   type State = FrontendState[String, ActorRef]
   val State = FrontendState
 
-  def mkStatus(state: State, conn: Option[ConnectorState]): FrontendStatus = {
+  def mkStatus(state: State, failures: Int, execId: Option[String]): FrontendStatus = {
     val jobs =
       state.queued.map({case (k, _) => k -> ExecStatus.Queued}) ++
       state.active.map({case (k, _) => k -> ExecStatus.Started})
 
-    FrontendStatus(
-      jobs = jobs,
-      conn.map(_.id),
-      conn.map(_.failedTimes).getOrElse(0)
-    )
+    FrontendStatus(jobs, failures, execId)
   }
 
-  def mkStatus(state: State): FrontendStatus = mkStatus(state, None)
-  def mkStatus(state: State, conn: ConnectorState): FrontendStatus = mkStatus(state, Some(conn))
+  def mkStatus(state: State): FrontendStatus = mkStatus(state, 0, None)
+  def mkStatus(state: State, conn: ConnectorState): FrontendStatus = mkStatus(state, conn.failedTimes, Option(conn.id))
 }
+
 
 class ContextFrontend(
   name: String,
   reporter: StatusReporter,
   loggersFactory: JobLoggersFactory,
-  connectorStarter: (String, ContextConfig) => WorkerConnector,
+  connectorStarter: (String, ContextConfig) => Future[Cluster],
   jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
   defaultInactiveTimeout: FiniteDuration
 ) extends Actor
@@ -70,8 +67,7 @@ class ContextFrontend(
     case req: RunJobRequest =>
       timers.cancel(timerKey)
       val next = mkJob(req, State.empty, sender())
-      val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, next, ConnectorState.initial(id, connector))
+      gotoStartingConnector(ctx, next, 0)
 
     case Event.Downtime =>
       log.info(s"Context $name was inactive")
@@ -81,13 +77,16 @@ class ContextFrontend(
   // handle UpdateContext for awaitRequest/initial
   private def becomeAwaitOrConnected(ctx: ContextConfig, state: State): Unit = {
     if (ctx.precreated && ctx.workerMode == RunMode.Shared) {
-      val (id, connector) = startConnector(ctx)
-      becomeWithConnector(ctx, state, ConnectorState.initial(id, connector))
+      gotoStartingConnector(ctx, state, 0)
     } else {
       val timerKey = s"$name-await-timeout"
       timers.startSingleTimer(timerKey, Event.Downtime, defaultInactiveTimeout)
       context become awaitRequest(ctx, timerKey)
     }
+  }
+
+  private def shouldGoToEmptyWithTimeout(state: State, ctx: ContextConfig): Boolean = {
+    state.isEmpty && !ctx.precreated && ctx.downtime.isFinite()
   }
 
   // handle currentState changes, starting new jobs if it's possible
@@ -105,19 +104,8 @@ class ContextFrontend(
       }
     }
 
-    def shouldGoToEmptyWithTimeout(): Boolean = {
-      state.isEmpty && !ctx.precreated && ctx.downtime.isFinite()
-    }
-
-    if (shouldGoToEmptyWithTimeout()) {
-      val timerKey = s"$name-wait-downtime"
-      val timeout = ctx.downtime match {
-        case f: FiniteDuration => f
-        case _ => defaultInactiveTimeout
-      }
-      timers.startSingleTimer(timerKey, Event.Downtime, timeout)
-      log.info("Context {} - move to inactive state", name)
-      context become emptyWithConnector(ctx, connectorState, timerKey)
+    if (shouldGoToEmptyWithTimeout(state, ctx)) {
+      gotoEmptyWithConnector(ctx, connectorState)
     } else {
       val available = ctx.maxJobs - connectorState.all
       val need = math.min(state.queued.size - connectorState.asked, available)
@@ -147,17 +135,12 @@ class ContextFrontend(
     def becomeNextConn(next: ConnectorState): Unit = becomeWithConnector(ctx, currentState, next)
     def becomeNext(c: ConnectorState, s: State): Unit = becomeWithConnector(ctx, s, c)
 
-    def becomeSleeping(state: State, conn: ConnectorState, brokenCtx: ContextConfig, error: Throwable): Unit = {
-      currentState.queued.foreach({case (_, ref) => ref ! JobActor.Event.ContextBroken(error)})
-      context become sleepingTilUpdate(state, conn, brokenCtx, error)
-    }
 
     {
       case Event.Status => sender() ! mkStatus(currentState, connectorState)
       case ContextEvent.UpdateContext(updCtx) =>
         connectorState.connector.shutdown(false)
-        val (newId, newConn) = startConnector(updCtx)
-        becomeWithConnector(updCtx, currentState, ConnectorState.initial(newId, newConn))
+        gotoStartingConnector(updCtx, currentState, 0)
 
       case req: RunJobRequest => becomeNextState(mkJob(req, currentState, sender()))
       case CancelJobRequest(id) => becomeNextState(cancelJob(id, currentState, sender()))
@@ -180,7 +163,7 @@ class ContextFrontend(
         val newConnState = connectorState.askFailure
         if (newConnState.failedTimes >= ctx.maxConnFailures) {
           connectorState.connector.shutdown(false)
-          becomeSleeping(currentState, newConnState, ctx, e)
+          becomeSleeping(currentState, ctx, e, newConnState.failedTimes)
         } else {
           becomeNextConn(newConnState)
         }
@@ -197,17 +180,32 @@ class ContextFrontend(
         log.error(e, "Context {} - connector {} was crushed", name, id)
         val next = connectorState.connectorFailed
         if (next.failedTimes >= ctx.maxConnFailures) {
-          becomeSleeping(currentState, next, ctx, e)
+          becomeSleeping(currentState, ctx, e, next.failedTimes)
         } else {
-          val (newId, newConn) = startConnector(ctx)
-          becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn).copy(failedTimes = next.failedTimes))
+          gotoStartingConnector(ctx, currentState, next.failedTimes)
         }
 
+      //TODO is it possible to stop connector outside except ContextFrontend???
       case Event.ConnectorStopped(id) if id == connectorState.id =>
         log.info("Context {} - connector {} was stopped", name, id)
-        val (newId, newConn) = startConnector(ctx)
-        becomeWithConnector(ctx, currentState, ConnectorState.initial(newId, newConn))
+        gotoStartingConnector(ctx, currentState, 0)
+
+      case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
     }
+  }
+
+  private def gotoEmptyWithConnector(
+    ctx: ContextConfig,
+    connectorState: ConnectorState
+  ): Unit = {
+    val timerKey = s"$name-wait-downtime"
+    val timeout = ctx.downtime match {
+      case f: FiniteDuration => f
+      case _ => defaultInactiveTimeout
+    }
+    timers.startSingleTimer(timerKey, Event.Downtime, timeout)
+    log.info("Context {} - move to inactive state", name)
+    context become emptyWithConnector(ctx, connectorState, timerKey)
   }
 
   // optional state - use it if ctx isn't precreated
@@ -219,8 +217,7 @@ class ContextFrontend(
     case Event.Status => sender() ! mkStatus(State.empty[String, ActorRef], connectorState)
     case ContextEvent.UpdateContext(updCtx) =>
       connectorState.connector.shutdown(false)
-      val (newId, newConn) = startConnector(updCtx)
-      context become emptyWithConnector(updCtx, ConnectorState.initial(newId, newConn), timerKey)
+      gotoStartingConnector(updCtx, State.empty, 0)
 
     case req: RunJobRequest =>
       timers.cancel(timerKey)
@@ -247,39 +244,109 @@ class ContextFrontend(
     case Event.ConnectorStopped(id) if id == connectorState.id =>
       log.info("Context {} was stopped in empty state - shutdown", name)
       context stop self
+
+    case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
   }
 
-  private def sleepingTilUpdate(state: State, conn: ConnectorState, brokenCtx: ContextConfig, error: Throwable): Receive = {
-    case Event.Status => sender() ! mkStatus(state, conn)
+  def becomeSleeping(
+    state: State,
+    brokenCtx: ContextConfig,
+    error: Throwable,
+    failedTimes: Int
+  ): Unit = {
+    state.queued.foreach({case (_, ref) => ref ! JobActor.Event.ContextBroken(error)})
+    context become sleepingTilUpdate(state, brokenCtx, error, failedTimes)
+  }
+
+  private def sleepingTilUpdate(
+    state: State,
+    brokenCtx: ContextConfig,
+    error: Throwable,
+    failedTimes: Int
+  ): Receive = {
+    case Event.Status => sender() ! mkStatus(state, failedTimes, None)
     case ContextEvent.UpdateContext(updCtx) => becomeAwaitOrConnected(updCtx, FrontendState.empty)
 
     case req: RunJobRequest => respondWithError(brokenCtx, req, sender(), error)
 
     case CancelJobRequest(id) =>
       val next = cancelJob(id, state, sender())
-      context become sleepingTilUpdate(next, conn, brokenCtx, error)
+      context become sleepingTilUpdate(next, brokenCtx, error, failedTimes)
 
     case Event.Connection(_, connection) => connection.release()
 
     case JobActor.Event.Completed(id) =>
-      val (conns, next) = state.getWithState(id) match {
-        case Some((_, Working)) => conn.connectionReleased -> state.done(id)
-        case Some((_, Waiting)) => conn -> state.done(id)
-        case None => conn -> state
+      val next = state.get(id) match {
+        case Some(_) => state.done(id)
+        case None => state
       }
-      context become sleepingTilUpdate(next, conns, brokenCtx, error)
+      context become sleepingTilUpdate(next, brokenCtx, error, failedTimes)
+
+    case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
   }
 
-  private def startConnector(ctx: ContextConfig): (String, WorkerConnector) = {
+  private def startingConnector(
+    ctx: ContextConfig,
+    state: State,
+    connId: String,
+    failedTimes: Int
+  ): Receive = {
+    case Event.Status => sender() ! mkStatus(state)
+
+    // TODO check if it possible to update current connector/cluster or start new
+    case ContextEvent.UpdateContext(updCtx) =>
+      log.info(s"Update ctx: $name")
+      gotoStartingConnector(updCtx, state, 0)
+
+    case req: RunJobRequest =>
+      val next = mkJob(req, state, sender())
+      context become startingConnector(ctx, next, connId, failedTimes)
+
+    case CancelJobRequest(id) => cancelJob(id, state, sender())
+
+    case JobActor.Event.Completed(id) =>
+      val next = state.get(id) match {
+        case Some(_) => state.done(id)
+        case None => state
+      }
+      context become startingConnector(ctx, next, connId, failedTimes)
+
+    case Event.Connection(_, connection) => connection.release()
+
+    case Event.ConnectorStarted(id, conn) if id == connId =>
+      log.info("Connector started {} id: {}", name, id)
+      val connState = ConnectorState.initial(id, conn).copy(failedTimes = failedTimes)
+      conn.whenTerminated().onComplete({
+        case Success(_) => self ! Event.ConnectorStopped(id)
+        case Failure(e) => self ! Event.ConnectorCrushed(id, e)
+      })
+
+      if (shouldGoToEmptyWithTimeout(state, ctx)) {
+        gotoEmptyWithConnector(ctx, connState)
+      } else {
+        becomeWithConnector(ctx, state, connState)
+      }
+
+
+    case Event.ConnectorStarted(_, conn) => conn.shutdown(true)
+    case Event.ConnectorStartFailed(id, e) if id == connId =>
+      log.error(e, "Starting connector {} id: {} failed", name, id)
+      val nextFailed = failedTimes + 1
+      if (nextFailed >=  ctx.maxConnFailures) {
+        becomeSleeping(state, ctx, e, nextFailed)
+      } else {
+        gotoStartingConnector(ctx, state, nextFailed)
+      }
+  }
+
+  private def gotoStartingConnector(ctx: ContextConfig, state: State, failedTimes: Int): Unit = {
     val id = ctx.name + "_" + UUID.randomUUID().toString
-    log.info(s"Starting executor $id for $name")
-    val connector = connectorStarter(id, ctx)
-    if (ctx.precreated) connector.warmUp()
-    connector.whenTerminated().onComplete({
-      case Success(_) => self ! Event.ConnectorStopped(id)
-      case Failure(e) => self ! Event.ConnectorCrushed(id, e)
-    })
-    id -> connector
+    log.info(s"Starting connector $id for $name")
+    connectorStarter(id, ctx).onComplete {
+      case Success(connector) => self ! Event.ConnectorStarted(id, connector)
+      case Failure(e) => self ! Event.ConnectorStartFailed(id, e)
+    }
+    context become startingConnector(ctx, state, id, failedTimes)
   }
 
   private def cancelJob(id: String, state: State, respond: ActorRef): State = {
@@ -328,6 +395,8 @@ object ContextFrontend {
 
   sealed trait Event
   object Event {
+    final case class ConnectorStarted(id: String, connector: Cluster) extends Event
+    final case class ConnectorStartFailed(id: String, e: Throwable) extends Event
     final case class ConnectorCrushed(id: String, err: Throwable) extends Event
     final case class ConnectorStopped(id: String) extends Event
 
@@ -343,16 +412,16 @@ object ContextFrontend {
 
   case class FrontendStatus(
     jobs: Map[String, ExecStatus],
-    executorId: Option[String],
-    failures: Int
+    failures: Int,
+    executorId: Option[String]
   )
   object FrontendStatus {
-    val empty: FrontendStatus = FrontendStatus(Map.empty, None, 0)
+    val empty: FrontendStatus = FrontendStatus(Map.empty, 0, None)
   }
 
   case class ConnectorState(
     id: String,
-    connector: WorkerConnector,
+    connector: Cluster,
     used: Int,
     asked: Int,
     failedTimes: Int
@@ -366,7 +435,7 @@ object ContextFrontend {
   }
 
   object ConnectorState {
-    def initial(id: String, connector: WorkerConnector): ConnectorState =
+    def initial(id: String, connector: Cluster): ConnectorState =
       ConnectorState(id, connector, 0, 0, 0)
   }
 
@@ -374,7 +443,7 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector,
+    connectorStarter: (String, ContextConfig) => Future[Cluster],
     jobFactory: ActorF[(ActorRef, RunJobRequest, Promise[JsData], StatusReporter, JobLogger)],
     defaultInactiveTimeout: FiniteDuration
   ): Props = Props(classOf[ContextFrontend], name, status, loggersFactory, connectorStarter, jobFactory, defaultInactiveTimeout)
@@ -384,6 +453,6 @@ object ContextFrontend {
     name: String,
     status: StatusReporter,
     loggersFactory: JobLoggersFactory,
-    connectorStarter: (String, ContextConfig) => WorkerConnector
+    connectorStarter: (String, ContextConfig) => Future[Cluster]
   ): Props = props(name, status, loggersFactory, connectorStarter, ActorF.props(JobActor.props _), 5 minutes)
 }

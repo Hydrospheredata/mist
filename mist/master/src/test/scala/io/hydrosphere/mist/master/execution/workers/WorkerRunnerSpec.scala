@@ -2,8 +2,8 @@ package io.hydrosphere.mist.master.execution.workers
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.execution.workers.starter.{WorkerProcess, WorkerStarter}
 import io.hydrosphere.mist.master.execution.{SpawnSettings, workers}
 import io.hydrosphere.mist.master.{ActorSpec, FilteredException, TestData}
@@ -20,7 +20,6 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
   describe("default runner") {
 
     def mkSpawnSettings(starter: WorkerStarter): SpawnSettings = SpawnSettings(
-      runnerCmd = starter,
       timeout = 10 seconds,
       readyTimeout = 10 seconds,
       akkaAddress = "akkaAddr",
@@ -41,7 +40,8 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       val runner = new workers.WorkerRunner.DefaultRunner(
         spawn = mkSpawnSettings(starter),
         regHub = regHub,
-        connect = (_, _, _, _, _) => Future.successful(WorkerConnection("id", null, workerLinkData, termination.future))
+        connect = (_, _, _, _, _) => Future.successful(WorkerConnection("id", null, workerLinkData, termination.future)),
+        runnerCmd = starter
       )
 
       Await.result(runner("id", FooContext), Duration.Inf)
@@ -61,7 +61,8 @@ class WorkerRunnerSpec extends ActorSpec("worker-runner") with TestData with Moc
       val runner = new workers.WorkerRunner.DefaultRunner(
         spawn = mkSpawnSettings(runnerCmd),
         regHub = regHub,
-        connect = (_, _, _, _, _) => Future.failed(FilteredException())
+        connect = (_, _, _, _, _) => Future.failed(FilteredException()),
+        runnerCmd = runnerCmd
       )
 
       intercept[Throwable] {

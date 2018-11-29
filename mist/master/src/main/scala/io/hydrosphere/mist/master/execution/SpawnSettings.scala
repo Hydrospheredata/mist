@@ -1,13 +1,11 @@
 package io.hydrosphere.mist.master.execution
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
-import io.hydrosphere.mist.master.execution.workers.starter.WorkerStarter
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master.models.ContextConfig
 
 import scala.concurrent.duration._
 
 case class SpawnSettings(
-  runnerCmd: WorkerStarter,
   timeout: Duration,
   readyTimeout: FiniteDuration,
   akkaAddress: String,
@@ -19,7 +17,6 @@ case class SpawnSettings(
   def toWorkerInitInfo(ctx: ContextConfig): WorkerInitInfo =
     WorkerInitInfo(
       sparkConf = ctx.sparkConf,
-      maxJobs = ctx.maxJobsOnNode,
       downtime = ctx.downtime,
       streamingDuration = ctx.streamingDuration,
       logService = this.logAddress,

@@ -5,10 +5,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import cats.data._
 import cats.implicits._
-import io.hydrosphere.mist.core.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
+import io.hydrosphere.mist.common.CommonData.{CancelJobRequest, JobParams, RunJobRequest}
 import io.hydrosphere.mist.master.Messages.StatusMessages.InitializedEvent
 import io.hydrosphere.mist.master.execution.status.StatusReporter
-import io.hydrosphere.mist.master.execution.workers.WorkerHub
 import io.hydrosphere.mist.master.logging.LogService
 import io.hydrosphere.mist.master.models._
 import io.hydrosphere.mist.master.store.JobRepository
@@ -22,7 +21,6 @@ import scala.concurrent.Future
   */
 class ExecutionService(
   contextsMaster: ActorRef,
-  workersHub: WorkerHub,
   statusReporter: StatusReporter,
   repo: JobRepository
 ) {
@@ -42,16 +40,16 @@ class ExecutionService(
 
   def getHistory(req: JobDetailsRequest): Future[JobDetailsResponse] = repo.getJobs(req)
 
-  def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
+//  def workers(): Seq[WorkerLink] = workersHub.workerConnections().map(_.data)
 
-  def getWorkerLink(workerId: String): Option[WorkerLink] = {
-    workersHub.workerConnection(workerId).map(_.data)
-  }
+//  def getWorkerLink(workerId: String): Option[WorkerLink] = {
+//    workersHub.workerConnection(workerId).map(_.data)
+//  }
 
 
-  def stopAllWorkers(): Future[Unit] = workersHub.shutdownAllWorkers()
-
-  def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
+//  def stopAllWorkers(): Future[Unit] = workersHub.shutdownAllWorkers()
+//
+//  def stopWorker(id: String): Future[Unit] = workersHub.shutdownWorker(id)
 
 
   def startJob(req: JobStartRequest): Future[ExecutionInfo] = {
@@ -110,23 +108,21 @@ class ExecutionService(
 object ExecutionService {
 
   def apply(
-    spawn: SpawnSettings,
+    clustersService: ClustersService,
     system: ActorSystem,
     streamer: EventsStreamer,
     repo: JobRepository,
     logService: LogService
   ): ExecutionService = {
-    val hub = WorkerHub(spawn, system)
     val reporter = StatusReporter.reporter(repo, streamer, logService)(system)
-
     val mkContext = ActorF[ContextConfig]((ctx, af) => {
-      val props = ContextFrontend.props(ctx.name, reporter, logService, hub.start)
+      val props = ContextFrontend.props(ctx.name, reporter, logService, clustersService.start)
       val ref = af.actorOf(props)
       ref ! ContextEvent.UpdateContext(ctx)
       ref
     })
     val contextsMaster = system.actorOf(ContextsMaster.props(mkContext))
-    new ExecutionService(contextsMaster, hub, reporter, repo)
+    new ExecutionService(contextsMaster, reporter, repo)
   }
 
 }

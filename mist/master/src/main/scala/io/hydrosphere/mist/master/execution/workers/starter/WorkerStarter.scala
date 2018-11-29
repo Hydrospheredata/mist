@@ -2,7 +2,7 @@ package io.hydrosphere.mist.master.execution.workers.starter
 
 import java.nio.file.Path
 
-import io.hydrosphere.mist.core.CommonData.WorkerInitInfo
+import io.hydrosphere.mist.common.CommonData.WorkerInitInfo
 import io.hydrosphere.mist.master._
 import io.hydrosphere.mist.master.execution.workers.StopAction
 

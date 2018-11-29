@@ -1,6 +1,6 @@
 package io.hydrosphere.mist.master.execution.status
 
-import io.hydrosphere.mist.core.MockitoSugar
+import io.hydrosphere.mist.common.MockitoSugar
 import io.hydrosphere.mist.master.Messages.StatusMessages.{QueuedEvent, UpdateStatusEvent}
 import io.hydrosphere.mist.master.logging.{JobLogger, LogService}
 import io.hydrosphere.mist.master.store.JobRepository

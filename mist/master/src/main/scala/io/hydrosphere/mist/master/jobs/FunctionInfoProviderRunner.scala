@@ -1,8 +1,8 @@
 package io.hydrosphere.mist.master.jobs
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props, ReceiveTimeout}
-import io.hydrosphere.mist.core.CommonData
-import io.hydrosphere.mist.core.CommonData.RegisterJobInfoProvider
+import io.hydrosphere.mist.common.CommonData
+import io.hydrosphere.mist.common.CommonData.RegisterJobInfoProvider
 import io.hydrosphere.mist.master.FunctionInfoProviderConfig
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
