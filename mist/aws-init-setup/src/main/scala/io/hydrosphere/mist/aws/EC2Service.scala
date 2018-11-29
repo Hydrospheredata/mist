@@ -86,7 +86,6 @@ object EC2Service {
           case IngressAddr.Group(v) =>
             val group = UserIdGroupPair.builder()
               .groupId(v.id)
-              .groupName(v.name)
               .description(s"${v.id}:${v.name}")
               .build()
             ipPremission.userIdGroupPairs(group)
@@ -97,14 +96,23 @@ object EC2Service {
           .ipPermissions(withAddr.build())
           .build()
 
-        ec2Client.authorizeSecurityGroupIngress(req).toIO.map(r => {println(r)})
+        ec2Client.authorizeSecurityGroupIngress(req).toIO.map(_ => ())
+          .handleErrorWith(e => e match {
+            case m: software.amazon.awssdk.services.ec2.model.EC2Exception if m.getMessage.contains("already exists") => IO.pure(())
+            case _ => IO.raiseError(e)
+          })
       }
 
       override def getSecGroup(name: String): IO[Option[SecGroup]] = {
-        val req = DescribeSecurityGroupsRequest.builder().groupNames(name).build()
-        val io = ec2Client.describeSecurityGroups(req).toIO
+        val req = DescribeSecurityGroupsRequest.builder()
+          .filters(Filter.builder()
+            .name("group-name")
+            .values(name)
+            .build())
+          .build()
 
-        io.map(r => r.securityGroups().asScala.headOption.map(s => SecGroup(s.groupId(), s.groupName())))
+        ec2Client.describeSecurityGroups(req).toIO
+          .map(_.securityGroups().asScala.headOption.map(s => SecGroup(s.groupId(), s.groupName())))
           .handleErrorWith(e => e match {
             case _: software.amazon.awssdk.services.ec2.model.EC2Exception => IO.pure(None)
             case _ => IO.raiseError(e)
@@ -117,7 +125,6 @@ object EC2Service {
         vpcId: String,
         data: IngressData
       ): IO[SecGroup] = {
-
         val createReq = CreateSecurityGroupRequest.builder()
           .groupName(name)
           .description(descr)
@@ -125,10 +132,9 @@ object EC2Service {
           .build()
 
         for {
-          resp <- ec2Client.createSecurityGroup(createReq).toIO
-          groupId = resp.groupId()
+          groupId <- ec2Client.createSecurityGroup(createReq).toIO.map(_.groupId())
           _ <- addIngressRule(groupId, data)
-        } yield SecGroup(resp.groupId, name)
+        } yield SecGroup(groupId, name)
       }
 
       override def getInstanceData(id: String): IO[Option[InstanceData]] = {
@@ -165,7 +171,5 @@ object EC2Service {
       }
 
     }
-
   }
-
 }
