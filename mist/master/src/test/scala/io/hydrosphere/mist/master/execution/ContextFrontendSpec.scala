@@ -263,7 +263,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
       name = "name",
       status = StatusReporter.NOOP,
       loggersFactory = NOOPLoggerFactory,
-      connectorStarter = (_, _) => connector,
+      connectorStarter = (_, _) => Future.successful(connector),
       jobFactory = ActorF.static(job.ref),
       defaultInactiveTimeout = 5 minutes
     )
