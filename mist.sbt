@@ -353,7 +353,7 @@ lazy val docs = project.in(file("docs"))
   .settings(
     scalaVersion := "2.11.8",
     libraryDependencies ++= Library.spark(sparkVersion.value),
-    micrositeName := "Hydropshere - Mist",
+    micrositeName := "Hydrosphere - Mist",
     micrositeDescription := "Serverless proxy for Spark cluster",
     micrositeAuthor := "hydrosphere.io",
     micrositeHighlightTheme := "atom-one-light",
