@@ -11,9 +11,6 @@ Mist provides a new functional programming framework and deployment model for Sp
 
 Please see our [quick start guide](https://hydrosphere.io/mist-docs/quick_start.html) and [documentation](https://hydrosphere.io/mist-docs/)
 
-Roadmap to [1.0.0](https://github.com/Hydrospheredata/mist/milestone/4)
-
-
 Features:
 * **Spark Function as a Service**. Deploy Spark functions rather than notebooks or scripts.
 * Spark Cluster and Session management. Fully managed Spark sessions backed by on-demand EMR, Hortonworks, Cloudera, DC/OS and vanilla Spark clusters.
