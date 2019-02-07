@@ -76,7 +76,7 @@ Settings:
     </tr>
     <tr>
        <td>downtime</td>
-       <td>false</td>
+       <td>infinity</td>
        <td>idle-timeout for `shared` worker</td>
     </tr>
   </tbody>
