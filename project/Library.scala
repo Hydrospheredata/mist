@@ -13,10 +13,18 @@ object Library {
   val h2 = "com.h2database" % "h2" % "1.4.194"
   val flyway = "org.flywaydb" % "flyway-core" % "4.1.1"
 
+  val doobieVersion = "0.6.0"
+  val doobieCore     = "org.tpolecat" %% "doobie-core"     % doobieVersion
+  val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
+  val doobieH2       = "org.tpolecat" %% "doobie-h2"       % doobieVersion
+  val doobieHikari   = "org.tpolecat" %% "doobie-hikari"   % doobieVersion
+  val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2"   % doobieVersion
+
   val pahoMqtt = "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.1.0"
   val kafka = "org.apache.kafka" %% "kafka" % "0.10.2.0" exclude("log4j", "log4j") exclude("org.slf4j","slf4j-log4j12")
 
-  val cats = "org.typelevel" %% "cats" % "0.9.0"
+  // There is `cats` dependency from doobie...
+  //val cats = "org.typelevel" %% "cats" % "0.9.0"
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.0.1"
   val junit = "junit" % "junit" % "4.12"
