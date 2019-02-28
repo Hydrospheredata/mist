@@ -199,7 +199,7 @@ object H2JobsRepository {
 
   private def migrateDb(url: String): Unit = {
     val flyway = new Flyway()
-    flyway.setLocations("/db/migrations")
+    flyway.setLocations("/db/migrations/h2")
     flyway.setDataSource(url, null, null)
     flyway.migrate()
 
