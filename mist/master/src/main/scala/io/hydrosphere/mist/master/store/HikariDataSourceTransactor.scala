@@ -5,8 +5,9 @@ import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
 import cats.effect._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.util.transactor.Transactor
-
+import doobie.util.transactor.Transactor.Aux
 import io.hydrosphere.mist.utils.Logger
+
 import scala.concurrent.ExecutionContext
 
 
@@ -25,19 +26,19 @@ import scala.concurrent.ExecutionContext
   */
 class HikariDataSourceTransactor(config: HikariConfig, poolSize: Int = 32, awaitShutdown: Long = 1000) extends Logger {
 
-  lazy protected val ce = Executors.newFixedThreadPool(poolSize) // our connect EC
-  lazy protected val te = Executors.newCachedThreadPool    // our transaction EC
+  protected val ce: ExecutorService = Executors.newFixedThreadPool(poolSize) // our connect EC
+  protected val te: ExecutorService = Executors.newCachedThreadPool    // our transaction EC
 
-  lazy val ds = new HikariDataSource(config)
+  val ds = new HikariDataSource(config)
 
-  lazy protected implicit val cs = IO.contextShift(ExecutionContext.global)
+  protected implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  lazy val transactor = Transactor.fromDataSource[IO](ds,
+  val transactor: Aux[IO, HikariDataSource] = Transactor.fromDataSource[IO](ds,
     ExecutionContext.fromExecutor(ce), ExecutionContext.fromExecutor(te))
 
   private def shutdownExecutorService(awaitShutdown: Long, es: ExecutorService, debugInfo: String = ""): Unit = {
     logger.info(s"Shutting down executor service $debugInfo")
-    if (es == null || es.isTerminated) {
+    if (es.isTerminated) {
       logger.warn(s"ExecutorService $es ($debugInfo) had not been initialized before shutdown. Operation rejected.")
     } else {
       es.shutdown()
@@ -53,7 +54,7 @@ class HikariDataSourceTransactor(config: HikariConfig, poolSize: Int = 32, await
     * Client *must* call this method after using HikariDataSourceTransactor
     */
   def shutdown(): Unit = {
-    if (ds != null && !ds.isClosed) {
+    if (!ds.isClosed) {
       logger.info("Closing Hikari data source")
       ds.close()
     } else {

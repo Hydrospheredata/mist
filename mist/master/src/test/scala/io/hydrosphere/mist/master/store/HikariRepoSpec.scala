@@ -78,29 +78,30 @@ abstract class HikariRepoSpec(className: String, jdbcUrl: String,
   }
 
   // Doobie specific test here
+  val jobRequestSql: JobRequestSql = JobRequestSql(hikari.ds.getJdbcUrl)
 
   it should "sql select(*)" in {
-    val sql = repo.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0))
+    val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0))
     sql.toString() shouldEqual sql"select * from job_details order by create_time desc limit ? offset ? ".toString()
   }
 
   it should "sql filter by function" in {
-    val sql = repo.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByFunctionId("ID")))
+    val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByFunctionId("ID")))
     sql.toString() shouldEqual sql"select * from job_details where function = ? order by create_time desc limit ? offset ? ".toString()
   }
 
   it should "sql filter by worker" in {
-    val sql = repo.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByWorkerId("ID")))
+    val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByWorkerId("ID")))
     sql.toString() shouldEqual sql"select * from job_details where worker_id = ? order by create_time desc limit ? offset ? ".toString()
   }
 
   it should "sql filter by status" in {
-    val sql = repo.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByStatuses(Seq(Initialized, Queued))))
+    val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByStatuses(Seq(Initialized, Queued))))
     sql.toString() shouldEqual sql"select * from job_details where status IN (?, ?) order by create_time desc limit ? offset ? ".toString()
   }
 
   it should "sql complex filter" in {
-    val sql = repo.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).
+    val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).
       withFilter(ByStatuses(Seq(Initialized, Queued))).
       withFilter(ByWorkerId("ID")).
       withFilter(ByFunctionId("ID")))
@@ -108,7 +109,6 @@ abstract class HikariRepoSpec(className: String, jdbcUrl: String,
   }
 
   // Helper functions
-
   private def fixtureJobDetails(
     jobId: String,
     status: JobDetails.Status = JobDetails.Status.Initialized): JobDetails = {
