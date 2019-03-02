@@ -2,12 +2,20 @@ package io.hydrosphere.mist.master.store
 
 import io.hydrosphere.mist.master.{JobDetails, JobDetailsRecord, JobDetailsRequest, JobDetailsResponse}
 import doobie.implicits._
+import org.flywaydb.core.Flyway
 
 import scala.concurrent.Future
 
 class HikariJobRepository(hikari: HikariDataSourceTransactor) extends JobRepository {
 
-  var jobRequestSql: JobRequestSql = JobRequestSql(hikari.ds.getJdbcUrl)
+  val jobRequestSql: JobRequestSql = JobRequestSql(hikari.ds.getJdbcUrl)
+
+  val flyway = new Flyway()
+  flyway.setBaselineOnMigrate(true)
+  flyway.setLocations(jobRequestSql.flyDbMigrationPath)
+  flyway.setDataSource(hikari.ds)
+  flyway.migrate()
+
 
   override def remove(jobId: String): Future[Unit] = {
     jobRequestSql.remove(jobId)

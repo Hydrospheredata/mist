@@ -25,6 +25,8 @@ class H2JobRequestSql extends JobRequestSql {
         ${r.status}, ${r.workerId}, ${r.createTime}
       )"""
   }
+
+  override def flyDbMigrationPath: String = "/db/migrations/h2"
 }
 
 class PgJobRequestSql extends JobRequestSql {
@@ -60,6 +62,8 @@ class PgJobRequestSql extends JobRequestSql {
         create_time = ${r.createTime}
     """
   }
+
+  override def flyDbMigrationPath: String = "/db/migrations/postgresql"
 }
 
 object JobRequestSql {
@@ -74,6 +78,8 @@ object JobRequestSql {
 }
 
 trait JobRequestSql {
+
+  def flyDbMigrationPath: String
 
   /**
     * This method is abstract and uses different syntax for the different databases

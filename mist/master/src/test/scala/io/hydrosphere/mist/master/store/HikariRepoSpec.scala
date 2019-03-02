@@ -6,14 +6,13 @@ import io.hydrosphere.mist.master.{JobDetails, JobDetailsRequest}
 import io.hydrosphere.mist.master.JobDetails.Source
 import io.hydrosphere.mist.master.TestUtils._
 import mist.api.data.JsMap
-import org.flywaydb.core.Flyway
 import org.scalatest._
 import doobie.implicits._
 import io.hydrosphere.mist.master.FilterClause.{ByFunctionId, ByStatuses, ByWorkerId}
 import io.hydrosphere.mist.master.JobDetails.Status.{Initialized, Queued}
 
 abstract class HikariRepoSpec(className: String, jdbcUrl: String,
-                              username: String, password: String, migrationPath: String)
+                              username: String, password: String)
   extends FlatSpec with Matchers with BeforeAndAfter with BeforeAndAfterAll {
 
   val hikariConfig = new HikariConfig()
@@ -29,18 +28,13 @@ abstract class HikariRepoSpec(className: String, jdbcUrl: String,
     hikari.shutdown()
   }
 
-  val flyway = new Flyway()
-
-  flyway.setBaselineOnMigrate(true)
-  flyway.setLocations(migrationPath)
-  flyway.setDataSource(hikari.ds)
-  flyway.migrate()
-
   /**
     * We want to test some internal function so we expose HikariJobRepository
     * but not super interface.
     */
   val repo: HikariJobRepository = new HikariJobRepository(hikari)
+  val jobRequestSql: JobRequestSql = repo.jobRequestSql
+
 
   hikari.ds.getDriverClassName should "remove" in {
     val details = fixtureJobDetails("id")
@@ -78,7 +72,6 @@ abstract class HikariRepoSpec(className: String, jdbcUrl: String,
   }
 
   // Doobie specific test here
-  val jobRequestSql: JobRequestSql = JobRequestSql(hikari.ds.getJdbcUrl)
 
   it should "sql select(*)" in {
     val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0))
