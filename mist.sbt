@@ -25,9 +25,9 @@ lazy val commonSettings = Seq(
   organization := "io.hydrosphere",
 
   sparkVersion := sys.props.getOrElse("sparkVersion", "2.4.0"),
-  scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.8"),
+  scalaVersion :=  sys.props.getOrElse("scalaVersion", "2.11.12"),
   scalaPostfix := { if (scalaBinaryVersion.value == "2.12") "-scala-2.12" else "" },
-  crossScalaVersions := Seq("2.11.8", "2.12.7"),
+  crossScalaVersions := Seq("2.11.12", "2.12.7"),
   javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
   parallelExecution in Test := false,
   version := "1.1.1"
@@ -88,9 +88,12 @@ lazy val master = project.in(file("mist/master"))
       Library.chill,
       Library.kafka, Library.pahoMqtt,
 
+      Library.doobieCore, Library.doobieH2, Library.doobieHikari,
+      Library.doobiePostgres, Library.doobieSpecs2,
+
       Library.Akka.testKit % "test",
       Library.Akka.http, Library.Akka.httpSprayJson, Library.Akka.httpTestKit % "test",
-      Library.cats,
+      //Library.cats,
 
       Library.dockerJava,
 
@@ -351,7 +354,7 @@ lazy val docs = project.in(file("docs"))
   .dependsOn(mistLib)
   .settings(commonSettings: _*)
   .settings(
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.11.12",
     libraryDependencies ++= Library.spark(sparkVersion.value),
     micrositeName := "Hydrosphere - Mist",
     micrositeDescription := "Serverless proxy for Spark cluster",
@@ -416,5 +419,6 @@ lazy val commonScalacOptions = Seq(
   "-unchecked",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
+  "-Ypartial-unification",
   "-deprecation"
 )

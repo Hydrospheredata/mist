@@ -256,6 +256,33 @@ object SecurityConfig {
 
 }
 
+/**
+  * @param filePath is mutually exclusive with other parameters. If filePath
+  *                 parameter is set then only it used and the configured DB is H2
+  *                 with a file database.
+  *
+  *                 Otherwise all others parameters is valid and intended for
+  *                 connection configuration with data pooling.
+  */
+case class DbConfig(
+  filePath: Option[String],
+  poolSize: Option[Int],
+  driverClass: Option[String],
+  jdbcUrl: Option[String],
+  username: Option[String],
+  password: Option[String]
+)
+
+object DbConfig {
+  def apply(c: Config): DbConfig =
+    new DbConfig(c.getOptString("filepath"),
+      c.getOptInt("poolSize"),
+      c.getOptString("driverClass"),
+      c.getOptString("jdbcUrl"),
+      c.getOptString("username"),
+      c.getOptString("password"))
+}
+
 case class MasterConfig(
   cluster: HostPortConfig,
   http: HttpConfig,
@@ -264,7 +291,7 @@ case class MasterConfig(
   logs: LogServiceConfig,
   workers: WorkersSettingsConfig,
   contextsSettings: ContextsSettings,
-  dbPath: String,
+  dbConfig: DbConfig,
   contextsPath: String,
   functionsPath: String,
   security: Option[SecurityConfig],
@@ -306,7 +333,7 @@ object MasterConfig extends Logger {
       logs = LogServiceConfig(mist.getConfig("log-service")),
       workers = WorkersSettingsConfig(mist.getConfig("workers")),
       contextsSettings = ContextsSettings(mist),
-      dbPath = mist.getString("db.filepath"),
+      dbConfig = DbConfig(mist.getConfig("db")),
       contextsPath = mist.getString("contexts-store.path"),
       functionsPath = mist.getString("functions-store.path"),
       jobsSavePath = mist.getString("jobs-resolver.save-path"),

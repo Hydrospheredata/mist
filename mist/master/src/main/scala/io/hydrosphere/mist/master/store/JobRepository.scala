@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.store
 
-import io.hydrosphere.mist.master.{JobDetails, JobDetailsRequest, JobDetailsResponse}
-import io.hydrosphere.mist.master.JobDetails.Status
+import com.zaxxer.hikari.HikariConfig
+import io.hydrosphere.mist.master.{DbConfig, JobDetails, JobDetailsRequest, JobDetailsResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,3 +32,29 @@ trait JobRepository {
   def getJobs(req: JobDetailsRequest): Future[JobDetailsResponse]
 }
 
+object JobRepository {
+  def apply(config: DbConfig): JobRepository = {
+
+    if (!config.filePath.isEmpty) {
+      H2JobsRepository(config.filePath.get)
+    } else {
+      if (!config.jdbcUrl.isEmpty) {
+        val url = config.jdbcUrl.get
+        if (url.startsWith("jdbc:h2") || url.startsWith("jdbc:postgresql")) {
+          val hikariConfig = new HikariConfig()
+          hikariConfig.setDriverClassName(config.driverClass.get)
+          hikariConfig.setJdbcUrl(config.jdbcUrl.get)
+          hikariConfig.setUsername(config.username.get)
+          hikariConfig.setPassword(config.password.get)
+
+          val hikari = new HikariDataSourceTransactor(hikariConfig, config.poolSize.get)
+          new HikariJobRepository(hikari)
+        } else {
+          throw new RuntimeException(s"Only H2 and PostgreSQL databases supported now")
+        }
+      } else {
+        throw new RuntimeException(s"You must setup either db.filepath either db.jdbcUrl parameter")
+      }
+    }
+  }
+}

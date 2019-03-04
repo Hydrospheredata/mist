@@ -21,7 +21,7 @@ import io.hydrosphere.mist.master.interfaces.http._
 import io.hydrosphere.mist.master.jobs.{FunctionInfoProviderRunner, FunctionsService}
 import io.hydrosphere.mist.master.logging.{LogService, LogStreams}
 import io.hydrosphere.mist.master.security.KInitLauncher
-import io.hydrosphere.mist.master.store.H2JobsRepository
+import io.hydrosphere.mist.master.store.JobRepository
 import io.hydrosphere.mist.utils.Logger
 import io.hydrosphere.mist.utils.akka.RestartSupervisor
 
@@ -88,7 +88,8 @@ object MasterServer extends Logger {
 
     val functionsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
-    val store = H2JobsRepository(config.dbPath)
+
+    val store = JobRepository(config.dbConfig)
 
     val logsPaths = LogStoragePaths.create(config.logs.dumpDirectory)
 
