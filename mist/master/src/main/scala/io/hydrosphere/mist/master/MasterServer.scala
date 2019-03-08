@@ -66,7 +66,7 @@ case class ServerInstance(closeSteps: Seq[Step[_]])
       }
       p.future
     }
-    closeSteps.foldLeft(Future.successful()) {
+    closeSteps.foldLeft(Future.successful(())) {
       case (acc, step) => acc.flatMap(_ => execStep(step))
     }
   }

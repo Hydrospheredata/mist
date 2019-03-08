@@ -63,9 +63,7 @@ class ContextFrontendSpec extends ActorSpec("ctx-frontend-spec")
     val status2 = probe.expectMsgType[ContextFrontend.FrontendStatus]
     status2.executorId.isDefined shouldBe true
 
-    // This line is intentionally commented while migrating to the Scala ver. 2.11.12
-    // You can uncomment it if you know what you do.
-    // status2.jobs should contain only("id" -> ExecStatus.Started)
+    status2.jobs.toList should contain only("id" -> ExecStatus.Started)
 
     job.send(frontend, JobActor.Event.Completed("id"))
 
