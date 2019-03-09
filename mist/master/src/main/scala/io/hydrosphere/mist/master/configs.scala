@@ -256,31 +256,32 @@ object SecurityConfig {
 
 }
 
-/**
-  * @param filePath is mutually exclusive with other parameters. If filePath
-  *                 parameter is set then only it used and the configured DB is H2
-  *                 with a file database.
-  *
-  *                 Otherwise all others parameters is valid and intended for
-  *                 connection configuration with data pooling.
-  */
-case class DbConfig(
-  filePath: Option[String],
-  poolSize: Option[Int],
-  driverClass: Option[String],
-  jdbcUrl: Option[String],
-  username: Option[String],
-  password: Option[String]
-)
-
+sealed trait DbConfig
 object DbConfig {
-  def apply(c: Config): DbConfig =
-    new DbConfig(c.getOptString("filepath"),
-      c.getOptInt("poolSize"),
-      c.getOptString("driverClass"),
-      c.getOptString("jdbcUrl"),
-      c.getOptString("username"),
-      c.getOptString("password"))
+  
+  final case class H2OldConfig(filePath: String) extends DbConfig
+  
+  final case class JDBCDbConfig(
+    poolSize: Int,
+    driverClass: String,
+    jdbcUrl: String,
+    username: Option[String],
+    password: Option[String]
+  ) extends DbConfig
+  
+  def apply(c: Config): DbConfig = {
+    c.getOptString("filepath") match {
+      case Some(path) => H2OldConfig(path)
+      case None =>
+        JDBCDbConfig(
+          c.getInt("poolSize"),
+          c.getString("driverClass"),
+          c.getString("jdbcUrl"),
+          c.getOptString("username"),
+          c.getOptString("password")
+        )
+    }
+  }
 }
 
 case class MasterConfig(

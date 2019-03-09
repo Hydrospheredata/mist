@@ -1,5 +1,9 @@
 package io.hydrosphere.mist.master
 
+import cats._
+import cats.implicits._
+import cats.syntax._
+
 import java.nio.file.Paths
 
 import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
@@ -39,7 +43,7 @@ case class Step[A](name: String, f: () => Future[A]) {
 object Step {
 
   def future[A](name: String, f: => Future[A]): Step[A] = Step(name, () => f)
-
+  
   def lift[A](name: String, f: => A): Step[A] = {
     val lifted = () => Try(f) match {
       case Success(a) => Future.successful(a)
@@ -89,8 +93,6 @@ object MasterServer extends Logger {
     val functionsStorage = FunctionConfigStorage.create(config.functionsPath, routerConfig)
     val contextsStorage = ContextsStorage.create(config.contextsPath, config.srcConfigPath)
 
-    val store = JobRepository(config.dbConfig)
-
     val logsPaths = LogStoragePaths.create(config.logs.dumpDirectory)
 
     val streamer = runEventStreamer(config)
@@ -100,7 +102,7 @@ object MasterServer extends Logger {
       LogStreams.runService(host, port, logsPaths, streamer)
     }
 
-    def runExecutionService(logService: LogService): ExecutionService = {
+    def runExecutionService(repository: JobRepository, logService: LogService): ExecutionService = {
       val logsDir = Paths.get(config.logs.dumpDirectory)
       val workerRunner = WorkerStarter.create(config.workers, logsDir)
       val spawnSettings = SpawnSettings(
@@ -112,7 +114,7 @@ object MasterServer extends Logger {
         httpAddress = s"${config.http.publicHost  }:${config.http.port}",
         maxArtifactSize = config.workers.maxArtifactSize
       )
-      ExecutionService(spawnSettings, system, streamer, store, logService)
+      ExecutionService(spawnSettings, system, streamer, repository, logService)
     }
 
     val artifactRepository = ArtifactRepository.create(
@@ -139,6 +141,7 @@ object MasterServer extends Logger {
     }
 
     for {
+      repository             <- start("DB", JobRepository(config.dbConfig))
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("FunctionInfoProvider", runFunctionInfoProvider())
       functionInfoService =  new FunctionsService(
@@ -147,7 +150,7 @@ object MasterServer extends Logger {
                                       contextsStorage,
                                       artifactRepository
                                 )(system.dispatcher)
-      executionService       =  runExecutionService(logService)
+      executionService       =  runExecutionService(repository, logService)
       masterService          <- start("Main service", MainService.start(
                                                         executionService,
                                                         contextsStorage,
@@ -267,6 +270,9 @@ object MasterServer extends Logger {
     }
     future
   }
+  
+  private def start[A](name: String, f: => Either[Throwable, A]): Future[A] =
+    start(name, Future.fromTry(f.toTry))
 
   private def start[A](name: String, f: => A): A = {
     try {

@@ -84,7 +84,7 @@ lazy val master = project.in(file("mist/master"))
     libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
       Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,
-      Library.slick, Library.h2, Library.flyway,
+      Library.h2, Library.flyway,
       Library.chill,
       Library.kafka, Library.pahoMqtt,
 
