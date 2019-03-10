@@ -1,13 +1,10 @@
 package io.hydrosphere.mist.master.store
 
-import cats._
 import cats.implicits._
-import cats.syntax._
-
-import java.nio.file.Paths
-
 import com.zaxxer.hikari.HikariConfig
 import io.hydrosphere.mist.master.{DbConfig, JobDetails, JobDetailsRequest, JobDetailsResponse}
+import javax.sql.DataSource
+import org.flywaydb.core.Flyway
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,42 +38,42 @@ trait JobRepository {
 object JobRepository {
   
   def apply(config: DbConfig): Either[Throwable, JobRepository] = {
-    hikariConfig(config).map(cfg => {
-      val poolSize = config match {
-        case jdbc:DbConfig.JDBCDbConfig => jdbc.poolSize
-        case _:DbConfig.H2OldConfig => 10
+    for {
+      setup  <- JobRepoSetup(config)
+      trns   <- transactor(setup)
+    } yield new HikariJobRepository(trns, setup.jobRequestSql)
+  }
+  
+  private def transactor(setup: JobRepoSetup): Either[Throwable, HikariDataSourceTransactor] = {
+    Either.catchNonFatal {
+      val transactor = new HikariDataSourceTransactor(hikariConfig(setup), setup.poolSize)
+      setup.migrationPath match {
+        case None => transactor
+        case Some(path) =>
+          migrate(path, transactor.ds)
+          transactor
       }
-      val hikari = new HikariDataSourceTransactor(cfg, poolSize)
-      new HikariJobRepository(hikari)
-    })
-  }
-  
-  private def hikariConfig(config: DbConfig): Either[Throwable, HikariConfig] = {
-    val (driver, url, user, passwd) = config match {
-      case DbConfig.H2OldConfig(path) =>
-        val absolute = Paths.get(path).toAbsolutePath
-        ("org.h2.Driver", s"jdbc:h2:file:$absolute;DATABASE_TO_UPPER=false", None, None)
-      case DbConfig.JDBCDbConfig(_, driver, url, user, passwd) =>
-        (driver, url, user, passwd)
-    }
-    
-    if (isSupported(url)) {
-      val configure =
-        SetterFunc[HikariConfig](driver)(_.setDriverClassName(_)) >>>
-        SetterFunc[HikariConfig](url)(_.setJdbcUrl(_)) >>>
-        SetterFunc[HikariConfig].opt(user)(_.setUsername(_)) >>>
-        SetterFunc[HikariConfig].opt(passwd)(_.setPassword(_))
-      
-      configure(new HikariConfig()).asRight
-    } else {
-      new RuntimeException(s"Only H2 and PostgreSQL databases supported now").asLeft
     }
   }
   
-  private def isSupported(jdbcUrl: String): Boolean = {
-    def dbIs(url: String, name: String): Boolean = url.startsWith(s"jdbc:$name")
+  private def migrate(migrationPath: String, ds: DataSource): Unit = {
+    val flyway = new Flyway()
+    flyway.setBaselineOnMigrate(true)
+    flyway.setLocations(migrationPath)
+    flyway.setDataSource(ds)
+    flyway.migrate()
+  }
+  
+  private def hikariConfig(setup: JobRepoSetup): HikariConfig = {
+    import setup._
     
-    dbIs(jdbcUrl, "h2") || dbIs(jdbcUrl, "postgresql")
+    val configure =
+      SetterFunc[HikariConfig](driverClass)(_.setDriverClassName(_)) >>>
+      SetterFunc[HikariConfig](jdbcUrl)(_.setJdbcUrl(_)) >>>
+      SetterFunc[HikariConfig].opt(username)(_.setUsername(_)) >>>
+      SetterFunc[HikariConfig].opt(password)(_.setPassword(_))
+    
+    configure(new HikariConfig())
   }
   
   object SetterFunc {

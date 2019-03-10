@@ -266,7 +266,8 @@ object DbConfig {
     driverClass: String,
     jdbcUrl: String,
     username: Option[String],
-    password: Option[String]
+    password: Option[String],
+    migration: Boolean
   ) extends DbConfig
   
   def apply(c: Config): DbConfig = {
@@ -278,7 +279,8 @@ object DbConfig {
           c.getString("driverClass"),
           c.getString("jdbcUrl"),
           c.getOptString("username"),
-          c.getOptString("password")
+          c.getOptString("password"),
+          c.getBoolean("migration")
         )
     }
   }

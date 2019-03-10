@@ -81,6 +81,7 @@ lazy val master = project.in(file("mist/master"))
   .settings(
     name := "mist-master",
     scalacOptions ++= commonScalacOptions,
+    addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9"),
     libraryDependencies ++= Library.Akka.base,
     libraryDependencies ++= Seq(
       Library.slf4jLog4j, Library.typesafeConfig, Library.scopt,

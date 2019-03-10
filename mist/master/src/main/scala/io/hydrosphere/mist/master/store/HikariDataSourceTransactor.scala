@@ -1,7 +1,8 @@
 package io.hydrosphere.mist.master.store
 
-import java.util.concurrent.{ExecutorService, Executors, TimeUnit}
+import java.util.concurrent.{ExecutorService, Executors, Future, TimeUnit}
 
+import cats.arrow.FunctionK
 import cats.effect._
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import doobie.util.transactor.Transactor
@@ -33,9 +34,9 @@ class HikariDataSourceTransactor(config: HikariConfig, poolSize: Int = 32, await
 
   protected implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  val transactor: Aux[IO, HikariDataSource] = Transactor.fromDataSource[IO](ds,
-    ExecutionContext.fromExecutor(ce), ExecutionContext.fromExecutor(te))
-
+  val transactor: Aux[IO, HikariDataSource] =
+    Transactor.fromDataSource[IO](ds, ExecutionContext.fromExecutor(ce), ExecutionContext.fromExecutor(te))
+  
   private def shutdownExecutorService(awaitShutdown: Long, es: ExecutorService, debugInfo: String = ""): Unit = {
     logger.info(s"Shutting down executor service $debugInfo")
     if (es.isTerminated) {
