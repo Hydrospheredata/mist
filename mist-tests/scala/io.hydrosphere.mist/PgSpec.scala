@@ -4,7 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails
 import io.hydrosphere.mist.master.JobDetails.Source
-import io.hydrosphere.mist.master.store.{HikariDataSourceTransactor, HikariJobRepository}
+import io.hydrosphere.mist.master.store.{HikariDataSourceTransactor, HikariJobRepository, PgJobRequestSql}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
@@ -34,7 +34,7 @@ class PgSpec extends FunSpec
     hikariConfig.setPassword("postgres")
   
     tr = new HikariDataSourceTransactor(hikariConfig)
-    repo = new HikariJobRepository(tr)
+    repo = new HikariJobRepository(tr, new PgJobRequestSql)
   }
   override def afterAll = {
     pgContainer.close()
