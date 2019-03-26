@@ -32,7 +32,7 @@ class HikariDataSourceTransactor(config: HikariConfig, poolSize: Int = 32, await
 
   val ds = new HikariDataSource(config)
 
-  protected implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
   val transactor: Aux[IO, HikariDataSource] =
     Transactor.fromDataSource[IO](ds, ExecutionContext.fromExecutor(ce), ExecutionContext.fromExecutor(te))

@@ -37,7 +37,7 @@ trait JobRepository {
 
 object JobRepository {
   
-  def apply(config: DbConfig): Either[Throwable, JobRepository] = {
+  def create(config: DbConfig): Either[Throwable, HikariJobRepository] = {
     for {
       setup  <- JobRepoSetup(config)
       trns   <- transactor(setup)

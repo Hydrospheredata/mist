@@ -141,7 +141,7 @@ object MasterServer extends Logger {
     }
 
     for {
-      repository             <- start("DB", JobRepository(config.dbConfig))
+      repository             <- start("DB", JobRepository.create(config.dbConfig))
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("FunctionInfoProvider", runFunctionInfoProvider())
       functionInfoService =  new FunctionsService(
@@ -167,6 +167,7 @@ object MasterServer extends Logger {
       security.map(ps => Step.future("Security", ps.stop())) :+
       Step.lift("FunctionInfoProvider", healthRef ! PoisonPill) :+
       Step.future("LogsSystem", logService.close()) :+
+      Step.lift("JobRepository", repository.shutdown()) :+
       Step.future("System", {
         materializer.shutdown()
         system.terminate().map(_ => ())

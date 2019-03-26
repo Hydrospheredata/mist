@@ -73,4 +73,6 @@ class HikariJobRepository(
       .transact(hikari.transactor)
       .unsafeToFuture()
   }
+  
+  def shutdown(): Unit = hikari.shutdown()
 }

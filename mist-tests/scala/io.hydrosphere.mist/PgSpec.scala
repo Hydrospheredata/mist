@@ -2,9 +2,9 @@ package io.hydrosphere.mist
 
 import com.zaxxer.hikari.HikariConfig
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
-import io.hydrosphere.mist.master.JobDetails
+import io.hydrosphere.mist.master.{DbConfig, JobDetails}
 import io.hydrosphere.mist.master.JobDetails.Source
-import io.hydrosphere.mist.master.store.{HikariDataSourceTransactor, HikariJobRepository, PgJobRequestSql}
+import io.hydrosphere.mist.master.store.{HikariDataSourceTransactor, HikariJobRepository, JobRepository, PgJobRequestSql}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, FunSpec, Matchers}
@@ -21,24 +21,28 @@ class PgSpec extends FunSpec
   implicit override val patienceConfig = PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(1, Seconds)))
   
   var pgContainer: TestContainer = _
-  var tr: HikariDataSourceTransactor = _
   var repo: HikariJobRepository = _
   
   override def beforeAll = {
     pgContainer = TestContainer.run(DockerImage("postgres","latest"), Map(5432 -> 5432))
     
-    val hikariConfig = new HikariConfig()
-    hikariConfig.setDriverClassName("org.postgresql.Driver")
-    hikariConfig.setJdbcUrl("jdbc:postgresql:postgres")
-    hikariConfig.setUsername("postgres")
-    hikariConfig.setPassword("postgres")
-  
-    tr = new HikariDataSourceTransactor(hikariConfig)
-    repo = new HikariJobRepository(tr, new PgJobRequestSql)
+    val cfg = DbConfig.JDBCDbConfig(
+      10,
+      "org.postgresql.Driver",
+      "jdbc:postgresql:postgres",
+      Some("postgres"),
+      Some("postgres"),
+      true
+    )
+    
+    repo = JobRepository.create(cfg) match {
+      case Left(e) => throw e
+      case Right(r) => r
+    }
   }
   override def afterAll = {
     pgContainer.close()
-    tr.shutdown()
+    repo.shutdown()
   }
   
   private def await[A](f: Future[A]): A = Await.result(f, Duration.Inf)
