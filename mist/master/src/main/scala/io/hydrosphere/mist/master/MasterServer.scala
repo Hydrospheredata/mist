@@ -141,7 +141,7 @@ object MasterServer extends Logger {
     }
 
     for {
-      repository             <- start("DB", JobRepository.create(config.dbConfig))
+      repository             <- startE("DB", JobRepository.create(config.dbConfig))
       logService             <- start("LogsSystem", runLogService())
       jobInfoProvider        <- start("FunctionInfoProvider", runFunctionInfoProvider())
       functionInfoService =  new FunctionsService(
@@ -181,10 +181,11 @@ object MasterServer extends Logger {
       import cfg._
       logger.info("Security is enabled - starting Knit loop")
       val ps = KInitLauncher.create(keytab, principal, interval)
-      ps.run().onFailure {
-        case e: Throwable =>
+      ps.run().onComplete{
+        case Failure(e) =>
           logger.error(s"KInit failed ${e.getMessage}, exiting...", e)
           sys.exit(1)
+        case _ =>
       }
       ps
     })
@@ -251,13 +252,13 @@ object MasterServer extends Logger {
     config.kafka.foreach(cfg => {
       import cfg._
       val publisher = JobEventPublisher.forKafka(host, port, publishTopic)
-      startStream(publisher.notify, s"kafka($host:$port/$publishTopic)", publisher.close)
+      startStream(publisher.notify, s"kafka($host:$port/$publishTopic)", () => publisher.close())
     })
 
     config.mqtt.foreach(cfg => {
       import cfg._
       val publisher = JobEventPublisher.forMqtt(host, port, publishTopic)
-      startStream(publisher.notify, s"mqtt($host:$port/$publishTopic", publisher.close)
+      startStream(publisher.notify, s"mqtt($host:$port/$publishTopic", () => publisher.close())
     })
 
     streamer
@@ -272,7 +273,7 @@ object MasterServer extends Logger {
     future
   }
   
-  private def start[A](name: String, f: => Either[Throwable, A]): Future[A] =
+  private def startE[A](name: String, f: => Either[Throwable, A]): Future[A] =
     start(name, Future.fromTry(f.toTry))
 
   private def start[A](name: String, f: => A): A = {

@@ -37,7 +37,7 @@ case class ManualStarter(
     case Some(cmd) => StopAction.CustomFn(id => {
       val env = Map("MIST_WORKER_NAME" -> id)
       WrappedProcess.run(cmd, env, outDirectory.resolve(s"manual-worker-stop-$id.log")) match {
-        case Success(ps) => ps.await().onFailure({case e => logger.error(s"Calling stop script failed for $id", e)})
+        case Success(ps) => ps.await().failed.foreach(e => logger.error(s"Calling stop script failed for $id", e))
         case Failure(e) => logger.error("Calling stop script failed for $id", e)
       }
     })

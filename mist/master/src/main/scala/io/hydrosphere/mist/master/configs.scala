@@ -13,7 +13,7 @@ import cats.syntax._
 import cats.implicits._
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -203,7 +203,7 @@ object ContextsSettings {
     val default = ConfigRepr.ContextConfigRepr.fromConfig(Default, defaultCfg)
 
     val contextsCfg = config.getConfig("context")
-    val contexts = contextsCfg.root().entrySet().filter(entry => {
+    val contexts = contextsCfg.root().entrySet().asScala.filter(entry => {
       entry.getValue.valueType() == ConfigValueType.OBJECT
     }).map(entry => {
       val name = entry.getKey

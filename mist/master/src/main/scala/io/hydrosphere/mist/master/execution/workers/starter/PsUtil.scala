@@ -13,7 +13,7 @@ trait PsUtil {
     def parse(in: String, curr: Vector[String]): Seq[String] = in.headOption match {
       case None => curr
       case Some(' ') => parse(in.dropWhile(_ == ' '), curr)
-      case Some(sym) if sym == '"' || sym == ''' =>
+      case Some(sym) if sym == '"' || sym == '\'' =>
         val (elem, rest) = in.tail.span(_ != sym)
         parse(safeTail(rest), curr :+ elem)
       case Some(_) =>
