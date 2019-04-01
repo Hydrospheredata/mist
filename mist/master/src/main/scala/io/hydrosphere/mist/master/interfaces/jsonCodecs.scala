@@ -13,7 +13,7 @@ import io.hydrosphere.mist.master.{JobDetails, JobDetailsResponse, JobResult}
 import mist.api.{data => mdata}
 import spray.json._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Try
 
@@ -27,7 +27,7 @@ trait AnyJsonFormat extends DefaultJsonProtocol {
       case number: java.lang.Long => JsNumber(number)
       case string: String => JsString(string)
       case sequence: Seq[_] => seqFormat[Any].write(sequence)
-      case javaList: java.util.ArrayList[_] => seqFormat[Any].write(javaList.toList)
+      case javaList: java.util.ArrayList[_] => seqFormat[Any].write(javaList.asScala.toList)
       case array: Array[_] => seqFormat[Any].write(array.toList)
       case map: Map[_, _] => mapFormat[String, Any].write(map.asInstanceOf[Map[String, Any]])
       case boolean: Boolean if boolean => JsTrue

@@ -25,8 +25,31 @@ Also it's possible to use `auto` value for host configuration keys - mist automa
 ```
 mist.cluster.host = "auto"
 ```
-It's usefull in case when mist works in environment where we need to set up public visible address.
+It's useful in case when mist works in environment where we need to set up public visible address.
 For example: running mist-worker in separate docker container, using kubernetes cluster for spark
+
+### Database configuration
+
+To store information about jobs and their statuses Mist uses H2 as database.
+From v1.1.2 it's also possible to use PostgreSQL.
+Example:
+```
+mist.db {
+  poolSize = 32
+  driverClass = "org.postgresql.Driver"
+  jdbcUrl = "jdbc:postgresql:mist"
+  username = "..."
+  password = "..."
+}
+```
+By default, automatic db migration is enabled. It means that the provided user should be allowed to create tables.
+In case if it's not possible you can disable it and maintain your database manually using [these migration scripts](https://github.com/Hydrospheredata/mist/tree/master/mist/master/src/main/resources/db/migrations/postgresql).
+```
+mist.db {
+  migration = off
+}
+```
+
 
 ### Worker configuration
 

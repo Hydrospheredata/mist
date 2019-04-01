@@ -1,7 +1,10 @@
 package io.hydrosphere.mist.master.store
 
+import cats.implicits._
 import com.zaxxer.hikari.HikariConfig
 import io.hydrosphere.mist.master.{DbConfig, JobDetails, JobDetailsRequest, JobDetailsResponse}
+import javax.sql.DataSource
+import org.flywaydb.core.Flyway
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,28 +36,70 @@ trait JobRepository {
 }
 
 object JobRepository {
-  def apply(config: DbConfig): JobRepository = {
-
-    if (!config.filePath.isEmpty) {
-      H2JobsRepository(config.filePath.get)
-    } else {
-      if (!config.jdbcUrl.isEmpty) {
-        val url = config.jdbcUrl.get
-        if (url.startsWith("jdbc:h2") || url.startsWith("jdbc:postgresql")) {
-          val hikariConfig = new HikariConfig()
-          hikariConfig.setDriverClassName(config.driverClass.get)
-          hikariConfig.setJdbcUrl(config.jdbcUrl.get)
-          hikariConfig.setUsername(config.username.get)
-          hikariConfig.setPassword(config.password.get)
-
-          val hikari = new HikariDataSourceTransactor(hikariConfig, config.poolSize.get)
-          new HikariJobRepository(hikari)
-        } else {
-          throw new RuntimeException(s"Only H2 and PostgreSQL databases supported now")
-        }
-      } else {
-        throw new RuntimeException(s"You must setup either db.filepath either db.jdbcUrl parameter")
+  
+  def create(config: DbConfig): Either[Throwable, HikariJobRepository] = {
+    for {
+      setup  <- JobRepoSetup(config)
+      trns   <- transactor(setup)
+    } yield new HikariJobRepository(trns, setup.jobRequestSql)
+  }
+  
+  private def transactor(setup: JobRepoSetup): Either[Throwable, HikariDataSourceTransactor] = {
+    Either.catchNonFatal {
+      val transactor = new HikariDataSourceTransactor(hikariConfig(setup), setup.poolSize)
+      setup.migrationPath match {
+        case None => transactor
+        case Some(path) =>
+          migrate(path, transactor.ds)
+          transactor
       }
     }
   }
+  
+  private def migrate(migrationPath: String, ds: DataSource): Unit = {
+    val flyway = new Flyway()
+    flyway.setBaselineOnMigrate(true)
+    flyway.setLocations(migrationPath)
+    flyway.setDataSource(ds)
+    flyway.migrate()
+  }
+  
+  private def hikariConfig(setup: JobRepoSetup): HikariConfig = {
+    import setup._
+    
+    val configure =
+      SetterFunc[HikariConfig](driverClass)(_.setDriverClassName(_)) >>>
+      SetterFunc[HikariConfig](jdbcUrl)(_.setJdbcUrl(_)) >>>
+      SetterFunc[HikariConfig].opt(username)(_.setUsername(_)) >>>
+      SetterFunc[HikariConfig].opt(password)(_.setPassword(_))
+    
+    configure(new HikariConfig())
+  }
+  
+  object SetterFunc {
+    
+    def void[A, B](b: B)(f: (A, B) => Unit): A => A =
+      (a: A) => { f(a, b); a}
+    
+    def apply[A]: Partial[A] = new Partial[A]
+    
+    class Partial[A] { self =>
+      
+      def apply[B](b: B)(f: (A, B) => Unit): A => A =
+        (a: A) => { f(a, b); a }
+      
+      def opt[B](b: Option[B])(f: (A, B) => Unit): A => A =
+        b match {
+          case Some(v) => self(v)(f)
+          case None => identity[A]
+        }
+    }
+    
+    def opt[A, B](b: Option[B])(f: (A, B) => Unit): A => A =
+      b match {
+        case Some(v) => void(v)(f)
+        case None => identity[A]
+      }
+  }
+  
 }

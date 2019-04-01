@@ -9,7 +9,6 @@ object Library {
 
   val chill = "com.twitter" %% "chill" % "0.9.2"
 
-  val slick = "com.typesafe.slick" %% "slick" % "3.2.1"
   val h2 = "com.h2database" % "h2" % "1.4.194"
   val flyway = "org.flywaydb" % "flyway-core" % "4.1.1"
 

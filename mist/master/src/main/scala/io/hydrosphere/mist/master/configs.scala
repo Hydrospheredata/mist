@@ -13,7 +13,7 @@ import cats.syntax._
 import cats.implicits._
 import io.hydrosphere.mist.utils.{Logger, NetUtils}
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 case class AsyncInterfaceConfig(
@@ -203,7 +203,7 @@ object ContextsSettings {
     val default = ConfigRepr.ContextConfigRepr.fromConfig(Default, defaultCfg)
 
     val contextsCfg = config.getConfig("context")
-    val contexts = contextsCfg.root().entrySet().filter(entry => {
+    val contexts = contextsCfg.root().entrySet().asScala.filter(entry => {
       entry.getValue.valueType() == ConfigValueType.OBJECT
     }).map(entry => {
       val name = entry.getKey
@@ -256,31 +256,34 @@ object SecurityConfig {
 
 }
 
-/**
-  * @param filePath is mutually exclusive with other parameters. If filePath
-  *                 parameter is set then only it used and the configured DB is H2
-  *                 with a file database.
-  *
-  *                 Otherwise all others parameters is valid and intended for
-  *                 connection configuration with data pooling.
-  */
-case class DbConfig(
-  filePath: Option[String],
-  poolSize: Option[Int],
-  driverClass: Option[String],
-  jdbcUrl: Option[String],
-  username: Option[String],
-  password: Option[String]
-)
-
+sealed trait DbConfig
 object DbConfig {
-  def apply(c: Config): DbConfig =
-    new DbConfig(c.getOptString("filepath"),
-      c.getOptInt("poolSize"),
-      c.getOptString("driverClass"),
-      c.getOptString("jdbcUrl"),
-      c.getOptString("username"),
-      c.getOptString("password"))
+  
+  final case class H2OldConfig(filePath: String) extends DbConfig
+  
+  final case class JDBCDbConfig(
+    poolSize: Int,
+    driverClass: String,
+    jdbcUrl: String,
+    username: Option[String],
+    password: Option[String],
+    migration: Boolean
+  ) extends DbConfig
+  
+  def apply(c: Config): DbConfig = {
+    c.getOptString("filepath") match {
+      case Some(path) => H2OldConfig(path)
+      case None =>
+        JDBCDbConfig(
+          c.getInt("poolSize"),
+          c.getString("driverClass"),
+          c.getString("jdbcUrl"),
+          c.getOptString("username"),
+          c.getOptString("password"),
+          c.getBoolean("migration")
+        )
+    }
+  }
 }
 
 case class MasterConfig(

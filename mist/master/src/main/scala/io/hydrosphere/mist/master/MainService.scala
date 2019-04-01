@@ -16,7 +16,7 @@ import io.hydrosphere.mist.utils.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
+import scala.util.control.NonFatal
 
 class MainService(
   val execution: ExecutionService,
@@ -42,20 +42,17 @@ class MainService(
     source: JobDetails.Source,
     action: Action = Action.Execute
   ): Future[Option[JobResult]] = {
-    val promise = Promise[Option[JobResult]]
-    runJobRaw(req, source, action).map({
-      case Some(info) => info.promise.future.onComplete {
-        case Success(r) =>
-          promise.success(Some(JobResult.success(r)))
-        case Failure(e) =>
-          promise.success(Some(JobResult.failure(e.getMessage)))
-      }
-      case None => promise.success(None)
-    }).onFailure({
-      case e: Throwable => promise.failure(e)
+    
+    runJobRaw(req, source, action).flatMap({
+      case Some(info) =>
+        info.promise.future
+          .map(JobResult.success)
+          .recover({
+            case NonFatal(e) => JobResult.failure(e.getMessage)
+          }).map(Some(_))
+        
+      case None => Future.successful(None)
     })
-
-    promise.future
   }
 
   def devRun(

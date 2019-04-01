@@ -17,14 +17,22 @@ class TestContainer(id: String, closeF: => Unit) {
 }
 
 case class DockerImage(
-  repo: String,
+  repo: Option[String],
   name: String,
   version: String
 ) {
-  override def toString: String = s"$repo/$name:$version"
+  override def toString: String = repo match {
+    case Some(r) => s"$r/$name:$version"
+    case None => s"$name:$version"
+  }
 }
 
 object DockerImage {
+  def apply(repo: String, name: String, version: String): DockerImage =
+    DockerImage(Some(repo), name, version)
+  
+  def apply(name: String, version: String): DockerImage = new DockerImage(None, name, version)
+  
   val regex = "([A-Za-z0-9-]+)/([A-Za-z0-9-]+):([A-Za-z0-9-\\.]+)".r
   def apply(s: String): DockerImage = {
     s match {

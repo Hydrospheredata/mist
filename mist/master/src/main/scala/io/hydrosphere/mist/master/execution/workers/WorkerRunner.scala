@@ -36,12 +36,12 @@ object WorkerRunner {
         val promise = Promise[WorkerConnection]
         ps match {
           case WorkerProcess.Local(term) =>
-            term.onFailure({case e => promise.tryComplete(Failure(new RuntimeException(s"Process terminated with error $e")))})
+            term.failed.foreach(e => promise.tryComplete(Failure(new RuntimeException(s"Process terminated with error $e"))))
           case WorkerProcess.NonLocal =>
         }
 
         runnerCmd.stopAction match {
-          case StopAction.CustomFn(f) => regFuture.onFailure({case _ => f(id)})
+          case StopAction.CustomFn(f) => regFuture.failed.foreach(_ => f(id))
           case StopAction.Remote =>
         }
 
