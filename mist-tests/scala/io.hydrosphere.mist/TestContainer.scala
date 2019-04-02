@@ -58,7 +58,7 @@ object TestContainer {
 
     def hasImage(image: DockerImage): Boolean = {
       import image._
-      val filter = s"$repo/$name"
+      val filter = image.toString
       val images = client.listImagesCmd().withImageNameFilter(filter).exec()
       images.asScala.exists(i => i.getRepoTags.contains(image.toString))
     }
@@ -77,9 +77,9 @@ object TestContainer {
 
       val binds = volumes.map({case (k,v) => Bind.parse(s"$k:$v")})
       val createRsp = client.createContainerCmd(image.toString)
-        .withPortBindings(ports.toList.asJava)
-        .withBinds(binds.toList.asJava)
-        .exec()
+          .withPortBindings(ports.toList.asJava)
+          .withBinds(binds.toList.asJava)
+          .exec()
 
       val id = createRsp.getId
       client.startContainerCmd(id).exec()
