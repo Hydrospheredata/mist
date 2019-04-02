@@ -85,7 +85,7 @@ object TestContainer {
       client.startContainerCmd(id).exec()
 
       if (forward.nonEmpty) {
-        val port = forward.head._1
+        val port = forward.head._2
         val ip = client.inspectContainerCmd(id).exec().getNetworkSettings.getIpAddress
         awaitListening(ip, port, 20)
       }

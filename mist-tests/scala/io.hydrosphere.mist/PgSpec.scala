@@ -24,12 +24,12 @@ class PgSpec extends FunSpec
   var repo: HikariJobRepository = _
   
   override def beforeAll = {
-    pgContainer = TestContainer.run(DockerImage("postgres","latest"), Map(5432 -> 5432))
+    pgContainer = TestContainer.run(DockerImage("postgres","latest"), Map(5433 -> 5432))
     
     val cfg = DbConfig.JDBCDbConfig(
       10,
       "org.postgresql.Driver",
-      "jdbc:postgresql:postgres",
+      "jdbc:postgresql://localhost:5433/postgres",
       Some("postgres"),
       Some("postgres"),
       true
