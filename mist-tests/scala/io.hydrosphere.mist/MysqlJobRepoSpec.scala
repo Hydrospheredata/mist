@@ -36,7 +36,7 @@ class MysqlJobRepoSpec extends FunSpec
     val cfg = DbConfig.JDBCDbConfig(
       10,
       "org.mariadb.jdbc.Driver",
-      "jdbc:mariadb://localhost:3306/my_database",
+      "jdbc:mariadb://localhost:3306/my_database?characterEncoding=utf8",
       Some("root"),
       Some("password"),
       true
