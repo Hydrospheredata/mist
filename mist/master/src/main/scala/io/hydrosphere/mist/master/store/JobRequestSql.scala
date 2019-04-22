@@ -63,14 +63,38 @@ class PgJobRequestSql extends JobRequestSql {
 
 }
 
-object JobRequestSql {
-  def apply(jdbcUrl: String): JobRequestSql = {
-    jdbcUrl match {
-      case s if s.startsWith("jdbc:h2") => new H2JobRequestSql()
-      case s if s.startsWith("jdbc:postgresql") => new PgJobRequestSql()
-      case _ =>
-        throw new RuntimeException(s"Can't work with jdbc $jdbcUrl. Supported databses are PostgreSQL and H2");
-    }
+class MysqlJobRequestSql extends JobRequestSql {
+  override def update(jobDetails: JobDetails): Fragment = {
+    val r: JobDetailsRecord = JobDetailsRecord(jobDetails)
+    sql"""
+      insert into job_details
+      (
+        path, class_name, namespace, parameters,
+        external_id, function, action, source,
+        job_id, start_time, end_time, job_result,
+        status, worker_id, create_time
+      ) values
+      (
+        ${r.path}, ${r.className}, ${r.namespace}, ${r.parameters},
+        ${r.externalId}, ${r.function}, ${r.action}, ${r.source},
+        ${r.jobId}, ${r.startTime}, ${r.endTime}, ${r.jobResult},
+        ${r.status}, ${r.workerId}, ${r.createTime}
+      ) on duplicate key update
+        path = ${r.path},
+        class_name = ${r.className},
+        namespace = ${r.namespace},
+        parameters = ${r.parameters},
+        external_id = ${r.externalId},
+        function = ${r.function},
+        action = ${r.action},
+        source = ${r.source},
+        start_time = ${r.startTime},
+        end_time = ${r.endTime},
+        job_result = ${r.jobResult},
+        status = ${r.status},
+        worker_id = ${r.workerId},
+        create_time = ${r.createTime}
+    """
   }
 }
 

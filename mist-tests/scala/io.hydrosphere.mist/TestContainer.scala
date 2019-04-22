@@ -54,7 +54,12 @@ object TestContainer {
     DockerClientBuilder.getInstance(config).build()
   }
 
-  def run(image: DockerImage, forward: Map[Int, Int], volumes: Map[String, String] = Map.empty): TestContainer = {
+  def run(
+    image: DockerImage,
+    forward: Map[Int, Int],
+    volumes: Map[String, String] = Map.empty,
+    envs: Map[String, String] = Map.empty
+  ): TestContainer = {
 
     def hasImage(image: DockerImage): Boolean = {
       import image._
@@ -71,7 +76,8 @@ object TestContainer {
     def startFromImage(
       image: DockerImage,
       forward: Map[Int, Int],
-      volumes: Map[String, String]
+      volumes: Map[String, String],
+      envs: Map[String, String]
     ): String = {
       val ports = forward.map({case (k,v) => PortBinding.parse(s"$k:$v")})
 
@@ -79,6 +85,7 @@ object TestContainer {
       val createRsp = client.createContainerCmd(image.toString)
           .withPortBindings(ports.toList.asJava)
           .withBinds(binds.toList.asJava)
+          .withEnv(envs.map { case (key, value) => s"$key=$value" }.toList.asJava)
           .exec()
 
       val id = createRsp.getId
@@ -112,7 +119,7 @@ object TestContainer {
     }
 
     if (!hasImage(image)) pullImage(image)
-    val id = startFromImage(image, forward, volumes)
+    val id = startFromImage(image, forward, volumes, envs)
     new TestContainer(id, stopContainer(id))
   }
 

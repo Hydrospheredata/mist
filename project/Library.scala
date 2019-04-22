@@ -10,7 +10,11 @@ object Library {
   val chill = "com.twitter" %% "chill" % "0.9.2"
 
   val h2 = "com.h2database" % "h2" % "1.4.194"
-  val flyway = "org.flywaydb" % "flyway-core" % "4.1.1"
+   
+  val flyway = "org.flywaydb" % "flyway-core" % "5.2.4"
+  
+  //TODO: not latest because 2.4.0 changed the name of the database name which breaks flyway < 6.0.0
+  val mariaDb = "org.mariadb.jdbc" % "mariadb-java-client" % "2.3.0"
 
   val doobieVersion = "0.6.0"
   val doobieCore     = "org.tpolecat" %% "doobie-core"     % doobieVersion
