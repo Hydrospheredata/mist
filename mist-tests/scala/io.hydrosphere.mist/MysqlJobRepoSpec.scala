@@ -26,7 +26,7 @@ class MysqlJobRepoSpec extends FunSpec
   override def beforeAll = {
     mariadbContainer = TestContainer.run(
       DockerImage("bitnami/mariadb", "latest"),
-      Map(3306-> 3306),
+      Map(3307-> 3306),
       envs = Map(
         "MARIADB_ROOT_PASSWORD" -> "password",
         "MARIADB_DATABASE" -> "my_database"
