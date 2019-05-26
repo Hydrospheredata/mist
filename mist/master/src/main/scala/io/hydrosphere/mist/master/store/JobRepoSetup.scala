@@ -19,6 +19,7 @@ object JobRepoSetup {
   
   val H2MigrationPath: String = "/db/migrations/h2"
   val PgMigrationPath: String = "/db/migrations/postgresql"
+  val MysqlMigrationPath: String = "/db/migrations/mysql"
   
   def apply(config: DbConfig): Either[Throwable, JobRepoSetup] = config match {
     case DbConfig.H2OldConfig(path) =>
@@ -37,6 +38,9 @@ object JobRepoSetup {
       
     case pg: DbConfig.JDBCDbConfig if dbIs(pg, "postgresql") =>
       fromJdbcConf(pg, PgMigrationPath, new PgJobRequestSql).asRight
+
+    case mysql: DbConfig.JDBCDbConfig if dbIs(mysql, "mariadb") =>
+      fromJdbcConf(mysql, MysqlMigrationPath, new MysqlJobRequestSql).asRight
       
     case _: DbConfig.JDBCDbConfig =>
       new RuntimeException(s"Only H2 and PostgreSQL databases are supported now").asLeft
