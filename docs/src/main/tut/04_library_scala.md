@@ -296,6 +296,7 @@ It supports:
 - Unit
 - primitives: Short, Int, Long, Float, String, Double, Boolean
 - collections: Array, Seq, Map
+- Case classes
 - experimental: DataFrame, DataSet - *Warning* - return them only if you sure that they are small, otherwise it will lead to `OutOfMemory`
   ```scala
   import mist.api.encoding.spark._
@@ -329,20 +330,6 @@ import mist.api.encoding.JsEncoder
 
 class Foo(val a: Int, val b: String)
 val fooEnc: JsEncoder[Foo] = JsEncoder(foo => JsMap("a" -> foo.a.js, "b" -> foo.b.js))
-```
-
-Also it's possible to automatically derive an encoder for case classes:
-```tut:silent
-import mist.api._
-import mist.api.encoding
-import mist.api.encoding._
-import mist.api.encoding.defaults._
-
-case class Bar(a: Int, b: String)
-case class Foo(x: Int, foos: Seq[Bar])
-
-implicit val barEnc: JsEncoder[Bar] = encoding.generic.encoder[Bar]
-implicit val fooEnc: JsEncoder[Foo] = encoding.generic.encoder[Foo]
 ```
 
 #### Validation
