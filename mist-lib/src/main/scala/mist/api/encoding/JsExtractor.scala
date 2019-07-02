@@ -2,6 +2,7 @@ package mist.api.encoding
 
 import mist.api._
 import mist.api.data._
+import shadedshapeless.Lazy
 
 import scala.annotation.implicitNotFound
 import scala.reflect.ClassTag
@@ -134,6 +135,12 @@ trait defaultExtractors {
 
     case value => Failed.invalidType(s"Map[String, ${ext.`type`}]", value.toString)
   }
+
+  implicit def productExtWithDefaults[A <: Product](implicit
+      ext: Lazy[ObjectExtractor[A]],
+      patcher: Lazy[DefaultsPatcher[A]]
+  ): RootExtractor[A] =
+    RootExtractor[A](ext.value.`type`)(js => ext.value.apply(patcher.value.apply(js)))
 }
 
 

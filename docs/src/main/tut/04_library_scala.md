@@ -153,9 +153,6 @@ import org.apache.spark.SparkContext
 case class Foo(a: Int, b: String)
 
 object ComplexRootArgFn extends MistFn {
-
-  implicit val fooExt: RootExtractor[Foo] = encoding.generic.extractor[Foo]
-
   // expected input is json:
   //  {
   //    "a": 42,
