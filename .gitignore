@@ -25,3 +25,6 @@ env-*
 dist/
 build/
 __version__.py
+.bloop
+.metals
+.vscode

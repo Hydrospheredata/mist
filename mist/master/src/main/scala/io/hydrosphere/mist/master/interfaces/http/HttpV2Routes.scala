@@ -1,7 +1,7 @@
 package io.hydrosphere.mist.master.interfaces.http
 
 import akka.http.scaladsl.Http
-import java.io.File
+import java.io.{PrintWriter, StringWriter, File}
 
 import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
 import akka.http.scaladsl.model._
@@ -30,6 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util._
+import cats.data.NonEmptyList
 
 case class JobRunQueryParams(
   force: Boolean,
@@ -111,11 +112,11 @@ object HttpV2Base {
     }
   }
 
-  val statusesQuery: Directive1[Seq[JobDetails.Status]] = {
+  val statusesQuery: Directive1[Option[NonEmptyList[JobDetails.Status]]] = {
     parameter('status *).flatMap(raw => {
       toStatuses(raw) match {
         case Left(errors) => reject(ValidationRejection(s"Unknown statuses: ${errors.mkString(",")}"))
-        case Right(validated) => provide(validated)
+        case Right(validated) => provide(NonEmptyList.fromList(validated))
       }
     })
   }
@@ -170,9 +171,9 @@ object HttpV2Routes extends Logger {
       }
     } ~
     path( root / "workers"/ Segment / "jobs") { workerId =>
-      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+      get { (paginationQuery & statusesQuery) { (pagination, maybeStatuses) =>
         val req = JobDetailsRequest(pagination.limit, pagination.offset)
-          .withFilter(FilterClause.ByStatuses(statuses))
+          .withOptFilter(maybeStatuses.map(FilterClause.ByStatuses))
           .withFilter(FilterClause.ByWorkerId(workerId))
 
         onSuccess(jobService.getHistory(req))(rsp => {
@@ -231,9 +232,9 @@ object HttpV2Routes extends Logger {
 
   def functionsJobs(main: MainService): Route = {
     path( root / "functions" / Segment / "jobs" ) { functionId =>
-      get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+      get { (paginationQuery & statusesQuery) { (pagination, maybeStatuses) =>
         val req = JobDetailsRequest(pagination.limit, pagination.offset)
-          .withFilter(FilterClause.ByStatuses(statuses))
+          .withOptFilter(maybeStatuses.map(FilterClause.ByStatuses))
           .withFilter(FilterClause.ByFunctionId(functionId))
 
         onSuccess(main.execution.getHistory(req))(rsp => {
@@ -343,9 +344,9 @@ object HttpV2Routes extends Logger {
   def jobsRoutes(master: MainService): Route = {
     pathPrefix( root / "jobs") {
       pathEnd {
-        get { (paginationQuery & statusesQuery) { (pagination, statuses) =>
+        get { (paginationQuery & statusesQuery) { (pagination, maybeStatuses) =>
           val req = JobDetailsRequest(pagination.limit, pagination.offset)
-            .withFilter(FilterClause.ByStatuses(statuses))
+            .withOptFilter(maybeStatuses.map(FilterClause.ByStatuses))
 
           onSuccess(master.execution.getHistory(req))(rsp => {
             if (pagination.paginate)
@@ -432,13 +433,22 @@ object HttpV2Routes extends Logger {
   }
 
   def apiRoutes(main: MainService, artifacts: ArtifactRepository, mistHome: String): Route = {
-    val exceptionHandler =
-      ExceptionHandler {
+    val exceptionHandler = ExceptionHandler({ case e => {
+      val (status, msg) = e match {
         case ex @ (_: IllegalArgumentException  | _: IllegalStateException) =>
-          complete((StatusCodes.BadRequest, s"Bad request: ${ex.getMessage}"))
+          (StatusCodes.BadRequest, "Bad request")
         case ex =>
-          complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Server error: ${ex.getMessage}"))
+          (StatusCodes.InternalServerError, "Server error")
       }
+      val errorMsg = {
+        val writer = new StringWriter()
+        e.printStackTrace(new PrintWriter(writer))
+        writer.toString
+      }
+      val fullMsg = msg + ":\n" + errorMsg
+      complete(HttpResponse(status, entity = fullMsg))
+    }})
+
     handleExceptions(exceptionHandler) {
       functionAllRoutes(main) ~
       jobsRoutes(main) ~

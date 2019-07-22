@@ -95,6 +95,8 @@ class JobActor(
     case JobStarted(id, time) =>
       report.reportPlain(StartedEvent(id, time))
       context become completion(callback, connection)
+
+    case JobFailure(_, err) => completeFailure(err, Some(connection))
   }
 
   private def completion(callback: ActorRef, connection: PerJobConnection): Receive = {

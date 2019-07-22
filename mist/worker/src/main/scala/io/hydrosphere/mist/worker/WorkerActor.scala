@@ -8,6 +8,9 @@ import io.hydrosphere.mist.core.CommonData._
 import io.hydrosphere.mist.worker.runners._
 import mist.api.data.JsData
 import org.apache.spark.streaming.StreamingContext
+
+import scala.concurrent.Future
+
 import RequestSetup._
 
 class WorkerActor(
