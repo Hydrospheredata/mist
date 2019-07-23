@@ -8,6 +8,7 @@ import doobie.implicits._
 import io.hydrosphere.mist.core.CommonData.{Action, JobParams}
 import io.hydrosphere.mist.master.JobDetails.Source
 import mist.api.data.JsMap
+import cats.data.NonEmptyList
 
 class JobRequestsSqlSpec extends FunSpec with Matchers{
 
@@ -36,13 +37,13 @@ class JobRequestsSqlSpec extends FunSpec with Matchers{
     }
 
     it("sql filter by status") {
-      val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByStatuses(Seq(Initialized, Queued))))
+      val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).withFilter(ByStatuses(NonEmptyList.of(Initialized, Queued))))
       sql.toString() shouldEqual sql"select * from job_details where status IN (?, ?) order by create_time desc limit ? offset ? ".toString()
     }
 
     it("sql complex filter") {
       val sql = jobRequestSql.generateSqlByJobDetailsRequest(JobDetailsRequest(0, 0).
-        withFilter(ByStatuses(Seq(Initialized, Queued))).
+        withFilter(ByStatuses(NonEmptyList.of(Initialized, Queued))).
         withFilter(ByWorkerId("ID")).
         withFilter(ByFunctionId("ID")))
       sql.toString() shouldEqual sql"select * from job_details where function = ? and worker_id = ? and status IN (?, ?) order by create_time desc limit ? offset ? ".toString()
