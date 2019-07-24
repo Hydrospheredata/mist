@@ -536,7 +536,6 @@ class HttpApiV2Spec extends FunSpec
 
       val route = HttpV2Routes.apiRoutes(master, mock[ArtifactRepository], "")
       Post(s"/v2/api/functions/x/jobs", JsMap("1" -> "Hello".js)) ~> route ~> check {
-        responseAs[String] shouldBe "Bad request: argument missing"
         status shouldBe StatusCodes.BadRequest
       }
     }

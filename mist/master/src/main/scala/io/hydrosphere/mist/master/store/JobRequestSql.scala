@@ -93,25 +93,21 @@ trait JobRequestSql {
   def clear = sql"truncate table job_details"
 
   def filteredByStatuses(statuses: Seq[JobDetails.Status]): Fragment = {
-    if (statuses.nonEmpty) {
-      beginSql ++ sql"where " ++ Fragments.in(fr"status", jobDetailStatusToList(statuses))
-    } else {
-      beginSql
-    }
+    beginSql ++ statusFr(fr"where ", statuses)
   }
 
   def getAll(limit: Int, offset: Int, statuses: Seq[JobDetails.Status]): Fragment = {
     val endOfSQL = sql" limit $limit offset $offset"
 
-    if (statuses.nonEmpty) {
-      beginSql ++ sql"where " ++ Fragments.in(fr"status", jobDetailStatusToList(statuses)) ++ endOfSQL
-    } else {
-      beginSql ++ endOfSQL
-    }
+    beginSql ++ statusFr(fr"where ", statuses) ++ endOfSQL
   }
 
-  def jobDetailStatusToList(seq: Seq[JobDetails.Status]): NonEmptyList[String] =
-    NonEmptyList.fromList(seq.map(_.toString).toList).get
+  def statusFr(prefix: Fragment, statuses: Seq[JobDetails.Status]): Fragment = {
+    NonEmptyList.fromList(statuses.toList) match {
+      case None => Fragment.empty
+      case Some(inSt) => prefix ++ Fragments.in(fr"status", inSt.map(_.toString))
+    }
+  }  
 
   /**
     * Generates Doobie sql fragment with JobDetailsRequest
@@ -121,7 +117,7 @@ trait JobRequestSql {
       if (req.filters.isEmpty) sql"" else {
         fr"where" ++ req.filters.map {
           case ByFunctionId(id) => fr"function = $id"
-          case ByStatuses(statuses) => Fragments.in(fr"status", jobDetailStatusToList(statuses))
+          case ByStatuses(statuses) => Fragments.in(fr"status", statuses.map(_.toString))
           case ByWorkerId(id) => fr"worker_id = $id"
         }.reduce((a, b) => a ++ fr"and" ++ b)
       }
