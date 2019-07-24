@@ -3,10 +3,6 @@ from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open('README.rst', 'r') as f:
-    readme = f.read()
-
-
 about = {}
 with open(os.path.join(here, 'mistpy', '__version__.py'), 'r') as f:
     exec(f.read(), about)
@@ -15,7 +11,6 @@ setup(
     name = 'mistpy',
     version= about['__version__'],
     description = 'Mist python library api',
-    long_description=readme,
     author= 'Hydrospheredata',
     author_email = 'info@hydrosphere.io',
     url = 'https://hydrosphere.io/mist',

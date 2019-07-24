@@ -1,3 +1,0 @@
-===========
- Mist python library
-===========
