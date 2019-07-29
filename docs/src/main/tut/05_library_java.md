@@ -292,4 +292,4 @@ public class Hello extends MistFn {
 
 #### Testing
 
-If you want to unit-test your function there is an [example](https://github.com/Hydrospheredata/mist/blob/fix/library_complete/examples/examples/src/test/java/JavaTestingExampleTest.scala)
+If you want to unit-test your function there is an [example](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/test/java/JavaTestingExampleTest.scala)
