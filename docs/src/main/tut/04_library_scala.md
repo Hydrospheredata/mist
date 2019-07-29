@@ -410,4 +410,4 @@ object HelloWorld extends MistFn with Logging {
 
 #### Testing
 
-If you want to unit-test your function there is an [example](https://github.com/Hydrospheredata/mist/blob/fix/library_complete/examples/examples/src/test/scala/TestExampleSpec.scala)
+If you want to unit-test your function there is an [example](https://github.com/Hydrospheredata/mist/blob/master/examples/examples/src/test/scala/TestExampleSpec.scala)
