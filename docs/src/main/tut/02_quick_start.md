@@ -23,6 +23,7 @@ Vocabulary. The next terms are used in this document:
 
 You can install Mist from binaries or run it in docker.
 Docker image also has Apache Spark binaries for a quick start.
+From 1.1.0 Mist also support scala 2.12.
 
 Releases:
 
@@ -34,12 +35,19 @@ Releases:
 
 We have prebuilt Mist for `2.2.0`, `2.3.0`, `2.4.0` Spark versions.
 Version of distributive is a combination of Mist and Spark versions.
-For example the latest Mist release for Spark `2.3.0` version looks like this: `mist:{{ site.version }}-2.3.0`
+For example the latest Mist release for Spark `2.3.0` version looks like this: `mist:{{ site.version }}-2.4.0`
 
 ```sh
+# Scala 2.11
 docker run -p 2004:2004 \
    -v /var/run/docker.sock:/var/run/docker.sock \
-   hydrosphere/mist:{{ site.version }}-2.3.0
+   hydrosphere/mist:{{ site.version }}-2.4.0
+```
+```sh
+# Scala 2.12
+docker run -p 2004:2004 \
+   -v /var/run/docker.sock:/var/run/docker.sock \
+   hydrosphere/mist:{{ site.version }}-2.4.0-scala-2.12
 ```
 
 ### Run from binaries
@@ -48,8 +56,18 @@ docker run -p 2004:2004 \
 - Download Mist and run
 
 ```sh
+# Scala 2.11
 wget http://repo.hydrosphere.io/hydrosphere/static/mist-{{ site.version }}.tar.gz
 tar xvfz mist-{{ site.version }}.tar.gz
+cd mist-{{ site.version }}
+
+SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
+```
+
+```sh
+# Scala 2.12
+wget http://repo.hydrosphere.io/hydrosphere/static/mist-{{ site.version }}-scala-2.12.tar.gz
+tar xvfz mist-{{ site.version }}-scala-2.12.tar.gz
 cd mist-{{ site.version }}
 
 SPARK_HOME=${path to spark distributive} bin/mist-master start --debug true
