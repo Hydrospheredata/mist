@@ -41,10 +41,7 @@ trait Json4sConversion {
         }
       case JsTrue => JBool(true)
       case JsFalse => JBool(false)
-      case JsMap(fields) =>
-        val x = fields.map({case (k, v) => k -> translateAst(v)}).toList
-        println(x)
-        JObject(fields.map({case (k, v) => k -> translateAst(v)}).toList)
+      case JsMap(fields) => JObject(fields.map({case (k, v) => k -> translateAst(v)}).toList)
       case JsList(elems) => JArray(elems.map(translateAst).toList)
     }
     org.json4s.jackson.JsonMethods.pretty(translateAst(js))
