@@ -1,6 +1,7 @@
 package mist.api.encoding
 
 import mist.api.data._
+import shadedshapeless.Lazy
 
 import scala.annotation.implicitNotFound
 
@@ -36,6 +37,8 @@ trait defaultEncoders {
     case None => JsNull
   }
   implicit def mapEnc[A](implicit enc: JsEncoder[A]): JsEncoder[Map[String, A]] = JsEncoder(m => JsMap(m.mapValues(enc.apply)))
+
+  implicit def productEnc[A <: Product](implicit enc: Lazy[ObjectEncoder[A]]): JsEncoder[A] = JsEncoder(enc.value.apply)
 }
 
 object defaultEncoders extends defaultEncoders
