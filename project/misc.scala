@@ -72,7 +72,7 @@ object SparkLocal {
 
   def distrName(sparkV: String, scalaBinV: String): String = {
     val hadoopVersion = "2.7"
-    val scalaPostfix = if (scalaBinV == "2.12") "-scala-2.12" else ""
+    val scalaPostfix = "" //if (scalaBinV == "2.12") "-scala-2.12" else ""
     s"spark-$sparkV-bin-hadoop$hadoopVersion" + scalaPostfix
   }
 

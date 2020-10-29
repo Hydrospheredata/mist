@@ -43,7 +43,7 @@ lazy val mistLib = project.in(file("mist-lib"))
     sourceGenerators in Compile += (sourceManaged in Compile).map(dir => Boilerplate.gen(dir)).taskValue,
     unmanagedSourceDirectories in Compile += {
       val sparkV = sparkVersion.value
-      val sparkSpecific =  if (sparkV == "2.4.0") "spark-2.4.0" else "spark"
+      val sparkSpecific =  if (sparkV == "3.0.1") "spark-2.4.0" else "spark"
       baseDirectory.value / "src" / "main" / sparkSpecific
     },
     libraryDependencies ++= Library.spark(sparkVersion.value).map(_ % "provided"),
@@ -103,7 +103,8 @@ lazy val master = project.in(file("mist/master"))
       Library.jsr305 % "provided",
 
       Library.scalaTest % "test",
-      Library.mockito % "test"
+      Library.mockito % "test",
+      "org.glassfish.jersey.inject" % "jersey-hk2" % "2.30"
     )
   ).settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sparkVersion),
