@@ -31,6 +31,6 @@ setup(
 
     packages=find_packages(exclude=['tests']),
     setup_requires=['pytest-runner'], 
-    tests_require=['pytest==4.6.4'],
+    tests_require=['pytest==9.0.3'],
     test_suite='tests'
 )
